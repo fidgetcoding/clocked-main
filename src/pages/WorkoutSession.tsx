@@ -112,6 +112,7 @@ const WorkoutSession = () => {
   const [logged, setLogged] = useState(false);
   const [difficultyRating, setDifficultyRating] = useState<'too_easy' | 'just_right' | 'too_hard' | null>(null);
   const [xpBubble, setXpBubble] = useState<{ amount: number; id: number } | null>(null);
+  const [hasStartedOnce, setHasStartedOnce] = useState(false);
 
   const currentSegment = flatSegments[currentSegmentIndex];
   const nextSegment = flatSegments[currentSegmentIndex + 1];
@@ -190,9 +191,12 @@ const WorkoutSession = () => {
   const handleStart = () => {
     setIsRunning(true);
     setIsPaused(false);
-    // Add 10 XP immediately when starting
-    addXP(10);
-    showXpBubble(10);
+    // Add 10 XP only on first start, not on resume
+    if (!hasStartedOnce) {
+      addXP(10);
+      showXpBubble(10);
+      setHasStartedOnce(true);
+    }
   };
 
   const handlePauseResume = () => {
@@ -398,17 +402,17 @@ const WorkoutSession = () => {
           </span>
           
           {/* Right side - XP bar with bubble */}
-          <div className="flex flex-col items-end relative">
-            <VerticalXPBar currentXP={(user?.totalXP || 0) + currentXP} />
-            {/* XP Bubble */}
+          <div className="flex items-center relative">
+            {/* XP Bubble - positioned to left of bar, vertically centered */}
             {xpBubble && (
               <div 
                 key={xpBubble.id}
-                className="absolute right-full mr-2 top-0 text-volt font-bold text-sm whitespace-nowrap animate-xp-bubble"
+                className="absolute right-full mr-2 top-1/2 -translate-y-1/2 text-volt font-bold text-sm whitespace-nowrap animate-xp-bubble"
               >
                 +{xpBubble.amount} XP
               </div>
             )}
+            <VerticalXPBar currentXP={(user?.totalXP || 0) + currentXP} />
           </div>
         </header>
 
@@ -419,10 +423,6 @@ const WorkoutSession = () => {
             {isPreparation ? 'GET READY' : currentSegment?.name || 'WORK'}
           </h2>
 
-          {/* Shadowboxing hint - show INCOMING combo */}
-          {isShadowboxing && !isPreparation && displayCombo && (
-            <p className="text-xs text-volt font-bold mb-2 animate-pulse">INCOMING COMBO:</p>
-          )}
 
           {/* Timer */}
           <span className="timer-display text-8xl font-black text-volt text-glow-volt mb-2">
@@ -471,6 +471,10 @@ const WorkoutSession = () => {
           {/* Combo Display - Convert words to numbers/short codes */}
           {displayCombo && displayCombo.length > 0 && !isPreparation && (
             <div className="w-full max-w-sm bg-surface-1 rounded-xl p-4 border border-surface-3">
+              {/* Incoming combo label for shadowboxing */}
+              {isShadowboxing && (
+                <p className="text-xs text-volt font-bold mb-3 text-center">INCOMING COMBO</p>
+              )}
               <div className="flex items-center justify-center gap-2 flex-wrap">
                 {displayCombo.map((move, idx) => {
                   // Convert punch names to numbers if they're stored as words
