@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Minus, Plus, Bell, Play, Pause, RotateCcw, SkipForward } from 'lucide-react';
 import { AppLayout } from '@/components/layout/AppLayout';
@@ -45,16 +45,20 @@ const QuickTimer = () => {
   const [isSetupMode, setIsSetupMode] = useState(true);
   const [showResetConfirm, setShowResetConfirm] = useState(false);
 
-  // Timer tick effect
+  // Use ref to prevent stale closure issues with tickTimer
+  const tickTimerRef = useRef(tickTimer);
+  tickTimerRef.current = tickTimer;
+
+  // Timer tick effect - only depend on isRunning to prevent interval reset loop
   useEffect(() => {
     let interval: NodeJS.Timeout;
     if (timerState.isRunning) {
       interval = setInterval(() => {
-        tickTimer();
+        tickTimerRef.current();
       }, 1000);
     }
     return () => clearInterval(interval);
-  }, [timerState.isRunning, tickTimer]);
+  }, [timerState.isRunning]);
 
   // Play bell sound on round change
   useEffect(() => {
