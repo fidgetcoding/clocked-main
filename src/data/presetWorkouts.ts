@@ -217,6 +217,43 @@ const ADVANCED_COMBOS_2: string[][] = [
   ['1', '2', '3', '6', '7', '8', 'SLIP R', '5', '6', '5', '2', 'ROLL L', 'STEP OUT'],
 ];
 
+// PRO COMBOS - Elite level combinations with maximum complexity
+const PRO_COMBOS_1: string[][] = [
+  ['1', '2', '3', '2', 'ROLL L', '5', '6', '7', '8', '3', '2', 'SLIP R', 'CIRCLE L', 'STEP IN'],
+  ['7', '8', '7', '2', '3', '6', 'ROLL R', '5', '6', '5', '8', '7', 'SLIP L', 'STEP OUT', 'CIRCLE R'],
+  ['1', '1', '2', 'SLIP L', '3', '6', '5', '8', '7', '2', 'ROLL L', '3', '2', '6', 'STEP IN'],
+  ['5', '6', '5', '2', 'ROLL R', '7', '8', '3', '6', '3', '2', 'SLIP R', '5', '6', 'CIRCLE L'],
+  ['1', '2', '3', '6', '5', 'SLIP L', '7', '8', '7', '2', 'ROLL L', '3', '6', '5', 'STEP OUT'],
+  ['2', '3', '2', '5', '6', 'ROLL R', '7', '8', '3', '2', '6', 'SLIP R', '5', '8', 'CIRCLE R'],
+  ['1', 'SLIP L', '6', '5', '8', '7', '2', 'ROLL L', '3', '6', '3', '2', 'STEP IN', 'CIRCLE L'],
+  ['7', '2', '3', '6', '5', '6', 'SLIP R', '8', '7', '2', '3', 'ROLL L', '5', '6', 'STEP OUT'],
+  ['1', '2', '5', '6', '7', '8', '5', '2', 'ROLL R', '3', '2', '6', '5', 'SLIP L', 'CIRCLE R'],
+  ['3', '2', '7', '8', '5', '6', 'SLIP L', '5', '6', '2', '3', 'ROLL L', '7', '8', 'STEP IN'],
+  ['1', '1', '2', '3', '6', 'ROLL L', '5', '6', '7', '8', '5', 'SLIP R', '7', '8', 'STEP OUT'],
+  ['5', '2', '3', '6', '7', '8', '5', 'ROLL R', '8', '7', '2', '3', '6', 'SLIP L', 'CIRCLE L'],
+  ['1', '2', 'SLIP L', '3', '2', '5', '6', '7', '8', 'ROLL L', '7', '8', '2', '3', 'STEP IN'],
+  ['2', '3', '6', '5', '8', '7', '2', 'SLIP R', '7', '8', '3', '6', 'ROLL L', '5', 'CIRCLE R'],
+  ['1', '2', '3', '2', '5', '6', '7', '8', '5', '6', 'ROLL R', '7', '8', '7', '2', 'STEP OUT'],
+];
+
+const PRO_COMBOS_2: string[][] = [
+  ['1', '2', '3', '6', '5', '8', '7', 'ROLL L', '7', '8', '2', '3', 'CIRCLE L', 'STEP IN'],
+  ['5', '6', '7', '8', '5', '6', 'SLIP R', '3', '2', '6', '5', '8', '7', 'ROLL R', 'STEP OUT'],
+  ['1', '1', '2', '5', '6', '7', '8', '2', 'ROLL L', '3', '6', '7', '8', 'SLIP L', 'CIRCLE R'],
+  ['7', '8', '7', '2', '3', '6', 'SLIP L', '5', '6', '7', '8', '3', '2', 'ROLL L', 'STEP IN'],
+  ['1', '2', 'SLIP R', '3', '6', '5', '8', '7', '8', '7', '2', 'ROLL R', '3', '6', 'STEP OUT'],
+  ['3', '2', '5', '6', '7', '8', 'ROLL L', '7', '8', '7', '2', '3', 'SLIP L', '3', '6'],
+  ['1', '6', '5', '8', '7', '2', 'SLIP R', '3', '2', '7', '8', '5', '6', 'ROLL L', 'CIRCLE L'],
+  ['5', '2', '3', '6', '7', '8', '5', '6', 'SLIP L', '5', '6', '7', '8', '2', 'STEP IN'],
+  ['1', '2', '3', '2', '5', '6', 'ROLL R', '5', '6', '7', '8', '7', '8', '7', '2', 'CIRCLE R'],
+  ['7', '8', '5', '6', '7', '8', '2', 'SLIP R', '3', '6', '5', '8', '7', 'ROLL L', 'STEP OUT'],
+  ['1', '1', '2', '3', '6', '5', '8', 'SLIP L', '5', '8', '7', '2', '3', '6', 'ROLL R'],
+  ['2', '3', '2', '5', '6', '7', '8', 'ROLL L', '7', '8', '3', '2', '6', 'SLIP R', 'CIRCLE L'],
+  ['1', '2', '5', '6', '7', '8', '5', 'SLIP L', '7', '8', '7', '2', '3', 'ROLL L', 'STEP IN'],
+  ['3', '6', '5', '8', '7', '2', 'ROLL R', '7', '8', '5', '6', '2', '3', '6', 'CIRCLE R'],
+  ['1', '2', '3', '6', '7', '8', '5', '6', 'SLIP R', '5', '6', '7', '8', '5', '2', 'ROLL L', 'STEP OUT'],
+];
+
 export const BEGINNER_PRESET_WORKOUTS: Workout[] = [
   createWorkout('preset_beginner_1', 'Beginner Boxing I', 'beginner', BEGINNER_COMBOS_1),
   createWorkout('preset_beginner_2', 'Beginner Boxing II', 'beginner', BEGINNER_COMBOS_2),
@@ -233,8 +270,14 @@ export const ADVANCED_PRESET_WORKOUTS: Workout[] = [
   createWorkout('preset_advanced_2', 'Advanced Boxing II', 'advanced', ADVANCED_COMBOS_2),
 ];
 
+export const PRO_PRESET_WORKOUTS: Workout[] = [
+  createWorkout('preset_pro_1', 'Pro Boxing I', 'advanced', PRO_COMBOS_1),
+  createWorkout('preset_pro_2', 'Pro Boxing II', 'advanced', PRO_COMBOS_2),
+];
+
 export const ALL_PRESET_WORKOUTS: Workout[] = [
   ...BEGINNER_PRESET_WORKOUTS,
   ...INTERMEDIATE_PRESET_WORKOUTS,
   ...ADVANCED_PRESET_WORKOUTS,
+  ...PRO_PRESET_WORKOUTS,
 ];

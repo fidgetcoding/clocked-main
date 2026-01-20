@@ -271,8 +271,8 @@ const Build = () => {
           <button onClick={() => navigate(-1)} className="text-muted-foreground">
             <ArrowLeft className="w-6 h-6" />
           </button>
-          <h1 className="text-lg font-bold text-foreground">
-            {editId ? 'Edit Set' : 'Create Set'}
+          <h1 className="text-lg font-bold text-muted-foreground">
+            {editId ? 'Edit Set' : 'Create New Set'}
           </h1>
           <div className="w-16" /> {/* Spacer */}
         </header>
@@ -708,6 +708,17 @@ const Build = () => {
             </Button>
           )}
         </div>
+
+        {/* AI Builder Modal */}
+        {showAIBuilder && (
+          <AIBuilderModal
+            onClose={() => setShowAIBuilder(false)}
+            onGenerate={(prompt) => {
+              toast.success('AI workout generation coming soon!');
+              setShowAIBuilder(false);
+            }}
+          />
+        )}
       </div>
     </AppLayout>
   );
