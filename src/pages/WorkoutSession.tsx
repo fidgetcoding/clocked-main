@@ -128,10 +128,8 @@ const WorkoutSession = () => {
     
     if (isRunning && !isPaused) {
       interval = setInterval(() => {
-        // Increment elapsed time (only during actual workout, not preparation)
-        if (!isPreparation) {
-          setTotalElapsed(prev => prev + 1);
-        }
+        // Always increment elapsed time when running (including preparation)
+        setTotalElapsed(prev => prev + 1);
         // Decrement countdown
         setTimeRemaining(prev => prev - 1);
       }, 1000);
@@ -140,7 +138,7 @@ const WorkoutSession = () => {
     return () => {
       if (interval) clearInterval(interval);
     };
-  }, [isRunning, isPaused, isPreparation]);
+  }, [isRunning, isPaused]);
 
   // Handle segment transitions when time hits 0
   useEffect(() => {
