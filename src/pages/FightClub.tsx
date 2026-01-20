@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ArrowLeft, Users, Newspaper, Trophy, Search, MessageCircle, BarChart3, Send, ChevronRight } from 'lucide-react';
+import { ArrowLeft, Users, Newspaper, Trophy, Search, MessageCircle, BarChart3, Send, ChevronRight, Mic, MicOff } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
@@ -33,7 +33,12 @@ const FightClub = () => {
   const [selectedClub, setSelectedClub] = useState<Club | null>(null);
   const [clubTab, setClubTab] = useState<ClubTab>('feed');
   const [chatMessage, setChatMessage] = useState('');
-  
+  const [isRecordingVoice, setIsRecordingVoice] = useState(false);
+  const [clubChatMessages, setClubChatMessages] = useState([
+    { id: '1', userName: 'Coach Mike', avatar: '🧔', message: 'Good morning fighters!', time: '9:00 AM', isOwn: false },
+    { id: '2', userName: 'You', avatar: '⚡', message: 'Ready to train!', time: '9:05 AM', isOwn: true },
+    { id: '3', userName: 'Alex R.', avatar: '👨', message: 'Let\'s go! Starting my warmup now', time: '9:07 AM', isOwn: false },
+  ]);
   // Presets tab state
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<WorkoutCategory>('All');
@@ -116,11 +121,60 @@ const FightClub = () => {
     { id: '3', userName: 'Sarah C.', avatar: '👩', message: 'Anyone up for a live session tonight?', timeAgo: '6h ago', likes: 4 },
   ];
 
-  const clubChat = [
-    { id: '1', userName: 'Coach Mike', avatar: '🧔', message: 'Good morning fighters!', time: '9:00 AM', isOwn: false },
-    { id: '2', userName: 'You', avatar: '⚡', message: 'Ready to train!', time: '9:05 AM', isOwn: true },
-    { id: '3', userName: 'Alex R.', avatar: '👨', message: 'Let\'s go! Starting my warmup now', time: '9:07 AM', isOwn: false },
-  ];
+  // Voice recording for chat
+  const handleVoiceRecord = () => {
+    if (!('webkitSpeechRecognition' in window || 'SpeechRecognition' in window)) {
+      return;
+    }
+    
+    if (isRecordingVoice) {
+      setIsRecordingVoice(false);
+      return;
+    }
+    
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    const recognition = new SpeechRecognition();
+    recognition.continuous = false;
+    recognition.interimResults = false;
+    recognition.lang = 'en-US';
+    
+    recognition.onresult = (event: any) => {
+      const transcript = event.results[0][0].transcript;
+      if (transcript) {
+        const newMessage = {
+          id: crypto.randomUUID(),
+          userName: 'You',
+          avatar: '⚡',
+          message: transcript,
+          time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          isOwn: true,
+          isVoice: true,
+        };
+        setClubChatMessages(prev => [...prev, newMessage]);
+      }
+      setIsRecordingVoice(false);
+    };
+    
+    recognition.onerror = () => setIsRecordingVoice(false);
+    recognition.onend = () => setIsRecordingVoice(false);
+    
+    recognition.start();
+    setIsRecordingVoice(true);
+  };
+
+  const handleSendClubMessage = () => {
+    if (!chatMessage.trim()) return;
+    const newMessage = {
+      id: crypto.randomUUID(),
+      userName: 'You',
+      avatar: '⚡',
+      message: chatMessage,
+      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      isOwn: true,
+    };
+    setClubChatMessages(prev => [...prev, newMessage]);
+    setChatMessage('');
+  };
 
   const clubLeaderboard = [
     { rank: 1, name: 'Coach Mike', xp: 45000, avatar: '🧔', isLive: false },
@@ -208,9 +262,13 @@ const FightClub = () => {
             {clubTab === 'chat' && (
               <div className="flex flex-col h-full">
                 <div className="flex-1 px-4 py-4 space-y-3 overflow-y-auto">
-                  {clubChat.map((msg) => (
-                    <div key={msg.id} className={cn('flex gap-3', msg.isOwn && 'flex-row-reverse')}>
-                      <div className="w-8 h-8 rounded-full bg-surface-2 flex items-center justify-center text-lg flex-shrink-0">
+                  {clubChatMessages.map((msg) => (
+                    <button 
+                      key={msg.id} 
+                      onClick={() => msg.userName !== 'You' && navigate(`/profile/${msg.userName.toLowerCase().replace(/\s+/g, '-').replace('.', '')}`)}
+                      className={cn('flex gap-3 w-full text-left', msg.isOwn && 'flex-row-reverse')}
+                    >
+                      <div className="w-8 h-8 rounded-full bg-surface-2 flex items-center justify-center text-lg flex-shrink-0 hover:ring-2 hover:ring-volt transition-all">
                         {msg.avatar}
                       </div>
                       <div className={cn(
@@ -218,29 +276,43 @@ const FightClub = () => {
                         msg.isOwn ? 'bg-volt text-primary-foreground' : 'bg-surface-1'
                       )}>
                         {!msg.isOwn && (
-                          <p className="text-xs text-muted-foreground mb-1">{msg.userName}</p>
+                          <p className="text-xs text-muted-foreground mb-1 hover:text-volt transition-colors">{msg.userName}</p>
                         )}
-                        <p className={cn('text-sm', msg.isOwn ? 'text-primary-foreground' : 'text-foreground')}>
-                          {msg.message}
-                        </p>
+                        <div className="flex items-center gap-1">
+                          {(msg as any).isVoice && <Mic className="w-3 h-3 text-volt" />}
+                          <p className={cn('text-sm', msg.isOwn ? 'text-primary-foreground' : 'text-foreground')}>
+                            {msg.message}
+                          </p>
+                        </div>
                         <p className={cn('text-xs mt-1', msg.isOwn ? 'text-primary-foreground/70' : 'text-muted-foreground')}>
                           {msg.time}
                         </p>
                       </div>
-                    </div>
+                    </button>
                   ))}
                 </div>
 
-                {/* Chat Input */}
+                {/* Chat Input with Voice */}
                 <div className="px-4 py-4 border-t border-surface-3 safe-bottom">
                   <div className="flex gap-2">
                     <Input
                       value={chatMessage}
                       onChange={(e) => setChatMessage(e.target.value)}
+                      onKeyDown={(e) => e.key === 'Enter' && handleSendClubMessage()}
                       placeholder="Type a message..."
                       className="flex-1 bg-surface-1 border-surface-3"
                     />
-                    <Button className="bg-volt text-primary-foreground px-4">
+                    <Button 
+                      onClick={handleVoiceRecord}
+                      variant="outline"
+                      className={cn(
+                        "px-3 border-surface-3",
+                        isRecordingVoice && "bg-volt text-primary-foreground border-volt animate-pulse"
+                      )}
+                    >
+                      {isRecordingVoice ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
+                    </Button>
+                    <Button onClick={handleSendClubMessage} className="bg-volt text-primary-foreground px-4">
                       <Send className="w-4 h-4" />
                     </Button>
                   </div>

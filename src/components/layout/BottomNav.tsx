@@ -1,4 +1,4 @@
-import { Home, Settings, BarChart3, Users } from 'lucide-react';
+import { Home, User, BarChart3, Users } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 
@@ -12,7 +12,7 @@ const navItems: NavItem[] = [
   { icon: Home, label: 'HOME', path: '/' },
   { icon: BarChart3, label: 'MY STATS', path: '/stats' },
   { icon: Users, label: 'FIGHT CLUB', path: '/fight-club' },
-  { icon: Settings, label: 'SETTINGS', path: '/settings' },
+  { icon: User, label: 'PROFILE', path: '/profile' },
 ];
 
 export function BottomNav() {
