@@ -148,16 +148,13 @@ const Onboarding = () => {
             <img 
               src={clockedLogo} 
               alt="Clocked Logo" 
-              className="w-48 h-48 mx-auto mb-4 object-contain"
+              className="w-80 h-80 mx-auto mb-8 object-contain"
             />
-            <h1 className="text-4xl font-black text-foreground tracking-tight mb-2">
-              CLOCKED.
-            </h1>
             <p className="text-lg text-muted-foreground mb-12">
               Every fighter deserves a corner, even when they're training alone.
             </p>
             <Button onClick={() => handleNext()} className="btn-primary-glow w-full max-w-xs h-14 text-lg">
-              LET'S GET STARTED
+              GET STARTED
               <ArrowRight className="w-5 h-5 ml-2" />
             </Button>
           </div>
