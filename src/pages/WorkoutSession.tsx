@@ -54,47 +54,62 @@ const WorkoutSession = () => {
     const sections = ['warmup', 'grind', 'cooldown'] as const;
     let comboIndex = 0;
     
+    // First pass: collect all segments to know what's next
+    const tempSegments: { segment: any; sectionName: typeof sections[number]; phase: any; repeatIndex: number }[] = [];
+    
     sections.forEach((sectionName) => {
       const phases = workout.sections[sectionName];
       phases.forEach((phase) => {
         for (let r = 0; r < phase.repeats; r++) {
-          phase.segments.forEach((segment, segIdx) => {
-            let combo: string[] | undefined;
-            let nextCombo: string[] | undefined;
-            
-            const isShadowboxing = segment.segmentType === 'shadowboxing' || 
-                                   segment.name.toLowerCase().includes('shadow') || 
-                                   segment.name.toLowerCase().includes('technique');
-            const isComboSegment = segment.segmentType === 'combo' || segment.comboIndex === 'cycle';
-            
-            if (workout.combos && workout.combos.length > 0) {
-              if (isShadowboxing && !isComboSegment) {
-                // For shadowboxing: show the NEXT combo that's coming (don't increment)
-                nextCombo = workout.combos[comboIndex % workout.combos.length];
-              } else if (isComboSegment) {
-                // For combo segments: show current combo and increment
-                combo = workout.combos[comboIndex % workout.combos.length];
-                nextCombo = workout.combos[(comboIndex + 1) % workout.combos.length];
-                comboIndex++;
-              }
-            }
-            
-            segments.push({
-              id: `${segment.id}-${r}-${segIdx}`,
-              name: segment.name,
-              type: segment.type,
-              segmentType: segment.segmentType,
-              duration: segment.duration,
-              phaseName: phase.name,
-              section: sectionName,
-              combo,
-              nextCombo,
-              intensity: segment.intensity,
-              reps: segment.reps,
-              repeatIndex: phase.repeats > 1 ? r + 1 : undefined,
-            });
+          phase.segments.forEach((segment) => {
+            tempSegments.push({ segment, sectionName, phase, repeatIndex: r });
           });
         }
+      });
+    });
+    
+    // Second pass: build flat segments with proper next-segment awareness
+    tempSegments.forEach((item, idx) => {
+      const { segment, sectionName, phase, repeatIndex } = item;
+      let combo: string[] | undefined;
+      let nextCombo: string[] | undefined;
+      
+      const isShadowboxing = segment.segmentType === 'shadowboxing' || 
+                             segment.name.toLowerCase().includes('shadow') || 
+                             segment.name.toLowerCase().includes('technique');
+      const isComboSegment = segment.segmentType === 'combo' || segment.comboIndex === 'cycle';
+      
+      // Check if the NEXT segment is a combo drill
+      const nextItem = tempSegments[idx + 1];
+      const nextIsCombo = nextItem && (
+        nextItem.segment.segmentType === 'combo' || 
+        nextItem.segment.comboIndex === 'cycle'
+      );
+      
+      if (workout.combos && workout.combos.length > 0) {
+        if (isShadowboxing && !isComboSegment && nextIsCombo) {
+          // For shadowboxing: only show incoming combo if next segment is actually a combo drill
+          nextCombo = workout.combos[comboIndex % workout.combos.length];
+        } else if (isComboSegment) {
+          // For combo segments: show current combo and increment
+          combo = workout.combos[comboIndex % workout.combos.length];
+          comboIndex++;
+        }
+      }
+      
+      segments.push({
+        id: `${segment.id}-${repeatIndex}-${idx}`,
+        name: segment.name,
+        type: segment.type,
+        segmentType: segment.segmentType,
+        duration: segment.duration,
+        phaseName: phase.name,
+        section: sectionName,
+        combo,
+        nextCombo,
+        intensity: segment.intensity,
+        reps: segment.reps,
+        repeatIndex: phase.repeats > 1 ? repeatIndex + 1 : undefined,
       });
     });
     
@@ -456,13 +471,69 @@ const WorkoutSession = () => {
             ))}
           </div>
 
-          {/* Combo Display - Convert words to numbers/short codes */}
-          {displayCombo && displayCombo.length > 0 && !isPreparation && (
+          {/* Combo Display - for shadowboxing: show incoming combo OR freestyle */}
+          {isShadowboxing && !isPreparation && (
             <div className="w-full max-w-sm bg-surface-1 rounded-xl p-4 border border-surface-3">
-              {/* Incoming combo label for shadowboxing */}
-              {isShadowboxing && (
-                <p className="text-xs text-alert-red font-bold mb-3 text-center animate-pulse">INCOMING COMBO</p>
+              {displayCombo && displayCombo.length > 0 ? (
+                <>
+                  {/* Incoming combo label for shadowboxing */}
+                  <p className="text-xs text-alert-red font-bold mb-3 text-center animate-pulse">INCOMING COMBO</p>
+                  <div className="flex items-center justify-center gap-2 flex-wrap">
+                    {displayCombo.map((move, idx) => {
+                      // Convert punch names to numbers if they're stored as words
+                      const displayMove = (() => {
+                        const m = move.toUpperCase();
+                        if (m === 'JAB') return '1';
+                        if (m === 'CROSS' || m === 'STRAIGHT') return '2';
+                        if (m === 'LEAD HOOK' || m === 'LEFT HOOK') return '3';
+                        if (m === 'REAR HOOK' || m === 'RIGHT HOOK') return '4';
+                        if (m === 'LEAD UPPERCUT' || m === 'LEFT UPPERCUT') return '5';
+                        if (m === 'REAR UPPERCUT' || m === 'RIGHT UPPERCUT') return '6';
+                        if (m === 'LEAD BODY HOOK' || m === 'LEFT BODY') return '7';
+                        if (m === 'REAR BODY HOOK' || m === 'RIGHT BODY') return '8';
+                        // Keep defense/movement as short codes
+                        if (m.includes('SLIP L')) return 'SL';
+                        if (m.includes('SLIP R')) return 'SR';
+                        if (m.includes('ROLL L')) return 'RL';
+                        if (m.includes('ROLL R')) return 'RR';
+                        if (m === 'PULL') return 'PL';
+                        if (m === 'BLOCK') return 'BK';
+                        if (m.includes('CIRCLE L')) return '↺';
+                        if (m.includes('CIRCLE R')) return '↻';
+                        if (m.includes('STEP IN')) return '→';
+                        if (m.includes('STEP OUT')) return '←';
+                        return move; // Return original if already a number
+                      })();
+                      
+                      const isDefense = ['SL', 'SR', 'RL', 'RR', 'PL', 'BK'].includes(displayMove);
+                      const isMovement = ['↺', '↻', '→', '←'].includes(displayMove);
+                      
+                      return (
+                        <div key={idx} className="flex items-center gap-1">
+                          <span className={cn(
+                            'text-2xl font-black',
+                            isDefense ? 'text-yellow-500' : 
+                            isMovement ? 'text-blue-400' : 'text-volt'
+                          )}>
+                            {displayMove}
+                          </span>
+                          {idx < displayCombo.length - 1 && (
+                            <ChevronRight className="w-3 h-3 text-muted-foreground" />
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </>
+              ) : (
+                <p className="text-2xl font-black text-volt text-center">FREESTYLE</p>
               )}
+            </div>
+          )}
+          
+          {/* Combo Display for combo segments - always show the current combo */}
+          {!isShadowboxing && displayCombo && displayCombo.length > 0 && !isPreparation && (
+            <div className="w-full max-w-sm bg-surface-1 rounded-xl p-4 border border-surface-3">
               <div className="flex items-center justify-center gap-2 flex-wrap">
                 {displayCombo.map((move, idx) => {
                   // Convert punch names to numbers if they're stored as words
@@ -492,7 +563,6 @@ const WorkoutSession = () => {
                   
                   const isDefense = ['SL', 'SR', 'RL', 'RR', 'PL', 'BK'].includes(displayMove);
                   const isMovement = ['↺', '↻', '→', '←'].includes(displayMove);
-                  const isPunch = !isDefense && !isMovement;
                   
                   return (
                     <div key={idx} className="flex items-center gap-1">
