@@ -311,27 +311,23 @@ const WorkoutSession = () => {
         currentSegment?.type === 'rest' && !isPreparation ? 'bg-surface-1' : 'bg-background'
       )}>
         {/* Top Bar */}
-        <header className="flex items-center justify-between px-4 py-3 safe-top">
-          <button 
-            onClick={() => navigate('/')}
-            className="flex items-center gap-2 px-3 py-2 rounded-full bg-surface-1 border border-surface-3"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            <Home className="w-4 h-4" />
-          </button>
-          
-          <div className="flex items-center gap-3">
-            {/* Elapsed time */}
-            <span className="timer-display text-sm text-muted-foreground font-medium">
+        <header className="flex items-start justify-between px-4 py-3 safe-top">
+          {/* Left side - elapsed time */}
+          <div className="flex flex-col items-start gap-1">
+            <button 
+              onClick={() => navigate('/')}
+              className="flex items-center gap-2 px-3 py-2 rounded-full bg-surface-1 border border-surface-3"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              <Home className="w-4 h-4" />
+            </button>
+            <span className="timer-display text-2xl font-black text-muted-foreground ml-1">
               {formatTimeCompact(totalElapsed)}
             </span>
-            
-            {/* XP earned indicator */}
-            <div className="flex items-center gap-1 px-2 py-1 rounded-full bg-volt/10 border border-volt/20">
-              <span className="text-volt text-xs font-bold">+{currentXP}</span>
-            </div>
-
-            {/* Vertical XP Bar */}
+          </div>
+          
+          {/* Right side - XP bar */}
+          <div className="flex flex-col items-end">
             <VerticalXPBar currentXP={(user?.totalXP || 0) + currentXP} />
           </div>
         </header>
