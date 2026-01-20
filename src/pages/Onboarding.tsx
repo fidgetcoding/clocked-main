@@ -148,9 +148,9 @@ const Onboarding = () => {
             <img 
               src={clockedLogo} 
               alt="Clocked Logo" 
-              className="w-[26rem] h-[26rem] mx-auto object-contain"
+              className="w-[26rem] h-[26rem] mx-auto object-contain -mb-24"
             />
-            <p className="text-lg text-muted-foreground mb-12 -mt-4">
+            <p className="text-lg text-muted-foreground mb-12">
               Every fighter deserves a corner, even when they're training alone.
             </p>
             <Button onClick={() => handleNext()} className="btn-primary-glow w-full max-w-xs h-14 text-lg">
