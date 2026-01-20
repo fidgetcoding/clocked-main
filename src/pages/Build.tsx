@@ -1,20 +1,31 @@
 import { useState, useEffect } from 'react';
-import { ArrowLeft, Plus, Trash2, GripVertical, Play, Save, X, ChevronDown, ChevronUp } from 'lucide-react';
+import { ArrowLeft, Plus, Trash2, GripVertical, Play, X, ChevronDown, ChevronUp, Sparkles } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useWorkoutStore } from '@/stores/workoutStore';
-import { Workout, WorkoutPhase, WorkoutSegment } from '@/types';
+import { Workout, WorkoutPhase, WorkoutSegment, SegmentType } from '@/types';
 import { cn } from '@/lib/utils';
+import { 
+  getAllPresets, 
+  PUNCH_KEYS_BY_DIFFICULTY, 
+  DEFENSE_KEYS_BY_DIFFICULTY, 
+  MOVEMENT_KEYS_BY_DIFFICULTY,
+  ComboPreset 
+} from '@/data/comboPresets';
 
-const PUNCH_KEYS = ['1', '2', '3', '4', '5', '6', '7', '8'];
-const DEFENSE_KEYS = ['SLIP L', 'SLIP R', 'ROLL L', 'ROLL R', 'PULL', 'BLOCK'];
-const MOVEMENT_KEYS = ['CIRCLE L', 'CIRCLE R', 'STEP IN', 'STEP OUT'];
+const SEGMENT_TYPES: { key: SegmentType; label: string; color: string }[] = [
+  { key: 'work', label: 'W', color: 'bg-volt/20 text-volt' },
+  { key: 'rest', label: 'R', color: 'bg-surface-2 text-muted-foreground' },
+  { key: 'shadowboxing', label: 'S', color: 'bg-blue-500/20 text-blue-400' },
+  { key: 'combo', label: 'C', color: 'bg-purple-500/20 text-purple-400' },
+];
 
 const DEFAULT_SEGMENT: Omit<WorkoutSegment, 'id'> = {
   name: 'Work',
   type: 'active',
+  segmentType: 'work',
   duration: 60,
 };
 
@@ -53,6 +64,7 @@ const Build = () => {
   // UI state
   const [activeSection, setActiveSection] = useState<'warmup' | 'grind' | 'cooldown'>('grind');
   const [showComboBuilder, setShowComboBuilder] = useState(false);
+  const [comboMode, setComboMode] = useState<'custom' | 'presets'>('presets');
   const [currentCombo, setCurrentCombo] = useState<string[]>([]);
   const [editingComboIndex, setEditingComboIndex] = useState<number | null>(null);
 
@@ -70,6 +82,22 @@ const Build = () => {
       }
     }
   }, [editId, workouts]);
+
+  // Count combo/shadowboxing segments to determine required combos
+  const countComboSegments = () => {
+    let count = 0;
+    [...warmupPhases, ...grindPhases, ...cooldownPhases].forEach(phase => {
+      phase.segments.forEach(seg => {
+        if (seg.segmentType === 'combo' || seg.segmentType === 'shadowboxing') {
+          count += phase.repeats;
+        }
+      });
+    });
+    return count;
+  };
+
+  const requiredCombos = countComboSegments();
+  const combosComplete = combos.length >= requiredCombos || requiredCombos === 0;
 
   const getActivePhases = () => {
     switch (activeSection) {
@@ -133,6 +161,18 @@ const Build = () => {
     ));
   };
 
+  const cycleSegmentType = (phaseId: string, segmentId: string, currentType?: SegmentType) => {
+    const types: SegmentType[] = ['work', 'rest', 'shadowboxing', 'combo'];
+    const currentIndex = types.indexOf(currentType || 'work');
+    const nextType = types[(currentIndex + 1) % types.length];
+    const isActive = nextType !== 'rest';
+    updateSegment(phaseId, segmentId, { 
+      segmentType: nextType, 
+      type: isActive ? 'active' : 'rest',
+      name: nextType.charAt(0).toUpperCase() + nextType.slice(1),
+    });
+  };
+
   // Combo builder functions
   const addToCombo = (key: string) => {
     setCurrentCombo([...currentCombo, key]);
@@ -157,9 +197,14 @@ const Build = () => {
     setShowComboBuilder(false);
   };
 
+  const addPresetCombo = (preset: ComboPreset) => {
+    setCombos([...combos, preset.combo]);
+  };
+
   const editCombo = (index: number) => {
     setCurrentCombo(combos[index]);
     setEditingComboIndex(index);
+    setComboMode('custom');
     setShowComboBuilder(true);
   };
 
@@ -205,6 +250,16 @@ const Build = () => {
     navigate('/');
   };
 
+  // Get available keys based on difficulty
+  const punchKeys = PUNCH_KEYS_BY_DIFFICULTY[difficulty];
+  const defenseKeys = DEFENSE_KEYS_BY_DIFFICULTY[difficulty];
+  const movementKeys = MOVEMENT_KEYS_BY_DIFFICULTY[difficulty];
+  const presets = getAllPresets(difficulty);
+
+  const getSegmentTypeInfo = (segType?: SegmentType) => {
+    return SEGMENT_TYPES.find(t => t.key === (segType || 'work')) || SEGMENT_TYPES[0];
+  };
+
   return (
     <AppLayout hideNav>
       <div className="min-h-screen bg-background flex flex-col">
@@ -217,11 +272,12 @@ const Build = () => {
             {editId ? 'Edit Workout' : 'Create Workout'}
           </h1>
           <Button onClick={() => {/* AI Builder placeholder */}} size="sm" variant="outline" className="border-volt text-volt">
-            AI Builder
+            <Sparkles className="w-4 h-4 mr-1" />
+            AI
           </Button>
         </header>
 
-        <div className="flex-1 overflow-y-auto pb-24">
+        <div className="flex-1 overflow-y-auto pb-32">
           {/* Workout Name */}
           <div className="px-4 py-4 border-b border-surface-3">
             <Input
@@ -275,7 +331,7 @@ const Build = () => {
 
           {/* Phases */}
           <div className="px-4 py-4 space-y-4">
-            {getActivePhases().map((phase, phaseIndex) => (
+            {getActivePhases().map((phase) => (
               <div key={phase.id} className="bg-surface-1 rounded-xl border border-surface-3 overflow-hidden">
                 {/* Phase Header */}
                 <div className="flex items-center gap-3 p-3 border-b border-surface-3">
@@ -312,39 +368,40 @@ const Build = () => {
 
                 {/* Segments */}
                 <div className="divide-y divide-surface-3">
-                  {phase.segments.map((segment) => (
-                    <div key={segment.id} className="flex items-center gap-3 p-3">
-                      <button
-                        onClick={() => updateSegment(phase.id, segment.id, { 
-                          type: segment.type === 'active' ? 'rest' : 'active' 
-                        })}
-                        className={cn(
-                          'w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold',
-                          segment.type === 'active' ? 'bg-volt/20 text-volt' : 'bg-surface-2 text-muted-foreground'
-                        )}
-                      >
-                        {segment.type === 'active' ? 'W' : 'R'}
-                      </button>
-                      <Input
-                        value={segment.name}
-                        onChange={(e) => updateSegment(phase.id, segment.id, { name: e.target.value })}
-                        className="flex-1 bg-surface-2 border-surface-3 text-foreground text-sm h-8"
-                      />
-                      <Input
-                        type="number"
-                        value={segment.duration}
-                        onChange={(e) => updateSegment(phase.id, segment.id, { duration: parseInt(e.target.value) || 0 })}
-                        className="w-16 bg-surface-2 border-surface-3 text-foreground text-sm h-8 text-center"
-                      />
-                      <span className="text-xs text-muted-foreground">sec</span>
-                      <button
-                        onClick={() => removeSegment(phase.id, segment.id)}
-                        className="text-muted-foreground hover:text-destructive"
-                      >
-                        <X className="w-4 h-4" />
-                      </button>
-                    </div>
-                  ))}
+                  {phase.segments.map((segment) => {
+                    const segInfo = getSegmentTypeInfo(segment.segmentType);
+                    return (
+                      <div key={segment.id} className="flex items-center gap-3 p-3">
+                        <button
+                          onClick={() => cycleSegmentType(phase.id, segment.id, segment.segmentType)}
+                          className={cn(
+                            'w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold',
+                            segInfo.color
+                          )}
+                        >
+                          {segInfo.label}
+                        </button>
+                        <Input
+                          value={segment.name}
+                          onChange={(e) => updateSegment(phase.id, segment.id, { name: e.target.value })}
+                          className="flex-1 bg-surface-2 border-surface-3 text-foreground text-sm h-8"
+                        />
+                        <Input
+                          type="number"
+                          value={segment.duration}
+                          onChange={(e) => updateSegment(phase.id, segment.id, { duration: parseInt(e.target.value) || 0 })}
+                          className="w-16 bg-surface-2 border-surface-3 text-foreground text-sm h-8 text-center"
+                        />
+                        <span className="text-xs text-muted-foreground">sec</span>
+                        <button
+                          onClick={() => removeSegment(phase.id, segment.id)}
+                          className="text-muted-foreground hover:text-destructive"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      </div>
+                    );
+                  })}
                 </div>
 
                 {/* Add Segment */}
@@ -372,7 +429,19 @@ const Build = () => {
           {activeSection === 'grind' && (
             <div className="px-4 py-4 border-t border-surface-3">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="font-semibold text-foreground">Combos ({combos.length})</h3>
+                <div>
+                  <h3 className="font-semibold text-foreground">Combos ({combos.length})</h3>
+                  {requiredCombos > 0 && (
+                    <p className={cn(
+                      'text-xs',
+                      combosComplete ? 'text-volt' : 'text-orange-400'
+                    )}>
+                      {combosComplete 
+                        ? '✓ Combos complete' 
+                        : `Need ${requiredCombos - combos.length} more combo${requiredCombos - combos.length > 1 ? 's' : ''}`}
+                    </p>
+                  )}
+                </div>
                 <Button 
                   onClick={() => { setShowComboBuilder(true); setCurrentCombo([]); setEditingComboIndex(null); }}
                   size="sm" 
@@ -388,35 +457,37 @@ const Build = () => {
                   No combos yet. Add combos for shadowboxing and bag work.
                 </p>
               ) : (
-              <div className="space-y-2">
-                {combos.map((combo, idx) => (
-                  <div key={idx} className="flex items-center gap-2 bg-surface-1 rounded-lg p-3 border border-surface-3">
-                    <span className="text-xs text-muted-foreground w-6">#{idx + 1}</span>
-                    <div className="flex-1 flex flex-wrap gap-1">
-                      {combo.map((move, mIdx) => (
-                        <span 
-                          key={mIdx} 
-                          className={cn(
-                            'px-2 py-0.5 rounded text-xs font-medium',
-                            move.includes('SLIP') || move.includes('ROLL') || move.includes('PULL') || move.includes('BLOCK')
-                              ? 'bg-yellow-500/20 text-yellow-500'
-                              : 'bg-volt/20 text-volt'
-                          )}
-                        >
-                          {move}
-                        </span>
-                      ))}
+                <div className="space-y-2">
+                  {combos.map((combo, idx) => (
+                    <div key={idx} className="flex items-center gap-2 bg-surface-1 rounded-lg p-3 border border-surface-3">
+                      <span className="text-xs text-muted-foreground w-6">#{idx + 1}</span>
+                      <div className="flex-1 flex flex-wrap gap-1">
+                        {combo.map((move, mIdx) => (
+                          <span 
+                            key={mIdx} 
+                            className={cn(
+                              'px-2 py-0.5 rounded text-xs font-medium',
+                              move.includes('SLIP') || move.includes('ROLL') || move.includes('PULL') || move.includes('BLOCK')
+                                ? 'bg-yellow-500/20 text-yellow-500'
+                                : move.includes('CIRCLE') || move.includes('STEP')
+                                ? 'bg-blue-500/20 text-blue-400'
+                                : 'bg-volt/20 text-volt'
+                            )}
+                          >
+                            {move}
+                          </span>
+                        ))}
+                      </div>
+                      <button onClick={() => editCombo(idx)} className="text-muted-foreground hover:text-foreground">
+                        <Play className="w-4 h-4" />
+                      </button>
+                      <button onClick={() => deleteCombo(idx)} className="text-muted-foreground hover:text-destructive">
+                        <Trash2 className="w-4 h-4" />
+                      </button>
                     </div>
-                    <button onClick={() => editCombo(idx)} className="text-muted-foreground hover:text-foreground">
-                      <Play className="w-4 h-4" />
-                    </button>
-                    <button onClick={() => deleteCombo(idx)} className="text-muted-foreground hover:text-destructive">
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
+                  ))}
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -429,92 +500,194 @@ const Build = () => {
                 <X className="w-6 h-6" />
               </button>
               <h2 className="font-bold text-foreground">
-                {editingComboIndex !== null ? 'Edit Combo' : 'Build Combo'}
+                {editingComboIndex !== null ? 'Edit Combo' : 'Add Combo'}
               </h2>
-              <Button onClick={saveCombo} size="sm" className="bg-volt text-primary-foreground" disabled={currentCombo.length === 0}>
-                Save
-              </Button>
+              {comboMode === 'custom' ? (
+                <Button onClick={saveCombo} size="sm" className="bg-volt text-primary-foreground" disabled={currentCombo.length === 0}>
+                  Save
+                </Button>
+              ) : (
+                <div className="w-12" />
+              )}
             </header>
 
-            {/* Current Combo Display */}
-            <div className="px-4 py-6 border-b border-surface-3">
-              <div className="min-h-[60px] flex flex-wrap items-center gap-2 justify-center">
-                {currentCombo.length === 0 ? (
-                  <p className="text-muted-foreground">Tap keys to build combo</p>
-                ) : (
-                  currentCombo.map((move, idx) => (
+            {/* Mode Toggle */}
+            <div className="px-4 py-3 border-b border-surface-3">
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setComboMode('presets')}
+                  className={cn(
+                    'flex-1 py-2 rounded-lg text-sm font-medium transition-colors',
+                    comboMode === 'presets'
+                      ? 'bg-volt text-primary-foreground'
+                      : 'bg-surface-1 text-muted-foreground'
+                  )}
+                >
+                  Presets
+                </button>
+                <button
+                  onClick={() => setComboMode('custom')}
+                  className={cn(
+                    'flex-1 py-2 rounded-lg text-sm font-medium transition-colors',
+                    comboMode === 'custom'
+                      ? 'bg-volt text-primary-foreground'
+                      : 'bg-surface-1 text-muted-foreground'
+                  )}
+                >
+                  Custom
+                </button>
+              </div>
+            </div>
+
+            {comboMode === 'presets' ? (
+              /* Presets List */
+              <div className="flex-1 overflow-y-auto px-4 py-4">
+                <p className="text-xs text-muted-foreground uppercase tracking-wider mb-3">
+                  {difficulty.toUpperCase()} PRESETS
+                </p>
+                <div className="space-y-2">
+                  {presets.map((preset) => (
                     <button
-                      key={idx}
-                      onClick={() => removeFromCombo(idx)}
-                      className={cn(
-                        'px-4 py-2 rounded-lg font-bold text-lg',
-                        move.includes('SLIP') || move.includes('ROLL') || move.includes('PULL') || move.includes('BLOCK')
-                          ? 'bg-yellow-500/20 text-yellow-500 border border-yellow-500/30'
-                          : 'bg-volt/20 text-volt border border-volt/30'
-                      )}
+                      key={preset.id}
+                      onClick={() => {
+                        addPresetCombo(preset);
+                        setShowComboBuilder(false);
+                      }}
+                      className="w-full flex items-center gap-3 bg-surface-1 rounded-lg p-3 border border-surface-3 hover:border-volt transition-colors text-left"
                     >
-                      {move}
+                      <div className="flex-1">
+                        <p className="font-medium text-foreground text-sm">{preset.name}</p>
+                        <div className="flex flex-wrap gap-1 mt-1">
+                          {preset.combo.map((move, idx) => (
+                            <span 
+                              key={idx} 
+                              className={cn(
+                                'px-1.5 py-0.5 rounded text-[10px] font-medium',
+                                move.includes('SLIP') || move.includes('ROLL') || move.includes('PULL') || move.includes('BLOCK')
+                                  ? 'bg-yellow-500/20 text-yellow-500'
+                                  : move.includes('CIRCLE') || move.includes('STEP')
+                                  ? 'bg-blue-500/20 text-blue-400'
+                                  : 'bg-volt/20 text-volt'
+                              )}
+                            >
+                              {move}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                      <Plus className="w-5 h-5 text-volt" />
                     </button>
-                  ))
+                  ))}
+                </div>
+              </div>
+            ) : (
+              /* Custom Builder */
+              <div className="flex-1 overflow-y-auto">
+                {/* Current Combo Display */}
+                <div className="px-4 py-6 border-b border-surface-3">
+                  <div className="min-h-[60px] flex flex-wrap items-center gap-2 justify-center">
+                    {currentCombo.length === 0 ? (
+                      <p className="text-muted-foreground">Tap keys to build combo</p>
+                    ) : (
+                      currentCombo.map((move, idx) => (
+                        <button
+                          key={idx}
+                          onClick={() => removeFromCombo(idx)}
+                          className={cn(
+                            'px-4 py-2 rounded-lg font-bold text-lg',
+                            move.includes('SLIP') || move.includes('ROLL') || move.includes('PULL') || move.includes('BLOCK')
+                              ? 'bg-yellow-500/20 text-yellow-500 border border-yellow-500/30'
+                              : move.includes('CIRCLE') || move.includes('STEP')
+                              ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30'
+                              : 'bg-volt/20 text-volt border border-volt/30'
+                          )}
+                        >
+                          {move}
+                        </button>
+                      ))
+                    )}
+                  </div>
+                </div>
+
+                {/* Punch Keys */}
+                <div className="px-4 py-4">
+                  <p className="text-xs text-muted-foreground uppercase tracking-wider mb-3">Punches</p>
+                  <div className="grid grid-cols-4 gap-2">
+                    {punchKeys.map((key) => (
+                      <button
+                        key={key}
+                        onClick={() => addToCombo(key)}
+                        className="aspect-square rounded-xl bg-surface-1 border border-surface-3 text-foreground font-bold text-xl hover:bg-volt hover:text-primary-foreground transition-colors"
+                      >
+                        {key}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Defense Keys */}
+                <div className="px-4 py-4">
+                  <p className="text-xs text-muted-foreground uppercase tracking-wider mb-3">Defense</p>
+                  <div className="grid grid-cols-3 gap-2">
+                    {defenseKeys.map((key) => (
+                      <button
+                        key={key}
+                        onClick={() => addToCombo(key)}
+                        className="py-3 rounded-xl bg-surface-1 border border-surface-3 text-foreground font-medium text-sm hover:bg-yellow-500 hover:text-primary-foreground transition-colors"
+                      >
+                        {key}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Movement Keys - only show if available */}
+                {movementKeys.length > 0 && (
+                  <div className="px-4 py-4">
+                    <p className="text-xs text-muted-foreground uppercase tracking-wider mb-3">Movement</p>
+                    <div className="grid grid-cols-2 gap-2">
+                      {movementKeys.map((key) => (
+                        <button
+                          key={key}
+                          onClick={() => addToCombo(key)}
+                          className="py-3 rounded-xl bg-surface-1 border border-surface-3 text-foreground font-medium text-sm hover:bg-blue-500 hover:text-white transition-colors"
+                        >
+                          {key}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
                 )}
               </div>
-            </div>
-
-            {/* Punch Keys */}
-            <div className="px-4 py-4">
-              <p className="text-xs text-muted-foreground uppercase tracking-wider mb-3">Punches</p>
-              <div className="grid grid-cols-6 gap-2">
-                {PUNCH_KEYS.map((key) => (
-                  <button
-                    key={key}
-                    onClick={() => addToCombo(key)}
-                    className="aspect-square rounded-xl bg-surface-1 border border-surface-3 text-foreground font-bold text-xl hover:bg-volt hover:text-primary-foreground transition-colors"
-                  >
-                    {key}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Defense Keys */}
-            <div className="px-4 py-4">
-              <p className="text-xs text-muted-foreground uppercase tracking-wider mb-3">Defense</p>
-              <div className="grid grid-cols-3 gap-2">
-                {DEFENSE_KEYS.map((key) => (
-                  <button
-                    key={key}
-                    onClick={() => addToCombo(key)}
-                    className="py-3 rounded-xl bg-surface-1 border border-surface-3 text-foreground font-medium text-sm hover:bg-yellow-500 hover:text-primary-foreground transition-colors"
-                  >
-                    {key}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Movement Keys */}
-            <div className="px-4 py-4">
-              <p className="text-xs text-muted-foreground uppercase tracking-wider mb-3">Movement</p>
-              <div className="grid grid-cols-2 gap-2">
-                {MOVEMENT_KEYS.map((key) => (
-                  <button
-                    key={key}
-                    onClick={() => addToCombo(key)}
-                    className="py-3 rounded-xl bg-surface-1 border border-surface-3 text-foreground font-medium text-sm hover:bg-blue-500 hover:text-white transition-colors"
-                  >
-                    {key}
-                  </button>
-                ))}
-              </div>
-            </div>
+            )}
           </div>
         )}
 
         {/* Fixed Save Button at Bottom */}
         <div className="fixed bottom-0 left-0 right-0 p-4 bg-background border-t border-surface-3 safe-bottom">
-          <Button onClick={handleSave} className="btn-primary-glow w-full">
-            Save Workout
-          </Button>
+          {!combosComplete && requiredCombos > 0 ? (
+            <div className="space-y-2">
+              <p className="text-xs text-center text-orange-400">
+                Add {requiredCombos - combos.length} more combo{requiredCombos - combos.length > 1 ? 's' : ''} to complete workout
+              </p>
+              <div className="flex gap-2">
+                <Button 
+                  onClick={() => setShowComboBuilder(true)} 
+                  variant="outline" 
+                  className="flex-1 border-surface-3"
+                >
+                  Add Combos
+                </Button>
+                <Button onClick={handleSave} className="flex-1 bg-surface-2 text-muted-foreground">
+                  Save Anyway
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <Button onClick={handleSave} className="btn-primary-glow w-full">
+              Save Workout
+            </Button>
+          )}
         </div>
       </div>
     </AppLayout>

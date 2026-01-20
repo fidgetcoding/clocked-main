@@ -57,10 +57,13 @@ export interface UserProfile {
 }
 
 // Workout Types
+export type SegmentType = 'work' | 'rest' | 'shadowboxing' | 'combo';
+
 export interface WorkoutSegment {
   id: string;
   name: string;
   type: 'active' | 'rest';
+  segmentType?: SegmentType; // More specific type
   duration: number; // in seconds
   intensity?: string;
   reps?: number;

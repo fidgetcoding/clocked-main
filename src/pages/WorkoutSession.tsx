@@ -13,10 +13,12 @@ interface FlatSegment {
   id: string;
   name: string;
   type: 'active' | 'rest';
+  segmentType?: 'work' | 'rest' | 'shadowboxing' | 'combo';
   duration: number;
   phaseName: string;
   section: 'warmup' | 'grind' | 'cooldown';
   combo?: string[];
+  nextCombo?: string[];
   intensity?: string;
   reps?: number;
   repeatIndex?: number;
@@ -50,6 +52,7 @@ const WorkoutSession = () => {
     
     const segments: FlatSegment[] = [];
     const sections = ['warmup', 'grind', 'cooldown'] as const;
+    let comboIndex = 0;
     
     sections.forEach((sectionName) => {
       const phases = workout.sections[sectionName];
@@ -57,24 +60,29 @@ const WorkoutSession = () => {
         for (let r = 0; r < phase.repeats; r++) {
           phase.segments.forEach((segment, segIdx) => {
             let combo: string[] | undefined;
+            let nextCombo: string[] | undefined;
             
-            // Show combo for segments with comboIndex='cycle' OR shadowboxing/technique segments
-            const isShadowboxing = segment.name.toLowerCase().includes('shadow') || 
+            const isShadowboxing = segment.segmentType === 'shadowboxing' || 
+                                   segment.name.toLowerCase().includes('shadow') || 
                                    segment.name.toLowerCase().includes('technique');
+            const isComboSegment = segment.segmentType === 'combo';
             
-            if ((segment.comboIndex === 'cycle' || isShadowboxing) && workout.combos && workout.combos.length > 0) {
-              const comboIdx = r % workout.combos.length;
-              combo = workout.combos[comboIdx];
+            if ((segment.comboIndex === 'cycle' || isShadowboxing || isComboSegment) && workout.combos && workout.combos.length > 0) {
+              combo = workout.combos[comboIndex % workout.combos.length];
+              nextCombo = workout.combos[(comboIndex + 1) % workout.combos.length];
+              comboIndex++;
             }
             
             segments.push({
               id: `${segment.id}-${r}-${segIdx}`,
               name: segment.name,
               type: segment.type,
+              segmentType: segment.segmentType,
               duration: segment.duration,
               phaseName: phase.name,
               section: sectionName,
               combo,
+              nextCombo,
               intensity: segment.intensity,
               reps: segment.reps,
               repeatIndex: phase.repeats > 1 ? r + 1 : undefined,
@@ -94,9 +102,9 @@ const WorkoutSession = () => {
   const [isPaused, setIsPaused] = useState(true);
   const [isPreparation, setIsPreparation] = useState(true);
   const [isComplete, setIsComplete] = useState(false);
-  const [speed, setSpeed] = useState<0.5 | 1 | 2>(1);
   const [notes, setNotes] = useState('');
   const [logged, setLogged] = useState(false);
+  const [difficultyRating, setDifficultyRating] = useState<'too_easy' | 'just_right' | 'too_hard' | null>(null);
 
   const currentSegment = flatSegments[currentSegmentIndex];
   const nextSegment = flatSegments[currentSegmentIndex + 1];
@@ -106,10 +114,9 @@ const WorkoutSession = () => {
   // Calculate XP earned so far (10 XP per minute of active work)
   const currentXP = Math.floor((totalElapsed / 60) * 10);
 
-  // Timer effect with speed control
+  // Timer effect - always runs at normal speed
   useEffect(() => {
     let interval: NodeJS.Timeout;
-    const intervalMs = 1000 / speed; // Adjust interval based on speed
     
     if (isRunning && !isPaused && timeRemaining > 0) {
       interval = setInterval(() => {
@@ -117,18 +124,15 @@ const WorkoutSession = () => {
         if (!isPreparation) {
           setTotalElapsed((prev) => prev + 1);
         }
-      }, intervalMs);
+      }, 1000);
     } else if (timeRemaining === 0 && isRunning) {
       if (isPreparation) {
-        // End preparation, start first segment
         setIsPreparation(false);
         setTimeRemaining(flatSegments[0]?.duration || 60);
       } else if (currentSegmentIndex < flatSegments.length - 1) {
-        // Move to next segment
         setCurrentSegmentIndex((prev) => prev + 1);
         setTimeRemaining(flatSegments[currentSegmentIndex + 1].duration);
       } else {
-        // Workout complete
         setIsComplete(true);
         setIsRunning(false);
         if (workout) {
@@ -140,7 +144,7 @@ const WorkoutSession = () => {
     }
     
     return () => clearInterval(interval);
-  }, [isRunning, isPaused, timeRemaining, currentSegmentIndex, flatSegments, isPreparation, workout, markWorkoutUsed, addXP, totalElapsed, speed]);
+  }, [isRunning, isPaused, timeRemaining, currentSegmentIndex, flatSegments, isPreparation, workout, markWorkoutUsed, addXP, totalElapsed]);
 
   const handleStart = () => {
     setIsRunning(true);
@@ -175,6 +179,15 @@ const WorkoutSession = () => {
     setTimeRemaining((prev) => Math.max(0, prev + delta));
   };
 
+  // 50% halves the time, 2X doubles it
+  const halveTime = () => {
+    setTimeRemaining((prev) => Math.max(1, Math.floor(prev / 2)));
+  };
+
+  const doubleTime = () => {
+    setTimeRemaining((prev) => prev * 2);
+  };
+
   if (!workout) {
     return (
       <AppLayout>
@@ -187,8 +200,6 @@ const WorkoutSession = () => {
       </AppLayout>
     );
   }
-
-  const [difficultyRating, setDifficultyRating] = useState<'too_easy' | 'just_right' | 'too_hard' | null>(null);
 
   const handleLog = () => {
     const xpEarned = Math.floor((totalElapsed / 60) * 10);
@@ -245,12 +256,22 @@ const WorkoutSession = () => {
               <div>
                 <label className="text-sm text-muted-foreground mb-2 block">Difficulty</label>
                 <div className="flex gap-2">
-                  {['Too Easy', 'Just Right', 'Too Hard'].map((label, idx) => (
+                  {[
+                    { value: 'too_easy', label: 'Too Easy' },
+                    { value: 'just_right', label: 'Just Right' },
+                    { value: 'too_hard', label: 'Too Hard' },
+                  ].map((opt) => (
                     <button
-                      key={label}
-                      className="flex-1 py-2 px-3 rounded-lg bg-surface-1 border border-surface-3 text-sm text-muted-foreground hover:bg-surface-2 hover:text-foreground transition-colors"
+                      key={opt.value}
+                      onClick={() => setDifficultyRating(opt.value as typeof difficultyRating)}
+                      className={cn(
+                        'flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-colors',
+                        difficultyRating === opt.value
+                          ? 'bg-volt text-primary-foreground'
+                          : 'bg-surface-1 border border-surface-3 text-muted-foreground hover:bg-surface-2'
+                      )}
                     >
-                      {['😴', '💪', '🔥'][idx]} {label}
+                      {opt.label}
                     </button>
                   ))}
                 </div>
@@ -263,7 +284,7 @@ const WorkoutSession = () => {
           ) : (
             <div className="w-full max-w-xs mb-6">
               <div className="card-workout text-center">
-                <p className="text-volt font-semibold">✓ Workout Logged!</p>
+                <p className="text-volt font-semibold">Workout Logged!</p>
               </div>
             </div>
           )}
@@ -276,6 +297,12 @@ const WorkoutSession = () => {
     );
   }
 
+  // Check if current segment is shadowboxing (show next combo)
+  const isShadowboxing = currentSegment?.segmentType === 'shadowboxing';
+  const displayCombo = isShadowboxing && currentSegment?.nextCombo 
+    ? currentSegment.nextCombo 
+    : currentSegment?.combo;
+
   // Active workout screen
   return (
     <AppLayout hideNav>
@@ -284,120 +311,104 @@ const WorkoutSession = () => {
         currentSegment?.type === 'rest' && !isPreparation ? 'bg-surface-1' : 'bg-background'
       )}>
         {/* Top Bar */}
-        <header className="flex items-center justify-between px-4 py-4 safe-top">
+        <header className="flex items-center justify-between px-4 py-3 safe-top">
           <button 
             onClick={() => navigate('/')}
             className="flex items-center gap-2 px-3 py-2 rounded-full bg-surface-1 border border-surface-3"
           >
             <ArrowLeft className="w-4 h-4" />
             <Home className="w-4 h-4" />
-            <span className="text-sm font-medium">HOME</span>
           </button>
           
           <div className="flex items-center gap-3">
-            {/* XP Display */}
-            <div className="flex items-center gap-1 px-3 py-1.5 rounded-full bg-volt/20 border border-volt/30">
-              <span className="text-volt text-sm font-bold">+{currentXP} XP</span>
-            </div>
-            <span className="timer-display text-lg text-foreground font-bold">
+            {/* Elapsed time */}
+            <span className="timer-display text-sm text-muted-foreground font-medium">
               {formatTimeCompact(totalElapsed)}
             </span>
-          </div>
-        </header>
-
-        {/* Main Timer with Vertical XP Bar */}
-        <div className="flex-1 flex items-center justify-center px-4">
-          <div className="flex items-center gap-6">
-            {/* Timer Column */}
-            <div className="flex flex-col items-center">
-              {/* Phase Title */}
-              <h2 className="text-2xl font-black text-foreground mb-4 uppercase tracking-wider">
-                {isPreparation ? 'GET READY' : currentSegment?.name || 'WORK'}
-              </h2>
-
-              {/* Timer */}
-              <span className="timer-display text-timer-lg font-black text-volt text-glow-volt mb-4">
-                {formatTime(timeRemaining)}
-              </span>
-
-              {/* Segment Type */}
-              <div className="flex items-center gap-2 mb-6">
-                <div className="h-px w-16 bg-surface-3" />
-                <span className="text-sm text-muted-foreground uppercase tracking-widest">
-                  {isPreparation ? 'PREPARATION' : currentSegment?.type === 'rest' ? 'REST' : 'WORK'}
-                </span>
-                <div className="h-px w-16 bg-surface-3" />
-              </div>
+            
+            {/* XP earned indicator */}
+            <div className="flex items-center gap-1 px-2 py-1 rounded-full bg-volt/10 border border-volt/20">
+              <span className="text-volt text-xs font-bold">+{currentXP}</span>
             </div>
 
             {/* Vertical XP Bar */}
-            <VerticalXPBar currentXP={(user?.totalXP || 0) + currentXP} className="ml-4" />
+            <VerticalXPBar currentXP={(user?.totalXP || 0) + currentXP} />
           </div>
-        </div>
-        {/* Controls Section */}
-        <div className="px-4 mb-4">
-          {/* Time Adjustment Buttons */}
-          <div className="flex justify-center gap-3 mb-4">
+        </header>
+
+        {/* Main Timer */}
+        <div className="flex-1 flex flex-col items-center justify-center px-4">
+          {/* Phase Title */}
+          <h2 className="text-2xl font-black text-foreground mb-2 uppercase tracking-wider text-center">
+            {isPreparation ? 'GET READY' : currentSegment?.name || 'WORK'}
+          </h2>
+
+          {/* Shadowboxing hint - show upcoming combo */}
+          {isShadowboxing && !isPreparation && (
+            <p className="text-xs text-muted-foreground mb-2">NEXT COMBO:</p>
+          )}
+
+          {/* Timer */}
+          <span className="timer-display text-8xl font-black text-volt text-glow-volt mb-2">
+            {formatTime(timeRemaining)}
+          </span>
+
+          {/* Segment Type */}
+          <div className="flex items-center gap-2 mb-6">
+            <div className="h-px w-12 bg-surface-3" />
+            <span className="text-xs text-muted-foreground uppercase tracking-widest">
+              {isPreparation ? 'PREPARATION' : currentSegment?.type === 'rest' ? 'REST' : 
+               currentSegment?.segmentType?.toUpperCase() || 'WORK'}
+            </span>
+            <div className="h-px w-12 bg-surface-3" />
+          </div>
+
+          {/* Time Modification Buttons */}
+          <div className="flex gap-3 mb-4">
+            <button 
+              onClick={halveTime}
+              className="px-5 py-2 rounded-full bg-surface-1 border border-surface-3 text-foreground text-sm font-bold hover:bg-surface-2 transition-colors"
+            >
+              50%
+            </button>
+            <button 
+              onClick={doubleTime}
+              className="px-5 py-2 rounded-full bg-surface-1 border border-surface-3 text-foreground text-sm font-bold hover:bg-surface-2 transition-colors"
+            >
+              2X
+            </button>
+          </div>
+
+          {/* Fine-tune buttons */}
+          <div className="flex gap-2 mb-6">
             {['-30', '-15', '+15', '+30'].map((val) => (
               <button
                 key={val}
                 onClick={() => adjustTime(parseInt(val))}
-                className="px-4 py-2 rounded-full border border-surface-3 text-foreground text-sm font-medium hover:bg-surface-1 transition-colors"
+                className="px-3 py-1.5 rounded-full border border-surface-3 text-muted-foreground text-xs font-medium hover:bg-surface-1 transition-colors"
               >
                 {val}
               </button>
             ))}
           </div>
 
-          {/* Speed Buttons */}
-          <div className="flex justify-center gap-3 mb-4">
-            <button 
-              onClick={() => setSpeed(0.5)}
-              className={cn(
-                'px-6 py-2 rounded-full text-sm font-medium transition-colors',
-                speed === 0.5 
-                  ? 'bg-volt text-primary-foreground' 
-                  : 'bg-surface-1 border border-surface-3 text-muted-foreground hover:bg-surface-2'
-              )}
-            >
-              50%
-            </button>
-            <button 
-              onClick={() => setSpeed(1)}
-              className={cn(
-                'px-6 py-2 rounded-full text-sm font-medium transition-colors',
-                speed === 1 
-                  ? 'bg-volt text-primary-foreground' 
-                  : 'bg-surface-1 border border-surface-3 text-muted-foreground hover:bg-surface-2'
-              )}
-            >
-              1X
-            </button>
-            <button 
-              onClick={() => setSpeed(2)}
-              className={cn(
-                'px-6 py-2 rounded-full text-sm font-medium transition-colors',
-                speed === 2 
-                  ? 'bg-volt text-primary-foreground' 
-                  : 'bg-surface-1 border border-surface-3 text-muted-foreground hover:bg-surface-2'
-              )}
-            >
-              2X
-            </button>
-          </div>
-
-          {currentSegment?.combo && currentSegment.combo.length > 0 && !isPreparation && (
-            <div className="w-full max-w-sm bg-surface-1 rounded-xl p-4 border border-surface-3 mb-4">
+          {/* Combo Display */}
+          {displayCombo && displayCombo.length > 0 && !isPreparation && (
+            <div className="w-full max-w-sm bg-surface-1 rounded-xl p-4 border border-surface-3">
               <div className="flex items-center justify-center gap-2 flex-wrap">
-                {currentSegment.combo.map((move, idx) => (
+                {displayCombo.map((move, idx) => (
                   <div key={idx} className="flex items-center gap-2">
                     <span className={cn(
                       'text-xl font-black',
-                      move.includes('SLIP') || move.includes('ROLL') ? 'text-yellow-500' : 'text-volt'
+                      move.includes('SLIP') || move.includes('ROLL') || move.includes('PULL') || move.includes('BLOCK') 
+                        ? 'text-yellow-500' 
+                        : move.includes('CIRCLE') || move.includes('STEP')
+                        ? 'text-blue-400'
+                        : 'text-volt'
                     )}>
                       {move}
                     </span>
-                    {idx < currentSegment.combo!.length - 1 && (
+                    {idx < displayCombo.length - 1 && (
                       <ChevronRight className="w-4 h-4 text-muted-foreground" />
                     )}
                   </div>
@@ -412,16 +423,16 @@ const WorkoutSession = () => {
           {/* Phase Info */}
           <div className="flex items-center justify-between mb-2 text-sm">
             <div>
-              <p className="text-xs text-muted-foreground uppercase tracking-wider">Current Phase</p>
-              <p className="font-bold text-foreground uppercase">
-                {isPreparation ? 'PREPARATION' : currentSegment?.phaseName || 'WARMUP'}
+              <p className="text-xs text-muted-foreground uppercase tracking-wider">Current</p>
+              <p className="font-bold text-foreground uppercase text-sm">
+                {isPreparation ? 'PREP' : currentSegment?.phaseName || 'WARMUP'}
               </p>
             </div>
             <div className="text-right">
-              <p className="text-xs text-muted-foreground uppercase tracking-wider">Up Next</p>
+              <p className="text-xs text-muted-foreground uppercase tracking-wider">Next</p>
               <div className="flex items-center gap-1">
                 <span className="w-2 h-2 rounded-full bg-volt" />
-                <p className="font-bold text-foreground uppercase">
+                <p className="font-bold text-foreground uppercase text-sm">
                   {isPreparation ? flatSegments[0]?.name : nextSegment?.name || 'FINISH'}
                 </p>
               </div>
@@ -430,26 +441,24 @@ const WorkoutSession = () => {
 
           {/* Progress Bar */}
           <div className="mb-4">
-            <div className="flex items-center justify-between text-xs text-muted-foreground mb-1">
-              <span>START</span>
-              <span>{Math.round(progressPercent)}% COMPLETE</span>
-              <span>FINISH</span>
-            </div>
             <div className="h-1 bg-surface-2 rounded-full overflow-hidden">
               <div 
                 className="h-full bg-volt transition-all duration-300"
                 style={{ width: `${progressPercent}%` }}
               />
             </div>
+            <p className="text-[10px] text-center text-muted-foreground mt-1">
+              {Math.round(progressPercent)}% COMPLETE
+            </p>
           </div>
 
           {/* Controls */}
           <div className="flex items-center justify-center gap-6">
             <button
               onClick={handleReset}
-              className="w-14 h-14 rounded-full bg-surface-1 border border-surface-3 flex items-center justify-center"
+              className="w-12 h-12 rounded-full bg-surface-1 border border-surface-3 flex items-center justify-center"
             >
-              <RotateCcw className="w-6 h-6 text-foreground" />
+              <RotateCcw className="w-5 h-5 text-foreground" />
             </button>
 
             <button
@@ -465,9 +474,9 @@ const WorkoutSession = () => {
 
             <button
               onClick={handleSkip}
-              className="w-14 h-14 rounded-full bg-surface-1 border border-surface-3 flex items-center justify-center"
+              className="w-12 h-12 rounded-full bg-surface-1 border border-surface-3 flex items-center justify-center"
             >
-              <SkipForward className="w-6 h-6 text-foreground" />
+              <SkipForward className="w-5 h-5 text-foreground" />
             </button>
           </div>
         </div>
