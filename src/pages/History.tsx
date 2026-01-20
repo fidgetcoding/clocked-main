@@ -85,33 +85,31 @@ const History = () => {
     <AppLayout>
       <div className="min-h-screen pb-24">
         {/* Header */}
-        <header className="px-4 pt-8 pb-6 safe-top">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <HistoryIcon className="w-6 h-6 text-volt" />
-              <h1 className="text-2xl font-black text-foreground tracking-wider">
-                WORKOUT LOG
-              </h1>
-            </div>
-            <div className="flex items-center gap-2">
-              <Button
-                onClick={handleAnalyze}
-                size="sm"
-                variant="outline"
-                className="border-volt text-volt hover:bg-volt/10"
-              >
-                <Brain className="w-4 h-4 mr-1" />
-                AI Coach
-              </Button>
-              <Button
-                onClick={() => setShowAddModal(true)}
-                size="sm"
-                className="bg-volt text-primary-foreground"
-              >
-                <Plus className="w-4 h-4 mr-1" />
-                Log
-              </Button>
-            </div>
+        <header className="px-4 pt-8 pb-4 safe-top">
+          <div className="flex items-center gap-3 mb-4">
+            <HistoryIcon className="w-6 h-6 text-volt" />
+            <h1 className="text-2xl font-black text-foreground tracking-wider">
+              WORKOUT LOG
+            </h1>
+          </div>
+          
+          {/* Action buttons below header */}
+          <div className="flex gap-2">
+            <Button
+              onClick={handleAnalyze}
+              variant="outline"
+              className="flex-1 border-volt text-volt hover:bg-volt/10"
+            >
+              <Brain className="w-4 h-4 mr-2" />
+              AI Coach
+            </Button>
+            <Button
+              onClick={() => setShowAddModal(true)}
+              className="flex-1 bg-volt text-primary-foreground"
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              Log Workout
+            </Button>
           </div>
         </header>
 

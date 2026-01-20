@@ -288,7 +288,7 @@ const Build = () => {
           <div className="w-16" /> {/* Spacer */}
         </header>
 
-        {/* Mode Toggle - Custom vs AI */}
+        {/* Mode Toggle - Custom first, AI second */}
         <div className="px-4 py-3 border-b border-surface-3">
           <div className="flex gap-2">
             <button
