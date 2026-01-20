@@ -111,6 +111,8 @@ const WorkoutSession = () => {
   const [notes, setNotes] = useState('');
   const [logged, setLogged] = useState(false);
   const [difficultyRating, setDifficultyRating] = useState<'too_easy' | 'just_right' | 'too_hard' | null>(null);
+  const [xpBubble, setXpBubble] = useState<{ amount: number; id: number } | null>(null);
+  const [hasStartedOnce, setHasStartedOnce] = useState(false);
 
   const currentSegment = flatSegments[currentSegmentIndex];
   const nextSegment = flatSegments[currentSegmentIndex + 1];
@@ -120,45 +122,55 @@ const WorkoutSession = () => {
   // Calculate XP earned so far (10 XP per minute of active work)
   const currentXP = Math.floor((totalElapsed / 60) * 10);
 
-  // Timer effect - always runs at normal speed
+  // Separate effect for total elapsed timer - runs independently
   useEffect(() => {
     let interval: NodeJS.Timeout | null = null;
     
-    if (isRunning && !isPaused) {
+    if (isRunning && !isPaused && !isPreparation) {
       interval = setInterval(() => {
-        // Always increment total elapsed when workout is running (not in prep)
-        if (!isPreparation) {
-          setTotalElapsed((prev) => prev + 1);
-        }
-        
-        setTimeRemaining((prev) => {
-          if (prev <= 1) {
-            // Time is up, handle segment transition
-            if (isPreparation) {
-              setIsPreparation(false);
-              return flatSegments[0]?.duration || 60;
-            } else if (currentSegmentIndex < flatSegments.length - 1) {
-              setCurrentSegmentIndex((idx) => idx + 1);
-              return flatSegments[currentSegmentIndex + 1]?.duration || 60;
-            } else {
-              // Workout complete
-              setIsComplete(true);
-              setIsRunning(false);
-              if (workout) {
-                markWorkoutUsed(workout.id);
-              }
-              return 0;
-            }
-          }
-          return prev - 1;
-        });
+        setTotalElapsed((prev) => prev + 1);
       }, 1000);
     }
     
     return () => {
       if (interval) clearInterval(interval);
     };
-  }, [isRunning, isPaused, isPreparation, currentSegmentIndex, flatSegments, workout, markWorkoutUsed]);
+  }, [isRunning, isPaused, isPreparation]);
+
+  // Countdown timer effect
+  useEffect(() => {
+    let interval: NodeJS.Timeout | null = null;
+    
+    if (isRunning && !isPaused && timeRemaining > 0) {
+      interval = setInterval(() => {
+        setTimeRemaining((prev) => prev - 1);
+      }, 1000);
+    }
+    
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [isRunning, isPaused, timeRemaining]);
+
+  // Handle segment transitions when time hits 0
+  useEffect(() => {
+    if (timeRemaining === 0 && isRunning) {
+      if (isPreparation) {
+        setIsPreparation(false);
+        setTimeRemaining(flatSegments[0]?.duration || 60);
+      } else if (currentSegmentIndex < flatSegments.length - 1) {
+        setCurrentSegmentIndex((prev) => prev + 1);
+        setTimeRemaining(flatSegments[currentSegmentIndex + 1]?.duration || 60);
+      } else {
+        // Workout complete
+        setIsComplete(true);
+        setIsRunning(false);
+        if (workout) {
+          markWorkoutUsed(workout.id);
+        }
+      }
+    }
+  }, [timeRemaining, isRunning, isPreparation, currentSegmentIndex, flatSegments, workout, markWorkoutUsed]);
 
   // Award XP when workout is complete
   useEffect(() => {
@@ -168,11 +180,23 @@ const WorkoutSession = () => {
     }
   }, [isComplete, totalElapsed, addXP]);
 
+  const showXpBubble = (amount: number) => {
+    const id = Date.now();
+    setXpBubble({ amount, id });
+    setTimeout(() => {
+      setXpBubble((current) => (current?.id === id ? null : current));
+    }, 2000);
+  };
+
   const handleStart = () => {
     setIsRunning(true);
     setIsPaused(false);
-    // Add 10 XP immediately when starting
-    addXP(10);
+    // Add 10 XP only on first start, not on resume
+    if (!hasStartedOnce) {
+      addXP(10);
+      showXpBubble(10);
+      setHasStartedOnce(true);
+    }
   };
 
   const handlePauseResume = () => {
@@ -377,8 +401,17 @@ const WorkoutSession = () => {
             {formatTimeCompact(totalElapsed)}
           </span>
           
-          {/* Right side - XP bar */}
-          <div className="flex flex-col items-end">
+          {/* Right side - XP bar with bubble */}
+          <div className="flex items-center relative">
+            {/* XP Bubble - positioned to left of bar, vertically centered */}
+            {xpBubble && (
+              <div 
+                key={xpBubble.id}
+                className="absolute right-full mr-2 top-1/2 -translate-y-1/2 text-volt font-bold text-sm whitespace-nowrap animate-xp-bubble"
+              >
+                +{xpBubble.amount} XP
+              </div>
+            )}
             <VerticalXPBar currentXP={(user?.totalXP || 0) + currentXP} />
           </div>
         </header>
@@ -390,10 +423,6 @@ const WorkoutSession = () => {
             {isPreparation ? 'GET READY' : currentSegment?.name || 'WORK'}
           </h2>
 
-          {/* Shadowboxing hint - show INCOMING combo */}
-          {isShadowboxing && !isPreparation && displayCombo && (
-            <p className="text-xs text-volt font-bold mb-2 animate-pulse">INCOMING COMBO:</p>
-          )}
 
           {/* Timer */}
           <span className="timer-display text-8xl font-black text-volt text-glow-volt mb-2">
@@ -442,6 +471,10 @@ const WorkoutSession = () => {
           {/* Combo Display - Convert words to numbers/short codes */}
           {displayCombo && displayCombo.length > 0 && !isPreparation && (
             <div className="w-full max-w-sm bg-surface-1 rounded-xl p-4 border border-surface-3">
+              {/* Incoming combo label for shadowboxing */}
+              {isShadowboxing && (
+                <p className="text-xs text-alert-red font-bold mb-3 text-center animate-pulse">INCOMING COMBO</p>
+              )}
               <div className="flex items-center justify-center gap-2 flex-wrap">
                 {displayCombo.map((move, idx) => {
                   // Convert punch names to numbers if they're stored as words

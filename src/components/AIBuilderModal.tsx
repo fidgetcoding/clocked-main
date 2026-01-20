@@ -341,26 +341,20 @@ export const AIBuilderModal = ({ onClose, onGenerate, baseWorkout, onWorkoutGene
     }
     
     // Parse the prompt and generate workout, then navigate to Build page
-    setTimeout(() => {
-      const workout = generateWorkoutFromPrompt(prompt, user?.experienceLevel || 'beginner');
-      
-      // If we have a callback, use that (for inline usage)
-      if (onWorkoutGenerated) {
-        onWorkoutGenerated(workout);
-        setIsGenerating(false);
-        onClose();
-        return;
-      }
-      
-      // Otherwise navigate to build page with workout data
+    const workout = generateWorkoutFromPrompt(prompt, user?.experienceLevel || 'beginner');
+    
+    // If we have a callback, use that (for inline usage)
+    if (onWorkoutGenerated) {
+      onWorkoutGenerated(workout);
       setIsGenerating(false);
-      toast.success(`Generated "${workout.name}" - now customize it!`);
       onClose();
-      
-      // Navigate to build page with the generated workout data encoded
-      const workoutData = encodeURIComponent(JSON.stringify(workout));
-      navigate(`/build?ai=${workoutData}`);
-    }, 1000);
+      return;
+    }
+    
+    // Navigate immediately to build page with workout data (don't close modal first to avoid flash)
+    toast.success(`Generated "${workout.name}" - now customize it!`);
+    const workoutData = encodeURIComponent(JSON.stringify(workout));
+    navigate(`/build?ai=${workoutData}`, { replace: true });
   };
 
   const handleSuggestionClick = (suggestion: string) => {

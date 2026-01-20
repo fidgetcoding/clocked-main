@@ -168,11 +168,10 @@ const History = () => {
       combos,
     };
     
-    // Navigate to build page with workout data
+    // Navigate to build page with workout data immediately (don't close modal first)
     const workoutData = encodeURIComponent(JSON.stringify(workout));
     toast.success('Opening AI Coach workout in editor...');
-    setShowAICoach(false);
-    navigate(`/build?ai=${workoutData}`);
+    navigate(`/build?ai=${workoutData}`, { replace: true });
   };
 
   return (
