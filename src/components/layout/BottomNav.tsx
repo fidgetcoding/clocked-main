@@ -43,7 +43,7 @@ export function BottomNav() {
               />
               <span 
                 className={cn(
-                  'text-[10px] font-semibold tracking-wider transition-colors duration-200',
+                  'text-[8px] sm:text-[10px] font-semibold tracking-wide sm:tracking-wider transition-colors duration-200',
                   isActive ? 'text-volt' : 'text-muted-foreground'
                 )}
               >

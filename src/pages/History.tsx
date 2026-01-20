@@ -67,11 +67,6 @@ const History = () => {
                     <div className="flex-1 text-left">
                       <div className="flex items-center gap-2 mb-1">
                         <h3 className="font-bold text-foreground">{workout.workoutName}</h3>
-                        {workout.isManualEntry && (
-                          <span className="text-[10px] px-1.5 py-0.5 rounded bg-surface-2 text-muted-foreground">
-                            LOGGED
-                          </span>
-                        )}
                       </div>
                       <div className="flex items-center gap-3 text-xs text-muted-foreground">
                         <span className="flex items-center gap-1">
