@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Home, Play, Pause, RotateCcw, SkipForward, SkipBack, ChevronRight, MoreVertical } from 'lucide-react';
 import { AppLayout } from '@/components/layout/AppLayout';
@@ -122,28 +122,25 @@ const WorkoutSession = () => {
   // Calculate XP earned so far (10 XP per minute of active work)
   const currentXP = Math.floor((totalElapsed / 60) * 10);
 
-  // Use ref to track preparation state for the interval callback
-  const isPreparationRef = useRef(isPreparation);
-  isPreparationRef.current = isPreparation;
-
-  // Single interval for both timers
+  // Use a single interval for both timers to ensure they stay in sync
   useEffect(() => {
-    if (!isRunning || isPaused) return;
+    let interval: NodeJS.Timeout | null = null;
     
-    const interval = setInterval(() => {
-      // Always increment elapsed when NOT in preparation
-      if (!isPreparationRef.current) {
-        setTotalElapsed(prev => {
-          console.log('Elapsed tick:', prev + 1);
-          return prev + 1;
-        });
-      }
-      // Always decrement countdown
-      setTimeRemaining(prev => prev - 1);
-    }, 1000);
+    if (isRunning && !isPaused) {
+      interval = setInterval(() => {
+        // Increment elapsed time (only during actual workout, not preparation)
+        if (!isPreparation) {
+          setTotalElapsed(prev => prev + 1);
+        }
+        // Decrement countdown
+        setTimeRemaining(prev => prev - 1);
+      }, 1000);
+    }
     
-    return () => clearInterval(interval);
-  }, [isRunning, isPaused]);
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [isRunning, isPaused, isPreparation]);
 
   // Handle segment transitions when time hits 0
   useEffect(() => {
