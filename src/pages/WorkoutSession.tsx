@@ -120,45 +120,55 @@ const WorkoutSession = () => {
   // Calculate XP earned so far (10 XP per minute of active work)
   const currentXP = Math.floor((totalElapsed / 60) * 10);
 
-  // Timer effect - always runs at normal speed
+  // Separate effect for total elapsed timer - runs independently
   useEffect(() => {
     let interval: NodeJS.Timeout | null = null;
     
-    if (isRunning && !isPaused) {
+    if (isRunning && !isPaused && !isPreparation) {
       interval = setInterval(() => {
-        // Always increment total elapsed when workout is running (not in prep)
-        if (!isPreparation) {
-          setTotalElapsed((prev) => prev + 1);
-        }
-        
-        setTimeRemaining((prev) => {
-          if (prev <= 1) {
-            // Time is up, handle segment transition
-            if (isPreparation) {
-              setIsPreparation(false);
-              return flatSegments[0]?.duration || 60;
-            } else if (currentSegmentIndex < flatSegments.length - 1) {
-              setCurrentSegmentIndex((idx) => idx + 1);
-              return flatSegments[currentSegmentIndex + 1]?.duration || 60;
-            } else {
-              // Workout complete
-              setIsComplete(true);
-              setIsRunning(false);
-              if (workout) {
-                markWorkoutUsed(workout.id);
-              }
-              return 0;
-            }
-          }
-          return prev - 1;
-        });
+        setTotalElapsed((prev) => prev + 1);
       }, 1000);
     }
     
     return () => {
       if (interval) clearInterval(interval);
     };
-  }, [isRunning, isPaused, isPreparation, currentSegmentIndex, flatSegments, workout, markWorkoutUsed]);
+  }, [isRunning, isPaused, isPreparation]);
+
+  // Countdown timer effect
+  useEffect(() => {
+    let interval: NodeJS.Timeout | null = null;
+    
+    if (isRunning && !isPaused && timeRemaining > 0) {
+      interval = setInterval(() => {
+        setTimeRemaining((prev) => prev - 1);
+      }, 1000);
+    }
+    
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [isRunning, isPaused, timeRemaining]);
+
+  // Handle segment transitions when time hits 0
+  useEffect(() => {
+    if (timeRemaining === 0 && isRunning) {
+      if (isPreparation) {
+        setIsPreparation(false);
+        setTimeRemaining(flatSegments[0]?.duration || 60);
+      } else if (currentSegmentIndex < flatSegments.length - 1) {
+        setCurrentSegmentIndex((prev) => prev + 1);
+        setTimeRemaining(flatSegments[currentSegmentIndex + 1]?.duration || 60);
+      } else {
+        // Workout complete
+        setIsComplete(true);
+        setIsRunning(false);
+        if (workout) {
+          markWorkoutUsed(workout.id);
+        }
+      }
+    }
+  }, [timeRemaining, isRunning, isPreparation, currentSegmentIndex, flatSegments, workout, markWorkoutUsed]);
 
   // Award XP when workout is complete
   useEffect(() => {
