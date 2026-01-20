@@ -1,4 +1,4 @@
-import { ArrowLeft, User, LogOut, Pencil } from 'lucide-react';
+import { User, LogOut, Pencil, Volume2, Bell, Timer, Vibrate } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Switch } from '@/components/ui/switch';
@@ -10,18 +10,125 @@ const Settings = () => {
   const user = useUserStore((state) => state.user);
   const updateUser = useUserStore((state) => state.updateUser);
 
-  const handleToggleVoice = () => {
+  const handleTogglePreference = (key: string, value: boolean) => {
     if (user) {
       updateUser({
         preferences: {
           ...user.preferences,
-          soundEnabled: !user.preferences.soundEnabled,
+          [key]: value,
         },
       });
     }
   };
 
   const joinedDate = user?.createdAt ? new Date(user.createdAt).toLocaleDateString() : 'N/A';
+
+  // Preference items grouped by category
+  const voiceAlerts = [
+    { 
+      key: 'voiceAnnouncements', 
+      label: 'Voice Announcements', 
+      description: 'Announce segment changes and instructions',
+      icon: Volume2,
+    },
+    { 
+      key: 'voiceCountdown', 
+      label: 'Countdown Voice', 
+      description: '10-second countdown before segment ends',
+      icon: Timer,
+    },
+    { 
+      key: 'voiceComboCallouts', 
+      label: 'Combo Callouts', 
+      description: 'Call out punch combinations during combos',
+      icon: Volume2,
+    },
+  ];
+
+  const soundAlerts = [
+    { 
+      key: 'soundEnabled', 
+      label: 'Sound Effects', 
+      description: 'Boxing bell and timer sounds',
+      icon: Bell,
+    },
+    { 
+      key: 'roundStartBell', 
+      label: 'Round Start Bell', 
+      description: 'Bell sound at start of each round',
+      icon: Bell,
+    },
+    { 
+      key: 'roundEndBell', 
+      label: 'Round End Bell', 
+      description: 'Bell sound at end of each round',
+      icon: Bell,
+    },
+    { 
+      key: 'tenSecondWarning', 
+      label: '10-Second Warning', 
+      description: 'Warning beep at 10 seconds remaining',
+      icon: Timer,
+    },
+    { 
+      key: 'segmentTransitionBeep', 
+      label: 'Segment Transition Beep', 
+      description: 'Beep when transitioning between segments',
+      icon: Bell,
+    },
+  ];
+
+  const hapticAlerts = [
+    { 
+      key: 'hapticEnabled', 
+      label: 'Haptic Feedback', 
+      description: 'Vibration for important events',
+      icon: Vibrate,
+    },
+    { 
+      key: 'hapticRoundChange', 
+      label: 'Round Change Vibration', 
+      description: 'Vibrate on round start/end',
+      icon: Vibrate,
+    },
+    { 
+      key: 'hapticWarning', 
+      label: 'Warning Vibration', 
+      description: 'Vibrate for 10-second warning',
+      icon: Vibrate,
+    },
+  ];
+
+  const PreferenceToggle = ({ 
+    prefKey, 
+    label, 
+    description, 
+    icon: Icon 
+  }: { 
+    prefKey: string; 
+    label: string; 
+    description: string;
+    icon: React.ComponentType<{ className?: string }>;
+  }) => {
+    const isEnabled = (user?.preferences as any)?.[prefKey] !== false;
+    
+    return (
+      <div className="flex items-start gap-3 py-3">
+        <div className="w-8 h-8 rounded-lg bg-surface-2 flex items-center justify-center flex-shrink-0">
+          <Icon className="w-4 h-4 text-muted-foreground" />
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-foreground font-medium">{label}</p>
+          <p className="text-xs text-muted-foreground">{description}</p>
+        </div>
+        <Switch
+          checked={isEnabled}
+          onCheckedChange={(checked) => handleTogglePreference(prefKey, checked)}
+          className="data-[state=checked]:bg-volt"
+        />
+      </div>
+    );
+  };
 
   return (
     <AppLayout>
@@ -70,20 +177,54 @@ const Settings = () => {
             </button>
           </div>
 
-          {/* App Preferences */}
+          {/* Voice Alerts */}
           <div className="card-workout">
-            <h3 className="text-lg font-bold text-foreground mb-4">App Preferences</h3>
-            
-            <div className="flex items-center justify-between">
-              <span className="text-foreground">Voice Announcements</span>
-              <div className="flex items-center gap-2">
-                <span className={cn(
-                  'text-sm font-medium uppercase',
-                  user?.preferences?.soundEnabled !== false ? 'text-volt' : 'text-muted-foreground'
-                )}>
-                  {user?.preferences?.soundEnabled !== false ? 'Enabled' : 'Disabled'}
-                </span>
-              </div>
+            <h3 className="text-lg font-bold text-foreground mb-2">Voice Alerts</h3>
+            <p className="text-xs text-muted-foreground mb-4">Control voice announcements during workouts</p>
+            <div className="divide-y divide-surface-3">
+              {voiceAlerts.map((pref) => (
+                <PreferenceToggle
+                  key={pref.key}
+                  prefKey={pref.key}
+                  label={pref.label}
+                  description={pref.description}
+                  icon={pref.icon}
+                />
+              ))}
+            </div>
+          </div>
+
+          {/* Sound Alerts */}
+          <div className="card-workout">
+            <h3 className="text-lg font-bold text-foreground mb-2">Sound Alerts</h3>
+            <p className="text-xs text-muted-foreground mb-4">Configure audio cues for workout events</p>
+            <div className="divide-y divide-surface-3">
+              {soundAlerts.map((pref) => (
+                <PreferenceToggle
+                  key={pref.key}
+                  prefKey={pref.key}
+                  label={pref.label}
+                  description={pref.description}
+                  icon={pref.icon}
+                />
+              ))}
+            </div>
+          </div>
+
+          {/* Haptic Alerts */}
+          <div className="card-workout">
+            <h3 className="text-lg font-bold text-foreground mb-2">Haptic Feedback</h3>
+            <p className="text-xs text-muted-foreground mb-4">Vibration alerts (device must support haptics)</p>
+            <div className="divide-y divide-surface-3">
+              {hapticAlerts.map((pref) => (
+                <PreferenceToggle
+                  key={pref.key}
+                  prefKey={pref.key}
+                  label={pref.label}
+                  description={pref.description}
+                  icon={pref.icon}
+                />
+              ))}
             </div>
           </div>
         </div>

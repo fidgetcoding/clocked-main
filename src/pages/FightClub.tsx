@@ -5,6 +5,11 @@ import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
+import { TRENDING_WORKOUTS, WORKOUT_CATEGORIES, TrendingWorkout, WorkoutCategory } from '@/data/trendingWorkouts';
+import { WorkoutPreviewModal } from '@/components/WorkoutPreviewModal';
+import { AIBuilderModal } from '@/components/AIBuilderModal';
+import { useWorkoutStore } from '@/stores/workoutStore';
+import { toast } from 'sonner';
 
 type Tab = 'feed' | 'clubs' | 'presets';
 type ClubTab = 'feed' | 'chat' | 'leaderboard';
@@ -22,16 +27,68 @@ interface Club {
 
 const FightClub = () => {
   const navigate = useNavigate();
+  const { addWorkout } = useWorkoutStore();
   const [activeTab, setActiveTab] = useState<Tab>('feed');
   const [selectedClub, setSelectedClub] = useState<Club | null>(null);
   const [clubTab, setClubTab] = useState<ClubTab>('feed');
   const [chatMessage, setChatMessage] = useState('');
+  
+  // Presets tab state
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState<WorkoutCategory>('All');
+  const [selectedWorkout, setSelectedWorkout] = useState<TrendingWorkout | null>(null);
+  const [showAIBuilder, setShowAIBuilder] = useState(false);
+  const [customizeWorkout, setCustomizeWorkout] = useState<TrendingWorkout | undefined>(undefined);
 
   const tabs: { id: Tab; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
     { id: 'feed', label: 'Feed', icon: Newspaper },
     { id: 'clubs', label: 'Clubs', icon: Users },
     { id: 'presets', label: 'Presets', icon: Trophy },
   ];
+
+  // Filter trending workouts
+  const filteredWorkouts = TRENDING_WORKOUTS.filter((workout) => {
+    const matchesSearch = workout.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      workout.tags.some(tag => tag.toLowerCase().includes(searchQuery.toLowerCase())) ||
+      workout.authorHandle.toLowerCase().includes(searchQuery.toLowerCase());
+    
+    const matchesCategory = selectedCategory === 'All' || 
+      workout.tags.includes(selectedCategory) ||
+      (selectedCategory === 'Beginner' && workout.difficulty === 'beginner') ||
+      (selectedCategory === 'Advanced' && workout.difficulty === 'advanced');
+    
+    return matchesSearch && matchesCategory;
+  });
+
+  // Handle saving a workout
+  const handleSaveWorkout = (workout: TrendingWorkout) => {
+    const newWorkout = {
+      ...workout,
+      id: crypto.randomUUID(),
+      isPreset: false,
+      createdAt: new Date(),
+      timesCompleted: 0,
+    };
+    addWorkout(newWorkout);
+    toast.success(`"${workout.name}" saved to your workouts!`);
+    setSelectedWorkout(null);
+  };
+
+  // Handle customizing a workout with AI
+  const handleCustomizeWorkout = (workout: TrendingWorkout) => {
+    setSelectedWorkout(null);
+    setCustomizeWorkout(workout);
+    setShowAIBuilder(true);
+  };
+
+  // Handle AI generation
+  const handleAIGenerate = (prompt: string, baseWorkout?: TrendingWorkout) => {
+    // For now, just navigate to build page - in future this would call AI
+    toast.success('AI workout generation coming soon!');
+    setShowAIBuilder(false);
+    setCustomizeWorkout(undefined);
+    navigate('/build');
+  };
 
   // Mock clubs data
   const myClubs: Club[] = [
@@ -241,9 +298,6 @@ const FightClub = () => {
         <header className="px-4 py-4 safe-top border-b border-surface-3">
           <div className="flex items-center justify-between mb-4">
             <h1 className="text-xl font-bold text-foreground">Fight Club</h1>
-            <button className="text-muted-foreground">
-              <Search className="w-5 h-5" />
-            </button>
           </div>
 
           {/* Tabs */}
@@ -400,20 +454,30 @@ const FightClub = () => {
 
           {activeTab === 'presets' && (
             <div className="space-y-4">
+              {/* Search */}
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <input
                   type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Search workouts..."
                   className="w-full h-10 pl-9 pr-4 rounded-lg bg-surface-1 border border-surface-3 text-foreground placeholder:text-muted-foreground text-sm focus:outline-none focus:ring-2 focus:ring-volt"
                 />
               </div>
 
+              {/* Category Filters */}
               <div className="flex gap-2 overflow-x-auto scrollbar-hide py-1">
-                {['All', 'Boxing', 'HIIT', 'Conditioning', 'Beginner'].map((tag) => (
+                {WORKOUT_CATEGORIES.map((tag) => (
                   <button
                     key={tag}
-                    className="px-3 py-1.5 rounded-full bg-surface-1 text-sm text-muted-foreground whitespace-nowrap hover:bg-surface-2"
+                    onClick={() => setSelectedCategory(tag)}
+                    className={cn(
+                      'px-3 py-1.5 rounded-full text-sm whitespace-nowrap transition-colors',
+                      selectedCategory === tag
+                        ? 'bg-volt text-primary-foreground font-semibold'
+                        : 'bg-surface-1 text-muted-foreground hover:bg-surface-2'
+                    )}
                   >
                     {tag}
                   </button>
@@ -421,48 +485,72 @@ const FightClub = () => {
               </div>
 
               <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
-                Trending 🔥
+                {selectedCategory === 'All' ? 'Trending 🔥' : selectedCategory}
               </h3>
 
-              <div className="card-workout">
-                <div className="flex items-start gap-3">
-                  <div className="w-12 h-12 rounded-xl bg-volt/20 flex items-center justify-center text-2xl">
-                    ⚡
-                  </div>
-                  <div className="flex-1">
-                    <h4 className="font-semibold text-foreground">30-Min Boxing Blast</h4>
-                    <p className="text-sm text-muted-foreground">by @MikeTysonFan</p>
-                    <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground">
-                      <span>⭐ 4.8 (342)</span>
-                      <span>📥 12.4K</span>
-                      <span>30 min</span>
-                      <span className="text-yellow-500">Intermediate</span>
-                    </div>
-                  </div>
+              {/* Workout Cards */}
+              {filteredWorkouts.length === 0 ? (
+                <div className="text-center py-8">
+                  <p className="text-muted-foreground">No workouts found matching your search.</p>
                 </div>
-              </div>
-
-              <div className="card-workout">
-                <div className="flex items-start gap-3">
-                  <div className="w-12 h-12 rounded-xl bg-volt/20 flex items-center justify-center text-2xl">
-                    🏃
-                  </div>
-                  <div className="flex-1">
-                    <h4 className="font-semibold text-foreground">Quick Morning Jabs</h4>
-                    <p className="text-sm text-muted-foreground">by @EarlyBirdBoxer</p>
-                    <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground">
-                      <span>⭐ 4.9 (156)</span>
-                      <span>📥 8.2K</span>
-                      <span>15 min</span>
-                      <span className="text-volt">Beginner</span>
+              ) : (
+                filteredWorkouts.map((workout) => (
+                  <button
+                    key={workout.id}
+                    onClick={() => setSelectedWorkout(workout)}
+                    className="card-workout w-full text-left"
+                  >
+                    <div className="flex items-start gap-3">
+                      <div className="w-12 h-12 rounded-xl bg-volt/20 flex items-center justify-center text-2xl">
+                        {workout.icon}
+                      </div>
+                      <div className="flex-1">
+                        <h4 className="font-semibold text-foreground">{workout.name}</h4>
+                        <p className="text-sm text-muted-foreground">{workout.authorHandle}</p>
+                        <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground">
+                          <span>⭐ {workout.rating} ({workout.ratingCount})</span>
+                          <span>📥 {workout.downloads >= 1000 ? `${(workout.downloads / 1000).toFixed(1)}K` : workout.downloads}</span>
+                          <span>{Math.floor(workout.totalDuration / 60)} min</span>
+                          <span className={cn(
+                            workout.difficulty === 'beginner' ? 'text-volt' :
+                            workout.difficulty === 'intermediate' ? 'text-yellow-500' :
+                            'text-alert-red'
+                          )}>
+                            {workout.difficulty.charAt(0).toUpperCase() + workout.difficulty.slice(1)}
+                          </span>
+                        </div>
+                      </div>
+                      <ChevronRight className="w-5 h-5 text-muted-foreground mt-1" />
                     </div>
-                  </div>
-                </div>
-              </div>
+                  </button>
+                ))
+              )}
             </div>
           )}
         </div>
       </div>
+
+      {/* Workout Preview Modal */}
+      {selectedWorkout && (
+        <WorkoutPreviewModal
+          workout={selectedWorkout}
+          onClose={() => setSelectedWorkout(null)}
+          onSave={handleSaveWorkout}
+          onCustomize={handleCustomizeWorkout}
+        />
+      )}
+
+      {/* AI Builder Modal */}
+      {showAIBuilder && (
+        <AIBuilderModal
+          onClose={() => {
+            setShowAIBuilder(false);
+            setCustomizeWorkout(undefined);
+          }}
+          onGenerate={handleAIGenerate}
+          baseWorkout={customizeWorkout}
+        />
+      )}
     </AppLayout>
   );
 };
