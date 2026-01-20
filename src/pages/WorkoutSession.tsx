@@ -171,6 +171,8 @@ const WorkoutSession = () => {
   const handleStart = () => {
     setIsRunning(true);
     setIsPaused(false);
+    // Add 10 XP immediately when starting
+    addXP(10);
   };
 
   const handlePauseResume = () => {

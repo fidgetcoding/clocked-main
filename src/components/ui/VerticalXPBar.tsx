@@ -6,8 +6,8 @@ interface VerticalXPBarProps {
   className?: string;
 }
 
-// Sub-levels within each rank (10 levels per rank)
-const LEVELS_PER_RANK = 10;
+// 100 XP per level
+const XP_PER_LEVEL = 100;
 
 function getCurrentRank(xp: number): Rank {
   const ranks = Object.entries(RANK_THRESHOLDS).reverse() as [Rank, number][];
@@ -17,67 +17,31 @@ function getCurrentRank(xp: number): Rank {
   return 'regional';
 }
 
-function getNextRank(currentRank: Rank): Rank | null {
-  const ranks = Object.keys(RANK_THRESHOLDS) as Rank[];
-  const currentIndex = ranks.indexOf(currentRank);
-  if (currentIndex < ranks.length - 1) {
-    return ranks[currentIndex + 1];
-  }
-  return null;
-}
-
-function getSubLevelInfo(xp: number): { 
+function getLevelInfo(xp: number): { 
   currentLevel: number; 
-  nextLevel: number; 
   progress: number;
   xpInLevel: number;
-  xpNeededForLevel: number;
 } {
-  const currentRank = getCurrentRank(xp);
-  const nextRank = getNextRank(currentRank);
-  
-  if (!nextRank) {
-    return { 
-      currentLevel: LEVELS_PER_RANK, 
-      nextLevel: LEVELS_PER_RANK, 
-      progress: 100,
-      xpInLevel: 0,
-      xpNeededForLevel: 0,
-    };
-  }
-
-  const currentThreshold = RANK_THRESHOLDS[currentRank];
-  const nextThreshold = RANK_THRESHOLDS[nextRank];
-  const xpInRank = xp - currentThreshold;
-  const xpPerRank = nextThreshold - currentThreshold;
-  const xpPerLevel = xpPerRank / LEVELS_PER_RANK;
-  
-  const currentLevel = Math.min(LEVELS_PER_RANK, Math.floor(xpInRank / xpPerLevel) + 1);
-  const nextLevel = Math.min(LEVELS_PER_RANK, currentLevel + 1);
-  
-  const xpAtLevelStart = (currentLevel - 1) * xpPerLevel;
-  const xpInLevel = xpInRank - xpAtLevelStart;
-  const progress = (xpInLevel / xpPerLevel) * 100;
+  const currentLevel = Math.floor(xp / XP_PER_LEVEL) + 1;
+  const xpInLevel = xp % XP_PER_LEVEL;
+  const progress = (xpInLevel / XP_PER_LEVEL) * 100;
 
   return {
     currentLevel,
-    nextLevel,
-    progress: Math.min(100, Math.max(0, progress)),
-    xpInLevel: Math.floor(xpInLevel),
-    xpNeededForLevel: Math.floor(xpPerLevel),
+    progress,
+    xpInLevel,
   };
 }
 
 export function VerticalXPBar({ currentXP, className }: VerticalXPBarProps) {
   const rank = getCurrentRank(currentXP);
-  const nextRank = getNextRank(rank);
-  const { currentLevel, nextLevel, progress, xpInLevel, xpNeededForLevel } = getSubLevelInfo(currentXP);
+  const { currentLevel, progress, xpInLevel } = getLevelInfo(currentXP);
 
   return (
     <div className={cn('flex flex-col items-center gap-1', className)}>
       {/* Next level at top */}
       <span className="text-[10px] font-bold text-muted-foreground">
-        Lvl {nextLevel}
+        Lvl {currentLevel + 1}
       </span>
       
       {/* Vertical bar */}
