@@ -12,7 +12,6 @@
     
     /* Secondary */
     --alert-red: 4 100% 59%;
-    --rest-green: 142 71% 45%;
     
     /* Neutrals */
     --white: 0 0% 100%;
@@ -49,9 +48,6 @@
     
     --destructive: var(--alert-red);
     --destructive-foreground: var(--white);
-    
-    --success: var(--rest-green);
-    --success-foreground: var(--tech-black);
     
     --border: var(--surface-3);
     --input: var(--surface-2);
@@ -114,10 +110,6 @@
                 0 0 40px hsl(var(--alert-red) / 0.2);
   }
 
-  .glow-green {
-    box-shadow: 0 0 20px hsl(var(--rest-green) / 0.4);
-  }
-
   /* Text Glow */
   .text-glow-volt {
     text-shadow: 0 0 10px hsl(var(--electric-volt) / 0.5),
@@ -133,6 +125,10 @@
     background: linear-gradient(180deg, hsl(var(--surface-1)) 0%, hsl(var(--tech-black)) 100%);
   }
 
+  .bg-gradient-red-glow {
+    background: radial-gradient(ellipse at bottom, hsl(var(--alert-red) / 0.15) 0%, transparent 60%);
+  }
+
   /* Card Variants */
   .card-workout {
     @apply bg-card rounded-xl p-4 border border-border/50 transition-all duration-200;
@@ -143,13 +139,13 @@
     box-shadow: 0 0 20px hsl(var(--electric-volt) / 0.1);
   }
 
-  .card-workout:active {
-    @apply scale-[0.98];
+  .card-action {
+    @apply bg-surface-1 rounded-2xl p-6 border border-border/30 relative overflow-hidden;
   }
 
   /* Bottom Navigation */
   .nav-item {
-    @apply flex flex-col items-center justify-center gap-1 py-2 px-3 text-muted-foreground transition-colors duration-200;
+    @apply flex flex-col items-center justify-center gap-1 py-3 px-4 text-muted-foreground transition-colors duration-200;
   }
 
   .nav-item-active {
@@ -159,15 +155,6 @@
   .nav-item-active .nav-icon {
     @apply text-primary;
     filter: drop-shadow(0 0 8px hsl(var(--electric-volt) / 0.6));
-  }
-
-  /* Progress Bar */
-  .progress-bar {
-    @apply h-2 rounded-full bg-surface-2 overflow-hidden;
-  }
-
-  .progress-bar-fill {
-    @apply h-full rounded-full bg-gradient-volt transition-all duration-300;
   }
 
   /* XP Bar */
@@ -195,31 +182,11 @@
     transform: translateY(0);
   }
 
-  /* Status Indicators */
-  .status-live {
-    @apply w-2 h-2 rounded-full bg-rest-green;
-    animation: pulse-green 2s infinite;
-  }
-
-  .status-active {
-    @apply w-2 h-2 rounded-full bg-rest-green;
-  }
-
-  .status-recent {
-    @apply w-2 h-2 rounded-full bg-yellow-500;
-  }
-
-  .status-offline {
-    @apply w-2 h-2 rounded-full bg-surface-3;
-  }
-
-  @keyframes pulse-green {
-    0%, 100% {
-      box-shadow: 0 0 0 0 hsl(var(--rest-green) / 0.7);
-    }
-    50% {
-      box-shadow: 0 0 0 6px hsl(var(--rest-green) / 0);
-    }
+  /* Tags */
+  .tag {
+    @apply px-2.5 py-1 rounded-lg text-xs font-medium uppercase tracking-wide;
+    background: hsl(var(--surface-2));
+    border: 1px solid hsl(var(--surface-3));
   }
 
   /* Safe Area Padding for PWA */
@@ -229,6 +196,34 @@
 
   .safe-top {
     padding-top: max(1rem, env(safe-area-inset-top));
+  }
+
+  /* Phase Header */
+  .phase-header {
+    @apply flex items-center gap-3 p-3 rounded-xl bg-surface-1 border border-surface-3;
+  }
+
+  .phase-header-active {
+    @apply border-primary;
+    box-shadow: 0 0 0 1px hsl(var(--electric-volt));
+  }
+
+  /* Segment Row */
+  .segment-row {
+    @apply flex items-center gap-2 p-3 rounded-lg bg-surface-2 border border-surface-3;
+  }
+
+  /* Combo Builder */
+  .combo-button {
+    @apply w-10 h-10 rounded-lg bg-surface-2 border border-surface-3 text-foreground font-bold text-sm transition-all;
+  }
+
+  .combo-button:hover {
+    @apply border-primary bg-surface-1;
+  }
+
+  .combo-tag {
+    @apply px-2 py-1 rounded bg-primary/20 text-primary text-xs font-semibold flex items-center gap-1;
   }
 }
 
@@ -263,14 +258,6 @@
 
   .bg-alert-red {
     background-color: hsl(var(--alert-red));
-  }
-
-  .text-rest-green {
-    color: hsl(var(--rest-green));
-  }
-
-  .bg-rest-green {
-    background-color: hsl(var(--rest-green));
   }
 
   /* Hide scrollbar but keep functionality */
