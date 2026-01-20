@@ -5,10 +5,11 @@ import { Button } from '@/components/ui/button';
 import { useHistoryStore } from '@/stores/historyStore';
 import { useUserStore } from '@/stores/userStore';
 import { AddWorkoutModal } from '@/components/AddWorkoutModal';
+import { GeneratedWorkoutPreview } from '@/components/GeneratedWorkoutPreview';
 import { cn } from '@/lib/utils';
 import { format, formatDistanceToNow } from 'date-fns';
-import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
+import { Workout, WorkoutPhase } from '@/types';
 
 function formatDuration(seconds: number): string {
   const mins = Math.floor(seconds / 60);
@@ -19,12 +20,12 @@ function formatDuration(seconds: number): string {
 }
 
 const History = () => {
-  const navigate = useNavigate();
   const [showAddModal, setShowAddModal] = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [showAICoach, setShowAICoach] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysis, setAnalysis] = useState<string | null>(null);
+  const [generatedWorkout, setGeneratedWorkout] = useState<Workout | null>(null);
   
   const completedWorkouts = useHistoryStore((state) => state.completedWorkouts);
   const user = useUserStore((state) => state.user);
@@ -76,9 +77,99 @@ const History = () => {
   };
 
   const handleCreateFromAnalysis = () => {
-    toast.success('Creating custom workout based on analysis...');
+    const generateId = () => crypto.randomUUID();
+    
+    // Determine workout parameters based on analysis
+    const tooHardCount = completedWorkouts.filter(w => w.difficulty === 'too_hard').length;
+    const tooEasyCount = completedWorkouts.filter(w => w.difficulty === 'too_easy').length;
+    
+    let difficulty: 'beginner' | 'intermediate' | 'advanced' = 'intermediate';
+    let rounds = 4;
+    let roundDuration = 180;
+    let restDuration = 60;
+    
+    if (tooHardCount > tooEasyCount) {
+      difficulty = 'beginner';
+      rounds = 3;
+      roundDuration = 150;
+      restDuration = 90;
+    } else if (tooEasyCount > tooHardCount) {
+      difficulty = 'advanced';
+      rounds = 6;
+      roundDuration = 180;
+      restDuration = 45;
+    }
+    
+    // Generate combos based on difficulty
+    const combos: string[][] = [];
+    const beginnerCombos = [['1', '2'], ['1', '2', '3'], ['1', '1', '2'], ['2', '3', '2']];
+    const intermediateCombos = [['1', '2', '3', '2'], ['1', '2', 'SLIP L', '2', '3'], ['1', '6', '3', '2'], ['1', '2', '5', '3', '2']];
+    const advancedCombos = [['1', '2', '3', '4', '5', '6'], ['1', '2', 'SLIP L', '2', '3', '2'], ['1', '2', '5', '6', '3', '2'], ['SLIP L', '2', '3', '2', '5', '6']];
+    
+    const comboSet = difficulty === 'beginner' ? beginnerCombos : 
+                     difficulty === 'intermediate' ? intermediateCombos : advancedCombos;
+    
+    for (let i = 0; i < rounds; i++) {
+      combos.push(comboSet[i % comboSet.length]);
+    }
+    
+    const warmupPhases: WorkoutPhase[] = [{
+      id: generateId(),
+      name: 'Dynamic Warmup',
+      repeats: 1,
+      segments: [
+        { id: generateId(), name: 'Jump Rope', type: 'active', segmentType: 'work', duration: 120 },
+        { id: generateId(), name: 'Rest', type: 'rest', segmentType: 'rest', duration: 30 },
+        { id: generateId(), name: 'Shadow Boxing', type: 'active', segmentType: 'shadowboxing', duration: 120 },
+      ],
+    }];
+    
+    const grindPhases: WorkoutPhase[] = [{
+      id: generateId(),
+      name: 'Main Rounds',
+      repeats: rounds,
+      segments: [
+        { id: generateId(), name: 'Combo Work', type: 'active', segmentType: 'combo', duration: roundDuration },
+        { id: generateId(), name: 'Rest', type: 'rest', segmentType: 'rest', duration: restDuration },
+      ],
+    }];
+    
+    const cooldownPhases: WorkoutPhase[] = [{
+      id: generateId(),
+      name: 'Cooldown',
+      repeats: 1,
+      segments: [
+        { id: generateId(), name: 'Light Shadow', type: 'active', segmentType: 'shadowboxing', duration: 90 },
+        { id: generateId(), name: 'Stretch', type: 'active', segmentType: 'work', duration: 120 },
+      ],
+    }];
+    
+    let totalDuration = 0;
+    [...warmupPhases, ...grindPhases, ...cooldownPhases].forEach(phase => {
+      const phaseDur = phase.segments.reduce((acc, s) => acc + s.duration, 0);
+      totalDuration += phaseDur * phase.repeats;
+    });
+    
+    const workout: Workout = {
+      id: generateId(),
+      name: 'AI Coach Workout',
+      icon: '🧠',
+      difficulty,
+      totalDuration,
+      isPreset: false,
+      isArchived: false,
+      createdAt: new Date(),
+      timesCompleted: 0,
+      sections: {
+        warmup: warmupPhases,
+        grind: grindPhases,
+        cooldown: cooldownPhases,
+      },
+      combos,
+    };
+    
+    setGeneratedWorkout(workout);
     setShowAICoach(false);
-    navigate('/build');
   };
 
   return (
@@ -311,6 +402,15 @@ const History = () => {
             )}
           </div>
         </div>
+      )}
+
+      {/* Generated Workout Preview */}
+      {generatedWorkout && (
+        <GeneratedWorkoutPreview
+          workout={generatedWorkout}
+          onClose={() => setGeneratedWorkout(null)}
+          onWorkoutUpdate={(updated) => setGeneratedWorkout(updated)}
+        />
       )}
     </AppLayout>
   );

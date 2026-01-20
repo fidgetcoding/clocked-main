@@ -5,14 +5,13 @@ import { Textarea } from '@/components/ui/textarea';
 import { TrendingWorkout } from '@/data/trendingWorkouts';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
-import { useNavigate } from 'react-router-dom';
-import { useWorkoutStore } from '@/stores/workoutStore';
 import { useUserStore } from '@/stores/userStore';
-import { Workout, WorkoutPhase, WorkoutSegment } from '@/types';
+import { Workout, WorkoutPhase } from '@/types';
+import { GeneratedWorkoutPreview } from '@/components/GeneratedWorkoutPreview';
 
 interface AIBuilderModalProps {
   onClose: () => void;
-  onGenerate: (prompt: string, baseWorkout?: TrendingWorkout) => void;
+  onGenerate?: (prompt: string, baseWorkout?: TrendingWorkout) => void;
   baseWorkout?: TrendingWorkout;
 }
 
@@ -166,14 +165,13 @@ function parseWorkoutPrompt(prompt: string, userLevel: string = 'beginner') {
 }
 
 export const AIBuilderModal = ({ onClose, onGenerate, baseWorkout }: AIBuilderModalProps) => {
-  const navigate = useNavigate();
-  const addWorkout = useWorkoutStore((state) => state.addWorkout);
   const user = useUserStore((state) => state.user);
   
   const [prompt, setPrompt] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const [interimTranscript, setInterimTranscript] = useState('');
+  const [generatedWorkout, setGeneratedWorkout] = useState<Workout | null>(null);
   const recognitionRef = useRef<any>(null);
 
   // Initialize speech recognition
@@ -343,13 +341,9 @@ export const AIBuilderModal = ({ onClose, onGenerate, baseWorkout }: AIBuilderMo
         combos: parsed.combos,
       };
       
-      // Add to store
-      addWorkout(workout);
-      
+      // Show preview instead of saving immediately
+      setGeneratedWorkout(workout);
       setIsGenerating(false);
-      toast.success(`Created "${parsed.name}" - ${parsed.rounds} rounds, ${parsed.difficulty} difficulty`);
-      onClose();
-      navigate(`/workout/${workout.id}`);
     }, 1500);
   };
 
@@ -505,6 +499,18 @@ export const AIBuilderModal = ({ onClose, onGenerate, baseWorkout }: AIBuilderMo
           </Button>
         </div>
       </div>
+
+      {/* Generated Workout Preview */}
+      {generatedWorkout && (
+        <GeneratedWorkoutPreview
+          workout={generatedWorkout}
+          onClose={() => {
+            setGeneratedWorkout(null);
+            onClose();
+          }}
+          onWorkoutUpdate={(updated) => setGeneratedWorkout(updated)}
+        />
+      )}
     </div>
   );
 };

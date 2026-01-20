@@ -31,7 +31,8 @@ export const useWorkoutStore = create<WorkoutStore>()(
 
       addWorkout: (workout) =>
         set((state) => ({
-          workouts: [...state.workouts, workout],
+          // Add new workouts to the beginning of the list
+          workouts: [workout, ...state.workouts],
         })),
 
       updateWorkout: (id, updates) =>
