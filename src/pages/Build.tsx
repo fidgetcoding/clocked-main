@@ -14,6 +14,8 @@ import {
   MOVEMENT_KEYS_BY_DIFFICULTY,
   ComboPreset 
 } from '@/data/comboPresets';
+import { AIBuilderModal } from '@/components/AIBuilderModal';
+import { toast } from 'sonner';
 
 const SEGMENT_TYPES: { key: SegmentType; label: string; color: string }[] = [
   { key: 'work', label: 'W', color: 'bg-volt/20 text-volt' },
@@ -67,6 +69,7 @@ const Build = () => {
   const [comboMode, setComboMode] = useState<'custom' | 'presets'>('presets');
   const [currentCombo, setCurrentCombo] = useState<string[]>([]);
   const [editingComboIndex, setEditingComboIndex] = useState<number | null>(null);
+  const [showAIBuilder, setShowAIBuilder] = useState(false);
 
   // Load existing workout for editing
   useEffect(() => {
@@ -284,7 +287,7 @@ const Build = () => {
               Custom Build
             </button>
             <button
-              onClick={() => {/* AI Builder - placeholder */}}
+              onClick={() => setShowAIBuilder(true)}
               className="flex-1 py-2.5 rounded-lg text-sm font-semibold bg-surface-1 border border-surface-3 text-muted-foreground hover:bg-surface-2 transition-colors flex items-center justify-center gap-2"
             >
               <Sparkles className="w-4 h-4 text-volt" />
