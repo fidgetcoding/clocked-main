@@ -45,7 +45,7 @@ function StatCard({ icon: Icon, label, value, color, change, onClick }: StatCard
       {change && (
         <div className={cn(
           'flex items-center gap-1 mt-2 text-xs font-medium',
-          change.value >= 0 ? 'text-green-400' : 'text-orange-400'
+          change.value >= 0 ? 'text-volt' : 'text-alert-red'
         )}>
           {change.value >= 0 ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
           <span>{change.value >= 0 ? '+' : ''}{change.value}% {change.period}</span>
@@ -96,7 +96,7 @@ function StatDetailModal({ stat, onClose, timeframe, onTimeframeChange }: StatDe
           <p className="text-4xl font-black text-foreground">{stat.value}</p>
           <div className={cn(
             'flex items-center justify-center gap-1 mt-2 text-sm font-medium',
-            changePercent >= 0 ? 'text-green-400' : 'text-orange-400'
+            changePercent >= 0 ? 'text-volt' : 'text-alert-red'
           )}>
             {changePercent >= 0 ? <TrendingUp className="w-4 h-4" /> : <TrendingDown className="w-4 h-4" />}
             <span>{changePercent >= 0 ? '+' : ''}{changePercent}% this {timeframe === '1W' ? 'week' : timeframe === '1M' ? 'month' : 'year'}</span>
@@ -218,16 +218,16 @@ const Stats = () => {
 
   const stats = [
     { id: 'xp', icon: Zap, label: 'Total XP', value: totalXP.toLocaleString(), color: 'text-volt', ...statsData.xp },
-    { id: 'workouts', icon: Trophy, label: 'Workouts', value: workoutsCompleted.toString(), color: 'text-yellow-500', ...statsData.workouts },
-    { id: 'hours', icon: Clock, label: 'Training Hours', value: `${totalHours}h`, color: 'text-blue-400', ...statsData.hours },
-    { id: 'streak', icon: Flame, label: 'Current Streak', value: `${currentStreak} days`, color: 'text-orange-500', ...statsData.streak },
+    { id: 'workouts', icon: Trophy, label: 'Workouts', value: workoutsCompleted.toString(), color: 'text-volt', ...statsData.workouts },
+    { id: 'hours', icon: Clock, label: 'Training Hours', value: `${totalHours}h`, color: 'text-volt', ...statsData.hours },
+    { id: 'streak', icon: Flame, label: 'Current Streak', value: `${currentStreak} days`, color: 'text-alert-red', ...statsData.streak },
   ];
 
   const fitnessStats = [
-    { id: 'heartRate', icon: Heart, label: 'Avg Heart Rate', value: `${avgHeartRate} BPM`, color: 'text-red-400', ...statsData.heartRate },
-    { id: 'calories', icon: Activity, label: 'Calories Burned', value: caloriesBurned.toLocaleString(), color: 'text-green-400', ...statsData.calories },
-    { id: 'punches', icon: Target, label: 'Punches Thrown', value: punchesThrown.toLocaleString(), color: 'text-purple-400', ...statsData.punches },
-    { id: 'intensity', icon: Dumbbell, label: 'Avg Intensity', value: `${avgIntensity}/10`, color: 'text-cyan-400', ...statsData.intensity },
+    { id: 'heartRate', icon: Heart, label: 'Avg Heart Rate', value: `${avgHeartRate} BPM`, color: 'text-alert-red', ...statsData.heartRate },
+    { id: 'calories', icon: Activity, label: 'Calories Burned', value: caloriesBurned.toLocaleString(), color: 'text-volt', ...statsData.calories },
+    { id: 'punches', icon: Target, label: 'Punches Thrown', value: punchesThrown.toLocaleString(), color: 'text-volt', ...statsData.punches },
+    { id: 'intensity', icon: Dumbbell, label: 'Avg Intensity', value: `${avgIntensity}/10`, color: 'text-volt', ...statsData.intensity },
   ];
 
   const allStats = [...stats, ...fitnessStats];

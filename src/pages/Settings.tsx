@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { User, LogOut, Pencil, Volume2, Bell, Timer, Vibrate, Archive, RotateCcw, Trash2, ChevronRight } from 'lucide-react';
+import { useState, useRef } from 'react';
+import { User, LogOut, Pencil, Volume2, Bell, Timer, Vibrate, Archive, RotateCcw, Trash2, ChevronRight, Camera } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Switch } from '@/components/ui/switch';
@@ -26,6 +26,20 @@ const Settings = () => {
   
   const [showArchives, setShowArchives] = useState(false);
   const [workoutToDelete, setWorkoutToDelete] = useState<string | null>(null);
+  const [profilePhoto, setProfilePhoto] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setProfilePhoto(reader.result as string);
+        toast.success('Profile photo updated');
+      };
+      reader.readAsDataURL(file);
+    }
+  };
 
   const handleTogglePreference = (key: string, value: boolean) => {
     if (user) {
@@ -174,8 +188,27 @@ const Settings = () => {
           {/* Profile Card */}
           <div className="card-workout">
             <div className="flex items-center gap-4 mb-4">
-              <div className="w-16 h-16 rounded-full bg-volt/20 flex items-center justify-center">
-                <User className="w-8 h-8 text-volt" />
+              <div className="relative">
+                <div className="w-16 h-16 rounded-full bg-volt/20 flex items-center justify-center overflow-hidden">
+                  {profilePhoto ? (
+                    <img src={profilePhoto} alt="Profile" className="w-full h-full object-cover" />
+                  ) : (
+                    <User className="w-8 h-8 text-volt" />
+                  )}
+                </div>
+                <button 
+                  onClick={() => fileInputRef.current?.click()}
+                  className="absolute -bottom-1 -right-1 w-7 h-7 rounded-full bg-volt flex items-center justify-center text-primary-foreground shadow-lg"
+                >
+                  <Camera className="w-3.5 h-3.5" />
+                </button>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={handlePhotoChange}
+                  className="hidden"
+                />
               </div>
               <div className="flex-1">
                 <div className="flex items-center gap-2">

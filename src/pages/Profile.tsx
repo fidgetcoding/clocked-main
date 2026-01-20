@@ -258,14 +258,14 @@ const Profile = () => {
             <p className="text-[10px] text-muted-foreground">Day Streak</p>
           </div>
           <div className="card-workout text-center py-3">
-            <Trophy className="w-5 h-5 text-yellow-500 mx-auto mb-1" />
+            <Trophy className="w-5 h-5 text-volt mx-auto mb-1" />
             <p className="text-xl font-bold text-foreground">
               {isOwnProfile ? (user?.longestStreak || 14) : (viewingUser?.longestStreak || 0)}
             </p>
             <p className="text-[10px] text-muted-foreground">Best Streak</p>
           </div>
           <div className="card-workout text-center py-3">
-            <Clock className="w-5 h-5 text-blue-400 mx-auto mb-1" />
+            <Clock className="w-5 h-5 text-muted-foreground mx-auto mb-1" />
             <p className="text-xl font-bold text-foreground">
               {isOwnProfile 
                 ? Math.floor((user?.workoutsCompleted || 24) * 30 / 60) 
