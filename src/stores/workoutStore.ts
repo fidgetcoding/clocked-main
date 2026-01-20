@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { Workout } from '@/types';
-import { BEGINNER_PRESET_WORKOUTS } from '@/data/presetWorkouts';
+import { BEGINNER_PRESET_WORKOUTS, INTERMEDIATE_PRESET_WORKOUTS, ADVANCED_PRESET_WORKOUTS } from '@/data/presetWorkouts';
 
 interface WorkoutStore {
   workouts: Workout[];
@@ -13,6 +13,8 @@ interface WorkoutStore {
   restoreWorkout: (id: string) => void;
   permanentlyDeleteArchived: (id: string) => void;
   loadBeginnerPresets: () => void;
+  loadIntermediatePresets: () => void;
+  loadAdvancedPresets: () => void;
   markWorkoutUsed: (id: string) => void;
 }
 
@@ -71,6 +73,32 @@ export const useWorkoutStore = create<WorkoutStore>()(
         const { workouts } = get();
         const existingIds = workouts.map((w) => w.id);
         const newPresets = BEGINNER_PRESET_WORKOUTS.filter(
+          (p) => !existingIds.includes(p.id)
+        );
+        if (newPresets.length > 0) {
+          set((state) => ({
+            workouts: [...newPresets, ...state.workouts],
+          }));
+        }
+      },
+
+      loadIntermediatePresets: () => {
+        const { workouts } = get();
+        const existingIds = workouts.map((w) => w.id);
+        const newPresets = INTERMEDIATE_PRESET_WORKOUTS.filter(
+          (p) => !existingIds.includes(p.id)
+        );
+        if (newPresets.length > 0) {
+          set((state) => ({
+            workouts: [...newPresets, ...state.workouts],
+          }));
+        }
+      },
+
+      loadAdvancedPresets: () => {
+        const { workouts } = get();
+        const existingIds = workouts.map((w) => w.id);
+        const newPresets = ADVANCED_PRESET_WORKOUTS.filter(
           (p) => !existingIds.includes(p.id)
         );
         if (newPresets.length > 0) {
