@@ -148,7 +148,7 @@ const Onboarding = () => {
             <img 
               src={clockedLogo} 
               alt="Clocked Logo" 
-              className="w-[52rem] h-[52rem] mx-auto object-contain -mb-72"
+              className="w-[26rem] h-[26rem] mx-auto object-contain -mb-32"
             />
             <p className="text-lg text-muted-foreground mb-6">
               Knockout Intelligence.
