@@ -111,6 +111,7 @@ const WorkoutSession = () => {
   const [notes, setNotes] = useState('');
   const [logged, setLogged] = useState(false);
   const [difficultyRating, setDifficultyRating] = useState<'too_easy' | 'just_right' | 'too_hard' | null>(null);
+  const [xpBubble, setXpBubble] = useState<{ amount: number; id: number } | null>(null);
 
   const currentSegment = flatSegments[currentSegmentIndex];
   const nextSegment = flatSegments[currentSegmentIndex + 1];
@@ -178,11 +179,20 @@ const WorkoutSession = () => {
     }
   }, [isComplete, totalElapsed, addXP]);
 
+  const showXpBubble = (amount: number) => {
+    const id = Date.now();
+    setXpBubble({ amount, id });
+    setTimeout(() => {
+      setXpBubble((current) => (current?.id === id ? null : current));
+    }, 2000);
+  };
+
   const handleStart = () => {
     setIsRunning(true);
     setIsPaused(false);
     // Add 10 XP immediately when starting
     addXP(10);
+    showXpBubble(10);
   };
 
   const handlePauseResume = () => {
@@ -387,9 +397,18 @@ const WorkoutSession = () => {
             {formatTimeCompact(totalElapsed)}
           </span>
           
-          {/* Right side - XP bar */}
-          <div className="flex flex-col items-end">
+          {/* Right side - XP bar with bubble */}
+          <div className="flex flex-col items-end relative">
             <VerticalXPBar currentXP={(user?.totalXP || 0) + currentXP} />
+            {/* XP Bubble */}
+            {xpBubble && (
+              <div 
+                key={xpBubble.id}
+                className="absolute right-full mr-2 top-0 text-volt font-bold text-sm whitespace-nowrap animate-xp-bubble"
+              >
+                +{xpBubble.amount} XP
+              </div>
+            )}
           </div>
         </header>
 
