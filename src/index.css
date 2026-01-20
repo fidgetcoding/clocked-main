@@ -2,95 +2,77 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
-All colors MUST be HSL.
-*/
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap');
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
-
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
-
-    --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
-
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
-
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
-
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
-
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
-
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
-
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
-
-    --radius: 0.5rem;
-
-    --sidebar-background: 0 0% 98%;
-
-    --sidebar-foreground: 240 5.3% 26.1%;
-
-    --sidebar-primary: 240 5.9% 10%;
-
-    --sidebar-primary-foreground: 0 0% 98%;
-
-    --sidebar-accent: 240 4.8% 95.9%;
-
-    --sidebar-accent-foreground: 240 5.9% 10%;
-
-    --sidebar-border: 220 13% 91%;
-
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    /* Primary */
+    --electric-volt: 72 100% 55%;
+    --tech-black: 240 7% 4%;
+    
+    /* Secondary */
+    --alert-red: 4 100% 59%;
+    --rest-green: 142 71% 45%;
+    
+    /* Neutrals */
+    --white: 0 0% 100%;
+    --text-primary: 240 6% 95%;
+    --text-secondary: 240 4% 56%;
+    --text-tertiary: 240 4% 38%;
+    
+    /* Surface Colors */
+    --surface-1: 240 6% 12%;
+    --surface-2: 240 5% 18%;
+    --surface-3: 240 4% 24%;
+    
+    /* Semantic mappings */
+    --background: var(--tech-black);
+    --foreground: var(--text-primary);
+    
+    --card: var(--surface-1);
+    --card-foreground: var(--text-primary);
+    
+    --popover: var(--surface-1);
+    --popover-foreground: var(--text-primary);
+    
+    --primary: var(--electric-volt);
+    --primary-foreground: var(--tech-black);
+    
+    --secondary: var(--surface-2);
+    --secondary-foreground: var(--text-primary);
+    
+    --muted: var(--surface-2);
+    --muted-foreground: var(--text-secondary);
+    
+    --accent: var(--surface-2);
+    --accent-foreground: var(--text-primary);
+    
+    --destructive: var(--alert-red);
+    --destructive-foreground: var(--white);
+    
+    --success: var(--rest-green);
+    --success-foreground: var(--tech-black);
+    
+    --border: var(--surface-3);
+    --input: var(--surface-2);
+    --ring: var(--electric-volt);
+    
+    --radius: 0.75rem;
+    
+    /* Sidebar - dark variant */
+    --sidebar-background: var(--tech-black);
+    --sidebar-foreground: var(--text-primary);
+    --sidebar-primary: var(--electric-volt);
+    --sidebar-primary-foreground: var(--tech-black);
+    --sidebar-accent: var(--surface-1);
+    --sidebar-accent-foreground: var(--text-primary);
+    --sidebar-border: var(--surface-3);
+    --sidebar-ring: var(--electric-volt);
   }
 
   .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
-
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
-
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
-
-    --primary: 210 40% 98%;
-    --primary-foreground: 222.2 47.4% 11.2%;
-
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
-
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
-
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
-
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
-
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 212.7 26.8% 83.9%;
-    --sidebar-background: 240 5.9% 10%;
-    --sidebar-foreground: 240 4.8% 95.9%;
-    --sidebar-primary: 224.3 76.3% 48%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 3.7% 15.9%;
-    --sidebar-accent-foreground: 240 4.8% 95.9%;
-    --sidebar-border: 240 3.7% 15.9%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    --background: var(--tech-black);
+    --foreground: var(--text-primary);
   }
 }
 
@@ -99,7 +81,205 @@ All colors MUST be HSL.
     @apply border-border;
   }
 
+  html {
+    -webkit-tap-highlight-color: transparent;
+  }
+
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground antialiased;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  }
+}
+
+@layer components {
+  /* Timer Display Typography */
+  .timer-display {
+    font-family: 'SF Mono', 'Roboto Mono', 'Consolas', monospace;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.02em;
+  }
+
+  /* Glow Effects */
+  .glow-volt {
+    box-shadow: 0 0 20px hsl(var(--electric-volt) / 0.4),
+                0 0 40px hsl(var(--electric-volt) / 0.2);
+  }
+
+  .glow-volt-soft {
+    box-shadow: 0 0 15px hsl(var(--electric-volt) / 0.25);
+  }
+
+  .glow-red {
+    box-shadow: 0 0 20px hsl(var(--alert-red) / 0.4),
+                0 0 40px hsl(var(--alert-red) / 0.2);
+  }
+
+  .glow-green {
+    box-shadow: 0 0 20px hsl(var(--rest-green) / 0.4);
+  }
+
+  /* Text Glow */
+  .text-glow-volt {
+    text-shadow: 0 0 10px hsl(var(--electric-volt) / 0.5),
+                 0 0 20px hsl(var(--electric-volt) / 0.3);
+  }
+
+  /* Gradient Backgrounds */
+  .bg-gradient-volt {
+    background: linear-gradient(135deg, hsl(var(--electric-volt)) 0%, hsl(82 100% 45%) 100%);
+  }
+
+  .bg-gradient-dark {
+    background: linear-gradient(180deg, hsl(var(--surface-1)) 0%, hsl(var(--tech-black)) 100%);
+  }
+
+  /* Card Variants */
+  .card-workout {
+    @apply bg-card rounded-xl p-4 border border-border/50 transition-all duration-200;
+  }
+
+  .card-workout:hover {
+    @apply border-primary/30;
+    box-shadow: 0 0 20px hsl(var(--electric-volt) / 0.1);
+  }
+
+  .card-workout:active {
+    @apply scale-[0.98];
+  }
+
+  /* Bottom Navigation */
+  .nav-item {
+    @apply flex flex-col items-center justify-center gap-1 py-2 px-3 text-muted-foreground transition-colors duration-200;
+  }
+
+  .nav-item-active {
+    @apply text-primary;
+  }
+
+  .nav-item-active .nav-icon {
+    @apply text-primary;
+    filter: drop-shadow(0 0 8px hsl(var(--electric-volt) / 0.6));
+  }
+
+  /* Progress Bar */
+  .progress-bar {
+    @apply h-2 rounded-full bg-surface-2 overflow-hidden;
+  }
+
+  .progress-bar-fill {
+    @apply h-full rounded-full bg-gradient-volt transition-all duration-300;
+  }
+
+  /* XP Bar */
+  .xp-bar {
+    @apply h-1.5 rounded-full bg-surface-3 overflow-hidden;
+  }
+
+  .xp-bar-fill {
+    @apply h-full rounded-full;
+    background: linear-gradient(90deg, hsl(var(--electric-volt)) 0%, hsl(82 100% 60%) 100%);
+  }
+
+  /* Buttons */
+  .btn-primary-glow {
+    @apply bg-gradient-volt text-primary-foreground font-bold rounded-xl px-6 py-3 transition-all duration-200;
+    box-shadow: 0 4px 15px hsl(var(--electric-volt) / 0.3);
+  }
+
+  .btn-primary-glow:hover {
+    box-shadow: 0 6px 25px hsl(var(--electric-volt) / 0.5);
+    transform: translateY(-1px);
+  }
+
+  .btn-primary-glow:active {
+    transform: translateY(0);
+  }
+
+  /* Status Indicators */
+  .status-live {
+    @apply w-2 h-2 rounded-full bg-rest-green;
+    animation: pulse-green 2s infinite;
+  }
+
+  .status-active {
+    @apply w-2 h-2 rounded-full bg-rest-green;
+  }
+
+  .status-recent {
+    @apply w-2 h-2 rounded-full bg-yellow-500;
+  }
+
+  .status-offline {
+    @apply w-2 h-2 rounded-full bg-surface-3;
+  }
+
+  @keyframes pulse-green {
+    0%, 100% {
+      box-shadow: 0 0 0 0 hsl(var(--rest-green) / 0.7);
+    }
+    50% {
+      box-shadow: 0 0 0 6px hsl(var(--rest-green) / 0);
+    }
+  }
+
+  /* Safe Area Padding for PWA */
+  .safe-bottom {
+    padding-bottom: max(1rem, env(safe-area-inset-bottom));
+  }
+
+  .safe-top {
+    padding-top: max(1rem, env(safe-area-inset-top));
+  }
+}
+
+@layer utilities {
+  .bg-surface-1 {
+    background-color: hsl(var(--surface-1));
+  }
+
+  .bg-surface-2 {
+    background-color: hsl(var(--surface-2));
+  }
+
+  .bg-surface-3 {
+    background-color: hsl(var(--surface-3));
+  }
+
+  .text-volt {
+    color: hsl(var(--electric-volt));
+  }
+
+  .bg-volt {
+    background-color: hsl(var(--electric-volt));
+  }
+
+  .border-volt {
+    border-color: hsl(var(--electric-volt));
+  }
+
+  .text-alert-red {
+    color: hsl(var(--alert-red));
+  }
+
+  .bg-alert-red {
+    background-color: hsl(var(--alert-red));
+  }
+
+  .text-rest-green {
+    color: hsl(var(--rest-green));
+  }
+
+  .bg-rest-green {
+    background-color: hsl(var(--rest-green));
+  }
+
+  /* Hide scrollbar but keep functionality */
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
   }
 }
