@@ -50,11 +50,31 @@ const Auth = () => {
         // Signup → continue onboarding flow
         navigate('/onboarding?continue=true');
       } else {
-        const { error } = await supabase.auth.signInWithPassword({
+        const { data: authData, error } = await supabase.auth.signInWithPassword({
           email,
           password,
         });
         if (error) throw error;
+        
+        // Check if user has a profile (completed onboarding)
+        if (authData.user) {
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('id, name, role, experience_level')
+            .eq('user_id', authData.user.id)
+            .single();
+          
+          if (profile) {
+            // User has a profile, mark onboarding as complete in local store
+            const { useUserStore } = await import('@/stores/userStore');
+            useUserStore.getState().completeOnboarding({
+              name: profile.name,
+              role: profile.role as 'fighter' | 'coach',
+              experienceLevel: profile.experience_level as any,
+            });
+          }
+        }
+        
         toast.success('Welcome back!');
         // Login → straight to app
         navigate('/');
