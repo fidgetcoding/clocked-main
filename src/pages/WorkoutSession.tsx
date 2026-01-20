@@ -355,7 +355,7 @@ const WorkoutSession = () => {
           </div>
           
           {/* Elapsed time in center-ish area - desaturated volt */}
-          <span className="timer-display text-2xl font-black text-volt/40">
+          <span className="timer-display text-2xl font-black text-volt/60">
             {formatTimeCompact(totalElapsed)}
           </span>
           
