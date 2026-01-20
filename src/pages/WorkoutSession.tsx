@@ -122,35 +122,51 @@ const WorkoutSession = () => {
 
   // Timer effect - always runs at normal speed
   useEffect(() => {
-    let interval: NodeJS.Timeout;
+    let interval: NodeJS.Timeout | null = null;
     
-    if (isRunning && !isPaused && timeRemaining > 0) {
+    if (isRunning && !isPaused) {
       interval = setInterval(() => {
-        setTimeRemaining((prev) => prev - 1);
+        // Always increment total elapsed when workout is running (not in prep)
         if (!isPreparation) {
           setTotalElapsed((prev) => prev + 1);
         }
+        
+        setTimeRemaining((prev) => {
+          if (prev <= 1) {
+            // Time is up, handle segment transition
+            if (isPreparation) {
+              setIsPreparation(false);
+              return flatSegments[0]?.duration || 60;
+            } else if (currentSegmentIndex < flatSegments.length - 1) {
+              setCurrentSegmentIndex((idx) => idx + 1);
+              return flatSegments[currentSegmentIndex + 1]?.duration || 60;
+            } else {
+              // Workout complete
+              setIsComplete(true);
+              setIsRunning(false);
+              if (workout) {
+                markWorkoutUsed(workout.id);
+              }
+              return 0;
+            }
+          }
+          return prev - 1;
+        });
       }, 1000);
-    } else if (timeRemaining === 0 && isRunning) {
-      if (isPreparation) {
-        setIsPreparation(false);
-        setTimeRemaining(flatSegments[0]?.duration || 60);
-      } else if (currentSegmentIndex < flatSegments.length - 1) {
-        setCurrentSegmentIndex((prev) => prev + 1);
-        setTimeRemaining(flatSegments[currentSegmentIndex + 1].duration);
-      } else {
-        setIsComplete(true);
-        setIsRunning(false);
-        if (workout) {
-          markWorkoutUsed(workout.id);
-          const xpEarned = Math.floor((totalElapsed / 60) * 10);
-          addXP(xpEarned);
-        }
-      }
     }
     
-    return () => clearInterval(interval);
-  }, [isRunning, isPaused, timeRemaining, currentSegmentIndex, flatSegments, isPreparation, workout, markWorkoutUsed, addXP, totalElapsed]);
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [isRunning, isPaused, isPreparation, currentSegmentIndex, flatSegments, workout, markWorkoutUsed]);
+
+  // Award XP when workout is complete
+  useEffect(() => {
+    if (isComplete && totalElapsed > 0) {
+      const xpEarned = Math.floor((totalElapsed / 60) * 10);
+      addXP(xpEarned);
+    }
+  }, [isComplete, totalElapsed, addXP]);
 
   const handleStart = () => {
     setIsRunning(true);
