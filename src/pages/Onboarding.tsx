@@ -165,10 +165,10 @@ const Onboarding = () => {
             <p className="text-lg text-muted-foreground mb-8">
               Knockout Intelligence.
             </p>
-            <div className="space-y-4 w-full max-w-xs mx-auto">
+            <div className="space-y-3 w-full max-w-xs mx-auto">
               <Button 
                 onClick={() => navigate('/auth?mode=signup')} 
-                className="btn-primary-glow w-full h-12 text-base"
+                className="btn-primary-glow w-full h-11 text-sm"
               >
                 GET STARTED
                 <ArrowRight className="w-4 h-4 ml-2" />
@@ -176,10 +176,10 @@ const Onboarding = () => {
               <Button 
                 onClick={() => navigate('/auth?mode=login')} 
                 variant="outline"
-                className="w-full h-12 text-base bg-surface-1 border-surface-3 hover:bg-surface-2"
+                className="w-full h-11 text-sm bg-surface-1 border-surface-3 hover:bg-surface-2"
               >
-                <LogIn className="w-4 h-4 mr-2" />
                 LOGIN
+                <LogIn className="w-4 h-4 ml-2" />
               </Button>
             </div>
           </div>
