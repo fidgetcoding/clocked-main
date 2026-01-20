@@ -5,6 +5,16 @@ import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
 import { useTimerStore } from '@/stores/timerStore';
 import { cn } from '@/lib/utils';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 function formatTime(seconds: number): string {
   const mins = Math.floor(seconds / 60);
@@ -33,6 +43,7 @@ const QuickTimer = () => {
   } = useTimerStore();
 
   const [isSetupMode, setIsSetupMode] = useState(true);
+  const [showResetConfirm, setShowResetConfirm] = useState(false);
 
   // Timer tick effect
   useEffect(() => {
@@ -63,9 +74,14 @@ const QuickTimer = () => {
     }
   };
 
-  const handleReset = () => {
+  const handleResetClick = () => {
+    setShowResetConfirm(true);
+  };
+
+  const handleResetConfirm = () => {
     resetTimer();
     setIsSetupMode(true);
+    setShowResetConfirm(false);
   };
 
   const adjustTime = useCallback((field: 'roundTime' | 'restTime' | 'warningTime', delta: number) => {
@@ -88,14 +104,29 @@ const QuickTimer = () => {
   if (!isSetupMode) {
     // Active Timer View
     return (
-      <AppLayout hideNav>
+      <>
+        <AlertDialog open={showResetConfirm} onOpenChange={setShowResetConfirm}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Reset Timer?</AlertDialogTitle>
+              <AlertDialogDescription>
+                Are you sure you want to reset? Your current progress will be lost.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction onClick={handleResetConfirm}>Reset</AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+        <AppLayout hideNav>
         <div className={cn(
           'min-h-screen flex flex-col',
           timerState.isRestPeriod ? 'bg-rest-green/10' : 'bg-background'
         )}>
           {/* Top Bar */}
           <header className="flex items-center justify-between px-4 py-4 safe-top">
-            <button onClick={handleReset} className="text-muted-foreground">
+            <button onClick={handleResetClick} className="text-muted-foreground">
               <ArrowLeft className="w-6 h-6" />
             </button>
             <div className="text-center">
@@ -169,7 +200,7 @@ const QuickTimer = () => {
           <div className="px-4 pb-8 safe-bottom">
             <div className="flex items-center justify-center gap-6 mb-6">
               <Button
-                onClick={handleReset}
+                onClick={handleResetClick}
                 variant="ghost"
                 size="lg"
                 className="w-14 h-14 rounded-full bg-surface-1 hover:bg-surface-2"
@@ -205,7 +236,8 @@ const QuickTimer = () => {
             </div>
           </div>
         </div>
-      </AppLayout>
+        </AppLayout>
+      </>
     );
   }
 
