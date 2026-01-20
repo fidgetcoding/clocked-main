@@ -35,6 +35,7 @@ const App = () => (
           <Route path="/profile" element={<Profile />} />
           <Route path="/profile/:userId" element={<Profile />} />
           <Route path="/workout/:id" element={<WorkoutSession />} />
+          <Route path="/workout/:id/session" element={<WorkoutSession />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
