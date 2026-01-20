@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Home, Play, Pause, RotateCcw, SkipForward, ChevronRight } from 'lucide-react';
+import { ArrowLeft, Home, Play, Pause, RotateCcw, SkipForward, SkipBack, ChevronRight, MoreVertical } from 'lucide-react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
 import { VerticalXPBar } from '@/components/ui/VerticalXPBar';
@@ -163,6 +163,22 @@ const WorkoutSession = () => {
     setIsPaused(true);
     setIsPreparation(true);
     setIsComplete(false);
+  };
+
+  const handleBack = () => {
+    if (isPreparation) {
+      // Can't go back from preparation
+      return;
+    }
+    if (currentSegmentIndex > 0) {
+      const prevSegment = flatSegments[currentSegmentIndex - 1];
+      setCurrentSegmentIndex((prev) => prev - 1);
+      setTimeRemaining(prevSegment.duration);
+    } else {
+      // At the first segment, go back to preparation
+      setIsPreparation(true);
+      setTimeRemaining(10);
+    }
   };
 
   const handleSkip = () => {
@@ -435,9 +451,15 @@ const WorkoutSession = () => {
             </div>
           </div>
 
-          {/* Progress Bar */}
+          {/* Progress Bar with Phase Indicator */}
           <div className="mb-4">
-            <div className="h-1 bg-surface-2 rounded-full overflow-hidden">
+            <div className="flex items-center justify-between text-xs text-muted-foreground mb-1">
+              <span>{isPreparation ? 'PREP' : currentSegment?.section?.toUpperCase() || 'WARMUP'}</span>
+              <span className="text-volt font-bold">
+                {isPreparation ? '0' : currentSegmentIndex + 1} / {totalSegments}
+              </span>
+            </div>
+            <div className="h-1.5 bg-surface-2 rounded-full overflow-hidden">
               <div 
                 className="h-full bg-volt transition-all duration-300"
                 style={{ width: `${progressPercent}%` }}
@@ -449,14 +471,17 @@ const WorkoutSession = () => {
           </div>
 
           {/* Controls */}
-          <div className="flex items-center justify-center gap-6">
+          <div className="flex items-center justify-center gap-4">
+            {/* Back Button */}
             <button
-              onClick={handleReset}
-              className="w-12 h-12 rounded-full bg-surface-1 border border-surface-3 flex items-center justify-center"
+              onClick={handleBack}
+              disabled={isPreparation}
+              className="w-12 h-12 rounded-full bg-surface-1 border border-surface-3 flex items-center justify-center disabled:opacity-30"
             >
-              <RotateCcw className="w-5 h-5 text-foreground" />
+              <SkipBack className="w-5 h-5 text-foreground" />
             </button>
 
+            {/* Play/Pause */}
             <button
               onClick={isPaused ? handleStart : handlePauseResume}
               className="w-20 h-20 rounded-full bg-volt flex items-center justify-center glow-volt"
@@ -468,11 +493,21 @@ const WorkoutSession = () => {
               )}
             </button>
 
+            {/* Skip Forward */}
             <button
               onClick={handleSkip}
               className="w-12 h-12 rounded-full bg-surface-1 border border-surface-3 flex items-center justify-center"
             >
               <SkipForward className="w-5 h-5 text-foreground" />
+            </button>
+
+            {/* More/Restart Menu */}
+            <button
+              onClick={handleReset}
+              className="w-10 h-10 rounded-full bg-surface-1 border border-surface-3 flex items-center justify-center"
+              title="Restart from beginning"
+            >
+              <RotateCcw className="w-4 h-4 text-muted-foreground" />
             </button>
           </div>
         </div>

@@ -12,6 +12,7 @@ import Onboarding from "./pages/Onboarding";
 import WorkoutSession from "./pages/WorkoutSession";
 import FightClub from "./pages/FightClub";
 import Stats from "./pages/Stats";
+import Profile from "./pages/Profile";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -31,6 +32,8 @@ const App = () => (
           <Route path="/history" element={<History />} />
           <Route path="/stats" element={<Stats />} />
           <Route path="/fight-club" element={<FightClub />} />
+          <Route path="/profile" element={<Profile />} />
+          <Route path="/profile/:userId" element={<Profile />} />
           <Route path="/workout/:id" element={<WorkoutSession />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
