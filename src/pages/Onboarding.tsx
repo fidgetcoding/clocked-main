@@ -7,7 +7,7 @@ import { useUserStore } from '@/stores/userStore';
 import { useWorkoutStore } from '@/stores/workoutStore';
 import { cn } from '@/lib/utils';
 import clockedLogo from '@/assets/clocked-logo.png';
-import MetaballBackground from '@/components/MetaballBackground';
+
 type Step = 'welcome' | 'role' | 'name' | 'experience' | 'equipment' | 'fightClub' | 'goals' | 'complete';
 
 const experienceLevels = [
@@ -124,8 +124,7 @@ const Onboarding = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background flex flex-col relative overflow-hidden">
-      <MetaballBackground />
+    <div className="min-h-screen bg-background flex flex-col">
       {/* Progress dots */}
       {step !== 'welcome' && step !== 'complete' && (
         <div className="flex justify-center gap-2 pt-8 pb-4">
@@ -142,21 +141,24 @@ const Onboarding = () => {
         </div>
       )}
 
-      <div className="flex-1 flex flex-col items-center justify-center px-6 relative z-10">
+      <div className="flex-1 flex flex-col items-center justify-center px-6">
         {/* Welcome */}
         {step === 'welcome' && (
           <div className="text-center animate-fade-in">
             <img 
               src={clockedLogo} 
               alt="Clocked Logo" 
-              className="w-[26rem] h-[26rem] mx-auto object-contain -mb-32"
+              className="w-48 h-48 mx-auto mb-4 object-contain"
             />
-            <p className="text-lg text-muted-foreground mb-6">
-              Knockout Intelligence.
+            <h1 className="text-4xl font-black text-foreground tracking-tight mb-2">
+              CLOCKED.
+            </h1>
+            <p className="text-lg text-muted-foreground mb-12">
+              Every fighter deserves a corner, even when they're training alone.
             </p>
-            <Button onClick={() => handleNext()} className="btn-primary-glow px-8 h-12 text-base">
-              GET STARTED
-              <ArrowRight className="w-4 h-4 ml-2" />
+            <Button onClick={() => handleNext()} className="btn-primary-glow w-full max-w-xs h-14 text-lg">
+              LET'S GET STARTED
+              <ArrowRight className="w-5 h-5 ml-2" />
             </Button>
           </div>
         )}
