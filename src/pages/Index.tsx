@@ -57,7 +57,7 @@ const Index = () => {
           <div className="flex items-center justify-center gap-2">
             <div className="h-px flex-1 bg-surface-3" />
             <h1 className="text-2xl font-black text-foreground tracking-wider">
-              GET CLOCKED
+              CLOCKED
             </h1>
             <div className="h-px flex-1 bg-surface-3" />
           </div>
@@ -121,9 +121,10 @@ const Index = () => {
               activeWorkouts.map((workout) => (
                 <div
                   key={workout.id}
-                  className="card-workout"
+                  className="card-workout group"
                 >
                   <div className="flex items-start gap-4">
+                    {/* Content */}
                     <div className="flex-1">
                       <h3 className="text-xl font-black text-foreground uppercase mb-1">
                         {workout.name}
@@ -147,29 +148,32 @@ const Index = () => {
                       </div>
                     </div>
 
-                    {/* Play Button with hover animation */}
-                    <button
-                      onClick={() => navigate(`/workout/${workout.id}`)}
-                      className="w-12 h-12 rounded-full bg-volt flex items-center justify-center flex-shrink-0 transition-all duration-200 hover:scale-110 hover:shadow-[0_0_20px_hsl(var(--electric-volt)/0.6)] active:scale-95"
-                    >
-                      <Play className="w-5 h-5 text-primary-foreground ml-0.5" fill="currentColor" />
-                    </button>
-                  </div>
+                    {/* Play button and actions column */}
+                    <div className="flex flex-col items-center gap-3 flex-shrink-0">
+                      {/* Play Button - pulses on card hover */}
+                      <button
+                        onClick={() => navigate(`/workout/${workout.id}`)}
+                        className="w-12 h-12 rounded-full bg-volt flex items-center justify-center transition-all duration-200 group-hover:scale-110 group-hover:shadow-[0_0_20px_hsl(var(--electric-volt)/0.6)] active:scale-95"
+                      >
+                        <Play className="w-5 h-5 text-primary-foreground ml-0.5" fill="currentColor" />
+                      </button>
 
-                  {/* Actions */}
-                  <div className="flex items-center justify-end gap-4 mt-4 pt-4 border-t border-surface-3">
-                    <button
-                      onClick={() => navigate(`/build?edit=${workout.id}`)}
-                      className="text-muted-foreground hover:text-foreground transition-colors"
-                    >
-                      <Pencil className="w-5 h-5" />
-                    </button>
-                    <button
-                      onClick={() => setWorkoutToDelete(workout.id)}
-                      className="text-muted-foreground hover:text-alert-red transition-colors"
-                    >
-                      <Trash2 className="w-5 h-5" />
-                    </button>
+                      {/* Edit and Delete below play button */}
+                      <div className="flex items-center gap-3">
+                        <button
+                          onClick={() => navigate(`/build?edit=${workout.id}`)}
+                          className="text-muted-foreground hover:text-foreground transition-colors p-1"
+                        >
+                          <Pencil className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => setWorkoutToDelete(workout.id)}
+                          className="text-muted-foreground hover:text-destructive transition-colors p-1"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
                   </div>
                 </div>
               ))

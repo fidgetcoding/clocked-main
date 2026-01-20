@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { useUserStore } from '@/stores/userStore';
 import { useWorkoutStore } from '@/stores/workoutStore';
 import { cn } from '@/lib/utils';
+import clockedLogo from '@/assets/clocked-logo.png';
 
 type Step = 'welcome' | 'role' | 'name' | 'experience' | 'equipment' | 'fightClub' | 'goals' | 'complete';
 
@@ -138,11 +139,13 @@ const Onboarding = () => {
         {/* Welcome */}
         {step === 'welcome' && (
           <div className="text-center animate-fade-in">
-            <div className="w-24 h-24 rounded-full bg-volt flex items-center justify-center mx-auto mb-8">
-              <span className="text-5xl">⚡</span>
-            </div>
+            <img 
+              src={clockedLogo} 
+              alt="Clocked Logo" 
+              className="w-48 h-48 mx-auto mb-4 object-contain"
+            />
             <h1 className="text-4xl font-black text-foreground tracking-tight mb-2">
-              GET CLOCKED.
+              CLOCKED.
             </h1>
             <p className="text-lg text-muted-foreground mb-12">
               Every fighter deserves a corner, even when they're training alone.
