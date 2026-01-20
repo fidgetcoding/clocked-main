@@ -1,4 +1,4 @@
-import { Home, Timer, Hammer, Users, BarChart3 } from 'lucide-react';
+import { Home, Timer, Users, BarChart3 } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 
@@ -11,7 +11,6 @@ interface NavItem {
 const navItems: NavItem[] = [
   { icon: Home, label: 'Home', path: '/' },
   { icon: Timer, label: 'Timer', path: '/timer' },
-  { icon: Hammer, label: 'Build', path: '/build' },
   { icon: Users, label: 'Fight Club', path: '/fight-club' },
   { icon: BarChart3, label: 'Stats', path: '/stats' },
 ];
