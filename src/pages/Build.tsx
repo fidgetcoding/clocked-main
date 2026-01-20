@@ -136,7 +136,8 @@ const Build = () => {
   };
 
   const requiredCombos = countComboSegments();
-  const combosComplete = combos.length >= requiredCombos || requiredCombos === 0;
+  // No minimum required - combos are always optional, just a suggestion
+  const combosComplete = true;
 
   const getActivePhases = () => {
     switch (activeSection) {
@@ -493,14 +494,9 @@ const Build = () => {
               <div className="flex items-center justify-between mb-4">
                 <div>
                   <h3 className="font-semibold text-foreground">Combos ({combos.length})</h3>
-                  {requiredCombos > 0 && (
-                    <p className={cn(
-                      'text-xs',
-                      combosComplete ? 'text-volt' : 'text-orange-400'
-                    )}>
-                      {combosComplete 
-                        ? '✓ Combos complete' 
-                        : `Need ${requiredCombos - combos.length} more combo${requiredCombos - combos.length > 1 ? 's' : ''}`}
+                  {requiredCombos > 0 && combos.length < requiredCombos && (
+                    <p className="text-xs text-muted-foreground">
+                      {requiredCombos - combos.length} combo{requiredCombos - combos.length > 1 ? 's' : ''} suggested
                     </p>
                   )}
                 </div>
@@ -527,14 +523,7 @@ const Build = () => {
                         {combo.map((move, mIdx) => (
                           <span 
                             key={mIdx} 
-                            className={cn(
-                              'px-2 py-0.5 rounded text-xs font-medium',
-                              move.includes('SLIP') || move.includes('ROLL') || move.includes('PULL') || move.includes('BLOCK')
-                                ? 'bg-yellow-500/20 text-yellow-500'
-                                : move.includes('CIRCLE') || move.includes('STEP')
-                                ? 'bg-blue-500/20 text-blue-400'
-                                : 'bg-volt/20 text-volt'
-                            )}
+                            className="px-2 py-0.5 rounded text-xs font-medium bg-volt/20 text-volt"
                           >
                             {move}
                           </span>
@@ -695,7 +684,7 @@ const Build = () => {
                       <button
                         key={key}
                         onClick={() => addToCombo(key)}
-                        className="py-3 rounded-xl bg-surface-1 border border-surface-3 text-foreground font-medium text-sm hover:bg-yellow-500 hover:text-primary-foreground transition-colors"
+                        className="py-3 rounded-xl bg-surface-1 border border-surface-3 text-foreground font-medium text-sm hover:bg-volt hover:text-primary-foreground transition-colors"
                       >
                         {key}
                       </button>
@@ -712,7 +701,7 @@ const Build = () => {
                         <button
                           key={key}
                           onClick={() => addToCombo(key)}
-                          className="py-3 rounded-xl bg-surface-1 border border-surface-3 text-foreground font-medium text-sm hover:bg-blue-500 hover:text-white transition-colors"
+                          className="py-3 rounded-xl bg-surface-1 border border-surface-3 text-foreground font-medium text-sm hover:bg-volt hover:text-primary-foreground transition-colors"
                         >
                           {key}
                         </button>
@@ -727,35 +716,15 @@ const Build = () => {
 
         {/* Fixed Save Button at Bottom */}
         <div className="fixed bottom-0 left-0 right-0 p-4 bg-background border-t border-surface-3 safe-bottom">
-          {!combosComplete && requiredCombos > 0 ? (
-            <div className="space-y-2">
-              <p className="text-xs text-center text-alert-red">
-                Add {requiredCombos - combos.length} more combo{requiredCombos - combos.length > 1 ? 's' : ''} to complete workout
-              </p>
-              <div className="flex gap-2">
-                <Button 
-                  onClick={() => setShowComboBuilder(true)} 
-                  variant="outline" 
-                  className="flex-1 border-surface-3"
-                >
-                  Add Combos
-                </Button>
-                <Button onClick={() => handleSave(false)} className="flex-1 bg-surface-2 text-muted-foreground">
-                  Save Anyway
-                </Button>
-              </div>
-            </div>
-          ) : (
-            <div className="flex gap-2">
-              <Button onClick={() => handleSave(false)} variant="outline" className="flex-1 border-surface-3">
-                Save Workout
-              </Button>
-              <Button onClick={() => handleSave(true)} className="flex-1 bg-volt text-primary-foreground hover:bg-volt/90">
-                <Play className="w-4 h-4 mr-2" />
-                Start
-              </Button>
-            </div>
-          )}
+          <div className="flex gap-2">
+            <Button onClick={() => handleSave(false)} variant="outline" className="flex-1 border-surface-3">
+              Save Workout
+            </Button>
+            <Button onClick={() => handleSave(true)} className="flex-1 bg-volt text-primary-foreground hover:bg-volt/90">
+              <Play className="w-4 h-4 mr-2" />
+              Start
+            </Button>
+          </div>
         </div>
 
         {/* AI Builder Modal */}
