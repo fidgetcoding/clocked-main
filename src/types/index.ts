@@ -96,6 +96,26 @@ export interface Workout {
   combos?: string[][];
 }
 
+// Workout Log Types
+export interface RoundFeedback {
+  roundNumber: number;
+  rating: number; // 1-5
+  notes?: string;
+}
+
+export interface CompletedWorkout {
+  id: string;
+  workoutId?: string;
+  workoutName: string;
+  completedAt: Date;
+  duration: number; // in seconds
+  xpEarned: number;
+  difficulty?: 'too_easy' | 'just_right' | 'too_hard';
+  notes?: string;
+  roundFeedback?: RoundFeedback[];
+  isManualEntry: boolean;
+}
+
 // Timer Types
 export interface QuickTimerSettings {
   roundTime: number; // in seconds

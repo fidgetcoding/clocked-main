@@ -8,7 +8,7 @@ const createWorkout = (
 ): Workout => ({
   id,
   name,
-  icon: '🥊',
+  icon: '',
   difficulty,
   totalDuration: 3540, // ~59 minutes
   isPreset: true,

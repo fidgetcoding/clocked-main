@@ -18,7 +18,7 @@ const experienceLevels = [
 ] as const;
 
 const equipmentOptions = [
-  { id: 'gloves', label: 'Boxing Gloves', icon: '🥊' },
+  { id: 'gloves', label: 'Boxing Gloves', icon: '🧤' },
   { id: 'wraps', label: 'Hand Wraps', icon: '🩹' },
   { id: 'heavyBag', label: 'Heavy Bag', icon: '🎯' },
   { id: 'speedBag', label: 'Speed Bag', icon: '💨' },
@@ -115,7 +115,7 @@ const Onboarding = () => {
         {step === 'welcome' && (
           <div className="text-center animate-fade-in">
             <div className="w-24 h-24 rounded-full bg-volt flex items-center justify-center mx-auto mb-8">
-              <span className="text-5xl">🥊</span>
+              <span className="text-5xl">⚡</span>
             </div>
             <h1 className="text-4xl font-black text-foreground tracking-tight mb-2">
               GET CLOCKED.
