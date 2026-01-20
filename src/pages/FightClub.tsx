@@ -103,7 +103,7 @@ const FightClub = () => {
                       <div className="flex items-center gap-2">
                         <span className="font-semibold text-foreground">{post.userName}</span>
                         {post.status === 'live' && (
-                          <span className="flex items-center gap-1 text-xs text-rest-green font-medium">
+                          <span className="flex items-center gap-1 text-xs text-volt font-medium">
                             <span className="status-live" />
                             LIVE
                           </span>
@@ -185,7 +185,7 @@ const FightClub = () => {
                   <div className="flex-1">
                     <h4 className="font-semibold text-foreground">Iron Fist Boxing</h4>
                     <p className="text-sm text-muted-foreground">Private · Coach: Mike T.</p>
-                    <p className="text-xs text-rest-green mt-1">3 active now 🟢</p>
+                    <p className="text-xs text-volt mt-1">3 active now 🟢</p>
                   </div>
                   <span className="text-sm text-muted-foreground">12 👤</span>
                 </div>
@@ -269,7 +269,7 @@ const FightClub = () => {
 
               <div className="card-workout">
                 <div className="flex items-start gap-3">
-                  <div className="w-12 h-12 rounded-xl bg-rest-green/20 flex items-center justify-center text-2xl">
+                  <div className="w-12 h-12 rounded-xl bg-volt/20 flex items-center justify-center text-2xl">
                     🏃
                   </div>
                   <div className="flex-1">
@@ -279,7 +279,7 @@ const FightClub = () => {
                       <span>⭐ 4.9 (156)</span>
                       <span>📥 8.2K</span>
                       <span>15 min</span>
-                      <span className="text-rest-green">Beginner</span>
+                      <span className="text-volt">Beginner</span>
                     </div>
                   </div>
                 </div>

@@ -1,4 +1,4 @@
-import { Home, Settings } from 'lucide-react';
+import { Home, Settings, BarChart3, Users } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 
@@ -10,6 +10,8 @@ interface NavItem {
 
 const navItems: NavItem[] = [
   { icon: Home, label: 'HOME', path: '/' },
+  { icon: BarChart3, label: 'STATS', path: '/stats' },
+  { icon: Users, label: 'FIGHT CLUB', path: '/fight-club' },
   { icon: Settings, label: 'SETTINGS', path: '/settings' },
 ];
 
@@ -41,7 +43,7 @@ export function BottomNav() {
               />
               <span 
                 className={cn(
-                  'text-xs font-semibold tracking-wider transition-colors duration-200',
+                  'text-[10px] font-semibold tracking-wider transition-colors duration-200',
                   isActive ? 'text-volt' : 'text-muted-foreground'
                 )}
               >

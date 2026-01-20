@@ -46,8 +46,13 @@ const Onboarding = () => {
   const [equipment, setEquipment] = useState<Record<string, boolean>>({});
   const [goals, setGoals] = useState<string[]>([]);
 
-  const handleNext = () => {
-    const steps: Step[] = ['welcome', 'role', 'name', 'experience', 'equipment', 'goals', 'complete'];
+  const handleNext = (selectedRole?: 'fighter' | 'coach') => {
+    // If coach is selected, skip experience step (coaches are pro level)
+    const roleToUse = selectedRole || role;
+    const steps: Step[] = roleToUse === 'coach'
+      ? ['welcome', 'role', 'name', 'equipment', 'goals', 'complete']
+      : ['welcome', 'role', 'name', 'experience', 'equipment', 'goals', 'complete'];
+    
     const currentIndex = steps.indexOf(step);
     if (currentIndex < steps.length - 1) {
       setStep(steps[currentIndex + 1]);
@@ -55,16 +60,19 @@ const Onboarding = () => {
   };
 
   const handleComplete = () => {
+    // Coaches are automatically pro level
+    const finalExperience = role === 'coach' ? 'pro' : experience;
+    
     completeOnboarding({
       role,
-      name: name || 'Fighter',
-      experienceLevel: experience as any,
+      name: name || (role === 'coach' ? 'Coach' : 'Fighter'),
+      experienceLevel: finalExperience as any,
       equipment: equipment as any,
       goals: goals as any,
     });
     
     // Load beginner presets if beginner
-    if (experience === 'complete_beginner' || experience === 'beginner') {
+    if (finalExperience === 'complete_beginner' || finalExperience === 'beginner') {
       loadBeginnerPresets();
     }
     
@@ -86,13 +94,16 @@ const Onboarding = () => {
       {/* Progress dots */}
       {step !== 'welcome' && step !== 'complete' && (
         <div className="flex justify-center gap-2 pt-8 pb-4">
-          {['role', 'name', 'experience', 'equipment', 'goals'].map((s, i) => (
+          {(role === 'coach' 
+            ? ['role', 'name', 'equipment', 'goals']
+            : ['role', 'name', 'experience', 'equipment', 'goals']
+          ).map((s, i, arr) => (
             <div
               key={s}
               className={cn(
                 'w-2 h-2 rounded-full transition-colors',
                 step === s ? 'bg-volt' : 
-                ['role', 'name', 'experience', 'equipment', 'goals'].indexOf(step) > i ? 'bg-volt/50' : 'bg-surface-3'
+                arr.indexOf(step) > i ? 'bg-volt/50' : 'bg-surface-3'
               )}
             />
           ))}
@@ -112,7 +123,7 @@ const Onboarding = () => {
             <p className="text-lg text-muted-foreground mb-12">
               Your Corner. Always There.
             </p>
-            <Button onClick={handleNext} className="btn-primary-glow w-full max-w-xs h-14 text-lg">
+            <Button onClick={() => handleNext()} className="btn-primary-glow w-full max-w-xs h-14 text-lg">
               LET'S GET STARTED
               <ArrowRight className="w-5 h-5 ml-2" />
             </Button>
@@ -131,7 +142,7 @@ const Onboarding = () => {
 
             <div className="space-y-4">
               <button
-                onClick={() => { setRole('fighter'); handleNext(); }}
+                onClick={() => { setRole('fighter'); handleNext('fighter'); }}
                 className={cn(
                   'w-full p-6 rounded-2xl border-2 text-left transition-all',
                   role === 'fighter' 
@@ -151,7 +162,7 @@ const Onboarding = () => {
               </button>
 
               <button
-                onClick={() => { setRole('coach'); handleNext(); }}
+                onClick={() => { setRole('coach'); handleNext('coach'); }}
                 className={cn(
                   'w-full p-6 rounded-2xl border-2 text-left transition-all',
                   role === 'coach' 
@@ -191,7 +202,7 @@ const Onboarding = () => {
               autoFocus
             />
 
-            <Button onClick={handleNext} className="btn-primary-glow w-full h-14 text-lg">
+            <Button onClick={() => handleNext()} className="btn-primary-glow w-full h-14 text-lg">
               Continue
               <ArrowRight className="w-5 h-5 ml-2" />
             </Button>
@@ -233,7 +244,7 @@ const Onboarding = () => {
               ))}
             </div>
 
-            <Button onClick={handleNext} className="btn-primary-glow w-full h-14 text-lg">
+            <Button onClick={() => handleNext()} className="btn-primary-glow w-full h-14 text-lg">
               Continue
               <ArrowRight className="w-5 h-5 ml-2" />
             </Button>
@@ -268,7 +279,7 @@ const Onboarding = () => {
               ))}
             </div>
 
-            <Button onClick={handleNext} className="btn-primary-glow w-full h-14 text-lg">
+            <Button onClick={() => handleNext()} className="btn-primary-glow w-full h-14 text-lg">
               Continue
               <ArrowRight className="w-5 h-5 ml-2" />
             </Button>
