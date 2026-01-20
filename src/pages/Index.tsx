@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Plus, History, Play, Pencil, Trash2, Clock, RotateCcw, Archive } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import clockedTextLogo from '@/assets/clocked-text-logo.png';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { useUserStore } from '@/stores/userStore';
 import { useWorkoutStore } from '@/stores/workoutStore';
@@ -83,12 +84,14 @@ const Index = () => {
       <div className="min-h-screen bg-background">
         {/* Header */}
         <header className="px-4 pt-8 pb-6 text-center safe-top">
-          <div className="flex items-center justify-center gap-2">
-            <div className="h-px flex-1 bg-surface-3" />
-            <h1 className="text-2xl font-black text-foreground tracking-wider">
-              CLOCKED
-            </h1>
-            <div className="h-px flex-1 bg-surface-3" />
+          <div className="flex items-center justify-center gap-3">
+            <div className="h-px flex-1 bg-volt/40" />
+            <img 
+              src={clockedTextLogo} 
+              alt="CLOCKED" 
+              className="h-8 object-contain"
+            />
+            <div className="h-px flex-1 bg-volt/40" />
           </div>
         </header>
 
