@@ -150,12 +150,12 @@ const Onboarding = () => {
               alt="Clocked Logo" 
               className="w-[26rem] h-[26rem] mx-auto object-contain -mb-32"
             />
-            <p className="text-lg text-muted-foreground mb-12">
-              Never fight alone.
+            <p className="text-lg text-muted-foreground mb-6">
+              Knockout Intelligence.
             </p>
-            <Button onClick={() => handleNext()} className="btn-primary-glow w-full max-w-xs h-14 text-lg">
+            <Button onClick={() => handleNext()} className="btn-primary-glow px-8 h-12 text-base">
               GET STARTED
-              <ArrowRight className="w-5 h-5 ml-2" />
+              <ArrowRight className="w-4 h-4 ml-2" />
             </Button>
           </div>
         )}
