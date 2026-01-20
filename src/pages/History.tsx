@@ -5,9 +5,9 @@ import { Button } from '@/components/ui/button';
 import { useHistoryStore } from '@/stores/historyStore';
 import { useUserStore } from '@/stores/userStore';
 import { AddWorkoutModal } from '@/components/AddWorkoutModal';
-import { GeneratedWorkoutPreview } from '@/components/GeneratedWorkoutPreview';
 import { cn } from '@/lib/utils';
 import { format, formatDistanceToNow } from 'date-fns';
+import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { Workout, WorkoutPhase } from '@/types';
 
@@ -20,12 +20,12 @@ function formatDuration(seconds: number): string {
 }
 
 const History = () => {
+  const navigate = useNavigate();
   const [showAddModal, setShowAddModal] = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [showAICoach, setShowAICoach] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysis, setAnalysis] = useState<string | null>(null);
-  const [generatedWorkout, setGeneratedWorkout] = useState<Workout | null>(null);
   
   const completedWorkouts = useHistoryStore((state) => state.completedWorkouts);
   const user = useUserStore((state) => state.user);
@@ -168,8 +168,11 @@ const History = () => {
       combos,
     };
     
-    setGeneratedWorkout(workout);
+    // Navigate to build page with workout data
+    const workoutData = encodeURIComponent(JSON.stringify(workout));
+    toast.success('Opening AI Coach workout in editor...');
     setShowAICoach(false);
+    navigate(`/build?ai=${workoutData}`);
   };
 
   return (
@@ -402,15 +405,6 @@ const History = () => {
             )}
           </div>
         </div>
-      )}
-
-      {/* Generated Workout Preview */}
-      {generatedWorkout && (
-        <GeneratedWorkoutPreview
-          workout={generatedWorkout}
-          onClose={() => setGeneratedWorkout(null)}
-          onWorkoutUpdate={(updated) => setGeneratedWorkout(updated)}
-        />
       )}
     </AppLayout>
   );

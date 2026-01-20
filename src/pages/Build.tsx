@@ -21,8 +21,8 @@ import { toast } from 'sonner';
 const SEGMENT_TYPES: { key: SegmentType; label: string; color: string }[] = [
   { key: 'work', label: 'W', color: 'bg-volt/20 text-volt' },
   { key: 'rest', label: 'R', color: 'bg-surface-2 text-muted-foreground' },
-  { key: 'shadowboxing', label: 'S', color: 'bg-blue-500/20 text-blue-400' },
-  { key: 'combo', label: 'C', color: 'bg-purple-500/20 text-purple-400' },
+  { key: 'shadowboxing', label: 'S', color: 'bg-volt/10 text-volt' },
+  { key: 'combo', label: 'C', color: 'bg-volt/30 text-volt' },
 ];
 
 const DEFAULT_SEGMENT: Omit<WorkoutSegment, 'id'> = {
@@ -53,6 +53,7 @@ const Build = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const editId = searchParams.get('edit');
+  const aiWorkoutData = searchParams.get('ai');
   
   const { workouts, addWorkout, updateWorkout } = useWorkoutStore();
   const user = useUserStore((state) => state.user);
@@ -73,6 +74,7 @@ const Build = () => {
   const [grindPhases, setGrindPhases] = useState<WorkoutPhase[]>([]);
   const [cooldownPhases, setCooldownPhases] = useState<WorkoutPhase[]>([]);
   const [combos, setCombos] = useState<string[][]>([]);
+  const [workoutId, setWorkoutId] = useState<string | null>(null);
   
   // UI state
   const [activeSection, setActiveSection] = useState<'warmup' | 'grind' | 'cooldown'>('grind');
@@ -82,11 +84,31 @@ const Build = () => {
   const [editingComboIndex, setEditingComboIndex] = useState<number | null>(null);
   const [showAIBuilder, setShowAIBuilder] = useState(false);
 
+  // Load AI-generated workout from URL params
+  useEffect(() => {
+    if (aiWorkoutData) {
+      try {
+        const workout = JSON.parse(decodeURIComponent(aiWorkoutData)) as Workout;
+        setWorkoutId(workout.id);
+        setName(workout.name);
+        setDifficulty(workout.difficulty);
+        setWarmupPhases(workout.sections.warmup);
+        setGrindPhases(workout.sections.grind);
+        setCooldownPhases(workout.sections.cooldown);
+        setCombos(workout.combos || []);
+        toast.success(`Loaded "${workout.name}" - customize and save or start!`);
+      } catch (e) {
+        console.error('Failed to parse AI workout data', e);
+      }
+    }
+  }, [aiWorkoutData]);
+
   // Load existing workout for editing
   useEffect(() => {
     if (editId) {
       const workout = workouts.find(w => w.id === editId);
       if (workout) {
+        setWorkoutId(workout.id);
         setName(workout.name);
         setDifficulty(workout.difficulty);
         setWarmupPhases(workout.sections.warmup);
@@ -236,11 +258,12 @@ const Build = () => {
     return total;
   };
 
-  const handleSave = () => {
+  const handleSave = (andStart: boolean = false) => {
+    const id = workoutId || editId || generateId();
     const workout: Workout = {
-      id: editId || generateId(),
+      id,
       name,
-      icon: '',
+      icon: '🥊',
       difficulty,
       totalDuration: calculateTotalDuration(),
       isPreset: false,
@@ -255,13 +278,20 @@ const Build = () => {
       combos: combos.length > 0 ? combos : undefined,
     };
 
-    if (editId) {
-      updateWorkout(editId, workout);
+    if (editId || workouts.some(w => w.id === id)) {
+      updateWorkout(id, workout);
     } else {
       addWorkout(workout);
     }
     
-    navigate('/');
+    if (andStart) {
+      toast.success(`Starting "${name}"`);
+      navigate(`/workout/${id}/session`);
+    } else {
+      toast.success(`Saved "${name}"`);
+      navigate('/');
+    }
+  };
   };
 
   // Get available keys based on difficulty
@@ -697,7 +727,7 @@ const Build = () => {
         <div className="fixed bottom-0 left-0 right-0 p-4 bg-background border-t border-surface-3 safe-bottom">
           {!combosComplete && requiredCombos > 0 ? (
             <div className="space-y-2">
-              <p className="text-xs text-center text-orange-400">
+              <p className="text-xs text-center text-alert-red">
                 Add {requiredCombos - combos.length} more combo{requiredCombos - combos.length > 1 ? 's' : ''} to complete workout
               </p>
               <div className="flex gap-2">
@@ -708,15 +738,21 @@ const Build = () => {
                 >
                   Add Combos
                 </Button>
-                <Button onClick={handleSave} className="flex-1 bg-surface-2 text-muted-foreground">
+                <Button onClick={() => handleSave(false)} className="flex-1 bg-surface-2 text-muted-foreground">
                   Save Anyway
                 </Button>
               </div>
             </div>
           ) : (
-            <Button onClick={handleSave} className="btn-primary-glow w-full">
-              Save Workout
-            </Button>
+            <div className="flex gap-2">
+              <Button onClick={() => handleSave(false)} variant="outline" className="flex-1 border-surface-3">
+                Save Workout
+              </Button>
+              <Button onClick={() => handleSave(true)} className="flex-1 bg-volt text-primary-foreground hover:bg-volt/90">
+                <Play className="w-4 h-4 mr-2" />
+                Start
+              </Button>
+            </div>
           )}
         </div>
 

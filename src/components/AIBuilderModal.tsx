@@ -5,14 +5,15 @@ import { Textarea } from '@/components/ui/textarea';
 import { TrendingWorkout } from '@/data/trendingWorkouts';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
+import { useNavigate } from 'react-router-dom';
 import { useUserStore } from '@/stores/userStore';
 import { Workout, WorkoutPhase } from '@/types';
-import { GeneratedWorkoutPreview } from '@/components/GeneratedWorkoutPreview';
 
 interface AIBuilderModalProps {
   onClose: () => void;
   onGenerate?: (prompt: string, baseWorkout?: TrendingWorkout) => void;
   baseWorkout?: TrendingWorkout;
+  onWorkoutGenerated?: (workout: Workout) => void;
 }
 
 const SUGGESTION_CHIPS = [
@@ -27,7 +28,7 @@ const SUGGESTION_CHIPS = [
 const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
 
 // Parse prompt to extract workout parameters
-function parseWorkoutPrompt(prompt: string, userLevel: string = 'beginner') {
+export function parseWorkoutPrompt(prompt: string, userLevel: string = 'beginner') {
   const lowerPrompt = prompt.toLowerCase();
   
   // Extract rounds/sets
@@ -164,14 +165,85 @@ function parseWorkoutPrompt(prompt: string, userLevel: string = 'beginner') {
   };
 }
 
-export const AIBuilderModal = ({ onClose, onGenerate, baseWorkout }: AIBuilderModalProps) => {
+// Generate a full workout object from parsed prompt
+export function generateWorkoutFromPrompt(prompt: string, userLevel: string = 'beginner'): Workout {
+  const parsed = parseWorkoutPrompt(prompt, userLevel);
+  const generateId = () => crypto.randomUUID();
+  
+  // Warmup phases
+  const warmupPhases: WorkoutPhase[] = parsed.hasWarmup ? [{
+    id: generateId(),
+    name: 'Dynamic Warmup',
+    repeats: 1,
+    segments: [
+      { id: generateId(), name: 'Jump Rope', type: 'active', segmentType: 'work', duration: 120 },
+      { id: generateId(), name: 'Active Rest', type: 'rest', segmentType: 'rest', duration: 30 },
+      { id: generateId(), name: 'Shadow Boxing', type: 'active', segmentType: 'shadowboxing', duration: 120 },
+    ],
+  }] : [];
+  
+  // Main rounds
+  const grindPhases: WorkoutPhase[] = [{
+    id: generateId(),
+    name: parsed.hasHIIT ? 'HIIT Rounds' : 'Main Rounds',
+    repeats: parsed.rounds,
+    segments: [
+      { 
+        id: generateId(), 
+        name: parsed.hasShadowboxing ? 'Shadowboxing' : 'Combo Work', 
+        type: 'active', 
+        segmentType: parsed.hasShadowboxing ? 'shadowboxing' : 'combo', 
+        duration: parsed.roundDuration 
+      },
+      { id: generateId(), name: 'Rest', type: 'rest', segmentType: 'rest', duration: parsed.restDuration },
+    ],
+  }];
+  
+  // Cooldown phases
+  const cooldownPhases: WorkoutPhase[] = parsed.hasCooldown ? [{
+    id: generateId(),
+    name: 'Cooldown',
+    repeats: 1,
+    segments: [
+      { id: generateId(), name: 'Light Shadow', type: 'active', segmentType: 'shadowboxing', duration: 90 },
+      { id: generateId(), name: 'Stretch', type: 'active', segmentType: 'work', duration: 120 },
+    ],
+  }] : [];
+  
+  // Calculate total duration
+  let totalDuration = 0;
+  [...warmupPhases, ...grindPhases, ...cooldownPhases].forEach(phase => {
+    const phaseDur = phase.segments.reduce((acc, s) => acc + s.duration, 0);
+    totalDuration += phaseDur * phase.repeats;
+  });
+  
+  return {
+    id: generateId(),
+    name: parsed.name,
+    icon: '🥊',
+    difficulty: parsed.difficulty,
+    totalDuration,
+    isPreset: false,
+    isArchived: false,
+    createdAt: new Date(),
+    timesCompleted: 0,
+    sections: {
+      warmup: warmupPhases,
+      grind: grindPhases,
+      cooldown: cooldownPhases,
+    },
+    combos: parsed.combos,
+  };
+}
+
+export const AIBuilderModal = ({ onClose, onGenerate, baseWorkout, onWorkoutGenerated }: AIBuilderModalProps) => {
+  const navigate = useNavigate();
   const user = useUserStore((state) => state.user);
   
   const [prompt, setPrompt] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const [interimTranscript, setInterimTranscript] = useState('');
-  const [generatedWorkout, setGeneratedWorkout] = useState<Workout | null>(null);
   const recognitionRef = useRef<any>(null);
 
   // Initialize speech recognition
@@ -268,83 +340,27 @@ export const AIBuilderModal = ({ onClose, onGenerate, baseWorkout }: AIBuilderMo
       setIsListening(false);
     }
     
-    // Parse the prompt and generate workout
+    // Parse the prompt and generate workout, then navigate to Build page
     setTimeout(() => {
-      const parsed = parseWorkoutPrompt(prompt, user?.experienceLevel || 'beginner');
+      const workout = generateWorkoutFromPrompt(prompt, user?.experienceLevel || 'beginner');
       
-      // Build the workout structure
-      const generateId = () => crypto.randomUUID();
+      // If we have a callback, use that (for inline usage)
+      if (onWorkoutGenerated) {
+        onWorkoutGenerated(workout);
+        setIsGenerating(false);
+        onClose();
+        return;
+      }
       
-      // Warmup phases
-      const warmupPhases: WorkoutPhase[] = parsed.hasWarmup ? [{
-        id: generateId(),
-        name: 'Dynamic Warmup',
-        repeats: 1,
-        segments: [
-          { id: generateId(), name: 'Jump Rope', type: 'active', segmentType: 'work', duration: 120 },
-          { id: generateId(), name: 'Active Rest', type: 'rest', segmentType: 'rest', duration: 30 },
-          { id: generateId(), name: 'Shadow Boxing', type: 'active', segmentType: 'shadowboxing', duration: 120 },
-        ],
-      }] : [];
-      
-      // Main rounds
-      const grindPhases: WorkoutPhase[] = [{
-        id: generateId(),
-        name: parsed.hasHIIT ? 'HIIT Rounds' : 'Main Rounds',
-        repeats: parsed.rounds,
-        segments: [
-          { 
-            id: generateId(), 
-            name: parsed.hasShadowboxing ? 'Shadowboxing' : 'Combo Work', 
-            type: 'active', 
-            segmentType: parsed.hasShadowboxing ? 'shadowboxing' : 'combo', 
-            duration: parsed.roundDuration 
-          },
-          { id: generateId(), name: 'Rest', type: 'rest', segmentType: 'rest', duration: parsed.restDuration },
-        ],
-      }];
-      
-      // Cooldown phases
-      const cooldownPhases: WorkoutPhase[] = parsed.hasCooldown ? [{
-        id: generateId(),
-        name: 'Cooldown',
-        repeats: 1,
-        segments: [
-          { id: generateId(), name: 'Light Shadow', type: 'active', segmentType: 'shadowboxing', duration: 90 },
-          { id: generateId(), name: 'Stretch', type: 'active', segmentType: 'work', duration: 120 },
-        ],
-      }] : [];
-      
-      // Calculate total duration
-      let totalDuration = 0;
-      [...warmupPhases, ...grindPhases, ...cooldownPhases].forEach(phase => {
-        const phaseDur = phase.segments.reduce((acc, s) => acc + s.duration, 0);
-        totalDuration += phaseDur * phase.repeats;
-      });
-      
-      // Create the workout
-      const workout: Workout = {
-        id: generateId(),
-        name: parsed.name,
-        icon: '🥊',
-        difficulty: parsed.difficulty,
-        totalDuration,
-        isPreset: false,
-        isArchived: false,
-        createdAt: new Date(),
-        timesCompleted: 0,
-        sections: {
-          warmup: warmupPhases,
-          grind: grindPhases,
-          cooldown: cooldownPhases,
-        },
-        combos: parsed.combos,
-      };
-      
-      // Show preview instead of saving immediately
-      setGeneratedWorkout(workout);
+      // Otherwise navigate to build page with workout data
       setIsGenerating(false);
-    }, 1500);
+      toast.success(`Generated "${workout.name}" - now customize it!`);
+      onClose();
+      
+      // Navigate to build page with the generated workout data encoded
+      const workoutData = encodeURIComponent(JSON.stringify(workout));
+      navigate(`/build?ai=${workoutData}`);
+    }, 1000);
   };
 
   const handleSuggestionClick = (suggestion: string) => {
@@ -499,18 +515,6 @@ export const AIBuilderModal = ({ onClose, onGenerate, baseWorkout }: AIBuilderMo
           </Button>
         </div>
       </div>
-
-      {/* Generated Workout Preview */}
-      {generatedWorkout && (
-        <GeneratedWorkoutPreview
-          workout={generatedWorkout}
-          onClose={() => {
-            setGeneratedWorkout(null);
-            onClose();
-          }}
-          onWorkoutUpdate={(updated) => setGeneratedWorkout(updated)}
-        />
-      )}
     </div>
   );
 };
