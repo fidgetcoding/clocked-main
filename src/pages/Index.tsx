@@ -66,7 +66,7 @@ const Index = () => {
         {/* Action Cards */}
         <section className="px-4 pb-6">
           <div className="grid grid-cols-2 gap-4">
-            {/* Create Workout */}
+            {/* Create Set */}
             <button
               onClick={() => navigate('/build')}
               className="card-action h-40 text-left group"
@@ -77,11 +77,11 @@ const Index = () => {
               </div>
               <div className="mt-auto">
                 <h3 className="text-lg font-black text-foreground">CREATE</h3>
-                <h3 className="text-lg font-black text-foreground">WORKOUT</h3>
+                <h3 className="text-lg font-black text-foreground">SET</h3>
               </div>
             </button>
 
-            {/* History */}
+            {/* Workout Log */}
             <button
               onClick={() => navigate('/history')}
               className="card-action h-40 text-left group"
@@ -91,19 +91,18 @@ const Index = () => {
                 <RotateCcw className="w-20 h-20 text-muted-foreground" strokeWidth={1} />
               </div>
               <div className="mt-auto">
-                <h3 className="text-lg font-black text-foreground">HISTORY</h3>
-                <p className="text-sm text-muted-foreground">PREVIOUS</p>
+                <h3 className="text-lg font-black text-foreground">WORKOUT</h3>
+                <p className="text-sm text-muted-foreground">LOG</p>
               </div>
             </button>
           </div>
         </section>
 
-        {/* Your Workouts */}
+        {/* Your Sets */}
         <section className="px-4 pb-24">
           <div className="flex items-center gap-2 mb-4">
-            <span className="text-volt">⚡</span>
             <h2 className="text-sm font-bold text-muted-foreground uppercase tracking-wider">
-              Your Workouts
+              Your Sets
             </h2>
           </div>
 
@@ -148,10 +147,10 @@ const Index = () => {
                       </div>
                     </div>
 
-                    {/* Play Button */}
+                    {/* Play Button with hover animation */}
                     <button
                       onClick={() => navigate(`/workout/${workout.id}`)}
-                      className="w-12 h-12 rounded-full bg-volt flex items-center justify-center flex-shrink-0"
+                      className="w-12 h-12 rounded-full bg-volt flex items-center justify-center flex-shrink-0 transition-all duration-200 hover:scale-110 hover:shadow-[0_0_20px_hsl(var(--electric-volt)/0.6)] active:scale-95"
                     >
                       <Play className="w-5 h-5 text-primary-foreground ml-0.5" fill="currentColor" />
                     </button>

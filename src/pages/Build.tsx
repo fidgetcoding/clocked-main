@@ -269,13 +269,29 @@ const Build = () => {
             <ArrowLeft className="w-6 h-6" />
           </button>
           <h1 className="text-lg font-bold text-foreground">
-            {editId ? 'Edit Workout' : 'Create Workout'}
+            {editId ? 'Edit Set' : 'Create Set'}
           </h1>
-          <Button onClick={() => {/* AI Builder placeholder */}} size="sm" variant="outline" className="border-volt text-volt">
-            <Sparkles className="w-4 h-4 mr-1" />
-            AI
-          </Button>
+          <div className="w-16" /> {/* Spacer */}
         </header>
+
+        {/* Mode Toggle - Custom vs AI */}
+        <div className="px-4 py-3 border-b border-surface-3">
+          <div className="flex gap-2">
+            <button
+              onClick={() => {/* Stay in custom mode */}}
+              className="flex-1 py-2.5 rounded-lg text-sm font-semibold bg-volt text-primary-foreground"
+            >
+              Custom Build
+            </button>
+            <button
+              onClick={() => {/* AI Builder - placeholder */}}
+              className="flex-1 py-2.5 rounded-lg text-sm font-semibold bg-surface-1 border border-surface-3 text-muted-foreground hover:bg-surface-2 transition-colors flex items-center justify-center gap-2"
+            >
+              <Sparkles className="w-4 h-4 text-volt" />
+              AI Builder
+            </button>
+          </div>
+        </div>
 
         <div className="flex-1 overflow-y-auto pb-32">
           {/* Workout Name */}
