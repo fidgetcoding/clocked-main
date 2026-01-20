@@ -152,40 +152,40 @@ const Index = () => {
                   key={workout.id}
                   className="card-workout group"
                 >
-                  <div className="flex items-start gap-4">
-                    {/* Content */}
-                    <div className="flex-1">
-                      <h3 className="text-xl font-black text-foreground uppercase mb-1">
-                        {workout.name}
-                      </h3>
-                      <div className="flex items-center gap-4 text-sm text-muted-foreground mb-3">
-                        <span className="flex items-center gap-1">
-                          <Clock className="w-4 h-4" />
-                          {formatDuration(workout.totalDuration)}
-                        </span>
-                        <span className="flex items-center gap-1">
-                          <RotateCcw className="w-4 h-4" />
-                          {workout.sections.warmup.length + workout.sections.grind.length + workout.sections.cooldown.length} PHASES
-                        </span>
+                    <div className="flex items-start gap-4">
+                      {/* Content */}
+                      <div className="flex-1">
+                        <h3 className="text-xl font-black text-foreground uppercase mb-1 transition-colors group-hover:text-volt">
+                          {workout.name}
+                        </h3>
+                        <div className="flex items-center gap-4 text-sm text-muted-foreground mb-3">
+                          <span className="flex items-center gap-1">
+                            <Clock className="w-4 h-4" />
+                            {formatDuration(workout.totalDuration)}
+                          </span>
+                          <span className="flex items-center gap-1">
+                            <RotateCcw className="w-4 h-4" />
+                            {workout.sections.warmup.length + workout.sections.grind.length + workout.sections.cooldown.length} PHASES
+                          </span>
+                        </div>
+
+                        {/* Tags */}
+                        <div className="flex flex-wrap gap-2">
+                          <span className="tag">{workout.difficulty.toUpperCase()}</span>
+                          <span className="tag">BOXING</span>
+                          <span className="tag">HIIT</span>
+                        </div>
                       </div>
 
-                      {/* Tags */}
-                      <div className="flex flex-wrap gap-2">
-                        <span className="tag">{workout.difficulty.toUpperCase()}</span>
-                        <span className="tag">BOXING</span>
-                        <span className="tag">HIIT</span>
-                      </div>
-                    </div>
-
-                    {/* Play button and actions column */}
-                    <div className="flex flex-col items-center gap-3 flex-shrink-0">
-                      {/* Play Button - pulses on card hover */}
-                      <button
-                        onClick={() => navigate(`/workout/${workout.id}`)}
-                        className="w-12 h-12 rounded-full bg-volt flex items-center justify-center transition-all duration-200 group-hover:scale-110 group-hover:shadow-[0_0_20px_hsl(var(--electric-volt)/0.6)] group-hover:animate-pulse active:scale-95"
-                      >
-                        <Play className="w-5 h-5 text-primary-foreground ml-0.5" fill="currentColor" />
-                      </button>
+                      {/* Play button and actions column */}
+                      <div className="flex flex-col items-center gap-3 flex-shrink-0">
+                        {/* Play Button - scale only on hover, no fade */}
+                        <button
+                          onClick={() => navigate(`/workout/${workout.id}`)}
+                          className="w-12 h-12 rounded-full bg-volt flex items-center justify-center transition-transform duration-200 group-hover:scale-125 active:scale-95"
+                        >
+                          <Play className="w-5 h-5 text-primary-foreground ml-0.5" fill="currentColor" />
+                        </button>
 
                       {/* Edit and Delete below play button */}
                       <div className="flex items-center gap-3">
