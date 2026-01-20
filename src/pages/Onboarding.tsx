@@ -168,7 +168,7 @@ const Onboarding = () => {
             <div className="flex flex-col items-center gap-3">
               <Button 
                 onClick={() => navigate('/auth?mode=signup')} 
-                className="btn-primary-glow px-6 py-2 h-auto text-sm"
+                className="btn-primary-glow w-40 py-2 h-auto text-sm"
               >
                 GET STARTED
                 <ArrowRight className="w-4 h-4 ml-2" />
@@ -176,7 +176,7 @@ const Onboarding = () => {
               <Button 
                 onClick={() => navigate('/auth?mode=login')} 
                 variant="outline"
-                className="px-6 py-2 h-auto text-sm bg-surface-1 border-surface-3 hover:bg-surface-2"
+                className="w-40 py-2 h-auto text-sm bg-surface-1 border-surface-3 hover:bg-surface-2"
               >
                 LOGIN
                 <LogIn className="w-4 h-4 ml-2" />
