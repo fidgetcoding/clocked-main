@@ -1,10 +1,11 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { ArrowRight, User, Users, Dumbbell, Target, Home as HomeIcon, Swords, Trophy, Check, Lock, Globe, GraduationCap, ClipboardList, Users2, TrendingUp } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { ArrowRight, User, Users, Dumbbell, Target, Home as HomeIcon, Swords, Trophy, Check, Lock, Globe, GraduationCap, ClipboardList, Users2, TrendingUp, LogIn } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useUserStore } from '@/stores/userStore';
 import { useWorkoutStore } from '@/stores/workoutStore';
+import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
 import clockedLogo from '@/assets/clocked-logo.png';
 
@@ -47,10 +48,14 @@ const coachGoalOptions = [
 
 const Onboarding = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const { user } = useAuth();
   const { completeOnboarding } = useUserStore();
   const { loadBeginnerPresets, loadIntermediatePresets, loadAdvancedPresets, loadProPresets } = useWorkoutStore();
   
-  const [step, setStep] = useState<Step>('welcome');
+  // If user just signed up (has ?continue=true), skip welcome and go to role selection
+  const shouldContinue = searchParams.get('continue') === 'true';
+  const [step, setStep] = useState<Step>(shouldContinue && user ? 'role' : 'welcome');
   const [role, setRole] = useState<'fighter' | 'coach'>('fighter');
   const [name, setName] = useState('');
   const [experience, setExperience] = useState<string>('beginner');
@@ -61,6 +66,13 @@ const Onboarding = () => {
   const [fightClubName, setFightClubName] = useState('');
   const [fightClubType, setFightClubType] = useState<'private' | 'public'>('private');
   const [athleteCount, setAthleteCount] = useState('');
+
+  // If user is logged in and we have continue param, start at role selection
+  useEffect(() => {
+    if (shouldContinue && user && step === 'welcome') {
+      setStep('role');
+    }
+  }, [shouldContinue, user, step]);
 
   const handleNext = (selectedRole?: 'fighter' | 'coach') => {
     const roleToUse = selectedRole || role;
@@ -150,13 +162,26 @@ const Onboarding = () => {
               alt="Clocked Logo" 
               className="w-[26rem] h-[26rem] mx-auto object-contain -mb-32"
             />
-            <p className="text-lg text-muted-foreground mb-6">
+            <p className="text-lg text-muted-foreground mb-8">
               Knockout Intelligence.
             </p>
-            <Button onClick={() => handleNext()} className="btn-primary-glow px-8 h-12 text-base">
-              GET STARTED
-              <ArrowRight className="w-4 h-4 ml-2" />
-            </Button>
+            <div className="space-y-4 w-full max-w-xs mx-auto">
+              <Button 
+                onClick={() => navigate('/auth?mode=signup')} 
+                className="btn-primary-glow w-full h-12 text-base"
+              >
+                GET STARTED
+                <ArrowRight className="w-4 h-4 ml-2" />
+              </Button>
+              <Button 
+                onClick={() => navigate('/auth?mode=login')} 
+                variant="outline"
+                className="w-full h-12 text-base bg-surface-1 border-surface-3 hover:bg-surface-2"
+              >
+                <LogIn className="w-4 h-4 mr-2" />
+                LOGIN
+              </Button>
+            </div>
           </div>
         )}
 

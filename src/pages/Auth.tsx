@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Mail, Lock, User, ArrowRight, Eye, EyeOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -12,12 +12,24 @@ type AuthMode = 'login' | 'signup';
 
 const Auth = () => {
   const navigate = useNavigate();
-  const [mode, setMode] = useState<AuthMode>('login');
+  const [searchParams] = useSearchParams();
+  
+  // Get mode from URL param, default to login
+  const initialMode = (searchParams.get('mode') as AuthMode) || 'login';
+  const [mode, setMode] = useState<AuthMode>(initialMode);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+
+  // Sync mode with URL params
+  useEffect(() => {
+    const urlMode = searchParams.get('mode') as AuthMode;
+    if (urlMode && (urlMode === 'login' || urlMode === 'signup')) {
+      setMode(urlMode);
+    }
+  }, [searchParams]);
 
   const handleEmailAuth = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -29,13 +41,14 @@ const Auth = () => {
           email,
           password,
           options: {
-            emailRedirectTo: window.location.origin,
+            emailRedirectTo: `${window.location.origin}/onboarding?continue=true`,
             data: { name: name || 'Fighter' },
           },
         });
         if (error) throw error;
         toast.success('Account created! Welcome to CLOCKED.');
-        navigate('/onboarding');
+        // Signup → continue onboarding flow
+        navigate('/onboarding?continue=true');
       } else {
         const { error } = await supabase.auth.signInWithPassword({
           email,
@@ -43,6 +56,7 @@ const Auth = () => {
         });
         if (error) throw error;
         toast.success('Welcome back!');
+        // Login → straight to app
         navigate('/');
       }
     } catch (error: any) {
@@ -55,10 +69,16 @@ const Auth = () => {
   const handleGoogleAuth = async () => {
     setLoading(true);
     try {
+      // For signup mode, redirect to onboarding to continue flow
+      // For login mode, redirect to home
+      const redirectPath = mode === 'signup' 
+        ? '/onboarding?continue=true' 
+        : '/';
+      
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/onboarding`,
+          redirectTo: `${window.location.origin}${redirectPath}`,
         },
       });
       if (error) throw error;
