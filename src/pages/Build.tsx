@@ -5,6 +5,7 @@ import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useWorkoutStore } from '@/stores/workoutStore';
+import { useUserStore } from '@/stores/userStore';
 import { Workout, WorkoutPhase, WorkoutSegment, SegmentType } from '@/types';
 import { cn } from '@/lib/utils';
 import { 
@@ -54,10 +55,20 @@ const Build = () => {
   const editId = searchParams.get('edit');
   
   const { workouts, addWorkout, updateWorkout } = useWorkoutStore();
+  const user = useUserStore((state) => state.user);
+  
+  // Get default difficulty based on user's experience level
+  const getDefaultDifficulty = (): 'beginner' | 'intermediate' | 'advanced' => {
+    const level = user?.experienceLevel;
+    if (level === 'complete_beginner' || level === 'beginner') return 'beginner';
+    if (level === 'intermediate') return 'intermediate';
+    if (level === 'advanced' || level === 'pro') return 'advanced';
+    return 'beginner';
+  };
   
   // Form state
   const [name, setName] = useState('New Workout');
-  const [difficulty, setDifficulty] = useState<'beginner' | 'intermediate' | 'advanced'>('beginner');
+  const [difficulty, setDifficulty] = useState<'beginner' | 'intermediate' | 'advanced'>(getDefaultDifficulty());
   const [warmupPhases, setWarmupPhases] = useState<WorkoutPhase[]>([]);
   const [grindPhases, setGrindPhases] = useState<WorkoutPhase[]>([]);
   const [cooldownPhases, setCooldownPhases] = useState<WorkoutPhase[]>([]);

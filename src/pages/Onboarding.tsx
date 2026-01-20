@@ -48,7 +48,7 @@ const coachGoalOptions = [
 const Onboarding = () => {
   const navigate = useNavigate();
   const { completeOnboarding } = useUserStore();
-  const { loadBeginnerPresets } = useWorkoutStore();
+  const { loadBeginnerPresets, loadIntermediatePresets, loadAdvancedPresets, loadProPresets } = useWorkoutStore();
   
   const [step, setStep] = useState<Step>('welcome');
   const [role, setRole] = useState<'fighter' | 'coach'>('fighter');
@@ -90,9 +90,15 @@ const Onboarding = () => {
       goals: goals as any,
     });
     
-    // Load beginner presets if beginner
+    // Load appropriate presets based on experience level
     if (finalExperience === 'complete_beginner' || finalExperience === 'beginner') {
       loadBeginnerPresets();
+    } else if (finalExperience === 'intermediate') {
+      loadIntermediatePresets();
+    } else if (finalExperience === 'advanced') {
+      loadAdvancedPresets();
+    } else if (finalExperience === 'pro') {
+      loadProPresets();
     }
     
     navigate('/');

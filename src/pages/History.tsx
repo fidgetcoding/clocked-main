@@ -1,11 +1,14 @@
 import { useState } from 'react';
-import { History as HistoryIcon, Plus, ChevronRight, Calendar } from 'lucide-react';
+import { History as HistoryIcon, Plus, ChevronRight, Calendar, Sparkles, Brain, X, Wand2 } from 'lucide-react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
 import { useHistoryStore } from '@/stores/historyStore';
+import { useUserStore } from '@/stores/userStore';
 import { AddWorkoutModal } from '@/components/AddWorkoutModal';
 import { cn } from '@/lib/utils';
 import { format, formatDistanceToNow } from 'date-fns';
+import { useNavigate } from 'react-router-dom';
+import { toast } from 'sonner';
 
 function formatDuration(seconds: number): string {
   const mins = Math.floor(seconds / 60);
@@ -16,9 +19,67 @@ function formatDuration(seconds: number): string {
 }
 
 const History = () => {
+  const navigate = useNavigate();
   const [showAddModal, setShowAddModal] = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [showAICoach, setShowAICoach] = useState(false);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [analysis, setAnalysis] = useState<string | null>(null);
+  
   const completedWorkouts = useHistoryStore((state) => state.completedWorkouts);
+  const user = useUserStore((state) => state.user);
+
+  const handleAnalyze = () => {
+    if (completedWorkouts.length === 0) {
+      toast.error('Complete some workouts first to get AI analysis');
+      return;
+    }
+    
+    setIsAnalyzing(true);
+    setShowAICoach(true);
+    
+    // Simulate AI analysis - in production this would call Lovable AI
+    setTimeout(() => {
+      const workoutCount = completedWorkouts.length;
+      const avgDuration = Math.round(completedWorkouts.reduce((acc, w) => acc + w.duration, 0) / workoutCount / 60);
+      const totalXP = completedWorkouts.reduce((acc, w) => acc + w.xpEarned, 0);
+      const tooHardCount = completedWorkouts.filter(w => w.difficulty === 'too_hard').length;
+      const tooEasyCount = completedWorkouts.filter(w => w.difficulty === 'too_easy').length;
+      
+      let suggestion = `## Training Analysis\n\n`;
+      suggestion += `Based on your **${workoutCount} logged workouts**, here's what I see:\n\n`;
+      suggestion += `📊 **Stats Overview:**\n`;
+      suggestion += `- Average session: ${avgDuration} minutes\n`;
+      suggestion += `- Total XP earned: ${totalXP.toLocaleString()}\n\n`;
+      
+      if (tooHardCount > tooEasyCount) {
+        suggestion += `⚠️ **Observation:** You've marked ${tooHardCount} sessions as "too hard". Consider:\n`;
+        suggestion += `- Adding more rest between rounds\n`;
+        suggestion += `- Focusing on technique over power\n`;
+        suggestion += `- Reducing combo complexity temporarily\n\n`;
+      } else if (tooEasyCount > tooHardCount) {
+        suggestion += `💪 **Observation:** You've marked ${tooEasyCount} sessions as "too easy". Time to level up:\n`;
+        suggestion += `- Increase round duration\n`;
+        suggestion += `- Add more complex combos\n`;
+        suggestion += `- Reduce rest periods\n\n`;
+      }
+      
+      suggestion += `### Recommended Next Workout\n`;
+      suggestion += `Based on your progress, I recommend a **${user?.experienceLevel === 'beginner' ? 'moderate intensity' : 'high intensity'}** session focusing on:\n`;
+      suggestion += `- Defense drills (slips and rolls)\n`;
+      suggestion += `- 3-4 punch combo variations\n`;
+      suggestion += `- ${user?.experienceLevel === 'beginner' ? '3 rounds' : '5 rounds'} with 1:1 work/rest ratio\n`;
+      
+      setAnalysis(suggestion);
+      setIsAnalyzing(false);
+    }, 2000);
+  };
+
+  const handleCreateFromAnalysis = () => {
+    toast.success('Creating custom workout based on analysis...');
+    setShowAICoach(false);
+    navigate('/build');
+  };
 
   return (
     <AppLayout>
@@ -32,14 +93,25 @@ const History = () => {
                 WORKOUT LOG
               </h1>
             </div>
-            <Button
-              onClick={() => setShowAddModal(true)}
-              size="sm"
-              className="bg-volt text-primary-foreground"
-            >
-              <Plus className="w-4 h-4 mr-1" />
-              Log
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button
+                onClick={handleAnalyze}
+                size="sm"
+                variant="outline"
+                className="border-volt text-volt hover:bg-volt/10"
+              >
+                <Brain className="w-4 h-4 mr-1" />
+                AI Coach
+              </Button>
+              <Button
+                onClick={() => setShowAddModal(true)}
+                size="sm"
+                className="bg-volt text-primary-foreground"
+              >
+                <Plus className="w-4 h-4 mr-1" />
+                Log
+              </Button>
+            </div>
           </div>
         </header>
 
@@ -47,9 +119,18 @@ const History = () => {
         <div className="px-4 space-y-3">
           {completedWorkouts.length === 0 ? (
             <div className="rounded-2xl border-2 border-dashed border-surface-3 p-8 text-center">
-              <p className="text-muted-foreground uppercase tracking-wider">
+              <p className="text-muted-foreground uppercase tracking-wider mb-2">
                 No History Yet
               </p>
+              <p className="text-sm text-muted-foreground mb-4">
+                Complete a workout or log one manually to get started
+              </p>
+              <Button
+                onClick={() => setShowAddModal(true)}
+                className="btn-primary-glow"
+              >
+                Log a Workout
+              </Button>
             </div>
           ) : (
             completedWorkouts.map((workout) => {
@@ -149,6 +230,90 @@ const History = () => {
       </div>
 
       <AddWorkoutModal isOpen={showAddModal} onClose={() => setShowAddModal(false)} />
+
+      {/* AI Coach Modal */}
+      {showAICoach && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div 
+            className="absolute inset-0 bg-black/80 backdrop-blur-sm"
+            onClick={() => setShowAICoach(false)}
+          />
+          
+          <div className="relative w-full max-w-md max-h-[80vh] bg-surface-1 rounded-2xl border border-surface-3 overflow-hidden animate-in zoom-in-95 duration-200 flex flex-col">
+            {/* Header */}
+            <div className="flex items-center justify-between p-4 border-b border-surface-3 flex-shrink-0">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-lg bg-volt/20 flex items-center justify-center">
+                  <Brain className="w-4 h-4 text-volt" />
+                </div>
+                <h2 className="text-lg font-bold text-foreground uppercase tracking-wide">
+                  AI Coach
+                </h2>
+              </div>
+              <button 
+                onClick={() => setShowAICoach(false)}
+                className="w-8 h-8 rounded-full bg-surface-2 flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Content */}
+            <div className="flex-1 overflow-y-auto p-4">
+              {isAnalyzing ? (
+                <div className="flex flex-col items-center justify-center py-12">
+                  <div className="w-12 h-12 border-2 border-volt/30 border-t-volt rounded-full animate-spin mb-4" />
+                  <p className="text-muted-foreground">Analyzing your training history...</p>
+                </div>
+              ) : analysis ? (
+                <div className="prose prose-invert prose-sm max-w-none">
+                  {analysis.split('\n').map((line, i) => {
+                    if (line.startsWith('## ')) {
+                      return <h2 key={i} className="text-lg font-bold text-foreground mt-0">{line.replace('## ', '')}</h2>;
+                    }
+                    if (line.startsWith('### ')) {
+                      return <h3 key={i} className="text-base font-semibold text-foreground mt-4">{line.replace('### ', '')}</h3>;
+                    }
+                    if (line.startsWith('- ')) {
+                      return <p key={i} className="text-sm text-muted-foreground my-1 flex items-start gap-2">
+                        <span className="text-volt">•</span>
+                        {line.replace('- ', '')}
+                      </p>;
+                    }
+                    if (line.includes('**')) {
+                      const parts = line.split('**');
+                      return <p key={i} className="text-sm text-muted-foreground my-2">
+                        {parts.map((part, j) => j % 2 === 1 ? <strong key={j} className="text-foreground">{part}</strong> : part)}
+                      </p>;
+                    }
+                    return line ? <p key={i} className="text-sm text-muted-foreground my-2">{line}</p> : null;
+                  })}
+                </div>
+              ) : null}
+            </div>
+
+            {/* Actions */}
+            {!isAnalyzing && analysis && (
+              <div className="p-4 border-t border-surface-3 flex gap-3 flex-shrink-0">
+                <Button 
+                  variant="outline"
+                  onClick={() => setShowAICoach(false)}
+                  className="flex-1 border-surface-3 text-foreground hover:bg-surface-2"
+                >
+                  Close
+                </Button>
+                <Button 
+                  onClick={handleCreateFromAnalysis}
+                  className="flex-1 bg-volt text-primary-foreground hover:bg-volt/90"
+                >
+                  <Wand2 className="w-4 h-4 mr-2" />
+                  Create Workout
+                </Button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </AppLayout>
   );
 };
