@@ -7,7 +7,6 @@ import { useUserStore } from '@/stores/userStore';
 import { useWorkoutStore } from '@/stores/workoutStore';
 import { cn } from '@/lib/utils';
 import clockedLogo from '@/assets/clocked-logo.png';
-import PerspectiveGridBackground from '@/components/PerspectiveGridBackground';
 
 type Step = 'welcome' | 'role' | 'name' | 'experience' | 'equipment' | 'fightClub' | 'goals' | 'complete';
 
@@ -125,13 +124,10 @@ const Onboarding = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background flex flex-col relative overflow-hidden">
-      {/* Dynamic perspective grid background */}
-      <PerspectiveGridBackground />
-      
+    <div className="min-h-screen bg-background flex flex-col">
       {/* Progress dots */}
       {step !== 'welcome' && step !== 'complete' && (
-        <div className="relative z-10 flex justify-center gap-2 pt-8 pb-4">
+        <div className="flex justify-center gap-2 pt-8 pb-4">
           {getSteps().map((s, i, arr) => (
             <div
               key={s}
@@ -145,7 +141,7 @@ const Onboarding = () => {
         </div>
       )}
 
-      <div className="relative z-10 flex-1 flex flex-col items-center justify-center px-6">
+      <div className="flex-1 flex flex-col items-center justify-center px-6">
         {/* Welcome */}
         {step === 'welcome' && (
           <div className="text-center animate-fade-in">
