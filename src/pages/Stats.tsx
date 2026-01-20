@@ -217,17 +217,17 @@ const Stats = () => {
   };
 
   const stats = [
-    { id: 'xp', icon: Zap, label: 'Total XP', value: totalXP.toLocaleString(), color: 'text-volt', ...statsData.xp },
-    { id: 'workouts', icon: Trophy, label: 'Workouts', value: workoutsCompleted.toString(), color: 'text-volt', ...statsData.workouts },
-    { id: 'hours', icon: Clock, label: 'Training Hours', value: `${totalHours}h`, color: 'text-volt', ...statsData.hours },
-    { id: 'streak', icon: Flame, label: 'Current Streak', value: `${currentStreak} days`, color: 'text-alert-red', ...statsData.streak },
+    { id: 'xp', icon: Zap, label: 'Total XP', value: totalXP.toLocaleString(), color: 'text-muted-foreground', ...statsData.xp },
+    { id: 'workouts', icon: Trophy, label: 'Workouts', value: workoutsCompleted.toString(), color: 'text-muted-foreground', ...statsData.workouts },
+    { id: 'hours', icon: Clock, label: 'Training Hours', value: `${totalHours}h`, color: 'text-muted-foreground', ...statsData.hours },
+    { id: 'streak', icon: Flame, label: 'Current Streak', value: `${currentStreak} days`, color: 'text-muted-foreground', ...statsData.streak },
   ];
 
   const fitnessStats = [
-    { id: 'heartRate', icon: Heart, label: 'Avg Heart Rate', value: `${avgHeartRate} BPM`, color: 'text-alert-red', ...statsData.heartRate },
-    { id: 'calories', icon: Activity, label: 'Calories Burned', value: caloriesBurned.toLocaleString(), color: 'text-volt', ...statsData.calories },
-    { id: 'punches', icon: Target, label: 'Punches Thrown', value: punchesThrown.toLocaleString(), color: 'text-volt', ...statsData.punches },
-    { id: 'intensity', icon: Dumbbell, label: 'Avg Intensity', value: `${avgIntensity}/10`, color: 'text-volt', ...statsData.intensity },
+    { id: 'heartRate', icon: Heart, label: 'Avg Heart Rate', value: `${avgHeartRate} BPM`, color: 'text-muted-foreground', ...statsData.heartRate },
+    { id: 'calories', icon: Activity, label: 'Calories Burned', value: caloriesBurned.toLocaleString(), color: 'text-muted-foreground', ...statsData.calories },
+    { id: 'punches', icon: Target, label: 'Punches Thrown', value: punchesThrown.toLocaleString(), color: 'text-muted-foreground', ...statsData.punches },
+    { id: 'intensity', icon: Dumbbell, label: 'Avg Intensity', value: `${avgIntensity}/10`, color: 'text-muted-foreground', ...statsData.intensity },
   ];
 
   const allStats = [...stats, ...fitnessStats];
