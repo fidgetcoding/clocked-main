@@ -7,7 +7,7 @@ import { useUserStore } from '@/stores/userStore';
 import { useWorkoutStore } from '@/stores/workoutStore';
 import { cn } from '@/lib/utils';
 import clockedLogo from '@/assets/clocked-logo.png';
-import MetaballBackground from '@/components/MetaballBackground';
+
 type Step = 'welcome' | 'role' | 'name' | 'experience' | 'equipment' | 'fightClub' | 'goals' | 'complete';
 
 const experienceLevels = [
@@ -125,7 +125,6 @@ const Onboarding = () => {
 
   return (
     <div className="min-h-screen bg-background flex flex-col relative overflow-hidden">
-      <MetaballBackground />
       {/* Progress dots */}
       {step !== 'welcome' && step !== 'complete' && (
         <div className="flex justify-center gap-2 pt-8 pb-4">
