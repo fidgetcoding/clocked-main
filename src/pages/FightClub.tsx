@@ -8,6 +8,7 @@ import { cn } from '@/lib/utils';
 import { TRENDING_WORKOUTS, WORKOUT_CATEGORIES, TrendingWorkout, WorkoutCategory } from '@/data/trendingWorkouts';
 import { WorkoutPreviewModal } from '@/components/WorkoutPreviewModal';
 import { AIBuilderModal } from '@/components/AIBuilderModal';
+import { LiveStreamModal } from '@/components/LiveStreamModal';
 import { useWorkoutStore } from '@/stores/workoutStore';
 import { toast } from 'sonner';
 
@@ -39,6 +40,7 @@ const FightClub = () => {
   const [selectedWorkout, setSelectedWorkout] = useState<TrendingWorkout | null>(null);
   const [showAIBuilder, setShowAIBuilder] = useState(false);
   const [customizeWorkout, setCustomizeWorkout] = useState<TrendingWorkout | undefined>(undefined);
+  const [watchingStream, setWatchingStream] = useState<{userName: string; userAvatar: string; workoutName: string; elapsed: string} | null>(null);
 
   const tabs: { id: Tab; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
     { id: 'feed', label: 'Feed', icon: Newspaper },
@@ -350,7 +352,16 @@ const FightClub = () => {
                             Currently doing: <span className="text-foreground">{post.workoutName}</span>
                           </p>
                           <p className="text-xs text-volt mt-1">{post.elapsed} elapsed</p>
-                          <Button size="sm" className="mt-2 bg-surface-2 hover:bg-surface-3 text-foreground text-xs">
+                          <Button 
+                            size="sm" 
+                            className="mt-2 bg-surface-2 hover:bg-surface-3 text-foreground text-xs"
+                            onClick={() => setWatchingStream({
+                              userName: post.userName,
+                              userAvatar: post.avatar,
+                              workoutName: post.workoutName!,
+                              elapsed: post.elapsed!,
+                            })}
+                          >
                             Watch
                           </Button>
                         </>
@@ -549,6 +560,17 @@ const FightClub = () => {
           }}
           onGenerate={handleAIGenerate}
           baseWorkout={customizeWorkout}
+        />
+      )}
+
+      {/* Live Stream Modal */}
+      {watchingStream && (
+        <LiveStreamModal
+          userName={watchingStream.userName}
+          userAvatar={watchingStream.userAvatar}
+          workoutName={watchingStream.workoutName}
+          elapsed={watchingStream.elapsed}
+          onClose={() => setWatchingStream(null)}
         />
       )}
     </AppLayout>
