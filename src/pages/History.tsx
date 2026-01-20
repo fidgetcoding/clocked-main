@@ -29,7 +29,7 @@ const History = () => {
             <div className="flex items-center gap-3">
               <HistoryIcon className="w-6 h-6 text-volt" />
               <h1 className="text-2xl font-black text-foreground tracking-wider">
-                HISTORY
+                WORKOUT LOG
               </h1>
             </div>
             <Button
