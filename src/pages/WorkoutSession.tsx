@@ -53,7 +53,12 @@ const WorkoutSession = () => {
         for (let r = 0; r < phase.repeats; r++) {
           phase.segments.forEach((segment, segIdx) => {
             let combo: string[] | undefined;
-            if (segment.comboIndex === 'cycle' && workout.combos) {
+            
+            // Show combo for segments with comboIndex='cycle' OR shadowboxing/technique segments
+            const isShadowboxing = segment.name.toLowerCase().includes('shadow') || 
+                                   segment.name.toLowerCase().includes('technique');
+            
+            if ((segment.comboIndex === 'cycle' || isShadowboxing) && workout.combos && workout.combos.length > 0) {
               const comboIdx = r % workout.combos.length;
               combo = workout.combos[comboIdx];
             }
@@ -177,7 +182,7 @@ const WorkoutSession = () => {
     const xpEarned = Math.floor((totalElapsed / 60) * 10);
     return (
       <AppLayout hideNav>
-        <div className="min-h-screen flex flex-col items-center justify-center px-4 bg-gradient-red-glow">
+        <div className="min-h-screen flex flex-col items-center justify-center px-4 bg-background">
           <div className="text-6xl mb-6">🏆</div>
           <h1 className="text-3xl font-black text-foreground mb-2">WORKOUT COMPLETE!</h1>
           <p className="text-muted-foreground mb-8">{workout.name}</p>
