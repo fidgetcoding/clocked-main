@@ -404,12 +404,21 @@ const FightClub = () => {
               {feedPosts.map((post) => (
                 <div key={post.id} className="card-workout">
                   <div className="flex items-start gap-3">
-                    <div className="w-10 h-10 rounded-full bg-surface-2 flex items-center justify-center text-xl">
+                    {/* Clickable Avatar */}
+                    <button 
+                      onClick={() => navigate(`/profile/${post.userName.toLowerCase().replace(/\s+/g, '-')}`)}
+                      className="w-10 h-10 rounded-full bg-surface-2 flex items-center justify-center text-xl hover:ring-2 hover:ring-volt transition-all flex-shrink-0"
+                    >
                       {post.avatar}
-                    </div>
+                    </button>
                     <div className="flex-1">
                       <div className="flex items-center gap-2">
-                        <span className="font-semibold text-foreground">{post.userName}</span>
+                        <button 
+                          onClick={() => navigate(`/profile/${post.userName.toLowerCase().replace(/\s+/g, '-')}`)}
+                          className="font-semibold text-foreground hover:text-volt transition-colors"
+                        >
+                          {post.userName}
+                        </button>
                         {post.status === 'live' && (
                           <span className="flex items-center gap-1 text-xs text-volt font-medium">
                             <span className="w-2 h-2 rounded-full bg-volt animate-pulse" />

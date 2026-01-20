@@ -26,7 +26,7 @@ function formatDuration(seconds: number): string {
 const Index = () => {
   const navigate = useNavigate();
   const { hasCompletedOnboarding, user } = useUserStore();
-  const { workouts, deleteWorkout, archiveWorkout, loadBeginnerPresets, loadIntermediatePresets, loadAdvancedPresets, loadProPresets } = useWorkoutStore();
+  const { workouts, deleteWorkout, archiveWorkout, loadBeginnerPresets, loadIntermediatePresets, loadAdvancedPresets, loadProPresets, loadCoachPresets } = useWorkoutStore();
   const [workoutToDelete, setWorkoutToDelete] = useState<string | null>(null);
 
   // Redirect to onboarding if not completed
@@ -36,8 +36,15 @@ const Index = () => {
     }
   }, [hasCompletedOnboarding, navigate]);
 
-  // Load presets based on user's experience level
+  // Load presets based on user's role and experience level
   useEffect(() => {
+    // Coaches get the special coach preset
+    if (user?.role === 'coach') {
+      loadCoachPresets();
+      return;
+    }
+    
+    // Fighters get presets based on their experience level
     const level = user?.experienceLevel;
     if (level === 'complete_beginner' || level === 'beginner') {
       loadBeginnerPresets();
@@ -51,7 +58,7 @@ const Index = () => {
       // Default to beginner if no level set
       loadBeginnerPresets();
     }
-  }, [user?.experienceLevel, loadBeginnerPresets, loadIntermediatePresets, loadAdvancedPresets, loadProPresets]);
+  }, [user?.role, user?.experienceLevel, loadBeginnerPresets, loadIntermediatePresets, loadAdvancedPresets, loadProPresets, loadCoachPresets]);
 
   const activeWorkouts = workouts.filter((w) => !w.isArchived);
 
