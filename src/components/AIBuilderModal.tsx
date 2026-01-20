@@ -5,6 +5,10 @@ import { Textarea } from '@/components/ui/textarea';
 import { TrendingWorkout } from '@/data/trendingWorkouts';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
+import { useNavigate } from 'react-router-dom';
+import { useWorkoutStore } from '@/stores/workoutStore';
+import { useUserStore } from '@/stores/userStore';
+import { Workout, WorkoutPhase, WorkoutSegment } from '@/types';
 
 interface AIBuilderModalProps {
   onClose: () => void;
@@ -23,7 +27,149 @@ const SUGGESTION_CHIPS = [
 // Check if SpeechRecognition is available
 const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
 
+// Parse prompt to extract workout parameters
+function parseWorkoutPrompt(prompt: string, userLevel: string = 'beginner') {
+  const lowerPrompt = prompt.toLowerCase();
+  
+  // Extract rounds/sets
+  let rounds = 3;
+  const roundMatch = lowerPrompt.match(/(\d+)\s*(round|set|interval)/);
+  if (roundMatch) rounds = parseInt(roundMatch[1]);
+  
+  // Extract duration
+  let roundDuration = 180; // 3 min default
+  let restDuration = 60; // 1 min default
+  
+  const minMatch = lowerPrompt.match(/(\d+)\s*min/);
+  if (minMatch) {
+    const totalMins = parseInt(minMatch[1]);
+    if (totalMins <= 10) {
+      rounds = 3;
+      roundDuration = Math.floor((totalMins * 60) / rounds * 0.7);
+      restDuration = Math.floor((totalMins * 60) / rounds * 0.3);
+    } else if (totalMins <= 20) {
+      rounds = 5;
+      roundDuration = Math.floor((totalMins * 60) / rounds * 0.7);
+      restDuration = Math.floor((totalMins * 60) / rounds * 0.3);
+    } else {
+      rounds = 8;
+      roundDuration = Math.floor((totalMins * 60) / rounds * 0.7);
+      restDuration = Math.floor((totalMins * 60) / rounds * 0.3);
+    }
+  }
+  
+  // Extract difficulty
+  let difficulty: 'beginner' | 'intermediate' | 'advanced' = 'beginner';
+  if (lowerPrompt.includes('advanced') || lowerPrompt.includes('pro') || lowerPrompt.includes('hard')) {
+    difficulty = 'advanced';
+  } else if (lowerPrompt.includes('intermediate') || lowerPrompt.includes('medium')) {
+    difficulty = 'intermediate';
+  } else if (lowerPrompt.includes('beginner') || lowerPrompt.includes('easy')) {
+    difficulty = 'beginner';
+  } else {
+    // Use user's level as default
+    if (userLevel === 'advanced' || userLevel === 'pro') difficulty = 'advanced';
+    else if (userLevel === 'intermediate') difficulty = 'intermediate';
+  }
+  
+  // Extract workout type/focus
+  const hasHIIT = lowerPrompt.includes('hiit') || lowerPrompt.includes('interval');
+  const hasShadowboxing = lowerPrompt.includes('shadow');
+  const hasHeavyBag = lowerPrompt.includes('heavy bag') || lowerPrompt.includes('bag work');
+  const hasCardio = lowerPrompt.includes('cardio') || lowerPrompt.includes('conditioning');
+  const hasDefense = lowerPrompt.includes('defense') || lowerPrompt.includes('defensive') || lowerPrompt.includes('slip') || lowerPrompt.includes('roll');
+  const hasFootwork = lowerPrompt.includes('footwork') || lowerPrompt.includes('movement');
+  
+  // Generate combos based on focus
+  const combos: string[][] = [];
+  for (let i = 0; i < rounds; i++) {
+    let combo: string[] = [];
+    
+    if (hasDefense) {
+      // Defense-focused combos
+      const defensePatterns = [
+        ['1', '2', 'SLIP L', '2'],
+        ['1', 'SLIP R', '2', '3'],
+        ['1', '2', 'ROLL L', '3', '2'],
+        ['SLIP L', 'SLIP R', '2', '3', '2'],
+        ['1', '2', 'PULL', '2', '3'],
+      ];
+      combo = defensePatterns[i % defensePatterns.length];
+    } else if (hasFootwork) {
+      // Footwork-focused combos
+      const footworkPatterns = [
+        ['1', '1', '2', 'CIRCLE L'],
+        ['1', '2', 'CIRCLE R', '2', '3'],
+        ['STEP IN', '1', '2', '3', 'STEP OUT'],
+        ['CIRCLE L', '1', '2', 'CIRCLE R', '2'],
+      ];
+      combo = footworkPatterns[i % footworkPatterns.length];
+    } else {
+      // Standard punch combos by difficulty
+      const beginnerCombos = [
+        ['1', '2'],
+        ['1', '2', '3'],
+        ['1', '1', '2'],
+        ['1', '2', '3', '2'],
+        ['2', '3', '2'],
+      ];
+      const intermediateCombos = [
+        ['1', '2', '3', '2'],
+        ['1', '2', '5', '3', '2'],
+        ['1', '6', '3', '2'],
+        ['1', '2', '3', '6', '3', '2'],
+        ['1', '2', 'SLIP L', '2', '3', '2'],
+      ];
+      const advancedCombos = [
+        ['1', '2', '3', '4', '5', '6'],
+        ['1', '2', '5', '6', '3', '2'],
+        ['SLIP L', '2', '3', '2', '5', '6', '3'],
+        ['1', '2', 'ROLL L', '7', '8', '3', '2'],
+        ['1', '1', '2', '3', '2', '5', '6', '3', '2'],
+      ];
+      
+      if (difficulty === 'advanced') {
+        combo = advancedCombos[i % advancedCombos.length];
+      } else if (difficulty === 'intermediate') {
+        combo = intermediateCombos[i % intermediateCombos.length];
+      } else {
+        combo = beginnerCombos[i % beginnerCombos.length];
+      }
+    }
+    
+    combos.push(combo);
+  }
+  
+  // Build workout name
+  let name = 'AI Workout';
+  if (hasHeavyBag) name = 'Heavy Bag Blast';
+  else if (hasShadowboxing) name = 'Shadow Session';
+  else if (hasHIIT) name = 'HIIT Boxing';
+  else if (hasCardio) name = 'Cardio Conditioning';
+  else if (hasDefense) name = 'Defense Drill';
+  else if (hasFootwork) name = 'Footwork Focus';
+  else if (rounds >= 5) name = 'Full Session';
+  else name = 'Quick Burn';
+  
+  return {
+    name,
+    rounds,
+    roundDuration,
+    restDuration,
+    difficulty,
+    combos,
+    hasWarmup: lowerPrompt.includes('warmup') || lowerPrompt.includes('warm up') || !lowerPrompt.includes('quick'),
+    hasCooldown: lowerPrompt.includes('cooldown') || lowerPrompt.includes('cool down') || !lowerPrompt.includes('quick'),
+    hasShadowboxing,
+    hasHIIT,
+  };
+}
+
 export const AIBuilderModal = ({ onClose, onGenerate, baseWorkout }: AIBuilderModalProps) => {
+  const navigate = useNavigate();
+  const addWorkout = useWorkoutStore((state) => state.addWorkout);
+  const user = useUserStore((state) => state.user);
+  
   const [prompt, setPrompt] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [isListening, setIsListening] = useState(false);
@@ -117,15 +263,93 @@ export const AIBuilderModal = ({ onClose, onGenerate, baseWorkout }: AIBuilderMo
   const handleGenerate = () => {
     if (!prompt.trim()) return;
     setIsGenerating(true);
+    
     // Stop listening if active
     if (isListening) {
       recognitionRef.current?.stop();
       setIsListening(false);
     }
-    // Simulate generation delay then call onGenerate
+    
+    // Parse the prompt and generate workout
     setTimeout(() => {
-      onGenerate(prompt, baseWorkout);
+      const parsed = parseWorkoutPrompt(prompt, user?.experienceLevel || 'beginner');
+      
+      // Build the workout structure
+      const generateId = () => crypto.randomUUID();
+      
+      // Warmup phases
+      const warmupPhases: WorkoutPhase[] = parsed.hasWarmup ? [{
+        id: generateId(),
+        name: 'Dynamic Warmup',
+        repeats: 1,
+        segments: [
+          { id: generateId(), name: 'Jump Rope', type: 'active', segmentType: 'work', duration: 120 },
+          { id: generateId(), name: 'Active Rest', type: 'rest', segmentType: 'rest', duration: 30 },
+          { id: generateId(), name: 'Shadow Boxing', type: 'active', segmentType: 'shadowboxing', duration: 120 },
+        ],
+      }] : [];
+      
+      // Main rounds
+      const grindPhases: WorkoutPhase[] = [{
+        id: generateId(),
+        name: parsed.hasHIIT ? 'HIIT Rounds' : 'Main Rounds',
+        repeats: parsed.rounds,
+        segments: [
+          { 
+            id: generateId(), 
+            name: parsed.hasShadowboxing ? 'Shadowboxing' : 'Combo Work', 
+            type: 'active', 
+            segmentType: parsed.hasShadowboxing ? 'shadowboxing' : 'combo', 
+            duration: parsed.roundDuration 
+          },
+          { id: generateId(), name: 'Rest', type: 'rest', segmentType: 'rest', duration: parsed.restDuration },
+        ],
+      }];
+      
+      // Cooldown phases
+      const cooldownPhases: WorkoutPhase[] = parsed.hasCooldown ? [{
+        id: generateId(),
+        name: 'Cooldown',
+        repeats: 1,
+        segments: [
+          { id: generateId(), name: 'Light Shadow', type: 'active', segmentType: 'shadowboxing', duration: 90 },
+          { id: generateId(), name: 'Stretch', type: 'active', segmentType: 'work', duration: 120 },
+        ],
+      }] : [];
+      
+      // Calculate total duration
+      let totalDuration = 0;
+      [...warmupPhases, ...grindPhases, ...cooldownPhases].forEach(phase => {
+        const phaseDur = phase.segments.reduce((acc, s) => acc + s.duration, 0);
+        totalDuration += phaseDur * phase.repeats;
+      });
+      
+      // Create the workout
+      const workout: Workout = {
+        id: generateId(),
+        name: parsed.name,
+        icon: '🥊',
+        difficulty: parsed.difficulty,
+        totalDuration,
+        isPreset: false,
+        isArchived: false,
+        createdAt: new Date(),
+        timesCompleted: 0,
+        sections: {
+          warmup: warmupPhases,
+          grind: grindPhases,
+          cooldown: cooldownPhases,
+        },
+        combos: parsed.combos,
+      };
+      
+      // Add to store
+      addWorkout(workout);
+      
       setIsGenerating(false);
+      toast.success(`Created "${parsed.name}" - ${parsed.rounds} rounds, ${parsed.difficulty} difficulty`);
+      onClose();
+      navigate(`/workout/${workout.id}`);
     }, 1500);
   };
 
@@ -176,6 +400,17 @@ export const AIBuilderModal = ({ onClose, onGenerate, baseWorkout }: AIBuilderMo
             </div>
           )}
 
+          {/* Instructions */}
+          <div className="bg-surface-2 rounded-xl p-3 text-sm text-muted-foreground">
+            <p className="font-medium text-foreground mb-1">Describe your ideal workout:</p>
+            <ul className="text-xs space-y-1 list-disc list-inside">
+              <li>Number of rounds (e.g., "5 rounds")</li>
+              <li>Duration (e.g., "20 min session")</li>
+              <li>Focus area (e.g., "defense drills", "heavy bag")</li>
+              <li>Difficulty (beginner, intermediate, advanced)</li>
+            </ul>
+          </div>
+
           {/* Prompt Input with Voice Button */}
           <div className="space-y-2">
             <div className="relative">
@@ -184,7 +419,7 @@ export const AIBuilderModal = ({ onClose, onGenerate, baseWorkout }: AIBuilderMo
                 onChange={(e) => setPrompt(e.target.value)}
                 placeholder={baseWorkout 
                   ? "E.g. Make it shorter, add more rest, focus on defense..."
-                  : "E.g. 5 round heavy bag boxing workout with HIIT intervals"
+                  : "E.g. 5 round heavy bag workout with defense combos"
                 }
                 className={cn(
                   "min-h-[100px] bg-surface-2 border-surface-3 text-foreground placeholder:text-muted-foreground resize-none pr-14",

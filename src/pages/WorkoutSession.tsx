@@ -328,8 +328,8 @@ const WorkoutSession = () => {
       )}>
         {/* Top Bar */}
         <header className="flex items-start justify-between px-4 py-3 safe-top">
-          {/* Left side - elapsed time */}
-          <div className="flex flex-col items-start gap-1">
+          {/* Left side - home and restart buttons */}
+          <div className="flex items-center gap-2">
             <button 
               onClick={() => navigate('/')}
               className="flex items-center gap-2 px-3 py-2 rounded-full bg-surface-1 border border-surface-3"
@@ -337,10 +337,19 @@ const WorkoutSession = () => {
               <ArrowLeft className="w-4 h-4" />
               <Home className="w-4 h-4" />
             </button>
-            <span className="timer-display text-2xl font-black text-muted-foreground ml-1">
-              {formatTimeCompact(totalElapsed)}
-            </span>
+            <button
+              onClick={handleReset}
+              className="px-3 py-2 rounded-full bg-surface-1 border border-surface-3 text-muted-foreground hover:text-foreground transition-colors"
+              title="Restart from beginning"
+            >
+              <RotateCcw className="w-4 h-4" />
+            </button>
           </div>
+          
+          {/* Elapsed time in center-ish area */}
+          <span className="timer-display text-2xl font-black text-muted-foreground">
+            {formatTimeCompact(totalElapsed)}
+          </span>
           
           {/* Right side - XP bar */}
           <div className="flex flex-col items-end">
@@ -404,27 +413,55 @@ const WorkoutSession = () => {
             ))}
           </div>
 
-          {/* Combo Display */}
+          {/* Combo Display - Convert words to numbers/short codes */}
           {displayCombo && displayCombo.length > 0 && !isPreparation && (
             <div className="w-full max-w-sm bg-surface-1 rounded-xl p-4 border border-surface-3">
               <div className="flex items-center justify-center gap-2 flex-wrap">
-                {displayCombo.map((move, idx) => (
-                  <div key={idx} className="flex items-center gap-2">
-                    <span className={cn(
-                      'text-xl font-black',
-                      move.includes('SLIP') || move.includes('ROLL') || move.includes('PULL') || move.includes('BLOCK') 
-                        ? 'text-yellow-500' 
-                        : move.includes('CIRCLE') || move.includes('STEP')
-                        ? 'text-blue-400'
-                        : 'text-volt'
-                    )}>
-                      {move}
-                    </span>
-                    {idx < displayCombo.length - 1 && (
-                      <ChevronRight className="w-4 h-4 text-muted-foreground" />
-                    )}
-                  </div>
-                ))}
+                {displayCombo.map((move, idx) => {
+                  // Convert punch names to numbers if they're stored as words
+                  const displayMove = (() => {
+                    const m = move.toUpperCase();
+                    if (m === 'JAB') return '1';
+                    if (m === 'CROSS' || m === 'STRAIGHT') return '2';
+                    if (m === 'LEAD HOOK' || m === 'LEFT HOOK') return '3';
+                    if (m === 'REAR HOOK' || m === 'RIGHT HOOK') return '4';
+                    if (m === 'LEAD UPPERCUT' || m === 'LEFT UPPERCUT') return '5';
+                    if (m === 'REAR UPPERCUT' || m === 'RIGHT UPPERCUT') return '6';
+                    if (m === 'LEAD BODY HOOK' || m === 'LEFT BODY') return '7';
+                    if (m === 'REAR BODY HOOK' || m === 'RIGHT BODY') return '8';
+                    // Keep defense/movement as short codes
+                    if (m.includes('SLIP L')) return 'SL';
+                    if (m.includes('SLIP R')) return 'SR';
+                    if (m.includes('ROLL L')) return 'RL';
+                    if (m.includes('ROLL R')) return 'RR';
+                    if (m === 'PULL') return 'PL';
+                    if (m === 'BLOCK') return 'BK';
+                    if (m.includes('CIRCLE L')) return '↺';
+                    if (m.includes('CIRCLE R')) return '↻';
+                    if (m.includes('STEP IN')) return '→';
+                    if (m.includes('STEP OUT')) return '←';
+                    return move; // Return original if already a number
+                  })();
+                  
+                  const isDefense = ['SL', 'SR', 'RL', 'RR', 'PL', 'BK'].includes(displayMove);
+                  const isMovement = ['↺', '↻', '→', '←'].includes(displayMove);
+                  const isPunch = !isDefense && !isMovement;
+                  
+                  return (
+                    <div key={idx} className="flex items-center gap-1">
+                      <span className={cn(
+                        'text-2xl font-black',
+                        isDefense ? 'text-yellow-500' : 
+                        isMovement ? 'text-blue-400' : 'text-volt'
+                      )}>
+                        {displayMove}
+                      </span>
+                      {idx < displayCombo.length - 1 && (
+                        <ChevronRight className="w-3 h-3 text-muted-foreground" />
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             </div>
           )}
@@ -499,15 +536,6 @@ const WorkoutSession = () => {
               className="w-12 h-12 rounded-full bg-surface-1 border border-surface-3 flex items-center justify-center"
             >
               <SkipForward className="w-5 h-5 text-foreground" />
-            </button>
-
-            {/* More/Restart Menu */}
-            <button
-              onClick={handleReset}
-              className="w-10 h-10 rounded-full bg-surface-1 border border-surface-3 flex items-center justify-center"
-              title="Restart from beginning"
-            >
-              <RotateCcw className="w-4 h-4 text-muted-foreground" />
             </button>
           </div>
         </div>

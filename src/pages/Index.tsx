@@ -25,8 +25,8 @@ function formatDuration(seconds: number): string {
 
 const Index = () => {
   const navigate = useNavigate();
-  const { hasCompletedOnboarding } = useUserStore();
-  const { workouts, deleteWorkout, archiveWorkout, loadBeginnerPresets } = useWorkoutStore();
+  const { hasCompletedOnboarding, user } = useUserStore();
+  const { workouts, deleteWorkout, archiveWorkout, loadBeginnerPresets, loadIntermediatePresets, loadAdvancedPresets, loadProPresets } = useWorkoutStore();
   const [workoutToDelete, setWorkoutToDelete] = useState<string | null>(null);
 
   // Redirect to onboarding if not completed
@@ -36,10 +36,22 @@ const Index = () => {
     }
   }, [hasCompletedOnboarding, navigate]);
 
-  // Load beginner presets on mount
+  // Load presets based on user's experience level
   useEffect(() => {
-    loadBeginnerPresets();
-  }, [loadBeginnerPresets]);
+    const level = user?.experienceLevel;
+    if (level === 'complete_beginner' || level === 'beginner') {
+      loadBeginnerPresets();
+    } else if (level === 'intermediate') {
+      loadIntermediatePresets();
+    } else if (level === 'advanced') {
+      loadAdvancedPresets();
+    } else if (level === 'pro') {
+      loadProPresets();
+    } else {
+      // Default to beginner if no level set
+      loadBeginnerPresets();
+    }
+  }, [user?.experienceLevel, loadBeginnerPresets, loadIntermediatePresets, loadAdvancedPresets, loadProPresets]);
 
   const activeWorkouts = workouts.filter((w) => !w.isArchived);
 
