@@ -354,8 +354,8 @@ const WorkoutSession = () => {
             </button>
           </div>
           
-          {/* Elapsed time in center-ish area */}
-          <span className="timer-display text-2xl font-black text-muted-foreground">
+          {/* Elapsed time in center-ish area - desaturated volt */}
+          <span className="timer-display text-2xl font-black text-volt/40">
             {formatTimeCompact(totalElapsed)}
           </span>
           
@@ -374,7 +374,7 @@ const WorkoutSession = () => {
 
           {/* Shadowboxing hint - show INCOMING combo */}
           {isShadowboxing && !isPreparation && displayCombo && (
-            <p className="text-xs text-volt font-bold mb-2 animate-pulse">⚡ INCOMING COMBO:</p>
+            <p className="text-xs text-volt font-bold mb-2 animate-pulse">INCOMING COMBO:</p>
           )}
 
           {/* Timer */}
