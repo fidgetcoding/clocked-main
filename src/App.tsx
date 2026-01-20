@@ -8,6 +8,8 @@ import QuickTimer from "./pages/QuickTimer";
 import Build from "./pages/Build";
 import FightClub from "./pages/FightClub";
 import Stats from "./pages/Stats";
+import Profile from "./pages/Profile";
+import WorkoutSession from "./pages/WorkoutSession";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -24,6 +26,8 @@ const App = () => (
           <Route path="/build" element={<Build />} />
           <Route path="/fight-club" element={<FightClub />} />
           <Route path="/stats" element={<Stats />} />
+          <Route path="/profile" element={<Profile />} />
+          <Route path="/workout/:id" element={<WorkoutSession />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

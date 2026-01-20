@@ -1,11 +1,10 @@
-import { Clock, Flame, MoreVertical } from 'lucide-react';
+import { Clock, Flame } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Workout } from '@/types';
 
 interface WorkoutCardProps {
   workout: Workout;
   onClick: () => void;
-  onOptionsClick?: (e: React.MouseEvent) => void;
 }
 
 function formatDuration(seconds: number): string {
@@ -29,7 +28,7 @@ function getDifficultyColor(difficulty: Workout['difficulty']): string {
   }
 }
 
-export function WorkoutCard({ workout, onClick, onOptionsClick }: WorkoutCardProps) {
+export function WorkoutCard({ workout, onClick }: WorkoutCardProps) {
   const phaseCount = 
     workout.sections.warmup.length + 
     workout.sections.grind.length + 
@@ -40,7 +39,7 @@ export function WorkoutCard({ workout, onClick, onOptionsClick }: WorkoutCardPro
       onClick={onClick}
       className="card-workout w-full text-left group"
     >
-      <div className="flex items-start gap-3">
+      <div className="flex items-start gap-3 pr-8">
         {/* Icon */}
         <div className="flex-shrink-0 w-12 h-12 rounded-xl bg-surface-2 flex items-center justify-center text-2xl">
           {workout.icon}
@@ -77,19 +76,6 @@ export function WorkoutCard({ workout, onClick, onOptionsClick }: WorkoutCardPro
             </div>
           )}
         </div>
-
-        {/* Options */}
-        {onOptionsClick && (
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onOptionsClick(e);
-            }}
-            className="flex-shrink-0 p-2 -m-2 text-muted-foreground hover:text-foreground transition-colors"
-          >
-            <MoreVertical className="w-5 h-5" />
-          </button>
-        )}
       </div>
     </button>
   );

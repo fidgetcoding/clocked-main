@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Plus, Flame, User, Zap, Sparkles } from 'lucide-react';
+import { Plus, Flame, User, Zap, Sparkles, MoreVertical } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { WorkoutCard } from '@/components/ui/WorkoutCard';
@@ -54,11 +54,12 @@ const Index = () => {
     setShowDeleteDialog(false);
   };
 
-  const handleArchive = () => {
-    if (selectedWorkout) {
-      archiveWorkout(selectedWorkout);
-      setSelectedWorkout(null);
-    }
+  const handleArchive = (id: string) => {
+    archiveWorkout(id);
+  };
+
+  const handleLaunchWorkout = (workoutId: string) => {
+    navigate(`/workout/${workoutId}`);
   };
 
   return (
@@ -174,47 +175,43 @@ const Index = () => {
               </div>
             ) : (
               activeWorkouts.map((workout) => (
-                <DropdownMenu key={workout.id}>
-                  <div className="relative">
-                    <WorkoutCard
-                      workout={workout}
-                      onClick={() => navigate(`/workout/${workout.id}`)}
-                      onOptionsClick={() => setSelectedWorkout(workout.id)}
-                    />
+                <div key={workout.id} className="relative">
+                  <WorkoutCard
+                    workout={workout}
+                    onClick={() => handleLaunchWorkout(workout.id)}
+                  />
+                  <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <button
-                        className="absolute top-4 right-4 p-2 -m-2 text-muted-foreground hover:text-foreground transition-colors opacity-0"
-                        aria-label="Options"
-                      />
+                        className="absolute top-4 right-4 p-2 -m-2 text-muted-foreground hover:text-foreground transition-colors"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <MoreVertical className="w-5 h-5" />
+                      </button>
                     </DropdownMenuTrigger>
-                  </div>
-                  <DropdownMenuContent align="end" className="bg-surface-1 border-surface-3">
-                    <DropdownMenuItem onClick={() => navigate(`/build?edit=${workout.id}`)}>
-                      Edit
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => {}}>
-                      Duplicate
-                    </DropdownMenuItem>
-                    <DropdownMenuSeparator className="bg-surface-3" />
-                    <DropdownMenuItem 
-                      onClick={() => {
-                        setSelectedWorkout(workout.id);
-                        handleArchive();
-                      }}
-                    >
-                      Archive
-                    </DropdownMenuItem>
-                    <DropdownMenuItem 
-                      onClick={() => {
-                        setSelectedWorkout(workout.id);
-                        setShowDeleteDialog(true);
-                      }}
-                      className="text-alert-red focus:text-alert-red"
-                    >
-                      Delete
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
+                    <DropdownMenuContent align="end" className="bg-surface-1 border-surface-3">
+                      <DropdownMenuItem onClick={() => navigate(`/build?edit=${workout.id}`)}>
+                        Edit
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => {}}>
+                        Duplicate
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator className="bg-surface-3" />
+                      <DropdownMenuItem onClick={() => handleArchive(workout.id)}>
+                        Archive
+                      </DropdownMenuItem>
+                      <DropdownMenuItem 
+                        onClick={() => {
+                          setSelectedWorkout(workout.id);
+                          setShowDeleteDialog(true);
+                        }}
+                        className="text-alert-red focus:text-alert-red"
+                      >
+                        Delete
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
               ))
             )}
           </div>
@@ -238,7 +235,9 @@ const Index = () => {
             </AlertDialogCancel>
             <AlertDialogAction
               onClick={() => {
-                handleArchive();
+                if (selectedWorkout) {
+                  handleArchive(selectedWorkout);
+                }
                 setShowDeleteDialog(false);
               }}
               className="bg-surface-2 border-surface-3 text-foreground hover:bg-surface-3"
