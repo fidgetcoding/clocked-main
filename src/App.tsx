@@ -3,6 +3,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { AuthProvider } from "@/contexts/AuthContext";
 import Index from "./pages/Index";
 import QuickTimer from "./pages/QuickTimer";
 import Build from "./pages/Build";
@@ -13,33 +14,37 @@ import WorkoutSession from "./pages/WorkoutSession";
 import FightClub from "./pages/FightClub";
 import Stats from "./pages/Stats";
 import Profile from "./pages/Profile";
+import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Index />} />
-          <Route path="/onboarding" element={<Onboarding />} />
-          <Route path="/timer" element={<QuickTimer />} />
-          <Route path="/build" element={<Build />} />
-          <Route path="/settings" element={<Settings />} />
-          <Route path="/history" element={<History />} />
-          <Route path="/stats" element={<Stats />} />
-          <Route path="/fight-club" element={<FightClub />} />
-          <Route path="/profile" element={<Profile />} />
-          <Route path="/profile/:userId" element={<Profile />} />
-          <Route path="/workout/:id" element={<WorkoutSession />} />
-          <Route path="/workout/:id/session" element={<WorkoutSession />} />
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </BrowserRouter>
-    </TooltipProvider>
+    <AuthProvider>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <Routes>
+            <Route path="/" element={<Index />} />
+            <Route path="/auth" element={<Auth />} />
+            <Route path="/onboarding" element={<Onboarding />} />
+            <Route path="/timer" element={<QuickTimer />} />
+            <Route path="/build" element={<Build />} />
+            <Route path="/settings" element={<Settings />} />
+            <Route path="/history" element={<History />} />
+            <Route path="/stats" element={<Stats />} />
+            <Route path="/fight-club" element={<FightClub />} />
+            <Route path="/profile" element={<Profile />} />
+            <Route path="/profile/:userId" element={<Profile />} />
+            <Route path="/workout/:id" element={<WorkoutSession />} />
+            <Route path="/workout/:id/session" element={<WorkoutSession />} />
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </BrowserRouter>
+      </TooltipProvider>
+    </AuthProvider>
   </QueryClientProvider>
 );
 

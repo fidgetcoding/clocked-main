@@ -14,7 +14,167 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          created_at: string
+          current_streak: number
+          equipment: Json | null
+          experience_level: string | null
+          goals: string[] | null
+          id: string
+          last_active_at: string | null
+          longest_streak: number
+          name: string
+          preferences: Json | null
+          role: string
+          total_xp: number
+          updated_at: string
+          user_id: string
+          workouts_completed: number
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string
+          current_streak?: number
+          equipment?: Json | null
+          experience_level?: string | null
+          goals?: string[] | null
+          id?: string
+          last_active_at?: string | null
+          longest_streak?: number
+          name?: string
+          preferences?: Json | null
+          role?: string
+          total_xp?: number
+          updated_at?: string
+          user_id: string
+          workouts_completed?: number
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string
+          current_streak?: number
+          equipment?: Json | null
+          experience_level?: string | null
+          goals?: string[] | null
+          id?: string
+          last_active_at?: string | null
+          longest_streak?: number
+          name?: string
+          preferences?: Json | null
+          role?: string
+          total_xp?: number
+          updated_at?: string
+          user_id?: string
+          workouts_completed?: number
+        }
+        Relationships: []
+      }
+      workout_history: {
+        Row: {
+          completed_at: string
+          created_at: string
+          difficulty: string | null
+          duration: number
+          id: string
+          is_manual_entry: boolean | null
+          notes: string | null
+          round_feedback: Json | null
+          user_id: string
+          workout_id: string | null
+          workout_name: string
+          xp_earned: number
+        }
+        Insert: {
+          completed_at?: string
+          created_at?: string
+          difficulty?: string | null
+          duration?: number
+          id?: string
+          is_manual_entry?: boolean | null
+          notes?: string | null
+          round_feedback?: Json | null
+          user_id: string
+          workout_id?: string | null
+          workout_name: string
+          xp_earned?: number
+        }
+        Update: {
+          completed_at?: string
+          created_at?: string
+          difficulty?: string | null
+          duration?: number
+          id?: string
+          is_manual_entry?: boolean | null
+          notes?: string | null
+          round_feedback?: Json | null
+          user_id?: string
+          workout_id?: string | null
+          workout_name?: string
+          xp_earned?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workout_history_workout_id_fkey"
+            columns: ["workout_id"]
+            isOneToOne: false
+            referencedRelation: "workouts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      workouts: {
+        Row: {
+          created_at: string
+          description: string | null
+          difficulty: string | null
+          duration: number
+          id: string
+          is_archived: boolean | null
+          is_preset: boolean | null
+          last_used_at: string | null
+          name: string
+          phases: Json
+          tags: string[] | null
+          times_completed: number | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          difficulty?: string | null
+          duration?: number
+          id?: string
+          is_archived?: boolean | null
+          is_preset?: boolean | null
+          last_used_at?: string | null
+          name: string
+          phases?: Json
+          tags?: string[] | null
+          times_completed?: number | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          difficulty?: string | null
+          duration?: number
+          id?: string
+          is_archived?: boolean | null
+          is_preset?: boolean | null
+          last_used_at?: string | null
+          name?: string
+          phases?: Json
+          tags?: string[] | null
+          times_completed?: number | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
