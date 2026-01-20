@@ -18,9 +18,9 @@ function formatDuration(seconds: number): string {
 function getDifficultyColor(difficulty: Workout['difficulty']): string {
   switch (difficulty) {
     case 'beginner':
-      return 'text-rest-green';
+      return 'text-volt';
     case 'intermediate':
-      return 'text-yellow-500';
+      return 'text-muted-foreground';
     case 'advanced':
       return 'text-alert-red';
     default:

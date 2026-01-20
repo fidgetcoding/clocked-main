@@ -182,7 +182,7 @@ const Index = () => {
                       {/* Play Button - pulses on card hover */}
                       <button
                         onClick={() => navigate(`/workout/${workout.id}`)}
-                        className="w-12 h-12 rounded-full bg-volt flex items-center justify-center transition-all duration-200 group-hover:scale-110 group-hover:shadow-[0_0_20px_hsl(var(--electric-volt)/0.6)] active:scale-95"
+                        className="w-12 h-12 rounded-full bg-volt flex items-center justify-center transition-all duration-200 group-hover:scale-110 group-hover:shadow-[0_0_20px_hsl(var(--electric-volt)/0.6)] group-hover:animate-pulse active:scale-95"
                       >
                         <Play className="w-5 h-5 text-primary-foreground ml-0.5" fill="currentColor" />
                       </button>

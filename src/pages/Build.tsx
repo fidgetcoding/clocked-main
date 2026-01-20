@@ -119,15 +119,18 @@ const Build = () => {
     }
   }, [editId, workouts]);
 
-  // Count combo/shadowboxing segments to determine required combos
+  // Count combo segments to determine required combos
+  // NOTE: Shadowboxing uses the SAME combo as combo segments, so we only count unique rounds
   const countComboSegments = () => {
     let count = 0;
     [...warmupPhases, ...grindPhases, ...cooldownPhases].forEach(phase => {
-      phase.segments.forEach(seg => {
-        if (seg.segmentType === 'combo' || seg.segmentType === 'shadowboxing') {
-          count += phase.repeats;
-        }
-      });
+      // Check if this phase has combo OR shadowboxing - if either exists, count once per repeat
+      const hasComboOrShadow = phase.segments.some(seg => 
+        seg.segmentType === 'combo' || seg.segmentType === 'shadowboxing'
+      );
+      if (hasComboOrShadow) {
+        count += phase.repeats;
+      }
     });
     return count;
   };
@@ -291,7 +294,6 @@ const Build = () => {
       toast.success(`Saved "${name}"`);
       navigate('/');
     }
-  };
   };
 
   // Get available keys based on difficulty
