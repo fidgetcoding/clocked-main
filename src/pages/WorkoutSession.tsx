@@ -90,15 +90,20 @@ const WorkoutSession = () => {
   const [isPaused, setIsPaused] = useState(true);
   const [isPreparation, setIsPreparation] = useState(true);
   const [isComplete, setIsComplete] = useState(false);
+  const [speed, setSpeed] = useState<0.5 | 1 | 2>(1);
 
   const currentSegment = flatSegments[currentSegmentIndex];
   const nextSegment = flatSegments[currentSegmentIndex + 1];
   const totalSegments = flatSegments.length;
   const progressPercent = totalSegments > 0 ? (currentSegmentIndex / totalSegments) * 100 : 0;
+  
+  // Calculate XP earned so far (10 XP per minute of active work)
+  const currentXP = Math.floor((totalElapsed / 60) * 10);
 
-  // Timer effect
+  // Timer effect with speed control
   useEffect(() => {
     let interval: NodeJS.Timeout;
+    const intervalMs = 1000 / speed; // Adjust interval based on speed
     
     if (isRunning && !isPaused && timeRemaining > 0) {
       interval = setInterval(() => {
@@ -106,7 +111,7 @@ const WorkoutSession = () => {
         if (!isPreparation) {
           setTotalElapsed((prev) => prev + 1);
         }
-      }, 1000);
+      }, intervalMs);
     } else if (timeRemaining === 0 && isRunning) {
       if (isPreparation) {
         // End preparation, start first segment
@@ -129,7 +134,7 @@ const WorkoutSession = () => {
     }
     
     return () => clearInterval(interval);
-  }, [isRunning, isPaused, timeRemaining, currentSegmentIndex, flatSegments, isPreparation, workout, markWorkoutUsed, addXP, totalElapsed]);
+  }, [isRunning, isPaused, timeRemaining, currentSegmentIndex, flatSegments, isPreparation, workout, markWorkoutUsed, addXP, totalElapsed, speed]);
 
   const handleStart = () => {
     setIsRunning(true);
@@ -224,9 +229,12 @@ const WorkoutSession = () => {
             <span className="text-sm font-medium">HOME</span>
           </button>
           
-          <div className="flex items-center gap-2 text-muted-foreground">
-            <Settings className="w-4 h-4" />
-            <span className="timer-display text-lg text-volt font-bold">
+          <div className="flex items-center gap-3">
+            {/* XP Display */}
+            <div className="flex items-center gap-1 px-3 py-1.5 rounded-full bg-volt/20 border border-volt/30">
+              <span className="text-volt text-sm font-bold">+{currentXP} XP</span>
+            </div>
+            <span className="timer-display text-lg text-foreground font-bold">
               {formatTimeCompact(totalElapsed)}
             </span>
           </div>
@@ -268,10 +276,37 @@ const WorkoutSession = () => {
 
           {/* Speed Buttons */}
           <div className="flex gap-3 mb-8">
-            <button className="px-6 py-2 rounded-full bg-surface-1 border border-surface-3 text-muted-foreground text-sm font-medium">
+            <button 
+              onClick={() => setSpeed(0.5)}
+              className={cn(
+                'px-6 py-2 rounded-full text-sm font-medium transition-colors',
+                speed === 0.5 
+                  ? 'bg-volt text-primary-foreground' 
+                  : 'bg-surface-1 border border-surface-3 text-muted-foreground hover:bg-surface-2'
+              )}
+            >
               50%
             </button>
-            <button className="px-6 py-2 rounded-full bg-surface-1 border border-surface-3 text-muted-foreground text-sm font-medium">
+            <button 
+              onClick={() => setSpeed(1)}
+              className={cn(
+                'px-6 py-2 rounded-full text-sm font-medium transition-colors',
+                speed === 1 
+                  ? 'bg-volt text-primary-foreground' 
+                  : 'bg-surface-1 border border-surface-3 text-muted-foreground hover:bg-surface-2'
+              )}
+            >
+              1X
+            </button>
+            <button 
+              onClick={() => setSpeed(2)}
+              className={cn(
+                'px-6 py-2 rounded-full text-sm font-medium transition-colors',
+                speed === 2 
+                  ? 'bg-volt text-primary-foreground' 
+                  : 'bg-surface-1 border border-surface-3 text-muted-foreground hover:bg-surface-2'
+              )}
+            >
               2X
             </button>
           </div>
