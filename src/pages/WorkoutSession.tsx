@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Home, Play, Pause, RotateCcw, SkipForward, SkipBack, ChevronRight, MoreVertical } from 'lucide-react';
 import { AppLayout } from '@/components/layout/AppLayout';
@@ -122,13 +122,26 @@ const WorkoutSession = () => {
   // Calculate XP earned so far (10 XP per minute of active work)
   const currentXP = Math.floor((totalElapsed / 60) * 10);
 
+  // Use refs for stable interval callbacks to prevent stale closures
+  const countdownRef = useRef<() => void>();
+  const elapsedRef = useRef<() => void>();
+  
+  // Keep refs updated with latest state
+  countdownRef.current = () => {
+    setTimeRemaining((prev) => prev - 1);
+  };
+  
+  elapsedRef.current = () => {
+    setTotalElapsed((prev) => prev + 1);
+  };
+
   // Separate effect for total elapsed timer - runs independently
   useEffect(() => {
     let interval: NodeJS.Timeout | null = null;
     
     if (isRunning && !isPaused && !isPreparation) {
       interval = setInterval(() => {
-        setTotalElapsed((prev) => prev + 1);
+        elapsedRef.current?.();
       }, 1000);
     }
     
@@ -137,20 +150,20 @@ const WorkoutSession = () => {
     };
   }, [isRunning, isPaused, isPreparation]);
 
-  // Countdown timer effect
+  // Countdown timer effect - only recreate when running/paused state changes
   useEffect(() => {
     let interval: NodeJS.Timeout | null = null;
     
-    if (isRunning && !isPaused && timeRemaining > 0) {
+    if (isRunning && !isPaused) {
       interval = setInterval(() => {
-        setTimeRemaining((prev) => prev - 1);
+        countdownRef.current?.();
       }, 1000);
     }
     
     return () => {
       if (interval) clearInterval(interval);
     };
-  }, [isRunning, isPaused, timeRemaining]);
+  }, [isRunning, isPaused]);
 
   // Handle segment transitions when time hits 0
   useEffect(() => {
