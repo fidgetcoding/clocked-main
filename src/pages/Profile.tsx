@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ArrowLeft, Settings, User, Users, Grid3X3, Bookmark, MapPin, Link as LinkIcon, UserPlus, UserCheck, Clock, Trophy, Flame, ChevronRight } from 'lucide-react';
+import { ArrowLeft, Settings, User, Users, MapPin, Link as LinkIcon, UserPlus, UserCheck, Clock, Trophy, Flame, ChevronRight } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
@@ -7,6 +7,7 @@ import { useUserStore } from '@/stores/userStore';
 import { XPBar } from '@/components/ui/XPBar';
 import { RANK_NAMES, Rank, RANK_THRESHOLDS } from '@/types';
 import { cn } from '@/lib/utils';
+import { toast } from 'sonner';
 
 function getCurrentRank(xp: number): Rank {
   const ranks = Object.entries(RANK_THRESHOLDS).reverse() as [Rank, number][];
@@ -70,13 +71,10 @@ const MOCK_USERS: Record<string, any> = {
   },
 };
 
-type ProfileTab = 'posts' | 'workouts' | 'saved';
-
 const Profile = () => {
   const navigate = useNavigate();
   const { userId } = useParams<{ userId?: string }>();
   const user = useUserStore((state) => state.user);
-  const [activeTab, setActiveTab] = useState<ProfileTab>('posts');
   const [followingState, setFollowingState] = useState<Record<string, boolean>>({
     'mike-thompson': true,
   });
@@ -101,12 +99,6 @@ const Profile = () => {
   const handleFollow = (id: string) => {
     setFollowingState(prev => ({ ...prev, [id]: !prev[id] }));
   };
-
-  const tabs: { id: ProfileTab; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
-    { id: 'posts', label: 'Posts', icon: Grid3X3 },
-    { id: 'workouts', label: 'Workouts', icon: Trophy },
-    { id: 'saved', label: 'Saved', icon: Bookmark },
-  ];
 
   return (
     <AppLayout>
@@ -211,10 +203,21 @@ const Profile = () => {
           {/* Action Buttons */}
           {isOwnProfile ? (
             <div className="flex gap-2">
-              <Button variant="outline" className="flex-1 bg-surface-1 border-surface-3">
+              <Button 
+                onClick={() => navigate('/settings')}
+                variant="outline" 
+                className="flex-1 bg-surface-1 border-surface-3"
+              >
                 Edit Profile
               </Button>
-              <Button variant="outline" className="bg-surface-1 border-surface-3">
+              <Button 
+                onClick={() => {
+                  navigator.clipboard.writeText(window.location.href);
+                  toast.success('Profile link copied!');
+                }}
+                variant="outline" 
+                className="bg-surface-1 border-surface-3"
+              >
                 <LinkIcon className="w-4 h-4" />
               </Button>
             </div>
@@ -248,25 +251,25 @@ const Profile = () => {
           )}
         </div>
 
-        {/* Stats Cards */}
+        {/* Stats Cards - All icons gray, all numbers volt */}
         <div className="grid grid-cols-3 gap-2 px-4 mb-4">
           <div className="card-workout text-center py-3">
-            <Flame className="w-5 h-5 text-volt mx-auto mb-1" />
+            <Flame className="w-5 h-5 text-muted-foreground mx-auto mb-1" />
             <p className="text-xl font-bold text-volt">
               {isOwnProfile ? (user?.currentStreak || 3) : (viewingUser?.currentStreak || 0)}
             </p>
             <p className="text-[10px] text-muted-foreground">Day Streak</p>
           </div>
           <div className="card-workout text-center py-3">
-            <Trophy className="w-5 h-5 text-volt mx-auto mb-1" />
-            <p className="text-xl font-bold text-foreground">
+            <Trophy className="w-5 h-5 text-muted-foreground mx-auto mb-1" />
+            <p className="text-xl font-bold text-volt">
               {isOwnProfile ? (user?.longestStreak || 14) : (viewingUser?.longestStreak || 0)}
             </p>
             <p className="text-[10px] text-muted-foreground">Best Streak</p>
           </div>
           <div className="card-workout text-center py-3">
             <Clock className="w-5 h-5 text-muted-foreground mx-auto mb-1" />
-            <p className="text-xl font-bold text-foreground">
+            <p className="text-xl font-bold text-volt">
               {isOwnProfile 
                 ? Math.floor((user?.workoutsCompleted || 24) * 30 / 60) 
                 : Math.floor((viewingUser?.totalWorkoutTime || 0) / 3600)
@@ -282,7 +285,6 @@ const Profile = () => {
             <div className="card-workout">
               <div className="flex items-center justify-between mb-3">
                 <h3 className="font-semibold text-foreground">Followers</h3>
-                <button className="text-sm text-volt">See All</button>
               </div>
               <div className="space-y-2">
                 {ownFollowers.slice(0, 3).map((follower) => (
@@ -305,81 +307,6 @@ const Profile = () => {
             </div>
           </div>
         )}
-
-        {/* Tabs */}
-        <div className="border-t border-surface-3">
-          <div className="flex">
-            {tabs.map((tab) => {
-              const Icon = tab.icon;
-              return (
-                <button
-                  key={tab.id}
-                  onClick={() => setActiveTab(tab.id)}
-                  className={cn(
-                    'flex-1 py-3 flex items-center justify-center gap-2 border-b-2 transition-colors',
-                    activeTab === tab.id 
-                      ? 'border-volt text-volt' 
-                      : 'border-transparent text-muted-foreground'
-                  )}
-                >
-                  <Icon className="w-5 h-5" />
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Tab Content */}
-        <div className="px-4 py-4">
-          {activeTab === 'posts' && (
-            <div className="space-y-3">
-              {!isOwnProfile && viewingUser?.posts ? (
-                viewingUser.posts.map((post: any) => (
-                  <div key={post.id} className="card-workout">
-                    {post.type === 'workout' && (
-                      <>
-                        <p className="text-sm text-foreground">
-                          Completed <span className="font-semibold">{post.name}</span>
-                        </p>
-                        <div className="flex items-center gap-2 mt-1">
-                          <span className="text-volt text-sm font-bold">+{post.xp} XP</span>
-                          <span className="text-xs text-muted-foreground">{post.date}</span>
-                        </div>
-                      </>
-                    )}
-                    {post.type === 'rank_up' && (
-                      <>
-                        <p className="text-sm text-foreground">
-                          Ranked up to <span className="font-bold text-volt">{post.rank}</span>! 🏆
-                        </p>
-                        <span className="text-xs text-muted-foreground">{post.date}</span>
-                      </>
-                    )}
-                  </div>
-                ))
-              ) : (
-                <div className="text-center py-8">
-                  <Grid3X3 className="w-12 h-12 text-muted-foreground mx-auto mb-2" />
-                  <p className="text-muted-foreground">No posts yet</p>
-                </div>
-              )}
-            </div>
-          )}
-
-          {activeTab === 'workouts' && (
-            <div className="text-center py-8">
-              <Trophy className="w-12 h-12 text-muted-foreground mx-auto mb-2" />
-              <p className="text-muted-foreground">Workout history coming soon</p>
-            </div>
-          )}
-
-          {activeTab === 'saved' && (
-            <div className="text-center py-8">
-              <Bookmark className="w-12 h-12 text-muted-foreground mx-auto mb-2" />
-              <p className="text-muted-foreground">No saved items</p>
-            </div>
-          )}
-        </div>
       </div>
     </AppLayout>
   );
