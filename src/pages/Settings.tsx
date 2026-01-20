@@ -1,14 +1,31 @@
-import { User, LogOut, Pencil, Volume2, Bell, Timer, Vibrate } from 'lucide-react';
+import { useState } from 'react';
+import { User, LogOut, Pencil, Volume2, Bell, Timer, Vibrate, Archive, RotateCcw, Trash2, ChevronRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Switch } from '@/components/ui/switch';
 import { useUserStore } from '@/stores/userStore';
+import { useWorkoutStore } from '@/stores/workoutStore';
 import { cn } from '@/lib/utils';
+import { toast } from 'sonner';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 const Settings = () => {
   const navigate = useNavigate();
   const user = useUserStore((state) => state.user);
   const updateUser = useUserStore((state) => state.updateUser);
+  const { archivedWorkouts, restoreWorkout, permanentlyDeleteArchived } = useWorkoutStore();
+  
+  const [showArchives, setShowArchives] = useState(false);
+  const [workoutToDelete, setWorkoutToDelete] = useState<string | null>(null);
 
   const handleTogglePreference = (key: string, value: boolean) => {
     if (user) {
@@ -18,6 +35,19 @@ const Settings = () => {
           [key]: value,
         },
       });
+    }
+  };
+
+  const handleRestore = (id: string) => {
+    restoreWorkout(id);
+    toast.success('Workout restored to your sets');
+  };
+
+  const handlePermanentDelete = () => {
+    if (workoutToDelete) {
+      permanentlyDeleteArchived(workoutToDelete);
+      setWorkoutToDelete(null);
+      toast.success('Workout permanently deleted');
     }
   };
 
@@ -171,10 +201,65 @@ const Settings = () => {
             </div>
 
             {/* Sign Out */}
-            <button className="flex items-center gap-2 w-full p-3 rounded-lg bg-surface-2 border border-alert-red/30 text-alert-red hover:bg-alert-red/10 transition-colors">
+            <button className="flex items-center gap-2 w-full p-3 rounded-lg bg-surface-2 border border-destructive/30 text-destructive hover:bg-destructive/10 transition-colors">
               <LogOut className="w-4 h-4" />
               <span className="font-medium">Sign Out</span>
             </button>
+          </div>
+
+          {/* Archived Workouts */}
+          <div className="card-workout">
+            <button 
+              onClick={() => setShowArchives(!showArchives)}
+              className="flex items-center justify-between w-full"
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-lg bg-surface-2 flex items-center justify-center">
+                  <Archive className="w-4 h-4 text-muted-foreground" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-foreground">Archived Workouts</h3>
+                  <p className="text-xs text-muted-foreground">{archivedWorkouts.length} archived</p>
+                </div>
+              </div>
+              <ChevronRight className={cn(
+                'w-5 h-5 text-muted-foreground transition-transform',
+                showArchives && 'rotate-90'
+              )} />
+            </button>
+
+            {showArchives && (
+              <div className="mt-4 space-y-3">
+                {archivedWorkouts.length === 0 ? (
+                  <p className="text-sm text-muted-foreground text-center py-4">
+                    No archived workouts
+                  </p>
+                ) : (
+                  archivedWorkouts.map((workout) => (
+                    <div key={workout.id} className="bg-surface-2 rounded-lg p-3 flex items-center gap-3">
+                      <div className="flex-1 min-w-0">
+                        <p className="font-semibold text-foreground truncate">{workout.name}</p>
+                        <p className="text-xs text-muted-foreground">{workout.difficulty}</p>
+                      </div>
+                      <button
+                        onClick={() => handleRestore(workout.id)}
+                        className="text-volt hover:text-volt/80 transition-colors p-2"
+                        title="Restore"
+                      >
+                        <RotateCcw className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => setWorkoutToDelete(workout.id)}
+                        className="text-muted-foreground hover:text-destructive transition-colors p-2"
+                        title="Delete Forever"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  ))
+                )}
+              </div>
+            )}
           </div>
 
           {/* Voice Alerts */}
@@ -229,6 +314,29 @@ const Settings = () => {
           </div>
         </div>
       </div>
+
+      {/* Permanent Delete Confirmation */}
+      <AlertDialog open={!!workoutToDelete} onOpenChange={() => setWorkoutToDelete(null)}>
+        <AlertDialogContent className="bg-surface-1 border-surface-3">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-foreground">Delete Forever?</AlertDialogTitle>
+            <AlertDialogDescription className="text-muted-foreground">
+              This will permanently delete the workout. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="bg-surface-2 border-surface-3 text-foreground">
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handlePermanentDelete}
+              className="bg-destructive text-white hover:bg-destructive/90"
+            >
+              Delete Forever
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </AppLayout>
   );
 };

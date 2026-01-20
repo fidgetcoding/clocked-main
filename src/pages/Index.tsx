@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Plus, History, Play, Pencil, Trash2, Clock, RotateCcw } from 'lucide-react';
+import { Plus, History, Play, Pencil, Trash2, Clock, RotateCcw, Archive } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { useUserStore } from '@/stores/userStore';
@@ -16,6 +16,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { cn } from '@/lib/utils';
+import { toast } from 'sonner';
 
 function formatDuration(seconds: number): string {
   const mins = Math.floor(seconds / 60);
@@ -25,7 +26,7 @@ function formatDuration(seconds: number): string {
 const Index = () => {
   const navigate = useNavigate();
   const { hasCompletedOnboarding } = useUserStore();
-  const { workouts, deleteWorkout, loadBeginnerPresets } = useWorkoutStore();
+  const { workouts, deleteWorkout, archiveWorkout, loadBeginnerPresets } = useWorkoutStore();
   const [workoutToDelete, setWorkoutToDelete] = useState<string | null>(null);
 
   // Redirect to onboarding if not completed
@@ -46,6 +47,15 @@ const Index = () => {
     if (workoutToDelete) {
       deleteWorkout(workoutToDelete);
       setWorkoutToDelete(null);
+      toast.success('Workout deleted permanently');
+    }
+  };
+
+  const handleArchive = () => {
+    if (workoutToDelete) {
+      archiveWorkout(workoutToDelete);
+      setWorkoutToDelete(null);
+      toast.success('Workout archived. Access it in Settings.');
     }
   };
 
@@ -182,24 +192,31 @@ const Index = () => {
         </section>
       </div>
 
-      {/* Delete Confirmation */}
+      {/* Delete/Archive Confirmation */}
       <AlertDialog open={!!workoutToDelete} onOpenChange={() => setWorkoutToDelete(null)}>
         <AlertDialogContent className="bg-surface-1 border-surface-3">
           <AlertDialogHeader>
-            <AlertDialogTitle className="text-foreground">Delete Workout?</AlertDialogTitle>
+            <AlertDialogTitle className="text-foreground">Remove Workout?</AlertDialogTitle>
             <AlertDialogDescription className="text-muted-foreground">
-              This action cannot be undone.
+              Choose to archive (can be restored later) or delete permanently.
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter>
+          <AlertDialogFooter className="flex-col sm:flex-row gap-2">
             <AlertDialogCancel className="bg-surface-2 border-surface-3 text-foreground">
               Cancel
             </AlertDialogCancel>
             <AlertDialogAction
-              onClick={handleDelete}
-              className="bg-alert-red text-white hover:bg-alert-red/90"
+              onClick={handleArchive}
+              className="bg-surface-3 text-foreground hover:bg-surface-2 flex items-center gap-2"
             >
-              Delete
+              <Archive className="w-4 h-4" />
+              Archive
+            </AlertDialogAction>
+            <AlertDialogAction
+              onClick={handleDelete}
+              className="bg-destructive text-white hover:bg-destructive/90"
+            >
+              Delete Forever
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
