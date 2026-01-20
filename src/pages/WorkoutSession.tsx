@@ -473,7 +473,7 @@ const WorkoutSession = () => {
             <div className="w-full max-w-sm bg-surface-1 rounded-xl p-4 border border-surface-3">
               {/* Incoming combo label for shadowboxing */}
               {isShadowboxing && (
-                <p className="text-xs text-volt font-bold mb-3 text-center">INCOMING COMBO</p>
+                <p className="text-xs text-alert-red font-bold mb-3 text-center animate-pulse">INCOMING COMBO</p>
               )}
               <div className="flex items-center justify-center gap-2 flex-wrap">
                 {displayCombo.map((move, idx) => {
