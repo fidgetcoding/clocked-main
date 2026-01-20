@@ -8,8 +8,9 @@ import { useWorkoutStore } from '@/stores/workoutStore';
 import { Workout, WorkoutPhase, WorkoutSegment } from '@/types';
 import { cn } from '@/lib/utils';
 
-const PUNCH_KEYS = ['1', '2', '3', '4', '5', '6'];
+const PUNCH_KEYS = ['1', '2', '3', '4', '5', '6', '7', '8'];
 const DEFENSE_KEYS = ['SLIP L', 'SLIP R', 'ROLL L', 'ROLL R', 'PULL', 'BLOCK'];
+const MOVEMENT_KEYS = ['CIRCLE L', 'CIRCLE R', 'STEP IN', 'STEP OUT'];
 
 const DEFAULT_SEGMENT: Omit<WorkoutSegment, 'id'> = {
   name: 'Work',
@@ -253,18 +254,22 @@ const Build = () => {
 
           {/* Section Tabs */}
           <div className="flex border-b border-surface-3">
-            {(['warmup', 'grind', 'cooldown'] as const).map((section) => (
+            {[
+              { key: 'warmup', label: 'WARMUP' },
+              { key: 'grind', label: 'ROUNDS' },
+              { key: 'cooldown', label: 'COOLDOWN' },
+            ].map((section) => (
               <button
-                key={section}
-                onClick={() => setActiveSection(section)}
+                key={section.key}
+                onClick={() => setActiveSection(section.key as 'warmup' | 'grind' | 'cooldown')}
                 className={cn(
                   'flex-1 py-3 text-sm font-semibold uppercase tracking-wider transition-colors',
-                  activeSection === section 
+                  activeSection === section.key 
                     ? 'text-volt border-b-2 border-volt' 
                     : 'text-muted-foreground'
                 )}
               >
-                {section}
+                {section.label}
               </button>
             ))}
           </div>
@@ -364,25 +369,26 @@ const Build = () => {
             </button>
           </div>
 
-          {/* Combos Section */}
-          <div className="px-4 py-4 border-t border-surface-3">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="font-semibold text-foreground">Combos ({combos.length})</h3>
-              <Button 
-                onClick={() => { setShowComboBuilder(true); setCurrentCombo([]); setEditingComboIndex(null); }}
-                size="sm" 
-                className="bg-volt text-primary-foreground"
-              >
-                <Plus className="w-4 h-4 mr-1" />
-                Add
-              </Button>
-            </div>
+          {/* Combos Section - Only show on Rounds tab */}
+          {activeSection === 'grind' && (
+            <div className="px-4 py-4 border-t border-surface-3">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="font-semibold text-foreground">Combos ({combos.length})</h3>
+                <Button 
+                  onClick={() => { setShowComboBuilder(true); setCurrentCombo([]); setEditingComboIndex(null); }}
+                  size="sm" 
+                  className="bg-volt text-primary-foreground"
+                >
+                  <Plus className="w-4 h-4 mr-1" />
+                  Add
+                </Button>
+              </div>
 
-            {combos.length === 0 ? (
-              <p className="text-sm text-muted-foreground text-center py-4">
-                No combos yet. Add combos for shadowboxing and bag work.
-              </p>
-            ) : (
+              {combos.length === 0 ? (
+                <p className="text-sm text-muted-foreground text-center py-4">
+                  No combos yet. Add combos for shadowboxing and bag work.
+                </p>
+              ) : (
               <div className="space-y-2">
                 {combos.map((combo, idx) => (
                   <div key={idx} className="flex items-center gap-2 bg-surface-1 rounded-lg p-3 border border-surface-3">
@@ -412,7 +418,8 @@ const Build = () => {
                 ))}
               </div>
             )}
-          </div>
+            </div>
+          )}
         </div>
 
         {/* Combo Builder Modal */}
@@ -479,6 +486,22 @@ const Build = () => {
                     key={key}
                     onClick={() => addToCombo(key)}
                     className="py-3 rounded-xl bg-surface-1 border border-surface-3 text-foreground font-medium text-sm hover:bg-yellow-500 hover:text-primary-foreground transition-colors"
+                  >
+                    {key}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Movement Keys */}
+            <div className="px-4 py-4">
+              <p className="text-xs text-muted-foreground uppercase tracking-wider mb-3">Movement</p>
+              <div className="grid grid-cols-2 gap-2">
+                {MOVEMENT_KEYS.map((key) => (
+                  <button
+                    key={key}
+                    onClick={() => addToCombo(key)}
+                    className="py-3 rounded-xl bg-surface-1 border border-surface-3 text-foreground font-medium text-sm hover:bg-blue-500 hover:text-white transition-colors"
                   >
                     {key}
                   </button>

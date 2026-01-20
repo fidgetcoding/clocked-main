@@ -91,6 +91,8 @@ const WorkoutSession = () => {
   const [isPreparation, setIsPreparation] = useState(true);
   const [isComplete, setIsComplete] = useState(false);
   const [speed, setSpeed] = useState<0.5 | 1 | 2>(1);
+  const [notes, setNotes] = useState('');
+  const [logged, setLogged] = useState(false);
 
   const currentSegment = flatSegments[currentSegmentIndex];
   const nextSegment = flatSegments[currentSegmentIndex + 1];
@@ -182,17 +184,23 @@ const WorkoutSession = () => {
     );
   }
 
+  const handleLog = () => {
+    // In a real app, this would save to database
+    setLogged(true);
+  };
+
   // Workout complete screen
   if (isComplete) {
     const xpEarned = Math.floor((totalElapsed / 60) * 10);
+    
     return (
       <AppLayout hideNav>
         <div className="min-h-screen flex flex-col items-center justify-center px-4 bg-background">
           <div className="text-6xl mb-6">🏆</div>
           <h1 className="text-3xl font-black text-foreground mb-2">WORKOUT COMPLETE!</h1>
-          <p className="text-muted-foreground mb-8">{workout.name}</p>
+          <p className="text-muted-foreground mb-6">{workout.name}</p>
           
-          <div className="grid grid-cols-2 gap-4 mb-8 w-full max-w-xs">
+          <div className="grid grid-cols-2 gap-4 mb-6 w-full max-w-xs">
             <div className="card-workout text-center">
               <p className="text-2xl font-bold text-volt">{formatTimeCompact(totalElapsed)}</p>
               <p className="text-sm text-muted-foreground">Duration</p>
@@ -203,8 +211,48 @@ const WorkoutSession = () => {
             </div>
           </div>
 
-          <Button onClick={() => navigate('/')} className="btn-primary-glow w-full max-w-xs">
-            Done
+          {/* Workout Log */}
+          {!logged ? (
+            <div className="w-full max-w-xs space-y-4 mb-6">
+              <div>
+                <label className="text-sm text-muted-foreground mb-2 block">How did it go?</label>
+                <textarea
+                  value={notes}
+                  onChange={(e) => setNotes(e.target.value)}
+                  placeholder="Add notes about your workout..."
+                  className="w-full h-24 p-3 rounded-xl bg-surface-1 border border-surface-3 text-foreground placeholder:text-muted-foreground text-sm resize-none focus:outline-none focus:ring-2 focus:ring-volt"
+                />
+              </div>
+              
+              {/* Rating */}
+              <div>
+                <label className="text-sm text-muted-foreground mb-2 block">Difficulty</label>
+                <div className="flex gap-2">
+                  {['Too Easy', 'Just Right', 'Too Hard'].map((label, idx) => (
+                    <button
+                      key={label}
+                      className="flex-1 py-2 px-3 rounded-lg bg-surface-1 border border-surface-3 text-sm text-muted-foreground hover:bg-surface-2 hover:text-foreground transition-colors"
+                    >
+                      {['😴', '💪', '🔥'][idx]} {label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              
+              <Button onClick={handleLog} className="btn-primary-glow w-full">
+                Log Workout
+              </Button>
+            </div>
+          ) : (
+            <div className="w-full max-w-xs mb-6">
+              <div className="card-workout text-center">
+                <p className="text-volt font-semibold">✓ Workout Logged!</p>
+              </div>
+            </div>
+          )}
+
+          <Button onClick={() => navigate('/')} variant="outline" className="w-full max-w-xs bg-surface-1 border-surface-3">
+            Back to Home
           </Button>
         </div>
       </AppLayout>
