@@ -461,7 +461,7 @@ const Onboarding = () => {
               }
             </p>
             <Button onClick={handleComplete} className="btn-primary-glow w-full max-w-xs h-14 text-lg">
-              {role === 'coach' ? 'SET UP MY GYM' : 'START TRAINING'}
+              {role === 'coach' ? "LET'S WORK" : 'START TRAINING'}
               <ArrowRight className="w-5 h-5 ml-2" />
             </Button>
           </div>
