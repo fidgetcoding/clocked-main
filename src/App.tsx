@@ -6,9 +6,9 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Index from "./pages/Index";
 import QuickTimer from "./pages/QuickTimer";
 import Build from "./pages/Build";
-import FightClub from "./pages/FightClub";
-import Stats from "./pages/Stats";
-import Profile from "./pages/Profile";
+import Settings from "./pages/Settings";
+import History from "./pages/History";
+import Onboarding from "./pages/Onboarding";
 import WorkoutSession from "./pages/WorkoutSession";
 import NotFound from "./pages/NotFound";
 
@@ -22,13 +22,12 @@ const App = () => (
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<Index />} />
+          <Route path="/onboarding" element={<Onboarding />} />
           <Route path="/timer" element={<QuickTimer />} />
           <Route path="/build" element={<Build />} />
-          <Route path="/fight-club" element={<FightClub />} />
-          <Route path="/stats" element={<Stats />} />
-          <Route path="/profile" element={<Profile />} />
+          <Route path="/settings" element={<Settings />} />
+          <Route path="/history" element={<History />} />
           <Route path="/workout/:id" element={<WorkoutSession />} />
-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
