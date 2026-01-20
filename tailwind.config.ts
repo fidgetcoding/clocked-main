@@ -65,7 +65,7 @@ export default {
         volt: "hsl(var(--electric-volt))",
         "tech-black": "hsl(var(--tech-black))",
         "alert-red": "hsl(var(--alert-red))",
-        "rest-green": "hsl(var(--rest-green))",
+        
         "surface-1": "hsl(var(--surface-1))",
         "surface-2": "hsl(var(--surface-2))",
         "surface-3": "hsl(var(--surface-3))",

@@ -51,7 +51,7 @@ const Index = () => {
 
   return (
     <AppLayout>
-      <div className="min-h-screen bg-gradient-red-glow">
+      <div className="min-h-screen bg-background">
         {/* Header */}
         <header className="px-4 pt-8 pb-6 text-center safe-top">
           <div className="flex items-center justify-center gap-2">
