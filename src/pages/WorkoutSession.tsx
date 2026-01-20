@@ -65,12 +65,18 @@ const WorkoutSession = () => {
             const isShadowboxing = segment.segmentType === 'shadowboxing' || 
                                    segment.name.toLowerCase().includes('shadow') || 
                                    segment.name.toLowerCase().includes('technique');
-            const isComboSegment = segment.segmentType === 'combo';
+            const isComboSegment = segment.segmentType === 'combo' || segment.comboIndex === 'cycle';
             
-            if ((segment.comboIndex === 'cycle' || isShadowboxing || isComboSegment) && workout.combos && workout.combos.length > 0) {
-              combo = workout.combos[comboIndex % workout.combos.length];
-              nextCombo = workout.combos[(comboIndex + 1) % workout.combos.length];
-              comboIndex++;
+            if (workout.combos && workout.combos.length > 0) {
+              if (isShadowboxing && !isComboSegment) {
+                // For shadowboxing: show the NEXT combo that's coming (don't increment)
+                nextCombo = workout.combos[comboIndex % workout.combos.length];
+              } else if (isComboSegment) {
+                // For combo segments: show current combo and increment
+                combo = workout.combos[comboIndex % workout.combos.length];
+                nextCombo = workout.combos[(comboIndex + 1) % workout.combos.length];
+                comboIndex++;
+              }
             }
             
             segments.push({
@@ -313,11 +319,13 @@ const WorkoutSession = () => {
     );
   }
 
-  // Check if current segment is shadowboxing (show next combo)
-  const isShadowboxing = currentSegment?.segmentType === 'shadowboxing';
-  const displayCombo = isShadowboxing && currentSegment?.nextCombo 
-    ? currentSegment.nextCombo 
-    : currentSegment?.combo;
+  // Check if current segment is shadowboxing (show NEXT combo that's coming)
+  const isShadowboxing = currentSegment?.segmentType === 'shadowboxing' || 
+                         currentSegment?.name.toLowerCase().includes('shadow') || 
+                         currentSegment?.name.toLowerCase().includes('technique');
+  // For shadowboxing, show the nextCombo (the upcoming combo to practice)
+  // For combo segments, show the current combo
+  const displayCombo = isShadowboxing ? currentSegment?.nextCombo : currentSegment?.combo;
 
   // Active workout screen
   return (
@@ -364,9 +372,9 @@ const WorkoutSession = () => {
             {isPreparation ? 'GET READY' : currentSegment?.name || 'WORK'}
           </h2>
 
-          {/* Shadowboxing hint - show upcoming combo */}
-          {isShadowboxing && !isPreparation && (
-            <p className="text-xs text-muted-foreground mb-2">NEXT COMBO:</p>
+          {/* Shadowboxing hint - show INCOMING combo */}
+          {isShadowboxing && !isPreparation && displayCombo && (
+            <p className="text-xs text-volt font-bold mb-2 animate-pulse">⚡ INCOMING COMBO:</p>
           )}
 
           {/* Timer */}

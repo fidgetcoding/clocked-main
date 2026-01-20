@@ -275,9 +275,95 @@ export const PRO_PRESET_WORKOUTS: Workout[] = [
   createWorkout('preset_pro_2', 'Pro Boxing II', 'advanced', PRO_COMBOS_2),
 ];
 
+// COACH PRESET - Full 90-minute training session
+export const COACH_PRESET_WORKOUTS: Workout[] = [
+  {
+    id: 'preset_coach_1',
+    name: 'Full Training Session',
+    icon: '🥊',
+    difficulty: 'advanced',
+    totalDuration: 5400, // 90 minutes
+    isPreset: true,
+    isArchived: false,
+    createdAt: new Date(),
+    timesCompleted: 0,
+    sections: {
+      warmup: [
+        {
+          id: 'coach-warmup-1',
+          name: 'Dynamic Warmup',
+          repeats: 1,
+          segments: [
+            { id: 'coach-w-1', name: 'Jump Rope', type: 'active', segmentType: 'work', duration: 300 },
+            { id: 'coach-w-2', name: 'Active Rest', type: 'rest', segmentType: 'rest', duration: 60 },
+            { id: 'coach-w-3', name: 'Shadow Boxing', type: 'active', segmentType: 'shadowboxing', duration: 300 },
+            { id: 'coach-w-4', name: 'Active Rest', type: 'rest', segmentType: 'rest', duration: 60 },
+            { id: 'coach-w-5', name: 'Mitt Warmup', type: 'active', segmentType: 'work', duration: 180 },
+          ],
+        },
+      ],
+      grind: [
+        {
+          id: 'coach-grind-tech',
+          name: 'Technical Drilling',
+          repeats: 4,
+          segments: [
+            { id: 'coach-g-1', name: 'Technique Drill', type: 'active', segmentType: 'shadowboxing', duration: 180 },
+            { id: 'coach-g-2', name: 'Partner Drill', type: 'active', segmentType: 'work', duration: 180 },
+            { id: 'coach-g-3', name: 'Rest', type: 'rest', segmentType: 'rest', duration: 60 },
+          ],
+        },
+        {
+          id: 'coach-grind-spar',
+          name: 'Sparring Rounds',
+          repeats: 6,
+          segments: [
+            { id: 'coach-s-1', name: 'Sparring', type: 'active', segmentType: 'combo', duration: 180 },
+            { id: 'coach-s-2', name: 'Rest', type: 'rest', segmentType: 'rest', duration: 60 },
+          ],
+        },
+        {
+          id: 'coach-grind-bag',
+          name: 'Heavy Bag Finisher',
+          repeats: 4,
+          segments: [
+            { id: 'coach-b-1', name: 'Bag Work', type: 'active', segmentType: 'combo', duration: 180 },
+            { id: 'coach-b-2', name: 'Rest', type: 'rest', segmentType: 'rest', duration: 60 },
+          ],
+        },
+      ],
+      cooldown: [
+        {
+          id: 'coach-cool-1',
+          name: 'Conditioning',
+          repeats: 1,
+          segments: [
+            { id: 'coach-c-1', name: 'Core Work', type: 'active', segmentType: 'work', duration: 300 },
+            { id: 'coach-c-2', name: 'Rest', type: 'rest', segmentType: 'rest', duration: 60 },
+            { id: 'coach-c-3', name: 'Stretching', type: 'active', segmentType: 'work', duration: 300 },
+          ],
+        },
+      ],
+    },
+    combos: [
+      ['1', '2', '3', '2', 'SLIP L', '3', '2'],
+      ['1', '1', '2', 'ROLL L', '5', '6', '3', '2'],
+      ['SLIP R', '2', '3', '2', '5', '6', 'ROLL L', '3'],
+      ['1', '2', '5', '2', 'SLIP L', '3', '6', '3', '2'],
+      ['3', '2', 'ROLL R', '5', '6', '5', '2', '3', '2'],
+      ['1', '2', '3', '6', 'SLIP R', '5', '8', '7', '2'],
+      ['STEP IN', '1', '2', '5', '6', '3', '2', 'STEP OUT'],
+      ['1', '2', 'ROLL L', '7', '8', '3', '2', 'CIRCLE L'],
+      ['5', '6', '5', '2', '3', '6', 'SLIP L', '5', '2'],
+      ['1', '2', '3', '2', '5', '6', '7', '8', '3', '2'],
+    ],
+  },
+];
+
 export const ALL_PRESET_WORKOUTS: Workout[] = [
   ...BEGINNER_PRESET_WORKOUTS,
   ...INTERMEDIATE_PRESET_WORKOUTS,
   ...ADVANCED_PRESET_WORKOUTS,
   ...PRO_PRESET_WORKOUTS,
+  ...COACH_PRESET_WORKOUTS,
 ];
