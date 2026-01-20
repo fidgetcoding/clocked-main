@@ -92,10 +92,11 @@ export const useTimerStore = create<TimerStore>()(
       tickTimer: () => {
         const { timerState, settings } = get();
         
-        if (!timerState.isRunning) return;
+        if (!timerState.isRunning || timerState.isPaused) return;
 
-        const newTimeRemaining = timerState.timeRemaining - 1;
+        // ALWAYS increment elapsed time first
         const newTotalElapsed = timerState.totalElapsed + 1;
+        const newTimeRemaining = timerState.timeRemaining - 1;
 
         if (newTimeRemaining <= 0) {
           // Time's up for current segment
@@ -105,9 +106,11 @@ export const useTimerStore = create<TimerStore>()(
               // Workout complete
               set({
                 timerState: {
-                  ...timerState,
                   isRunning: false,
                   isPaused: false,
+                  currentRound: timerState.currentRound,
+                  totalRounds: timerState.totalRounds,
+                  isRestPeriod: false,
                   timeRemaining: 0,
                   totalElapsed: newTotalElapsed,
                 },
@@ -116,8 +119,10 @@ export const useTimerStore = create<TimerStore>()(
               // Start next round
               set({
                 timerState: {
-                  ...timerState,
+                  isRunning: true,
+                  isPaused: false,
                   currentRound: timerState.currentRound + 1,
+                  totalRounds: timerState.totalRounds,
                   isRestPeriod: false,
                   timeRemaining: settings.roundTime,
                   totalElapsed: newTotalElapsed,
@@ -125,21 +130,44 @@ export const useTimerStore = create<TimerStore>()(
               });
             }
           } else {
-            // End of round, start rest
-            set({
-              timerState: {
-                ...timerState,
-                isRestPeriod: true,
-                timeRemaining: settings.restTime,
-                totalElapsed: newTotalElapsed,
-              },
-            });
+            // End of round, start rest (unless it's the last round)
+            if (timerState.currentRound >= timerState.totalRounds) {
+              // Last round complete - workout done
+              set({
+                timerState: {
+                  isRunning: false,
+                  isPaused: false,
+                  currentRound: timerState.currentRound,
+                  totalRounds: timerState.totalRounds,
+                  isRestPeriod: false,
+                  timeRemaining: 0,
+                  totalElapsed: newTotalElapsed,
+                },
+              });
+            } else {
+              // Start rest period
+              set({
+                timerState: {
+                  isRunning: true,
+                  isPaused: false,
+                  currentRound: timerState.currentRound,
+                  totalRounds: timerState.totalRounds,
+                  isRestPeriod: true,
+                  timeRemaining: settings.restTime,
+                  totalElapsed: newTotalElapsed,
+                },
+              });
+            }
           }
         } else {
-          // Normal tick
+          // Normal tick - countdown with elapsed counting up
           set({
             timerState: {
-              ...timerState,
+              isRunning: true,
+              isPaused: false,
+              currentRound: timerState.currentRound,
+              totalRounds: timerState.totalRounds,
+              isRestPeriod: timerState.isRestPeriod,
               timeRemaining: newTimeRemaining,
               totalElapsed: newTotalElapsed,
             },
