@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ArrowLeft, Settings, User, Users, MapPin, Link as LinkIcon, UserPlus, UserCheck, Clock, Trophy, Flame, ChevronRight } from 'lucide-react';
+import { ArrowLeft, Settings, User, MapPin, Link as LinkIcon, UserPlus, UserCheck, Clock, Trophy, Flame, ChevronRight, X } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
@@ -26,7 +26,7 @@ function formatDuration(seconds: number): string {
   return `${mins}m`;
 }
 
-// Mock data for other users
+// Mock data for users
 const MOCK_USERS: Record<string, any> = {
   'sarah-chen': {
     id: 'sarah-chen',
@@ -39,15 +39,10 @@ const MOCK_USERS: Record<string, any> = {
     workoutsCompleted: 156,
     currentStreak: 12,
     longestStreak: 45,
-    totalWorkoutTime: 280800, // ~78 hours
+    totalWorkoutTime: 280800,
     followers: 1245,
     following: 89,
     isFollowing: false,
-    posts: [
-      { id: '1', type: 'workout', name: 'Morning Blast', xp: 320, date: '2h ago' },
-      { id: '2', type: 'rank_up', rank: 'Top 15', date: '3d ago' },
-      { id: '3', type: 'workout', name: 'Heavy Bag Session', xp: 450, date: '5d ago' },
-    ],
   },
   'mike-thompson': {
     id: 'mike-thompson',
@@ -60,16 +55,60 @@ const MOCK_USERS: Record<string, any> = {
     workoutsCompleted: 412,
     currentStreak: 28,
     longestStreak: 120,
-    totalWorkoutTime: 842400, // ~234 hours
+    totalWorkoutTime: 842400,
     followers: 5680,
     following: 156,
     isFollowing: true,
-    posts: [
-      { id: '1', type: 'workout', name: 'Pro Circuit Drill', xp: 520, date: '1h ago' },
-      { id: '2', type: 'workout', name: 'Cardio Conditioning', xp: 380, date: '1d ago' },
-    ],
+  },
+  'alex-rodriguez': {
+    id: 'alex-rodriguez',
+    name: 'Alex Rodriguez',
+    handle: '@alexfists',
+    avatar: '🧔',
+    bio: 'Amateur boxer | Training 5 days a week',
+    location: 'Miami, FL',
+    totalXP: 15000,
+    workoutsCompleted: 78,
+    currentStreak: 5,
+    longestStreak: 21,
+    totalWorkoutTime: 140400,
+    followers: 342,
+    following: 67,
+    isFollowing: false,
+  },
+  'jamie-lee': {
+    id: 'jamie-lee',
+    name: 'Jamie Lee',
+    handle: '@jamiepunches',
+    avatar: '👧',
+    bio: 'Fitness coach | Boxing for cardio',
+    location: 'Chicago, IL',
+    totalXP: 22000,
+    workoutsCompleted: 112,
+    currentStreak: 8,
+    longestStreak: 35,
+    totalWorkoutTime: 201600,
+    followers: 890,
+    following: 134,
+    isFollowing: true,
   },
 };
+
+// Mock followers and following lists
+const OWN_FOLLOWERS = [
+  { id: 'sarah-chen', name: 'Sarah Chen', avatar: '👩', handle: '@sarahfights' },
+  { id: 'mike-thompson', name: 'Mike Thompson', avatar: '👨', handle: '@ironmike' },
+  { id: 'alex-rodriguez', name: 'Alex Rodriguez', avatar: '🧔', handle: '@alexfists' },
+];
+
+const OWN_FOLLOWING = [
+  { id: 'mike-thompson', name: 'Mike Thompson', avatar: '👨', handle: '@ironmike' },
+  { id: 'jamie-lee', name: 'Jamie Lee', avatar: '👧', handle: '@jamiepunches' },
+  { id: 'sarah-chen', name: 'Sarah Chen', avatar: '👩', handle: '@sarahfights' },
+  { id: 'alex-rodriguez', name: 'Alex Rodriguez', avatar: '🧔', handle: '@alexfists' },
+];
+
+type ListModalType = 'followers' | 'following' | null;
 
 const Profile = () => {
   const navigate = useNavigate();
@@ -77,7 +116,9 @@ const Profile = () => {
   const user = useUserStore((state) => state.user);
   const [followingState, setFollowingState] = useState<Record<string, boolean>>({
     'mike-thompson': true,
+    'jamie-lee': true,
   });
+  const [listModal, setListModal] = useState<ListModalType>(null);
 
   // Determine if viewing own profile or someone else's
   const isOwnProfile = !userId;
@@ -90,14 +131,21 @@ const Profile = () => {
   const profileHandle = isOwnProfile ? '@' + (user?.name?.toLowerCase().replace(/\s+/g, '') || 'fighter') : (viewingUser?.handle || '@unknown');
   const profileAvatar = isOwnProfile ? null : viewingUser?.avatar;
 
-  // Mock followers for own profile
-  const ownFollowers = [
-    { id: 'sarah-chen', name: 'Sarah Chen', avatar: '👩', handle: '@sarahfights' },
-    { id: 'mike-thompson', name: 'Mike Thompson', avatar: '👨', handle: '@ironmike' },
-  ];
-
   const handleFollow = (id: string) => {
     setFollowingState(prev => ({ ...prev, [id]: !prev[id] }));
+  };
+
+  const followersCount = isOwnProfile ? OWN_FOLLOWERS.length : (viewingUser?.followers || 0);
+  const followingCount = isOwnProfile ? OWN_FOLLOWING.length : (viewingUser?.following || 0);
+
+  const getListData = () => {
+    if (listModal === 'followers') {
+      return isOwnProfile ? OWN_FOLLOWERS : [];
+    }
+    if (listModal === 'following') {
+      return isOwnProfile ? OWN_FOLLOWING : [];
+    }
+    return [];
   };
 
   return (
@@ -142,18 +190,17 @@ const Profile = () => {
                 <p className="text-xs text-muted-foreground">Workouts</p>
               </div>
               <button 
-                onClick={() => {/* Could open followers modal */}}
-                className="text-center"
+                onClick={() => setListModal('followers')}
+                className="text-center hover:opacity-80 transition-opacity"
               >
-                <p className="text-xl font-bold text-foreground">
-                  {isOwnProfile ? ownFollowers.length : (viewingUser?.followers || 0)}
-                </p>
+                <p className="text-xl font-bold text-foreground">{followersCount}</p>
                 <p className="text-xs text-muted-foreground">Followers</p>
               </button>
-              <button className="text-center">
-                <p className="text-xl font-bold text-foreground">
-                  {isOwnProfile ? 12 : (viewingUser?.following || 0)}
-                </p>
+              <button 
+                onClick={() => setListModal('following')}
+                className="text-center hover:opacity-80 transition-opacity"
+              >
+                <p className="text-xl font-bold text-foreground">{followingCount}</p>
                 <p className="text-xs text-muted-foreground">Following</p>
               </button>
             </div>
@@ -165,7 +212,7 @@ const Profile = () => {
             <p className="text-sm text-muted-foreground">{profileHandle}</p>
           </div>
 
-          {/* Rank Badge - Bigger */}
+          {/* Rank Badge */}
           <div className="flex items-center gap-2 mb-3">
             <div className="bg-volt/20 px-3 py-1.5 rounded-full">
               <span className="text-volt font-bold text-lg uppercase tracking-wide">{RANK_NAMES[currentRank]}</span>
@@ -178,7 +225,7 @@ const Profile = () => {
             <Clock className="w-4 h-4" />
             <span>
               {isOwnProfile 
-                ? formatDuration((user?.workoutsCompleted || 24) * 1800) // Estimate ~30min per workout
+                ? formatDuration((user?.workoutsCompleted || 24) * 1800)
                 : formatDuration(viewingUser?.totalWorkoutTime || 0)
               } total training
             </span>
@@ -251,7 +298,7 @@ const Profile = () => {
           )}
         </div>
 
-        {/* Stats Cards - All icons gray, all numbers volt */}
+        {/* Stats Cards */}
         <div className="grid grid-cols-3 gap-2 px-4 mb-4">
           <div className="card-workout text-center py-3">
             <Flame className="w-5 h-5 text-muted-foreground mx-auto mb-1" />
@@ -280,14 +327,20 @@ const Profile = () => {
         </div>
 
         {/* Followers Preview (own profile only) */}
-        {isOwnProfile && ownFollowers.length > 0 && (
+        {isOwnProfile && OWN_FOLLOWERS.length > 0 && (
           <div className="px-4 mb-4">
             <div className="card-workout">
               <div className="flex items-center justify-between mb-3">
                 <h3 className="font-semibold text-foreground">Followers</h3>
+                <button 
+                  onClick={() => setListModal('followers')}
+                  className="text-sm text-volt hover:underline"
+                >
+                  See All
+                </button>
               </div>
               <div className="space-y-2">
-                {ownFollowers.slice(0, 3).map((follower) => (
+                {OWN_FOLLOWERS.slice(0, 3).map((follower) => (
                   <button
                     key={follower.id}
                     onClick={() => navigate(`/profile/${follower.id}`)}
@@ -307,7 +360,110 @@ const Profile = () => {
             </div>
           </div>
         )}
+
+        {/* Following Preview (own profile only) */}
+        {isOwnProfile && OWN_FOLLOWING.length > 0 && (
+          <div className="px-4 mb-4">
+            <div className="card-workout">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="font-semibold text-foreground">Following</h3>
+                <button 
+                  onClick={() => setListModal('following')}
+                  className="text-sm text-volt hover:underline"
+                >
+                  See All
+                </button>
+              </div>
+              <div className="space-y-2">
+                {OWN_FOLLOWING.slice(0, 3).map((person) => (
+                  <button
+                    key={person.id}
+                    onClick={() => navigate(`/profile/${person.id}`)}
+                    className="flex items-center gap-3 w-full p-2 rounded-lg hover:bg-surface-2 transition-colors"
+                  >
+                    <div className="w-10 h-10 rounded-full bg-surface-2 flex items-center justify-center text-lg">
+                      {person.avatar}
+                    </div>
+                    <div className="flex-1 text-left">
+                      <p className="font-medium text-foreground">{person.name}</p>
+                      <p className="text-xs text-muted-foreground">{person.handle}</p>
+                    </div>
+                    <ChevronRight className="w-4 h-4 text-muted-foreground" />
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
       </div>
+
+      {/* Followers/Following Modal */}
+      {listModal && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center">
+          <div 
+            className="absolute inset-0 bg-black/80 backdrop-blur-sm"
+            onClick={() => setListModal(null)}
+          />
+          <div className="relative w-full max-w-md bg-surface-1 rounded-t-2xl border-t border-surface-3 max-h-[80vh] flex flex-col animate-in slide-in-from-bottom duration-300">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between p-4 border-b border-surface-3">
+              <h2 className="text-lg font-bold text-foreground capitalize">
+                {listModal}
+              </h2>
+              <button 
+                onClick={() => setListModal(null)}
+                className="w-8 h-8 rounded-full bg-surface-2 flex items-center justify-center text-muted-foreground hover:text-foreground"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Modal Content */}
+            <div className="flex-1 overflow-y-auto p-4">
+              {getListData().length === 0 ? (
+                <p className="text-center text-muted-foreground py-8">
+                  No {listModal} yet
+                </p>
+              ) : (
+                <div className="space-y-2">
+                  {getListData().map((person) => (
+                    <button
+                      key={person.id}
+                      onClick={() => {
+                        setListModal(null);
+                        navigate(`/profile/${person.id}`);
+                      }}
+                      className="flex items-center gap-3 w-full p-3 rounded-lg hover:bg-surface-2 transition-colors"
+                    >
+                      <div className="w-12 h-12 rounded-full bg-surface-2 flex items-center justify-center text-xl">
+                        {person.avatar}
+                      </div>
+                      <div className="flex-1 text-left">
+                        <p className="font-semibold text-foreground">{person.name}</p>
+                        <p className="text-sm text-muted-foreground">{person.handle}</p>
+                      </div>
+                      <Button
+                        size="sm"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleFollow(person.id);
+                        }}
+                        className={cn(
+                          followingState[person.id]
+                            ? "bg-surface-2 text-foreground hover:bg-surface-3"
+                            : "bg-volt text-primary-foreground hover:bg-volt/90"
+                        )}
+                      >
+                        {followingState[person.id] ? 'Following' : 'Follow'}
+                      </Button>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </AppLayout>
   );
 };
