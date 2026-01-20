@@ -1,0 +1,216 @@
+// User Profile Types
+export interface UserProfile {
+  id: string;
+  createdAt: Date;
+  onboardingComplete: boolean;
+  role: 'fighter' | 'coach';
+  name: string;
+  
+  // Fighter fields
+  experienceLevel?: 'complete_beginner' | 'beginner' | 'intermediate' | 'advanced' | 'pro';
+  knowledge?: {
+    handWrapping: boolean;
+    numberedPunches: boolean;
+    heavyBagExperience: boolean;
+  };
+  equipment?: {
+    gloves: boolean;
+    wraps: boolean;
+    heavyBag: boolean;
+    speedBag: boolean;
+    doubleEndBag: boolean;
+    jumpRope: boolean;
+    treadmill: boolean;
+    weights: boolean;
+  };
+  goals?: Array<'learn_boxing' | 'get_fit' | 'competition' | 'home_workout' | 'supplement_training'>;
+  
+  // Coach fields
+  coachInfo?: {
+    gymName: string;
+    location?: string;
+    disciplines: string[];
+  };
+  
+  // Social
+  coachId?: string;
+  fighterIds?: string[];
+  fightClubIds?: string[];
+  
+  // Activity Status
+  isActive: boolean;
+  isInWorkout: boolean;
+  currentWorkoutName?: string;
+  lastActiveAt: Date;
+  
+  // Stats
+  totalXP: number;
+  currentStreak: number;
+  longestStreak: number;
+  workoutsCompleted: number;
+  
+  preferences: {
+    voiceType: 'male' | 'female' | 'system';
+    soundEnabled: boolean;
+    hapticEnabled: boolean;
+  };
+}
+
+// Workout Types
+export interface WorkoutSegment {
+  id: string;
+  name: string;
+  type: 'active' | 'rest';
+  duration: number; // in seconds
+  intensity?: string;
+  reps?: number;
+  comboIndex?: number | 'cycle';
+  combo?: string[];
+}
+
+export interface WorkoutPhase {
+  id: string;
+  name: string;
+  repeats: number;
+  segments: WorkoutSegment[];
+}
+
+export interface WorkoutSection {
+  warmup: WorkoutPhase[];
+  grind: WorkoutPhase[];
+  cooldown: WorkoutPhase[];
+}
+
+export interface Workout {
+  id: string;
+  name: string;
+  icon: string;
+  difficulty: 'beginner' | 'intermediate' | 'advanced';
+  totalDuration: number; // in seconds
+  isPreset: boolean;
+  isArchived: boolean;
+  createdAt: Date;
+  lastUsed?: Date;
+  timesCompleted: number;
+  sections: WorkoutSection;
+  combos?: string[][];
+}
+
+// Timer Types
+export interface QuickTimerSettings {
+  roundTime: number; // in seconds
+  restTime: number; // in seconds
+  rounds: number;
+  warningTime: number; // in seconds
+}
+
+export interface TimerState {
+  isRunning: boolean;
+  isPaused: boolean;
+  currentRound: number;
+  totalRounds: number;
+  isRestPeriod: boolean;
+  timeRemaining: number;
+  totalElapsed: number;
+}
+
+// Gamification Types
+export type Rank = 
+  | 'regional'
+  | 'amateur'
+  | 'semi_pro'
+  | 'pro_circuit'
+  | 'ranked'
+  | 'top_15'
+  | 'top_10'
+  | 'top_5'
+  | 'contender'
+  | 'champion'
+  | 'undisputed'
+  | 'goat';
+
+export const RANK_THRESHOLDS: Record<Rank, number> = {
+  regional: 0,
+  amateur: 500,
+  semi_pro: 1500,
+  pro_circuit: 3500,
+  ranked: 7000,
+  top_15: 12000,
+  top_10: 20000,
+  top_5: 35000,
+  contender: 55000,
+  champion: 80000,
+  undisputed: 120000,
+  goat: 200000,
+};
+
+export const RANK_NAMES: Record<Rank, string> = {
+  regional: 'Regional',
+  amateur: 'Amateur',
+  semi_pro: 'Semi-Pro',
+  pro_circuit: 'Pro Circuit',
+  ranked: 'Ranked',
+  top_15: 'Top 15',
+  top_10: 'Top 10',
+  top_5: 'Top 5',
+  contender: 'Contender',
+  champion: 'Champion',
+  undisputed: 'Undisputed',
+  goat: 'G.O.A.T.',
+};
+
+// Community Types
+export interface FightClub {
+  id: string;
+  name: string;
+  description: string;
+  icon: string;
+  type: 'public' | 'private';
+  coachId?: string;
+  memberIds: string[];
+  memberCount: number;
+  activeNow: number;
+  inviteCode?: string;
+  settings: {
+    allowChat: boolean;
+    showLeaderboard: boolean;
+    requireApproval: boolean;
+  };
+}
+
+export interface FeedPost {
+  id: string;
+  userId: string;
+  userName: string;
+  userAvatar: string;
+  userStatus: 'live' | 'active' | 'recent' | 'offline';
+  type: 'workout_complete' | 'currently_training' | 'rank_up' | 'preset_shared' | 'streak_milestone';
+  content: {
+    workoutName?: string;
+    xpEarned?: number;
+    elapsedTime?: number;
+    newRank?: string;
+    presetId?: string;
+    streakDays?: number;
+    message?: string;
+  };
+  createdAt: Date;
+  likes: number;
+  comments: number;
+}
+
+export interface SharedPreset {
+  id: string;
+  workoutId: string;
+  creatorId: string;
+  creatorUsername: string;
+  isVerified: boolean;
+  name: string;
+  description: string;
+  tags: string[];
+  difficulty: 'beginner' | 'intermediate' | 'advanced';
+  duration: number;
+  downloads: number;
+  rating: number;
+  ratingCount: number;
+}
