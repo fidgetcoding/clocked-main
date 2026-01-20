@@ -1,9 +1,10 @@
-import { useState } from 'react';
-import { X, Sparkles, Wand2 } from 'lucide-react';
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { X, Sparkles, Wand2, Mic, MicOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { TrendingWorkout } from '@/data/trendingWorkouts';
 import { cn } from '@/lib/utils';
+import { toast } from 'sonner';
 
 interface AIBuilderModalProps {
   onClose: () => void;
@@ -19,13 +20,108 @@ const SUGGESTION_CHIPS = [
   'Speed and footwork drills',
 ];
 
+// Check if SpeechRecognition is available
+const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+
 export const AIBuilderModal = ({ onClose, onGenerate, baseWorkout }: AIBuilderModalProps) => {
   const [prompt, setPrompt] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isListening, setIsListening] = useState(false);
+  const [interimTranscript, setInterimTranscript] = useState('');
+  const recognitionRef = useRef<any>(null);
+
+  // Initialize speech recognition
+  useEffect(() => {
+    if (!SpeechRecognition) {
+      console.log('Speech recognition not supported');
+      return;
+    }
+
+    const recognition = new SpeechRecognition();
+    recognition.continuous = true;
+    recognition.interimResults = true;
+    recognition.lang = 'en-US';
+
+    recognition.onresult = (event: any) => {
+      let interim = '';
+      let final = '';
+
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        const transcript = event.results[i][0].transcript;
+        if (event.results[i].isFinal) {
+          final += transcript;
+        } else {
+          interim += transcript;
+        }
+      }
+
+      if (final) {
+        setPrompt(prev => prev + (prev ? ' ' : '') + final);
+        setInterimTranscript('');
+      } else {
+        setInterimTranscript(interim);
+      }
+    };
+
+    recognition.onerror = (event: any) => {
+      console.error('Speech recognition error:', event.error);
+      if (event.error === 'not-allowed') {
+        toast.error('Microphone access denied. Please enable it in your browser settings.');
+      }
+      setIsListening(false);
+    };
+
+    recognition.onend = () => {
+      if (isListening) {
+        // Restart if we're still supposed to be listening
+        try {
+          recognition.start();
+        } catch (e) {
+          setIsListening(false);
+        }
+      }
+    };
+
+    recognitionRef.current = recognition;
+
+    return () => {
+      if (recognitionRef.current) {
+        recognitionRef.current.stop();
+      }
+    };
+  }, [isListening]);
+
+  const toggleListening = useCallback(async () => {
+    if (!SpeechRecognition) {
+      toast.error('Voice input is not supported in this browser');
+      return;
+    }
+
+    if (isListening) {
+      recognitionRef.current?.stop();
+      setIsListening(false);
+      setInterimTranscript('');
+    } else {
+      try {
+        // Request microphone permission
+        await navigator.mediaDevices.getUserMedia({ audio: true });
+        recognitionRef.current?.start();
+        setIsListening(true);
+        toast.success('Listening... speak your workout idea');
+      } catch (error) {
+        toast.error('Could not access microphone');
+      }
+    }
+  }, [isListening]);
 
   const handleGenerate = () => {
     if (!prompt.trim()) return;
     setIsGenerating(true);
+    // Stop listening if active
+    if (isListening) {
+      recognitionRef.current?.stop();
+      setIsListening(false);
+    }
     // Simulate generation delay then call onGenerate
     setTimeout(() => {
       onGenerate(prompt, baseWorkout);
@@ -80,17 +176,46 @@ export const AIBuilderModal = ({ onClose, onGenerate, baseWorkout }: AIBuilderMo
             </div>
           )}
 
-          {/* Prompt Input */}
+          {/* Prompt Input with Voice Button */}
           <div className="space-y-2">
-            <Textarea
-              value={prompt}
-              onChange={(e) => setPrompt(e.target.value)}
-              placeholder={baseWorkout 
-                ? "E.g. Make it shorter, add more rest, focus on defense..."
-                : "E.g. 5 round heavy bag boxing workout with HIIT intervals"
-              }
-              className="min-h-[100px] bg-surface-2 border-surface-3 text-foreground placeholder:text-muted-foreground resize-none"
-            />
+            <div className="relative">
+              <Textarea
+                value={prompt + (interimTranscript ? (prompt ? ' ' : '') + interimTranscript : '')}
+                onChange={(e) => setPrompt(e.target.value)}
+                placeholder={baseWorkout 
+                  ? "E.g. Make it shorter, add more rest, focus on defense..."
+                  : "E.g. 5 round heavy bag boxing workout with HIIT intervals"
+                }
+                className={cn(
+                  "min-h-[100px] bg-surface-2 border-surface-3 text-foreground placeholder:text-muted-foreground resize-none pr-14",
+                  isListening && "border-volt"
+                )}
+              />
+              
+              {/* Voice Button */}
+              <button
+                onClick={toggleListening}
+                className={cn(
+                  'absolute right-3 bottom-3 w-10 h-10 rounded-full flex items-center justify-center transition-all duration-200',
+                  isListening 
+                    ? 'bg-volt text-primary-foreground animate-pulse shadow-[0_0_20px_hsl(var(--electric-volt)/0.6)]' 
+                    : 'bg-surface-3 text-muted-foreground hover:bg-surface-2 hover:text-foreground'
+                )}
+              >
+                {isListening ? (
+                  <Mic className="w-5 h-5" />
+                ) : (
+                  <MicOff className="w-5 h-5" />
+                )}
+              </button>
+            </div>
+            
+            {isListening && (
+              <p className="text-xs text-volt animate-pulse flex items-center gap-1">
+                <span className="w-2 h-2 rounded-full bg-volt" />
+                Listening... tap mic to stop
+              </p>
+            )}
           </div>
 
           {/* Suggestion Chips */}
