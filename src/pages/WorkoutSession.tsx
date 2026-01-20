@@ -1,10 +1,12 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Home, Play, Pause, RotateCcw, SkipForward, ChevronRight, Settings } from 'lucide-react';
+import { ArrowLeft, Home, Play, Pause, RotateCcw, SkipForward, ChevronRight } from 'lucide-react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
+import { VerticalXPBar } from '@/components/ui/VerticalXPBar';
 import { useWorkoutStore } from '@/stores/workoutStore';
 import { useUserStore } from '@/stores/userStore';
+import { useHistoryStore } from '@/stores/historyStore';
 import { cn } from '@/lib/utils';
 
 interface FlatSegment {
@@ -36,7 +38,9 @@ const WorkoutSession = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { workouts, markWorkoutUsed } = useWorkoutStore();
+  const user = useUserStore((state) => state.user);
   const addXP = useUserStore((state) => state.addXP);
+  const addCompletedWorkout = useHistoryStore((state) => state.addCompletedWorkout);
 
   const workout = workouts.find((w) => w.id === id);
 
@@ -184,8 +188,21 @@ const WorkoutSession = () => {
     );
   }
 
+  const [difficultyRating, setDifficultyRating] = useState<'too_easy' | 'just_right' | 'too_hard' | null>(null);
+
   const handleLog = () => {
-    // In a real app, this would save to database
+    const xpEarned = Math.floor((totalElapsed / 60) * 10);
+    addCompletedWorkout({
+      id: crypto.randomUUID(),
+      workoutId: workout?.id,
+      workoutName: workout?.name || 'Workout',
+      completedAt: new Date(),
+      duration: totalElapsed,
+      xpEarned,
+      difficulty: difficultyRating || undefined,
+      notes: notes || undefined,
+      isManualEntry: false,
+    });
     setLogged(true);
   };
 
@@ -288,29 +305,39 @@ const WorkoutSession = () => {
           </div>
         </header>
 
-        {/* Main Timer */}
-        <div className="flex-1 flex flex-col items-center justify-center px-4">
-          {/* Phase Title */}
-          <h2 className="text-2xl font-black text-foreground mb-4 uppercase tracking-wider">
-            {isPreparation ? 'GET READY' : currentSegment?.name || 'WORK'}
-          </h2>
+        {/* Main Timer with Vertical XP Bar */}
+        <div className="flex-1 flex items-center justify-center px-4">
+          <div className="flex items-center gap-6">
+            {/* Timer Column */}
+            <div className="flex flex-col items-center">
+              {/* Phase Title */}
+              <h2 className="text-2xl font-black text-foreground mb-4 uppercase tracking-wider">
+                {isPreparation ? 'GET READY' : currentSegment?.name || 'WORK'}
+              </h2>
 
-          {/* Timer */}
-          <span className="timer-display text-timer-lg font-black text-volt text-glow-volt mb-4">
-            {formatTime(timeRemaining)}
-          </span>
+              {/* Timer */}
+              <span className="timer-display text-timer-lg font-black text-volt text-glow-volt mb-4">
+                {formatTime(timeRemaining)}
+              </span>
 
-          {/* Segment Type */}
-          <div className="flex items-center gap-2 mb-6">
-            <div className="h-px w-16 bg-surface-3" />
-            <span className="text-sm text-muted-foreground uppercase tracking-widest">
-              {isPreparation ? 'PREPARATION' : currentSegment?.type === 'rest' ? 'REST' : 'WORK'}
-            </span>
-            <div className="h-px w-16 bg-surface-3" />
+              {/* Segment Type */}
+              <div className="flex items-center gap-2 mb-6">
+                <div className="h-px w-16 bg-surface-3" />
+                <span className="text-sm text-muted-foreground uppercase tracking-widest">
+                  {isPreparation ? 'PREPARATION' : currentSegment?.type === 'rest' ? 'REST' : 'WORK'}
+                </span>
+                <div className="h-px w-16 bg-surface-3" />
+              </div>
+            </div>
+
+            {/* Vertical XP Bar */}
+            <VerticalXPBar currentXP={(user?.totalXP || 0) + currentXP} className="ml-4" />
           </div>
-
+        </div>
+        {/* Controls Section */}
+        <div className="px-4 mb-4">
           {/* Time Adjustment Buttons */}
-          <div className="flex gap-3 mb-4">
+          <div className="flex justify-center gap-3 mb-4">
             {['-30', '-15', '+15', '+30'].map((val) => (
               <button
                 key={val}
@@ -323,7 +350,7 @@ const WorkoutSession = () => {
           </div>
 
           {/* Speed Buttons */}
-          <div className="flex gap-3 mb-8">
+          <div className="flex justify-center gap-3 mb-4">
             <button 
               onClick={() => setSpeed(0.5)}
               className={cn(
@@ -359,7 +386,6 @@ const WorkoutSession = () => {
             </button>
           </div>
 
-          {/* Combo Display */}
           {currentSegment?.combo && currentSegment.combo.length > 0 && !isPreparation && (
             <div className="w-full max-w-sm bg-surface-1 rounded-xl p-4 border border-surface-3 mb-4">
               <div className="flex items-center justify-center gap-2 flex-wrap">

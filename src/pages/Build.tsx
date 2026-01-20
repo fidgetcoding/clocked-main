@@ -181,7 +181,7 @@ const Build = () => {
     const workout: Workout = {
       id: editId || generateId(),
       name,
-      icon: '🥊',
+      icon: '',
       difficulty,
       totalDuration: calculateTotalDuration(),
       isPreset: false,
@@ -216,9 +216,8 @@ const Build = () => {
           <h1 className="text-lg font-bold text-foreground">
             {editId ? 'Edit Workout' : 'Create Workout'}
           </h1>
-          <Button onClick={handleSave} size="sm" className="bg-volt text-primary-foreground">
-            <Save className="w-4 h-4 mr-1" />
-            Save
+          <Button onClick={() => {/* AI Builder placeholder */}} size="sm" variant="outline" className="border-volt text-volt">
+            AI Builder
           </Button>
         </header>
 
@@ -510,6 +509,13 @@ const Build = () => {
             </div>
           </div>
         )}
+
+        {/* Fixed Save Button at Bottom */}
+        <div className="fixed bottom-0 left-0 right-0 p-4 bg-background border-t border-surface-3 safe-bottom">
+          <Button onClick={handleSave} className="btn-primary-glow w-full">
+            Save Workout
+          </Button>
+        </div>
       </div>
     </AppLayout>
   );

@@ -105,10 +105,6 @@
     box-shadow: 0 0 15px hsl(var(--electric-volt) / 0.25);
   }
 
-  .glow-red {
-    box-shadow: 0 0 20px hsl(var(--alert-red) / 0.4),
-                0 0 40px hsl(var(--alert-red) / 0.2);
-  }
 
   /* Text Glow */
   .text-glow-volt {
@@ -125,9 +121,6 @@
     background: linear-gradient(180deg, hsl(var(--surface-1)) 0%, hsl(var(--tech-black)) 100%);
   }
 
-  .bg-gradient-red-glow {
-    background: radial-gradient(ellipse at bottom, hsl(var(--alert-red) / 0.15) 0%, transparent 60%);
-  }
 
   /* Card Variants */
   .card-workout {

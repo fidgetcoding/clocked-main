@@ -101,7 +101,7 @@ const Index = () => {
         {/* Your Workouts */}
         <section className="px-4 pb-24">
           <div className="flex items-center gap-2 mb-4">
-            <span className="text-volt">🥊</span>
+            <span className="text-volt">⚡</span>
             <h2 className="text-sm font-bold text-muted-foreground uppercase tracking-wider">
               Your Workouts
             </h2>

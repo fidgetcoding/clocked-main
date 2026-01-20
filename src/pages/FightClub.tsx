@@ -35,7 +35,7 @@ const FightClub = () => {
 
   // Mock clubs data
   const myClubs: Club[] = [
-    { id: '1', name: 'Iron Fist Boxing', icon: '🥊', type: 'private', coach: 'Mike T.', memberCount: 12, activeNow: 3 },
+    { id: '1', name: 'Iron Fist Boxing', icon: '⚡', type: 'private', coach: 'Mike T.', memberCount: 12, activeNow: 3 },
     { id: '2', name: 'Morning Grinders', icon: '💪', type: 'public', memberCount: 47, activeNow: 8, rank: 3 },
   ];
 
@@ -59,14 +59,14 @@ const FightClub = () => {
 
   const clubChat = [
     { id: '1', userName: 'Coach Mike', avatar: '🧔', message: 'Good morning fighters!', time: '9:00 AM', isOwn: false },
-    { id: '2', userName: 'You', avatar: '🥊', message: 'Ready to train!', time: '9:05 AM', isOwn: true },
+    { id: '2', userName: 'You', avatar: '⚡', message: 'Ready to train!', time: '9:05 AM', isOwn: true },
     { id: '3', userName: 'Alex R.', avatar: '👨', message: 'Let\'s go! Starting my warmup now', time: '9:07 AM', isOwn: false },
   ];
 
   const clubLeaderboard = [
     { rank: 1, name: 'Coach Mike', xp: 45000, avatar: '🧔', isLive: false },
     { rank: 2, name: 'Sarah C.', xp: 32000, avatar: '👩', isLive: true },
-    { rank: 3, name: 'You', xp: 28500, avatar: '🥊', isLive: false, isYou: true },
+    { rank: 3, name: 'You', xp: 28500, avatar: '⚡', isLive: false, isYou: true },
     { rank: 4, name: 'Alex R.', xp: 25000, avatar: '👨', isLive: false },
     { rank: 5, name: 'Mike T.', xp: 21000, avatar: '👨', isLive: false },
   ];
@@ -427,7 +427,7 @@ const FightClub = () => {
               <div className="card-workout">
                 <div className="flex items-start gap-3">
                   <div className="w-12 h-12 rounded-xl bg-volt/20 flex items-center justify-center text-2xl">
-                    🥊
+                    ⚡
                   </div>
                   <div className="flex-1">
                     <h4 className="font-semibold text-foreground">30-Min Boxing Blast</h4>
