@@ -124,6 +124,40 @@ export default {
           "0%": { transform: "translateY(0)", opacity: "1" },
           "100%": { transform: "translateY(-30px)", opacity: "0" },
         },
+        // Metaball blob animations
+        "blob-1": {
+          "0%, 100%": { transform: "translate(0, 0) scale(1)" },
+          "25%": { transform: "translate(30px, -50px) scale(1.1)" },
+          "50%": { transform: "translate(-20px, 30px) scale(0.9)" },
+          "75%": { transform: "translate(50px, 20px) scale(1.05)" },
+        },
+        "blob-2": {
+          "0%, 100%": { transform: "translate(0, 0) scale(1.1)" },
+          "33%": { transform: "translate(-60px, 40px) scale(0.95)" },
+          "66%": { transform: "translate(40px, -30px) scale(1.15)" },
+        },
+        "blob-3": {
+          "0%, 100%": { transform: "translate(0, 0) scale(1)" },
+          "20%": { transform: "translate(70px, 30px) scale(1.1)" },
+          "40%": { transform: "translate(-30px, 60px) scale(0.85)" },
+          "60%": { transform: "translate(50px, -40px) scale(1.05)" },
+          "80%": { transform: "translate(-50px, -20px) scale(0.95)" },
+        },
+        "blob-4": {
+          "0%, 100%": { transform: "translate(0, 0) scale(1)" },
+          "50%": { transform: "translate(-80px, -40px) scale(1.2)" },
+        },
+        "blob-5": {
+          "0%, 100%": { transform: "translate(0, 0) scale(1)" },
+          "25%": { transform: "translate(-40px, 50px) scale(1.15)" },
+          "50%": { transform: "translate(60px, 20px) scale(0.9)" },
+          "75%": { transform: "translate(20px, -60px) scale(1.1)" },
+        },
+        "blob-6": {
+          "0%, 100%": { transform: "translate(0, 0) scale(1.05)" },
+          "40%": { transform: "translate(50px, 60px) scale(0.9)" },
+          "70%": { transform: "translate(-40px, -30px) scale(1.15)" },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
@@ -135,6 +169,13 @@ export default {
         "fade-in": "fade-in 0.2s ease-out",
         "scale-in": "scale-in 0.2s ease-out",
         "xp-bubble": "xp-bubble 2s ease-out forwards",
+        // Metaball blob animations
+        "blob-1": "blob-1 18s ease-in-out infinite",
+        "blob-2": "blob-2 22s ease-in-out infinite",
+        "blob-3": "blob-3 25s ease-in-out infinite",
+        "blob-4": "blob-4 30s ease-in-out infinite",
+        "blob-5": "blob-5 20s ease-in-out infinite",
+        "blob-6": "blob-6 28s ease-in-out infinite",
       },
       spacing: {
         "safe-bottom": "env(safe-area-inset-bottom)",
