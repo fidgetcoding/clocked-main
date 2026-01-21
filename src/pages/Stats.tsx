@@ -213,20 +213,22 @@ const Stats = () => {
     intensity: { data: generateMockData(365, (avgIntensity || 3) * 20, 0.15).map(d => ({ ...d, value: d.value / 20 })), change: { value: 5, period: 'this week' } },
   };
 
-  const stats = [
+  // Gamification stats (XP, achievements, streaks)
+  const progressStats = [
     { id: 'xp', icon: Zap, label: 'Total XP', value: totalXP.toLocaleString(), color: 'text-muted-foreground', ...statsData.xp },
     { id: 'workouts', icon: Trophy, label: 'Workouts', value: workoutsCompleted.toString(), color: 'text-muted-foreground', ...statsData.workouts },
-    { id: 'hours', icon: Clock, label: 'Training Hours', value: `${totalHours}h`, color: 'text-muted-foreground', ...statsData.hours },
     { id: 'streak', icon: Flame, label: 'Current Streak', value: `${currentStreak} days`, color: 'text-muted-foreground', ...statsData.streak },
   ];
 
-  const fitnessStats = [
-    { id: 'calories', icon: Activity, label: 'Calories Burned', value: caloriesBurned.toLocaleString(), color: 'text-muted-foreground', ...statsData.calories },
+  // Training stats (time, rounds, effort)
+  const trainingStats = [
+    { id: 'hours', icon: Clock, label: 'Training Hours', value: `${totalHours}h`, color: 'text-muted-foreground', ...statsData.hours },
     { id: 'rounds', icon: Target, label: 'Total Rounds', value: totalRounds.toLocaleString(), color: 'text-muted-foreground', ...statsData.rounds },
+    { id: 'calories', icon: Activity, label: 'Calories Burned', value: caloriesBurned.toLocaleString(), color: 'text-muted-foreground', ...statsData.calories },
     { id: 'intensity', icon: Dumbbell, label: 'Avg Intensity', value: avgIntensity !== null ? `${avgIntensity}/5` : '--', color: 'text-muted-foreground', ...statsData.intensity },
   ];
 
-  const allStats = [...stats, ...fitnessStats];
+  const allStats = [...progressStats, ...trainingStats];
   const selectedStatData = selectedStat ? allStats.find(s => s.id === selectedStat) : null;
 
   return (
@@ -257,11 +259,11 @@ const Stats = () => {
             </div>
           </div>
 
-          {/* XP Stats */}
+          {/* Progress Stats (Gamification) */}
           <div>
-            <h3 className="text-sm font-bold text-muted-foreground uppercase tracking-wider mb-3">XP & Progress</h3>
-            <div className="grid grid-cols-2 gap-3">
-              {stats.map((stat) => (
+            <h3 className="text-sm font-bold text-muted-foreground uppercase tracking-wider mb-3">Progress</h3>
+            <div className="grid grid-cols-3 gap-3">
+              {progressStats.map((stat) => (
                 <StatCard
                   key={stat.id}
                   icon={stat.icon}
@@ -275,11 +277,11 @@ const Stats = () => {
             </div>
           </div>
 
-          {/* Fitness Stats */}
+          {/* Training Stats */}
           <div>
-            <h3 className="text-sm font-bold text-muted-foreground uppercase tracking-wider mb-3">Fitness Stats</h3>
+            <h3 className="text-sm font-bold text-muted-foreground uppercase tracking-wider mb-3">Training</h3>
             <div className="grid grid-cols-2 gap-3">
-              {fitnessStats.map((stat) => (
+              {trainingStats.map((stat) => (
                 <StatCard
                   key={stat.id}
                   icon={stat.icon}
