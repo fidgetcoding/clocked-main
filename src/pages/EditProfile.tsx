@@ -166,20 +166,22 @@ const EditProfile = () => {
                     </button>
                   </div>
                 ) : (
-                  <div className="flex items-center gap-2">
-                    <h2 className="text-xl font-bold text-foreground">{user?.name || 'Fighter'}</h2>
-                    <button 
-                      onClick={() => {
-                        setEditedName(user?.name || '');
-                        setIsEditingName(true);
-                      }}
-                      className="text-muted-foreground hover:text-foreground"
-                    >
-                      <Pencil className="w-4 h-4" />
-                    </button>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <h2 className="text-xl font-bold text-foreground">{user?.name || 'Fighter'}</h2>
+                      <button 
+                        onClick={() => {
+                          setEditedName(user?.name || '');
+                          setIsEditingName(true);
+                        }}
+                        className="text-muted-foreground hover:text-foreground"
+                      >
+                        <Pencil className="w-4 h-4" />
+                      </button>
+                    </div>
+                    <p className="text-sm text-muted-foreground">@{(user?.name || 'fighter').toLowerCase().replace(/\s+/g, '')}</p>
                   </div>
                 )}
-                <p className="text-sm text-muted-foreground mt-1">Tap the pencil to edit your name</p>
               </div>
             </div>
 
