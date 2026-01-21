@@ -88,6 +88,43 @@ const createWorkout = (
   combos,
 });
 
+// COMPLETE BEGINNER COMBOS - Ultra simple, just 1 and 2 punches, no defense
+const COMPLETE_BEGINNER_COMBOS_1: string[][] = [
+  ['1'],
+  ['1', '1'],
+  ['1', '2'],
+  ['2'],
+  ['1', '1', '2'],
+  ['1', '2', '1'],
+  ['2', '1'],
+  ['2', '2'],
+  ['1', '2', '2'],
+  ['2', '1', '2'],
+  ['1', '1', '1'],
+  ['2', '2', '1'],
+  ['1', '2', '1', '2'],
+  ['2', '1', '1'],
+  ['1', '1', '2', '2'],
+];
+
+const COMPLETE_BEGINNER_COMBOS_2: string[][] = [
+  ['1', '2'],
+  ['1', '1'],
+  ['2', '1'],
+  ['1', '2', '1'],
+  ['2', '2'],
+  ['1', '1', '2'],
+  ['2', '1', '2'],
+  ['1', '2', '2'],
+  ['2', '2', '1'],
+  ['1', '1', '1', '2'],
+  ['2', '1', '1'],
+  ['1', '2', '1', '2'],
+  ['2', '2', '2'],
+  ['1', '1', '2', '1'],
+  ['2', '1', '2', '1'],
+];
+
 // BEGINNER COMBOS - Simple 2-4 punch combos with basic slips
 const BEGINNER_COMBOS_1: string[][] = [
   ['1', '2', 'SLIP L'],
@@ -254,6 +291,82 @@ const PRO_COMBOS_2: string[][] = [
   ['1', '2', '3', '6', '7', '8', '5', '6', 'SLIP R', '5', '6', '7', '8', '5', '2', 'ROLL L', 'STEP OUT'],
 ];
 
+// Complete beginner preset with simpler workout structure
+const createCompleteBeginnerWorkout = (
+  id: string,
+  name: string,
+  combos: string[][]
+): Workout => ({
+  id,
+  name,
+  icon: '',
+  difficulty: 'beginner',
+  totalDuration: 1800, // 30 minutes - shorter for beginners
+  isPreset: true,
+  isArchived: false,
+  createdAt: new Date(),
+  timesCompleted: 0,
+  sections: {
+    warmup: [
+      {
+        id: `${id}-warmup-1`,
+        name: 'Light Movement',
+        repeats: 1,
+        segments: [
+          { id: `${id}-warmup-1-1`, name: 'Jump Rope (Easy Pace)', type: 'active', duration: 120 },
+          { id: `${id}-warmup-1-2`, name: 'Rest', type: 'rest', duration: 60 },
+        ],
+      },
+    ],
+    grind: [
+      {
+        id: `${id}-grind-main`,
+        name: 'Punch Practice',
+        repeats: 8, // Fewer rounds
+        segments: [
+          {
+            id: `${id}-grind-1`,
+            name: 'Shadow Boxing',
+            type: 'active',
+            duration: 60,
+            intensity: 'light',
+          },
+          {
+            id: `${id}-grind-2`,
+            name: 'Combo Practice',
+            type: 'active',
+            duration: 30,
+            intensity: 'moderate',
+            comboIndex: 'cycle',
+          },
+          {
+            id: `${id}-grind-3`,
+            name: 'Rest',
+            type: 'rest',
+            duration: 60,
+          },
+        ],
+      },
+    ],
+    cooldown: [
+      {
+        id: `${id}-cooldown-1`,
+        name: 'Cool Down',
+        repeats: 1,
+        segments: [
+          { id: `${id}-cooldown-1-1`, name: 'Light Stretching', type: 'active', duration: 180 },
+        ],
+      },
+    ],
+  },
+  combos,
+});
+
+export const COMPLETE_BEGINNER_PRESET_WORKOUTS: Workout[] = [
+  createCompleteBeginnerWorkout('preset_complete_beginner_1', 'Fundamentals I', COMPLETE_BEGINNER_COMBOS_1),
+  createCompleteBeginnerWorkout('preset_complete_beginner_2', 'Fundamentals II', COMPLETE_BEGINNER_COMBOS_2),
+];
+
 export const BEGINNER_PRESET_WORKOUTS: Workout[] = [
   createWorkout('preset_beginner_1', 'Beginner Boxing I', 'beginner', BEGINNER_COMBOS_1),
   createWorkout('preset_beginner_2', 'Beginner Boxing II', 'beginner', BEGINNER_COMBOS_2),
@@ -361,6 +474,7 @@ export const COACH_PRESET_WORKOUTS: Workout[] = [
 ];
 
 export const ALL_PRESET_WORKOUTS: Workout[] = [
+  ...COMPLETE_BEGINNER_PRESET_WORKOUTS,
   ...BEGINNER_PRESET_WORKOUTS,
   ...INTERMEDIATE_PRESET_WORKOUTS,
   ...ADVANCED_PRESET_WORKOUTS,
