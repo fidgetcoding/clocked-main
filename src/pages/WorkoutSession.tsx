@@ -155,6 +155,16 @@ const WorkoutSession = () => {
     };
   }, [isRunning, isPaused]);
 
+  // Countdown voice at 3 seconds
+  useEffect(() => {
+    if (timeRemaining === 3 && isRunning && !isPaused) {
+      const utterance = new SpeechSynthesisUtterance('3, 2, 1');
+      utterance.rate = 0.9;
+      utterance.pitch = 1;
+      speechSynthesis.speak(utterance);
+    }
+  }, [timeRemaining, isRunning, isPaused]);
+
   // Handle segment transitions when time hits 0
   useEffect(() => {
     if (timeRemaining === 0 && isRunning) {
