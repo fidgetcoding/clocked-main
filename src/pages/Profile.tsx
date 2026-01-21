@@ -3,7 +3,8 @@ import { ArrowLeft, Settings, User, MapPin, Link as LinkIcon, UserPlus, UserChec
 import { useNavigate, useParams } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
-import { useUserStore } from '@/stores/userStore';
+import { useProfile } from '@/hooks/useProfile';
+import { useFollows } from '@/hooks/useFollows';
 import { XPBar } from '@/components/ui/XPBar';
 import { RANK_NAMES, Rank, RANK_THRESHOLDS } from '@/types';
 import { cn } from '@/lib/utils';
@@ -113,30 +114,31 @@ type ListModalType = 'followers' | 'following' | null;
 const Profile = () => {
   const navigate = useNavigate();
   const { userId } = useParams<{ userId?: string }>();
-  const user = useUserStore((state) => state.user);
-  const [followingState, setFollowingState] = useState<Record<string, boolean>>({
-    'mike-thompson': true,
-    'jamie-lee': true,
-  });
+  const { profile } = useProfile();
+  const { followersCount, followingCount, isFollowing, follow, unfollow } = useFollows(userId);
   const [listModal, setListModal] = useState<ListModalType>(null);
 
   // Determine if viewing own profile or someone else's
   const isOwnProfile = !userId;
   const viewingUser = isOwnProfile ? null : MOCK_USERS[userId];
 
-  // Use real user data or mock for other profiles
-  const totalXP = isOwnProfile ? (user?.totalXP || 247) : (viewingUser?.totalXP || 0);
+  // Use real user data from database
+  const totalXP = isOwnProfile ? (profile?.total_xp || 0) : (viewingUser?.totalXP || 0);
   const currentRank = getCurrentRank(totalXP);
-  const profileName = isOwnProfile ? (user?.name || 'Fighter') : (viewingUser?.name || 'Unknown');
-  const profileHandle = isOwnProfile ? '@' + (user?.name?.toLowerCase().replace(/\s+/g, '') || 'fighter') : (viewingUser?.handle || '@unknown');
-  const profileAvatar = isOwnProfile ? null : viewingUser?.avatar;
+  const profileName = isOwnProfile ? (profile?.name || 'Fighter') : (viewingUser?.name || 'Unknown');
+  const profileHandle = isOwnProfile ? '@' + (profile?.name?.toLowerCase().replace(/\s+/g, '') || 'fighter') : (viewingUser?.handle || '@unknown');
+  const profileAvatar = isOwnProfile ? profile?.avatar_url : viewingUser?.avatar;
+  const workoutsCompleted = isOwnProfile ? (profile?.workouts_completed || 0) : (viewingUser?.workoutsCompleted || 0);
+  const currentStreak = isOwnProfile ? (profile?.current_streak || 0) : (viewingUser?.currentStreak || 0);
+  const longestStreak = isOwnProfile ? (profile?.longest_streak || 0) : (viewingUser?.longestStreak || 0);
 
   const handleFollow = (id: string) => {
-    setFollowingState(prev => ({ ...prev, [id]: !prev[id] }));
+    if (isFollowing) {
+      unfollow.mutate(id);
+    } else {
+      follow.mutate(id);
+    }
   };
-
-  const followersCount = isOwnProfile ? OWN_FOLLOWERS.length : (viewingUser?.followers || 0);
-  const followingCount = isOwnProfile ? OWN_FOLLOWING.length : (viewingUser?.following || 0);
 
   const getListData = () => {
     if (listModal === 'followers') {
@@ -185,7 +187,7 @@ const Profile = () => {
             <div className="flex-1 flex justify-around">
               <div className="text-center">
                 <p className="text-xl font-bold text-foreground">
-                  {isOwnProfile ? (user?.workoutsCompleted || 24) : (viewingUser?.workoutsCompleted || 0)}
+                  {workoutsCompleted}
                 </p>
                 <p className="text-xs text-muted-foreground">Workouts</p>
               </div>
@@ -225,7 +227,7 @@ const Profile = () => {
             <Clock className="w-4 h-4" />
             <span>
               {isOwnProfile 
-                ? formatDuration((user?.workoutsCompleted || 24) * 1800)
+                ? formatDuration(workoutsCompleted * 1800)
                 : formatDuration(viewingUser?.totalWorkoutTime || 0)
               } total training
             </span>
@@ -272,14 +274,15 @@ const Profile = () => {
             <div className="flex gap-2">
               <Button 
                 onClick={() => handleFollow(userId!)}
+                disabled={follow.isPending || unfollow.isPending}
                 className={cn(
                   "flex-1",
-                  followingState[userId!] 
+                  isFollowing 
                     ? "bg-surface-1 border border-surface-3 text-foreground hover:bg-surface-2" 
                     : "bg-volt text-primary-foreground hover:bg-volt/90"
                 )}
               >
-                {followingState[userId!] ? (
+                {isFollowing ? (
                   <>
                     <UserCheck className="w-4 h-4 mr-2" />
                     Following
@@ -303,14 +306,14 @@ const Profile = () => {
           <div className="card-workout text-center py-3">
             <Flame className="w-5 h-5 text-muted-foreground mx-auto mb-1" />
             <p className="text-xl font-bold text-volt">
-              {isOwnProfile ? (user?.currentStreak || 3) : (viewingUser?.currentStreak || 0)}
+              {currentStreak}
             </p>
             <p className="text-[10px] text-muted-foreground">Day Streak</p>
           </div>
           <div className="card-workout text-center py-3">
             <Trophy className="w-5 h-5 text-muted-foreground mx-auto mb-1" />
             <p className="text-xl font-bold text-volt">
-              {isOwnProfile ? (user?.longestStreak || 14) : (viewingUser?.longestStreak || 0)}
+              {longestStreak}
             </p>
             <p className="text-[10px] text-muted-foreground">Best Streak</p>
           </div>
@@ -318,7 +321,7 @@ const Profile = () => {
             <Clock className="w-5 h-5 text-muted-foreground mx-auto mb-1" />
             <p className="text-xl font-bold text-volt">
               {isOwnProfile 
-                ? Math.floor((user?.workoutsCompleted || 24) * 30 / 60) 
+                ? Math.floor(workoutsCompleted * 30 / 60) 
                 : Math.floor((viewingUser?.totalWorkoutTime || 0) / 3600)
               }h
             </p>
@@ -444,17 +447,15 @@ const Profile = () => {
                       </div>
                       <Button
                         size="sm"
+                        variant="outline"
                         onClick={(e) => {
                           e.stopPropagation();
-                          handleFollow(person.id);
+                          setListModal(null);
+                          navigate(`/profile/${person.id}`);
                         }}
-                        className={cn(
-                          followingState[person.id]
-                            ? "bg-surface-2 text-foreground hover:bg-surface-3"
-                            : "bg-volt text-primary-foreground hover:bg-volt/90"
-                        )}
+                        className="bg-surface-2 text-foreground hover:bg-surface-3"
                       >
-                        {followingState[person.id] ? 'Following' : 'Follow'}
+                        View
                       </Button>
                     </button>
                   ))}
