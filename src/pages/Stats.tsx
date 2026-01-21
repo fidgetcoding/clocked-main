@@ -1,11 +1,12 @@
 import { useState } from 'react';
-import { Flame, Trophy, Clock, Zap, ChevronRight, TrendingUp, TrendingDown, X, Target, Dumbbell, Heart, Activity } from 'lucide-react';
+import { Flame, Trophy, Clock, Zap, ChevronRight, TrendingUp, TrendingDown, X, Target, Dumbbell, Activity } from 'lucide-react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { XPBar } from '@/components/ui/XPBar';
 import { useUserStore } from '@/stores/userStore';
+import { useWorkoutStats } from '@/hooks/useWorkoutStats';
 import { RANK_NAMES, RANK_THRESHOLDS, Rank } from '@/types';
 import { cn } from '@/lib/utils';
-import { LineChart, Line, XAxis, YAxis, ResponsiveContainer, Tooltip, Area, AreaChart } from 'recharts';
+import { AreaChart, Area, XAxis, YAxis, ResponsiveContainer, Tooltip } from 'recharts';
 
 function getCurrentRank(xp: number): Rank {
   const ranks = Object.entries(RANK_THRESHOLDS).reverse() as [Rank, number][];
@@ -185,35 +186,31 @@ function StatDetailModal({ stat, onClose, timeframe, onTimeframeChange }: StatDe
 
 const Stats = () => {
   const user = useUserStore((state) => state.user);
+  const { stats: workoutStats, isLoading } = useWorkoutStats();
   const [selectedStat, setSelectedStat] = useState<string | null>(null);
   const [timeframe, setTimeframe] = useState<'1W' | '1M' | '1Y'>('1M');
 
-  const totalXP = user?.totalXP || 1247;
+  const totalXP = user?.totalXP || 0;
   const currentRank = getCurrentRank(totalXP);
-  const workoutsCompleted = user?.workoutsCompleted || 24;
-  const currentStreak = user?.currentStreak || 3;
-  const longestStreak = user?.longestStreak || 14;
+  const workoutsCompleted = user?.workoutsCompleted || 0;
+  const currentStreak = user?.currentStreak || 0;
+  const longestStreak = user?.longestStreak || 0;
 
-  // Calculate total time (mock data)
-  const totalMinutes = workoutsCompleted * 35;
-  const totalHours = Math.floor(totalMinutes / 60);
+  // Use real data from workout history
+  const totalHours = workoutStats.totalTrainingHours || 0;
+  const totalRounds = workoutStats.totalRounds || 0;
+  const avgIntensity = workoutStats.avgIntensity;
+  const caloriesBurned = workoutStats.totalCalories || 0;
 
-  // Mock fitness stats
-  const avgHeartRate = 142;
-  const caloriesBurned = workoutsCompleted * 320;
-  const totalRounds = workoutsCompleted * 8;
-  const avgIntensity = 7.2;
-
-  // Generate mock historical data
+  // Generate mock historical data (will be replaced with real historical queries later)
   const statsData = {
-    xp: { data: generateMockData(365, totalXP, 0.1), change: { value: 12, period: 'this week' } },
-    workouts: { data: generateMockData(365, workoutsCompleted, 0.3), change: { value: 8, period: 'this week' } },
-    hours: { data: generateMockData(365, totalHours, 0.25), change: { value: 15, period: 'this week' } },
-    streak: { data: generateMockData(365, currentStreak, 0.5), change: { value: -5, period: 'this week' } },
-    heartRate: { data: generateMockData(365, avgHeartRate, 0.1), change: { value: 3, period: 'this week' } },
-    calories: { data: generateMockData(365, caloriesBurned, 0.2), change: { value: 18, period: 'this week' } },
-    rounds: { data: generateMockData(365, totalRounds, 0.3), change: { value: 22, period: 'this week' } },
-    intensity: { data: generateMockData(365, avgIntensity * 10, 0.15).map(d => ({ ...d, value: d.value / 10 })), change: { value: 5, period: 'this week' } },
+    xp: { data: generateMockData(365, totalXP || 100, 0.1), change: { value: 12, period: 'this week' } },
+    workouts: { data: generateMockData(365, workoutsCompleted || 1, 0.3), change: { value: 8, period: 'this week' } },
+    hours: { data: generateMockData(365, totalHours || 1, 0.25), change: { value: 15, period: 'this week' } },
+    streak: { data: generateMockData(365, currentStreak || 1, 0.5), change: { value: -5, period: 'this week' } },
+    calories: { data: generateMockData(365, caloriesBurned || 100, 0.2), change: { value: 18, period: 'this week' } },
+    rounds: { data: generateMockData(365, totalRounds || 1, 0.3), change: { value: 22, period: 'this week' } },
+    intensity: { data: generateMockData(365, (avgIntensity || 3) * 20, 0.15).map(d => ({ ...d, value: d.value / 20 })), change: { value: 5, period: 'this week' } },
   };
 
   const stats = [
@@ -224,10 +221,9 @@ const Stats = () => {
   ];
 
   const fitnessStats = [
-    { id: 'heartRate', icon: Heart, label: 'Avg Heart Rate', value: `${avgHeartRate} BPM`, color: 'text-muted-foreground', ...statsData.heartRate },
     { id: 'calories', icon: Activity, label: 'Calories Burned', value: caloriesBurned.toLocaleString(), color: 'text-muted-foreground', ...statsData.calories },
     { id: 'rounds', icon: Target, label: 'Total Rounds', value: totalRounds.toLocaleString(), color: 'text-muted-foreground', ...statsData.rounds },
-    { id: 'intensity', icon: Dumbbell, label: 'Avg Intensity', value: `${avgIntensity}/10`, color: 'text-muted-foreground', ...statsData.intensity },
+    { id: 'intensity', icon: Dumbbell, label: 'Avg Intensity', value: avgIntensity !== null ? `${avgIntensity}/5` : '--', color: 'text-muted-foreground', ...statsData.intensity },
   ];
 
   const allStats = [...stats, ...fitnessStats];
