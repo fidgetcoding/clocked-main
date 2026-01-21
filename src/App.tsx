@@ -7,6 +7,7 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import Index from "./pages/Index";
 import Build from "./pages/Build";
 import Settings from "./pages/Settings";
+import EditProfile from "./pages/EditProfile";
 import History from "./pages/History";
 import Onboarding from "./pages/Onboarding";
 import WorkoutSession from "./pages/WorkoutSession";
@@ -31,6 +32,7 @@ const App = () => (
             <Route path="/onboarding" element={<Onboarding />} />
             <Route path="/build" element={<Build />} />
             <Route path="/settings" element={<Settings />} />
+            <Route path="/edit-profile" element={<EditProfile />} />
             <Route path="/history" element={<History />} />
             <Route path="/stats" element={<Stats />} />
             <Route path="/fight-club" element={<FightClub />} />
