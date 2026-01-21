@@ -5,6 +5,7 @@ import { AppLayout } from '@/components/layout/AppLayout';
 import { Switch } from '@/components/ui/switch';
 import { useUserStore } from '@/stores/userStore';
 import { useWorkoutStore } from '@/stores/workoutStore';
+import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import {
@@ -22,12 +23,31 @@ const Settings = () => {
   const navigate = useNavigate();
   const user = useUserStore((state) => state.user);
   const updateUser = useUserStore((state) => state.updateUser);
+  const setUser = useUserStore((state) => state.setUser);
   const { archivedWorkouts, restoreWorkout, permanentlyDeleteArchived } = useWorkoutStore();
+  const { signOut } = useAuth();
   
   const [showArchives, setShowArchives] = useState(false);
   const [workoutToDelete, setWorkoutToDelete] = useState<string | null>(null);
   const [profilePhoto, setProfilePhoto] = useState<string | null>(null);
+  const [isSigningOut, setIsSigningOut] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleSignOut = async () => {
+    setIsSigningOut(true);
+    try {
+      await signOut();
+      setUser(null);
+      // Reset onboarding state so user goes through auth on next visit
+      useUserStore.setState({ hasCompletedOnboarding: false });
+      navigate('/onboarding');
+      toast.success('Signed out successfully');
+    } catch (error) {
+      toast.error('Failed to sign out');
+    } finally {
+      setIsSigningOut(false);
+    }
+  };
 
   const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -234,9 +254,13 @@ const Settings = () => {
             </div>
 
             {/* Sign Out */}
-            <button className="flex items-center gap-2 w-full p-3 rounded-lg bg-surface-2 border border-destructive/30 text-destructive hover:bg-destructive/10 transition-colors">
+            <button 
+              onClick={handleSignOut}
+              disabled={isSigningOut}
+              className="flex items-center gap-2 w-full p-3 rounded-lg bg-surface-2 border border-destructive/30 text-destructive hover:bg-destructive/10 transition-colors disabled:opacity-50"
+            >
               <LogOut className="w-4 h-4" />
-              <span className="font-medium">Sign Out</span>
+              <span className="font-medium">{isSigningOut ? 'Signing Out...' : 'Sign Out'}</span>
             </button>
           </div>
 
