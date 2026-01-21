@@ -201,7 +201,7 @@ const Stats = () => {
   // Mock fitness stats
   const avgHeartRate = 142;
   const caloriesBurned = workoutsCompleted * 320;
-  const punchesThrown = workoutsCompleted * 450;
+  const totalRounds = workoutsCompleted * 8;
   const avgIntensity = 7.2;
 
   // Generate mock historical data
@@ -212,7 +212,7 @@ const Stats = () => {
     streak: { data: generateMockData(365, currentStreak, 0.5), change: { value: -5, period: 'this week' } },
     heartRate: { data: generateMockData(365, avgHeartRate, 0.1), change: { value: 3, period: 'this week' } },
     calories: { data: generateMockData(365, caloriesBurned, 0.2), change: { value: 18, period: 'this week' } },
-    punches: { data: generateMockData(365, punchesThrown, 0.3), change: { value: 22, period: 'this week' } },
+    rounds: { data: generateMockData(365, totalRounds, 0.3), change: { value: 22, period: 'this week' } },
     intensity: { data: generateMockData(365, avgIntensity * 10, 0.15).map(d => ({ ...d, value: d.value / 10 })), change: { value: 5, period: 'this week' } },
   };
 
@@ -226,7 +226,7 @@ const Stats = () => {
   const fitnessStats = [
     { id: 'heartRate', icon: Heart, label: 'Avg Heart Rate', value: `${avgHeartRate} BPM`, color: 'text-muted-foreground', ...statsData.heartRate },
     { id: 'calories', icon: Activity, label: 'Calories Burned', value: caloriesBurned.toLocaleString(), color: 'text-muted-foreground', ...statsData.calories },
-    { id: 'punches', icon: Target, label: 'Punches Thrown', value: punchesThrown.toLocaleString(), color: 'text-muted-foreground', ...statsData.punches },
+    { id: 'rounds', icon: Target, label: 'Total Rounds', value: totalRounds.toLocaleString(), color: 'text-muted-foreground', ...statsData.rounds },
     { id: 'intensity', icon: Dumbbell, label: 'Avg Intensity', value: `${avgIntensity}/10`, color: 'text-muted-foreground', ...statsData.intensity },
   ];
 
