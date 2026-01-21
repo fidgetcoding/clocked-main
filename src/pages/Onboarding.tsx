@@ -12,7 +12,7 @@ import clockedLogo from '@/assets/clocked-logo.png';
 type Step = 'welcome' | 'role' | 'name' | 'experience' | 'equipment' | 'fightClub' | 'goals' | 'complete';
 
 const experienceLevels = [
-  { id: 'complete_beginner', label: 'New', desc: 'Never trained combat sports' },
+  { id: 'complete_beginner', label: 'Rookie', desc: 'Never trained combat sports' },
   { id: 'beginner', label: 'Beginner', desc: 'Some basic training experience' },
   { id: 'intermediate', label: 'Intermediate', desc: 'Regular training for 1+ years' },
   { id: 'advanced', label: 'Advanced', desc: 'Competitive experience' },
