@@ -251,7 +251,7 @@ const Profile = () => {
           {isOwnProfile ? (
             <div className="flex gap-2">
               <Button 
-                onClick={() => navigate('/settings')}
+                onClick={() => navigate('/edit-profile')}
                 variant="outline" 
                 className="flex-1 bg-surface-1 border-surface-3"
               >
