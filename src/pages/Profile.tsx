@@ -8,7 +8,6 @@ import { XPBar } from '@/components/ui/XPBar';
 import { RANK_NAMES, Rank, RANK_THRESHOLDS } from '@/types';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
-import { SettingsModal } from '@/components/SettingsModal';
 
 function getCurrentRank(xp: number): Rank {
   const ranks = Object.entries(RANK_THRESHOLDS).reverse() as [Rank, number][];
@@ -120,7 +119,6 @@ const Profile = () => {
     'jamie-lee': true,
   });
   const [listModal, setListModal] = useState<ListModalType>(null);
-  const [showSettingsModal, setShowSettingsModal] = useState(false);
 
   // Determine if viewing own profile or someone else's
   const isOwnProfile = !userId;
@@ -163,7 +161,7 @@ const Profile = () => {
           </div>
           {isOwnProfile && (
             <button 
-              onClick={() => setShowSettingsModal(true)}
+              onClick={() => navigate('/settings')}
               className="w-10 h-10 rounded-full bg-surface-1 border border-surface-3 flex items-center justify-center"
             >
               <Settings className="w-5 h-5 text-muted-foreground" />
@@ -466,12 +464,6 @@ const Profile = () => {
           </div>
         </div>
       )}
-
-      {/* Settings Modal */}
-      <SettingsModal 
-        open={showSettingsModal} 
-        onClose={() => setShowSettingsModal(false)} 
-      />
     </AppLayout>
   );
 };
