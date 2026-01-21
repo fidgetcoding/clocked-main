@@ -1,11 +1,13 @@
-import { useState, useRef } from 'react';
-import { User, LogOut, Pencil, Volume2, Bell, Timer, Vibrate, Archive, RotateCcw, Trash2, ChevronRight, Camera } from 'lucide-react';
+import { useState, useRef, useEffect } from 'react';
+import { User, LogOut, Pencil, Volume2, Bell, Timer, Vibrate, Archive, RotateCcw, Trash2, ChevronRight, Camera, Loader2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Switch } from '@/components/ui/switch';
 import { useUserStore } from '@/stores/userStore';
 import { useWorkoutStore } from '@/stores/workoutStore';
 import { useAuth } from '@/contexts/AuthContext';
+import { useProfile } from '@/hooks/useProfile';
+import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import {
@@ -25,13 +27,17 @@ const Settings = () => {
   const updateUser = useUserStore((state) => state.updateUser);
   const setUser = useUserStore((state) => state.setUser);
   const { archivedWorkouts, restoreWorkout, permanentlyDeleteArchived } = useWorkoutStore();
-  const { signOut } = useAuth();
+  const { signOut, user: authUser } = useAuth();
+  const { profile, updateProfile } = useProfile();
   
   const [showArchives, setShowArchives] = useState(false);
   const [workoutToDelete, setWorkoutToDelete] = useState<string | null>(null);
-  const [profilePhoto, setProfilePhoto] = useState<string | null>(null);
   const [isSigningOut, setIsSigningOut] = useState(false);
+  const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Use the avatar_url from the profile
+  const profilePhoto = profile?.avatar_url || null;
 
   const handleSignOut = async () => {
     setIsSigningOut(true);
@@ -49,15 +55,52 @@ const Settings = () => {
     }
   };
 
-  const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handlePhotoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setProfilePhoto(reader.result as string);
-        toast.success('Profile photo updated');
-      };
-      reader.readAsDataURL(file);
+    if (!file || !authUser?.id) return;
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      toast.error('Please select an image file');
+      return;
+    }
+
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('Image must be less than 5MB');
+      return;
+    }
+
+    setIsUploadingPhoto(true);
+    try {
+      // Create a unique file name
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${authUser.id}/avatar.${fileExt}`;
+
+      // Upload to Supabase Storage
+      const { error: uploadError } = await supabase.storage
+        .from('avatars')
+        .upload(fileName, file, { upsert: true });
+
+      if (uploadError) throw uploadError;
+
+      // Get public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from('avatars')
+        .getPublicUrl(fileName);
+
+      // Add cache buster to force refresh
+      const urlWithCacheBuster = `${publicUrl}?t=${Date.now()}`;
+
+      // Update profile with new avatar URL
+      await updateProfile.mutateAsync({ avatar_url: urlWithCacheBuster });
+
+      toast.success('Profile photo updated!');
+    } catch (error) {
+      console.error('Error uploading photo:', error);
+      toast.error('Failed to upload photo');
+    } finally {
+      setIsUploadingPhoto(false);
     }
   };
 
@@ -215,10 +258,16 @@ const Settings = () => {
                   ) : (
                     <User className="w-8 h-8 text-volt" />
                   )}
+                  {isUploadingPhoto && (
+                    <div className="absolute inset-0 bg-background/50 flex items-center justify-center rounded-full">
+                      <Loader2 className="w-6 h-6 text-volt animate-spin" />
+                    </div>
+                  )}
                 </div>
                 <button 
                   onClick={() => fileInputRef.current?.click()}
-                  className="absolute -bottom-1 -right-1 w-7 h-7 rounded-full bg-volt flex items-center justify-center text-primary-foreground shadow-lg"
+                  disabled={isUploadingPhoto}
+                  className="absolute -bottom-1 -right-1 w-7 h-7 rounded-full bg-volt flex items-center justify-center text-primary-foreground shadow-lg disabled:opacity-50"
                 >
                   <Camera className="w-3.5 h-3.5" />
                 </button>
