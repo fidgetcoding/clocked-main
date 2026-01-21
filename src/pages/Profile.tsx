@@ -154,7 +154,7 @@ const Profile = () => {
         {/* Header */}
         <header className="flex items-center justify-between px-4 py-4 safe-top border-b border-surface-3">
           <div className="flex items-center gap-3">
-            <button onClick={() => navigate(-1)} className="text-muted-foreground">
+            <button onClick={() => window.history.length > 1 ? navigate(-1) : navigate('/')} className="text-muted-foreground">
               <ArrowLeft className="w-6 h-6" />
             </button>
             <h1 className="text-xl font-bold text-foreground">{profileName}</h1>
