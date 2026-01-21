@@ -51,7 +51,7 @@ const Onboarding = () => {
   const [searchParams] = useSearchParams();
   const { user } = useAuth();
   const { completeOnboarding } = useUserStore();
-  const { loadBeginnerPresets, loadIntermediatePresets, loadAdvancedPresets, loadProPresets } = useWorkoutStore();
+  const { loadCompleteBeginnerPresets, loadBeginnerPresets, loadIntermediatePresets, loadAdvancedPresets, loadProPresets } = useWorkoutStore();
   
   // If user just signed up (has ?continue=true), skip welcome and go to role selection
   const shouldContinue = searchParams.get('continue') === 'true';
@@ -103,9 +103,10 @@ const Onboarding = () => {
     });
     
     // Load appropriate presets based on experience level
-    if (finalExperience === 'complete_beginner' || finalExperience === 'beginner') {
+    if (finalExperience === 'complete_beginner') {
+      loadCompleteBeginnerPresets();
+    } else if (finalExperience === 'beginner') {
       loadBeginnerPresets();
-    } else if (finalExperience === 'intermediate') {
       loadIntermediatePresets();
     } else if (finalExperience === 'advanced') {
       loadAdvancedPresets();
