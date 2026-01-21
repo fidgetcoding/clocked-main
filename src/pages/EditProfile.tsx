@@ -108,7 +108,7 @@ const EditProfile = () => {
       <div className="min-h-screen bg-gradient-red-glow">
         {/* Header */}
         <header className="flex items-center gap-3 px-4 pt-8 pb-6 safe-top">
-          <button onClick={() => navigate(-1)} className="text-muted-foreground">
+          <button onClick={() => window.history.length > 1 ? navigate(-1) : navigate('/')} className="text-muted-foreground">
             <ArrowLeft className="w-6 h-6" />
           </button>
           <h1 className="text-2xl font-black text-foreground tracking-wider">
