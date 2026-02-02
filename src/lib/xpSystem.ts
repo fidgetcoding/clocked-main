@@ -327,27 +327,65 @@ export function checkLevelUp(
 }
 
 // =====================================================
+// Calculate Level from Total XP
+// =====================================================
+
+/**
+ * Calculate current level based on total XP earned within a prestige tier.
+ * This is the inverse of the XP calculation - given XP, find the level.
+ */
+export function getLevelFromXP(prestige: Prestige, totalXP: number): number {
+  let cumulativeXP = 0;
+  
+  for (let level = 1; level <= 100; level++) {
+    cumulativeXP += getXPRequiredForLevel(prestige, level);
+    if (totalXP < cumulativeXP) {
+      return level;
+    }
+  }
+  
+  return 100; // Max level if XP exceeds all level requirements
+}
+
+/**
+ * Get the XP earned within the current level (for progress bar calculations)
+ */
+export function getXPWithinCurrentLevel(prestige: Prestige, totalXP: number): { current: number; required: number } {
+  let cumulativeXP = 0;
+  
+  for (let level = 1; level <= 100; level++) {
+    const xpForThisLevel = getXPRequiredForLevel(prestige, level);
+    if (totalXP < cumulativeXP + xpForThisLevel) {
+      return {
+        current: totalXP - cumulativeXP,
+        required: xpForThisLevel,
+      };
+    }
+    cumulativeXP += xpForThisLevel;
+  }
+  
+  // At max level
+  const xpForLevel100 = getXPRequiredForLevel(prestige, 100);
+  return { current: xpForLevel100, required: xpForLevel100 };
+}
+
+// =====================================================
 // Simple Level/XP Display Helpers
 // =====================================================
 
 /**
  * Get progress to next level as percentage (0-100)
+ * Uses total XP to calculate position within current level
  */
 export function getLevelProgress(prestige: Prestige, level: number, totalXP: number): number {
-  const xpForPreviousLevels = calculateXPForLevels(prestige, 1, level - 1);
-  const xpForCurrentLevel = getXPRequiredForLevel(prestige, level);
-  const xpInCurrentLevel = Math.max(0, totalXP - xpForPreviousLevels);
-  
-  return Math.min(100, (xpInCurrentLevel / xpForCurrentLevel) * 100);
+  const { current, required } = getXPWithinCurrentLevel(prestige, totalXP);
+  return Math.min(100, (current / required) * 100);
 }
 
 /**
  * Get XP progress display string (e.g., "45 / 120 XP")
  */
 export function getXPProgressString(prestige: Prestige, level: number, totalXP: number): string {
-  const xpForPreviousLevels = calculateXPForLevels(prestige, 1, level - 1);
-  const xpForCurrentLevel = getXPRequiredForLevel(prestige, level);
-  const xpInCurrentLevel = Math.max(0, totalXP - xpForPreviousLevels);
-  
-  return `${Math.floor(xpInCurrentLevel).toLocaleString()} / ${xpForCurrentLevel.toLocaleString()} XP`;
+  const { current, required } = getXPWithinCurrentLevel(prestige, totalXP);
+  return `${Math.floor(current).toLocaleString()} / ${required.toLocaleString()} XP`;
 }
