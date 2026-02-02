@@ -6,6 +6,8 @@ import { Input } from '@/components/ui/input';
 import { useUserStore } from '@/stores/userStore';
 import { useWorkoutStore } from '@/stores/workoutStore';
 import { useAuth } from '@/contexts/AuthContext';
+import { useProfile } from '@/hooks/useProfile';
+import { experienceLevelToPrestige } from '@/lib/xpSystem';
 import { cn } from '@/lib/utils';
 import clockedLogo from '@/assets/clocked-logo.png';
 
@@ -51,6 +53,7 @@ const Onboarding = () => {
   const [searchParams] = useSearchParams();
   const { user } = useAuth();
   const { completeOnboarding } = useUserStore();
+  const { profile, updateProfile, setInitialPrestige } = useProfile();
   const { loadCompleteBeginnerPresets, loadBeginnerPresets, loadIntermediatePresets, loadAdvancedPresets, loadProPresets } = useWorkoutStore();
   
   // If user just signed up (has ?continue=true), skip welcome and go to role selection
@@ -87,13 +90,32 @@ const Onboarding = () => {
     }
   };
 
-  const handleComplete = () => {
+  const handleComplete = async () => {
     // Coaches are automatically pro level and have all equipment
     const finalExperience = role === 'coach' ? 'pro' : experience;
     const finalEquipment = role === 'coach' 
       ? { gloves: true, wraps: true, heavyBag: true, speedBag: true, jumpRope: true, weights: true }
       : equipment;
     
+    // Get prestige from experience level
+    const prestige = experienceLevelToPrestige(finalExperience);
+    
+    // Update profile in database with prestige and other onboarding data
+    try {
+      await updateProfile.mutateAsync({
+        name: name || (role === 'coach' ? 'Coach' : 'Fighter'),
+        role,
+        experience_level: finalExperience,
+        equipment: finalEquipment,
+        goals: goals,
+        prestige,
+        current_level: 1,
+      });
+    } catch (error) {
+      console.error('Failed to update profile:', error);
+    }
+    
+    // Also update local store for immediate UI feedback
     completeOnboarding({
       role,
       name: name || (role === 'coach' ? 'Coach' : 'Fighter'),
