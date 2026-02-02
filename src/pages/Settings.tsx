@@ -6,6 +6,7 @@ import { Switch } from '@/components/ui/switch';
 import { useUserStore } from '@/stores/userStore';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
+import { getAppVersion } from '@/lib/version';
 
 const Settings = () => {
   const navigate = useNavigate();
@@ -227,7 +228,7 @@ const Settings = () => {
 
           {/* Version */}
           <div className="text-center text-xs text-muted-foreground pt-4">
-            v1.31
+            {getAppVersion()}
           </div>
         </div>
       </div>
