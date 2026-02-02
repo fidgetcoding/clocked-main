@@ -48,6 +48,8 @@ export interface UserProfile {
   currentStreak: number;
   longestStreak: number;
   workoutsCompleted: number;
+  prestige?: 'rookie' | 'beginner' | 'intermediate' | 'advanced' | 'pro';
+  currentLevel?: number;
   
   preferences: {
     voiceType: 'male' | 'female' | 'system';

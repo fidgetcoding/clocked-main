@@ -49,6 +49,8 @@ export const useUserStore = create<UserStore>()(
             currentStreak: 0,
             longestStreak: 0,
             workoutsCompleted: 0,
+            prestige: profile.prestige || 'beginner',
+            currentLevel: profile.currentLevel || 1,
             preferences: { ...defaultPreferences, ...profile.preferences },
             experienceLevel: profile.experienceLevel,
             equipment: profile.equipment,
