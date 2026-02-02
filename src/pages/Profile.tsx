@@ -5,6 +5,7 @@ import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
 import { useProfile } from '@/hooks/useProfile';
 import { useFollows } from '@/hooks/useFollows';
+import { useAuth } from '@/contexts/AuthContext';
 import { XPBar } from '@/components/ui/XPBar';
 import { RANK_NAMES, Rank, RANK_THRESHOLDS } from '@/types';
 import { cn } from '@/lib/utils';
@@ -115,6 +116,7 @@ const Profile = () => {
   const navigate = useNavigate();
   const { userId } = useParams<{ userId?: string }>();
   const { profile } = useProfile();
+  const { user: authUser } = useAuth();
   const { followersCount, followingCount, isFollowing, follow, unfollow } = useFollows(userId);
   const [listModal, setListModal] = useState<ListModalType>(null);
 
@@ -211,7 +213,15 @@ const Profile = () => {
           {/* Name and Handle */}
           <div className="mb-3">
             <h2 className="text-lg font-bold text-foreground">{profileName}</h2>
-            <p className="text-sm text-muted-foreground">{profileHandle}</p>
+            <div className="flex items-center gap-2 flex-wrap">
+              <p className="text-sm text-muted-foreground">{profileHandle}</p>
+              {isOwnProfile && authUser?.email && (
+                <>
+                  <span className="text-muted-foreground/50">•</span>
+                  <p className="text-sm text-muted-foreground">{authUser.email}</p>
+                </>
+              )}
+            </div>
           </div>
 
           {/* Rank Badge */}
