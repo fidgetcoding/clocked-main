@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import { useWorkoutHistory } from './useWorkoutHistory';
+import { startOfWeek, subWeeks, isAfter, isBefore, parseISO } from 'date-fns';
 
 // Difficulty feedback to intensity score mapping (1-5 scale)
 const DIFFICULTY_TO_INTENSITY: Record<string, number> = {
@@ -16,6 +17,21 @@ const CALORIE_RATES: Record<string, number> = {
   'default': 10,
 };
 
+export interface PeriodStats {
+  xp: number;
+  workouts: number;
+  trainingMinutes: number;
+  rounds: number;
+  calories: number;
+  intensitySum: number;
+  intensityCount: number;
+}
+
+export interface WeeklyChange {
+  value: number;
+  period: string;
+}
+
 export interface WorkoutStats {
   totalTrainingMinutes: number;
   totalTrainingHours: number;
@@ -23,12 +39,90 @@ export interface WorkoutStats {
   avgIntensity: number | null; // null if no feedback exists
   totalCalories: number;
   workoutsWithFeedback: number;
+  // Weekly changes (real data)
+  changes: {
+    xp: WeeklyChange | null;
+    workouts: WeeklyChange | null;
+    hours: WeeklyChange | null;
+    rounds: WeeklyChange | null;
+    calories: WeeklyChange | null;
+    intensity: WeeklyChange | null;
+  };
+}
+
+function calculatePeriodStats(entries: any[]): PeriodStats {
+  let xp = 0;
+  let trainingSeconds = 0;
+  let rounds = 0;
+  let calories = 0;
+  let intensitySum = 0;
+  let intensityCount = 0;
+
+  for (const entry of entries) {
+    xp += entry.xp_earned || 0;
+    trainingSeconds += entry.duration || 0;
+
+    // Count rounds
+    if (entry.round_feedback && Array.isArray(entry.round_feedback) && entry.round_feedback.length > 0) {
+      rounds += entry.round_feedback.length;
+    } else if (entry.duration) {
+      rounds += Math.max(1, Math.floor(entry.duration / 180));
+    }
+
+    // Calculate calories
+    const durationMinutes = (entry.duration || 0) / 60;
+    const calorieRate = entry.difficulty && CALORIE_RATES[entry.difficulty] 
+      ? CALORIE_RATES[entry.difficulty] 
+      : CALORIE_RATES.default;
+    calories += Math.round(durationMinutes * calorieRate);
+
+    // Intensity
+    if (entry.difficulty && DIFFICULTY_TO_INTENSITY[entry.difficulty]) {
+      intensitySum += DIFFICULTY_TO_INTENSITY[entry.difficulty];
+      intensityCount++;
+    }
+  }
+
+  return {
+    xp,
+    workouts: entries.length,
+    trainingMinutes: Math.floor(trainingSeconds / 60),
+    rounds,
+    calories,
+    intensitySum,
+    intensityCount,
+  };
+}
+
+function calculateChange(current: number, previous: number): WeeklyChange | null {
+  // If both are 0, no change to show
+  if (current === 0 && previous === 0) {
+    return null;
+  }
+  
+  // If previous was 0 but current has value, show as new (don't divide by 0)
+  if (previous === 0 && current > 0) {
+    return { value: 100, period: 'this week' };
+  }
+  
+  // Calculate percentage change
+  const change = Math.round(((current - previous) / previous) * 100);
+  return { value: change, period: 'this week' };
 }
 
 export function useWorkoutStats() {
   const { history, isLoading, error } = useWorkoutHistory();
 
   const stats = useMemo<WorkoutStats>(() => {
+    const emptyChanges = {
+      xp: null,
+      workouts: null,
+      hours: null,
+      rounds: null,
+      calories: null,
+      intensity: null,
+    };
+
     if (!history || history.length === 0) {
       return {
         totalTrainingMinutes: 0,
@@ -37,9 +131,11 @@ export function useWorkoutStats() {
         avgIntensity: null,
         totalCalories: 0,
         workoutsWithFeedback: 0,
+        changes: emptyChanges,
       };
     }
 
+    // Calculate total stats
     let totalDurationSeconds = 0;
     let totalRounds = 0;
     let intensitySum = 0;
@@ -47,24 +143,19 @@ export function useWorkoutStats() {
     let totalCalories = 0;
 
     for (const entry of history) {
-      // Sum duration
       totalDurationSeconds += entry.duration || 0;
 
-      // Count rounds from round_feedback array or estimate from duration
       if (entry.round_feedback && Array.isArray(entry.round_feedback) && entry.round_feedback.length > 0) {
         totalRounds += entry.round_feedback.length;
       } else if (entry.duration) {
-        // Estimate rounds: assume ~3 min per round
         totalRounds += Math.max(1, Math.floor(entry.duration / 180));
       }
 
-      // Calculate intensity from difficulty feedback
       if (entry.difficulty && DIFFICULTY_TO_INTENSITY[entry.difficulty]) {
         intensitySum += DIFFICULTY_TO_INTENSITY[entry.difficulty];
         intensityCount++;
       }
 
-      // Estimate calories based on duration and difficulty
       const durationMinutes = (entry.duration || 0) / 60;
       const calorieRate = entry.difficulty && CALORIE_RATES[entry.difficulty] 
         ? CALORIE_RATES[entry.difficulty] 
@@ -75,13 +166,48 @@ export function useWorkoutStats() {
     const totalMinutes = Math.floor(totalDurationSeconds / 60);
     const totalHours = totalMinutes / 60;
 
+    // Calculate weekly changes
+    const now = new Date();
+    const thisWeekStart = startOfWeek(now, { weekStartsOn: 1 }); // Monday
+    const lastWeekStart = subWeeks(thisWeekStart, 1);
+    const lastWeekEnd = thisWeekStart;
+
+    const thisWeekEntries = history.filter(entry => {
+      const date = parseISO(entry.completed_at);
+      return isAfter(date, thisWeekStart) || date.getTime() === thisWeekStart.getTime();
+    });
+
+    const lastWeekEntries = history.filter(entry => {
+      const date = parseISO(entry.completed_at);
+      return (isAfter(date, lastWeekStart) || date.getTime() === lastWeekStart.getTime()) && isBefore(date, lastWeekEnd);
+    });
+
+    const thisWeekStats = calculatePeriodStats(thisWeekEntries);
+    const lastWeekStats = calculatePeriodStats(lastWeekEntries);
+
+    // Calculate changes
+    const changes = {
+      xp: calculateChange(thisWeekStats.xp, lastWeekStats.xp),
+      workouts: calculateChange(thisWeekStats.workouts, lastWeekStats.workouts),
+      hours: calculateChange(thisWeekStats.trainingMinutes, lastWeekStats.trainingMinutes),
+      rounds: calculateChange(thisWeekStats.rounds, lastWeekStats.rounds),
+      calories: calculateChange(thisWeekStats.calories, lastWeekStats.calories),
+      intensity: thisWeekStats.intensityCount > 0 && lastWeekStats.intensityCount > 0
+        ? calculateChange(
+            thisWeekStats.intensitySum / thisWeekStats.intensityCount,
+            lastWeekStats.intensitySum / lastWeekStats.intensityCount
+          )
+        : null,
+    };
+
     return {
       totalTrainingMinutes: totalMinutes,
-      totalTrainingHours: Math.round(totalHours * 10) / 10, // 1 decimal place
+      totalTrainingHours: Math.round(totalHours * 10) / 10,
       totalRounds,
       avgIntensity: intensityCount > 0 ? Math.round((intensitySum / intensityCount) * 10) / 10 : null,
       totalCalories,
       workoutsWithFeedback: intensityCount,
+      changes,
     };
   }, [history]);
 
