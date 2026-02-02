@@ -1,57 +1,69 @@
 
-# Plan: Add Workout Section Header to Timer
+# Plan: Fix Workout Auto-Completion When Last Segment Timer Ends
 
-## Overview
-Add a header above the timer that displays which phase of the workout the user is currently in: WARM-UP, ROUNDS, or COOL DOWN. This gives users better context about their position in the overall workout structure.
+## Problem
+When the timer reaches 0 on the last segment of a workout (e.g., the 10-minute Treadmill in Beginner Boxing I), the "Workout Complete" screen does not appear. Users must manually click the "Complete Early" button to see the completion screen.
 
-## Current State
-- The timer screen shows the segment name (e.g., "SHADOWBOXING", "COMBO DRILL")
-- The segment type is shown below the timer (e.g., "REST", "WORK")
-- No indication of which major section the user is in
+## Root Cause
+The segment transition logic checks `timeRemaining === 0` exactly, which is fragile because:
+1. **Race condition**: The interval may tick past 0 to -1 before the effect processes
+2. **React batching**: Multiple state updates may not trigger the effect in the expected order
+3. **Missing cleanup**: The natural completion path doesn't cancel speech synthesis (unlike early completion)
 
-## Proposed Change
+## Solution
 
 ### File: `src/pages/WorkoutSession.tsx`
 
-Add a section indicator above the phase title (around line 560):
+**Change 1: Make the timer check more robust (line 239)**
 
-**Location**: Between the `<div className="flex-1 flex flex-col...">` and the existing Phase Title `<h2>`
-
-**New UI Element**:
-```tsx
-{/* Section Indicator */}
-{!isPreparation && currentSegment?.section && (
-  <p className="text-xs text-muted-foreground uppercase tracking-widest mb-1">
-    {currentSegment.section === 'warmup' ? 'WARM-UP' : 
-     currentSegment.section === 'grind' ? 'ROUNDS' : 
-     'COOL DOWN'}
-  </p>
-)}
+Change from:
+```typescript
+if (timeRemaining === 0 && isRunning) {
 ```
 
-## Visual Result
-
-**Before:**
-```
-      SHADOWBOXING        <- Segment name
-         1:30            <- Timer
-      ── WORK ──         <- Segment type
+To:
+```typescript
+if (timeRemaining <= 0 && isRunning) {
 ```
 
-**After:**
+This ensures the completion triggers even if the timer decrements past 0.
+
+**Change 2: Cancel speech synthesis on natural completion (around line 247)**
+
+Add `cancelSpeech()` call when workout completes naturally, matching the behavior of `handleCompleteEarly`:
+
+```typescript
+} else {
+  // Workout complete - cancel any ongoing speech
+  cancelSpeech();
+  setIsComplete(true);
+  setIsRunning(false);
+  if (workout) {
+    markWorkoutUsed(workout.id);
+  }
+}
 ```
-       WARM-UP           <- Section indicator (new)
-      SHADOWBOXING        <- Segment name  
-         1:30            <- Timer
-      ── WORK ──         <- Segment type
+
+**Change 3: Add `cancelSpeech` to the effect's dependencies (line 255)**
+
+Update the dependency array to include `cancelSpeech`:
+```typescript
+}, [timeRemaining, isRunning, isPreparation, currentSegmentIndex, flatSegments, workout, markWorkoutUsed, cancelSpeech]);
 ```
+
+## Expected Behavior After Fix
+
+1. User starts "Beginner Boxing I" workout
+2. Timer progresses through all segments (warmup, grind cycles, cooldown)
+3. When the final segment (Treadmill - 10 min) timer hits 0:
+   - Any ongoing voice announcement stops
+   - `isComplete` is set to `true`
+   - The "Workout Complete" screen appears
+   - Duration shows the actual elapsed time
+   - XP earned shows the calculated value based on duration
 
 ## Technical Details
 
-- Uses existing `currentSegment.section` property which is already available (`'warmup' | 'grind' | 'cooldown'`)
-- Maps technical names to user-friendly labels:
-  - `warmup` → "WARM-UP"
-  - `grind` → "ROUNDS"
-  - `cooldown` → "COOL DOWN"
-- Hidden during the preparation countdown phase
-- Subtle styling (small, muted text) to not compete with the main timer
+- The fix uses `<= 0` instead of `=== 0` to handle edge cases where the interval fires faster than React processes effects
+- Adding `cancelSpeech()` ensures voice announcements don't continue playing after workout ends
+- This matches the existing behavior of the "Complete Early" button for consistency
