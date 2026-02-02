@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Home, Play, Pause, RotateCcw, SkipForward, SkipBack, ChevronRight, MoreVertical } from 'lucide-react';
+import { ArrowLeft, Home, Play, Pause, RotateCcw, SkipForward, SkipBack, ChevronRight, MoreVertical, CheckCircle } from 'lucide-react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
 import { VerticalXPBar } from '@/components/ui/VerticalXPBar';
@@ -324,6 +324,18 @@ const WorkoutSession = () => {
     }
   };
 
+  const handleCompleteEarly = () => {
+    // Cancel any ongoing speech
+    cancelSpeech();
+    // Mark workout as complete
+    setIsComplete(true);
+    setIsRunning(false);
+    // Mark workout as used
+    if (workout) {
+      markWorkoutUsed(workout.id);
+    }
+  };
+
   const adjustTime = (delta: number) => {
     setTimeRemaining((prev) => Math.max(0, prev + delta));
   };
@@ -478,6 +490,13 @@ const WorkoutSession = () => {
               title="Restart from beginning"
             >
               <RotateCcw className="w-4 h-4" />
+            </button>
+            <button
+              onClick={handleCompleteEarly}
+              className="px-3 py-2 rounded-full bg-surface-1 border border-surface-3 text-volt hover:text-volt/80 transition-colors"
+              title="Complete workout early"
+            >
+              <CheckCircle className="w-4 h-4" />
             </button>
           </div>
           
