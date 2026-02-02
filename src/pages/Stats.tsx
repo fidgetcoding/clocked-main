@@ -2,19 +2,21 @@ import { useState } from 'react';
 import { Flame, Trophy, Clock, Zap, ChevronRight, TrendingUp, TrendingDown, X, Target, Dumbbell, Activity } from 'lucide-react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { XPBar } from '@/components/ui/XPBar';
-import { useUserStore } from '@/stores/userStore';
+import { PrestigeDisplay } from '@/components/ui/PrestigeDisplay';
+import { useProfile } from '@/hooks/useProfile';
 import { useWorkoutStats } from '@/hooks/useWorkoutStats';
-import { RANK_NAMES, RANK_THRESHOLDS, Rank } from '@/types';
+import { 
+  Prestige, 
+  Ranking, 
+  PRESTIGE_NAMES, 
+  RANKING_NAMES, 
+  PRESTIGE_ORDER,
+  RANKING_ORDER,
+  getRankingFromLevel,
+  getLevelRangeForRanking
+} from '@/lib/xpSystem';
 import { cn } from '@/lib/utils';
 import { AreaChart, Area, XAxis, YAxis, ResponsiveContainer, Tooltip } from 'recharts';
-
-function getCurrentRank(xp: number): Rank {
-  const ranks = Object.entries(RANK_THRESHOLDS).reverse() as [Rank, number][];
-  for (const [rank, threshold] of ranks) {
-    if (xp >= threshold) return rank;
-  }
-  return 'regional';
-}
 
 // Mock historical data generator
 function generateMockData(days: number, baseValue: number, variance: number = 0.2) {
@@ -185,16 +187,19 @@ function StatDetailModal({ stat, onClose, timeframe, onTimeframeChange }: StatDe
 }
 
 const Stats = () => {
-  const user = useUserStore((state) => state.user);
+  const { profile } = useProfile();
   const { stats: workoutStats, isLoading } = useWorkoutStats();
   const [selectedStat, setSelectedStat] = useState<string | null>(null);
   const [timeframe, setTimeframe] = useState<'1W' | '1M' | '1Y'>('1M');
 
-  const totalXP = user?.totalXP || 0;
-  const currentRank = getCurrentRank(totalXP);
-  const workoutsCompleted = user?.workoutsCompleted || 0;
-  const currentStreak = user?.currentStreak || 0;
-  const longestStreak = user?.longestStreak || 0;
+  // Get prestige data from profile
+  const prestige: Prestige = profile?.prestige || 'beginner';
+  const currentLevel = profile?.current_level || 1;
+  const ranking = getRankingFromLevel(currentLevel);
+  const totalXP = profile?.total_xp || 0;
+  const workoutsCompleted = profile?.workouts_completed || 0;
+  const currentStreak = profile?.current_streak || 0;
+  const longestStreak = profile?.longest_streak || 0;
 
   // Use real data from workout history
   const totalHours = workoutStats.totalTrainingHours || 0;
@@ -240,7 +245,7 @@ const Stats = () => {
         </header>
 
         <div className="px-4 py-6 space-y-6">
-          {/* Rank Card */}
+          {/* Prestige/Ranking Card */}
           <div className="card-workout relative overflow-hidden">
             <div className="absolute inset-0 bg-gradient-to-br from-volt/10 to-transparent" />
             <div className="relative">
@@ -249,13 +254,22 @@ const Stats = () => {
                   <Trophy className="w-8 h-8 text-volt" />
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">Current Rank</p>
-                  <h2 className="text-2xl font-black text-volt uppercase tracking-wide">
-                    {RANK_NAMES[currentRank]}
-                  </h2>
+                  <p className="text-sm text-muted-foreground">Current Status</p>
+                  <PrestigeDisplay 
+                    prestige={prestige}
+                    ranking={ranking}
+                    level={currentLevel}
+                    totalXP={totalXP}
+                    showProgress={false}
+                    size="md"
+                  />
                 </div>
               </div>
-              <XPBar currentXP={totalXP} />
+              <XPBar 
+                prestige={prestige}
+                level={currentLevel}
+                totalXP={totalXP}
+              />
             </div>
           </div>
 
@@ -314,47 +328,46 @@ const Stats = () => {
             </div>
           </div>
 
-          {/* Rank Ladder */}
+          {/* Ranking Ladder */}
           <div className="card-workout">
-            <h3 className="font-semibold text-foreground mb-4">Rank Ladder</h3>
+            <h3 className="font-semibold text-foreground mb-4">Ranking Ladder</h3>
             <div className="space-y-2">
-              {(Object.entries(RANK_THRESHOLDS) as [Rank, number][])
-                .slice(0, 6)
-                .map(([rank, threshold]) => {
-                  const isCurrentRank = rank === currentRank;
-                  const isAchieved = totalXP >= threshold;
+              {RANKING_ORDER.slice(0, 6).map((rankItem) => {
+                const isCurrentRanking = rankItem === ranking;
+                const levelRange = getLevelRangeForRanking(rankItem);
+                const isAchieved = currentLevel >= levelRange.min;
 
-                  return (
-                    <div
-                      key={rank}
-                      className={`flex items-center justify-between py-2 px-3 rounded-lg ${
-                        isCurrentRank ? 'bg-volt/20' : ''
-                      }`}
-                    >
-                      <div className="flex items-center gap-3">
-                        <div
-                          className={`w-3 h-3 rounded-full ${
-                            isAchieved ? 'bg-volt' : 'bg-surface-3'
-                          }`}
-                        />
-                        <span
-                          className={`font-medium ${
-                            isCurrentRank
-                              ? 'text-volt'
-                              : isAchieved
-                              ? 'text-foreground'
-                              : 'text-muted-foreground'
-                          }`}
-                        >
-                          {RANK_NAMES[rank]}
-                        </span>
-                      </div>
-                      <span className="text-sm text-muted-foreground">
-                        {threshold.toLocaleString()} XP
+                return (
+                  <div
+                    key={rankItem}
+                    className={`flex items-center justify-between py-2 px-3 rounded-lg ${
+                      isCurrentRanking ? 'bg-volt/20' : ''
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div
+                        className={`w-3 h-3 rounded-full ${
+                          isAchieved ? 'bg-volt' : 'bg-surface-3'
+                        }`}
+                      />
+                      <span
+                        className={`font-medium ${
+                          isCurrentRanking
+                            ? 'text-volt'
+                            : isAchieved
+                            ? 'text-foreground'
+                            : 'text-muted-foreground'
+                        }`}
+                      >
+                        {RANKING_NAMES[rankItem]}
                       </span>
                     </div>
-                  );
-                })}
+                    <span className="text-sm text-muted-foreground">
+                      Lvl {levelRange.min}-{levelRange.max}
+                    </span>
+                  </div>
+                );
+              })}
             </div>
           </div>
         </div>

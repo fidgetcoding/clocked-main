@@ -1,47 +1,37 @@
 import { cn } from '@/lib/utils';
-import { RANK_THRESHOLDS, RANK_NAMES, Rank } from '@/types';
+import { 
+  Prestige, 
+  PRESTIGE_NAMES,
+  RANKING_NAMES,
+  getLevelProgress,
+  getRankingFromLevel
+} from '@/lib/xpSystem';
 
 interface VerticalXPBarProps {
-  currentXP: number;
+  prestige: Prestige;
+  level: number;
+  totalXP: number;
   className?: string;
 }
 
-// 100 XP per level
-const XP_PER_LEVEL = 100;
+// Prestige tier gradient colors
+const PRESTIGE_GRADIENTS: Record<Prestige, string> = {
+  rookie: 'linear-gradient(to top, rgb(148 163 184), rgb(203 213 225))',
+  beginner: 'linear-gradient(to top, hsl(var(--electric-volt)), hsl(82 100% 65%))',
+  intermediate: 'linear-gradient(to top, rgb(96 165 250), rgb(147 197 253))',
+  advanced: 'linear-gradient(to top, rgb(168 85 247), rgb(192 132 252))',
+  pro: 'linear-gradient(to top, rgb(251 191 36), rgb(253 224 71))',
+};
 
-function getCurrentRank(xp: number): Rank {
-  const ranks = Object.entries(RANK_THRESHOLDS).reverse() as [Rank, number][];
-  for (const [rank, threshold] of ranks) {
-    if (xp >= threshold) return rank;
-  }
-  return 'regional';
-}
-
-function getLevelInfo(xp: number): { 
-  currentLevel: number; 
-  progress: number;
-  xpInLevel: number;
-} {
-  const currentLevel = Math.floor(xp / XP_PER_LEVEL) + 1;
-  const xpInLevel = xp % XP_PER_LEVEL;
-  const progress = (xpInLevel / XP_PER_LEVEL) * 100;
-
-  return {
-    currentLevel,
-    progress,
-    xpInLevel,
-  };
-}
-
-export function VerticalXPBar({ currentXP, className }: VerticalXPBarProps) {
-  const rank = getCurrentRank(currentXP);
-  const { currentLevel, progress, xpInLevel } = getLevelInfo(currentXP);
+export function VerticalXPBar({ prestige, level, totalXP, className }: VerticalXPBarProps) {
+  const ranking = getRankingFromLevel(level);
+  const progress = getLevelProgress(prestige, level, totalXP);
 
   return (
     <div className={cn('flex flex-col items-center gap-1', className)}>
       {/* Next level at top */}
       <span className="text-[10px] font-bold text-muted-foreground">
-        Lvl {currentLevel + 1}
+        Lvl {Math.min(100, level + 1)}
       </span>
       
       {/* Vertical bar */}
@@ -50,20 +40,37 @@ export function VerticalXPBar({ currentXP, className }: VerticalXPBarProps) {
           className="absolute bottom-0 left-0 right-0 rounded-full transition-all duration-500 ease-out"
           style={{ 
             height: `${progress}%`,
-            background: 'linear-gradient(to top, hsl(var(--electric-volt)), hsl(82 100% 65%))',
+            background: PRESTIGE_GRADIENTS[prestige],
           }}
         />
       </div>
       
       {/* Current level at bottom */}
       <span className="text-[10px] font-bold text-volt">
-        Lvl {currentLevel}
+        Lvl {level}
       </span>
 
-      {/* Rank name */}
+      {/* Ranking name */}
       <span className="text-[9px] font-semibold text-muted-foreground uppercase tracking-wider mt-0.5">
-        {RANK_NAMES[rank]}
+        {RANKING_NAMES[ranking]}
       </span>
     </div>
+  );
+}
+
+// Legacy support wrapper
+interface LegacyVerticalXPBarProps {
+  currentXP: number;
+  className?: string;
+}
+
+export function LegacyVerticalXPBar({ currentXP, className }: LegacyVerticalXPBarProps) {
+  return (
+    <VerticalXPBar 
+      prestige="beginner" 
+      level={1} 
+      totalXP={currentXP} 
+      className={className} 
+    />
   );
 }

@@ -35,6 +35,30 @@ export type Database = {
         }
         Relationships: []
       }
+      badges: {
+        Row: {
+          badge_id: string
+          earned_at: string | null
+          id: string
+          user_id: string
+          xp_rewarded: number | null
+        }
+        Insert: {
+          badge_id: string
+          earned_at?: string | null
+          id?: string
+          user_id: string
+          xp_rewarded?: number | null
+        }
+        Update: {
+          badge_id?: string
+          earned_at?: string | null
+          id?: string
+          user_id?: string
+          xp_rewarded?: number | null
+        }
+        Relationships: []
+      }
       follows: {
         Row: {
           created_at: string
@@ -56,20 +80,51 @@ export type Database = {
         }
         Relationships: []
       }
+      personal_records: {
+        Row: {
+          achieved_at: string | null
+          id: string
+          record_type: string
+          user_id: string
+          value: number
+        }
+        Insert: {
+          achieved_at?: string | null
+          id?: string
+          record_type: string
+          user_id: string
+          value: number
+        }
+        Update: {
+          achieved_at?: string | null
+          id?: string
+          record_type?: string
+          user_id?: string
+          value?: number
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
+          combos_landed: number | null
           created_at: string
+          current_level: number | null
           current_streak: number
           equipment: Json | null
           experience_level: string | null
           goals: string[] | null
           id: string
           last_active_at: string | null
+          last_workout_date: string | null
           longest_streak: number
           name: string
           preferences: Json | null
+          prestige: string | null
           role: string
+          sessions_completed_this_year: number | null
+          streak_multiplier: number | null
+          total_training_seconds: number | null
           total_xp: number
           updated_at: string
           user_id: string
@@ -77,17 +132,24 @@ export type Database = {
         }
         Insert: {
           avatar_url?: string | null
+          combos_landed?: number | null
           created_at?: string
+          current_level?: number | null
           current_streak?: number
           equipment?: Json | null
           experience_level?: string | null
           goals?: string[] | null
           id?: string
           last_active_at?: string | null
+          last_workout_date?: string | null
           longest_streak?: number
           name?: string
           preferences?: Json | null
+          prestige?: string | null
           role?: string
+          sessions_completed_this_year?: number | null
+          streak_multiplier?: number | null
+          total_training_seconds?: number | null
           total_xp?: number
           updated_at?: string
           user_id: string
@@ -95,17 +157,24 @@ export type Database = {
         }
         Update: {
           avatar_url?: string | null
+          combos_landed?: number | null
           created_at?: string
+          current_level?: number | null
           current_streak?: number
           equipment?: Json | null
           experience_level?: string | null
           goals?: string[] | null
           id?: string
           last_active_at?: string | null
+          last_workout_date?: string | null
           longest_streak?: number
           name?: string
           preferences?: Json | null
+          prestige?: string | null
           role?: string
+          sessions_completed_this_year?: number | null
+          streak_multiplier?: number | null
+          total_training_seconds?: number | null
           total_xp?: number
           updated_at?: string
           user_id?: string
