@@ -466,6 +466,42 @@ const WorkoutSession = () => {
   // For combo segments, show the current combo
   const displayCombo = isShadowboxing ? currentSegment?.nextCombo : currentSegment?.combo;
 
+  // Check if current segment is rest (for rest screen preview)
+  const isRestSegment = currentSegment?.type === 'rest' && !isPreparation;
+  // Get the combo from the next segment to preview during rest
+  const restComboPreview = nextSegment?.combo;
+
+  // Helper function to convert move names to display format
+  const getDisplayMove = (move: string): { display: string; type: 'punch' | 'defense' | 'movement' } => {
+    const m = move.toUpperCase();
+    // Punch conversions
+    if (m === 'JAB') return { display: '1', type: 'punch' };
+    if (m === 'CROSS' || m === 'STRAIGHT') return { display: '2', type: 'punch' };
+    if (m === 'LEAD HOOK' || m === 'LEFT HOOK') return { display: '3', type: 'punch' };
+    if (m === 'REAR HOOK' || m === 'RIGHT HOOK') return { display: '4', type: 'punch' };
+    if (m === 'LEAD UPPERCUT' || m === 'LEFT UPPERCUT') return { display: '5', type: 'punch' };
+    if (m === 'REAR UPPERCUT' || m === 'RIGHT UPPERCUT') return { display: '6', type: 'punch' };
+    if (m === 'LEAD BODY HOOK' || m === 'LEFT BODY') return { display: '7', type: 'punch' };
+    if (m === 'REAR BODY HOOK' || m === 'RIGHT BODY') return { display: '8', type: 'punch' };
+    // Defense conversions
+    if (m.includes('SLIP L')) return { display: 'SL', type: 'defense' };
+    if (m.includes('SLIP R')) return { display: 'SR', type: 'defense' };
+    if (m.includes('ROLL L')) return { display: 'RL', type: 'defense' };
+    if (m.includes('ROLL R')) return { display: 'RR', type: 'defense' };
+    if (m === 'PULL') return { display: 'PL', type: 'defense' };
+    if (m === 'BLOCK') return { display: 'BK', type: 'defense' };
+    // Movement conversions
+    if (m.includes('CIRCLE L')) return { display: '↺', type: 'movement' };
+    if (m.includes('CIRCLE R')) return { display: '↻', type: 'movement' };
+    if (m.includes('STEP IN')) return { display: '→', type: 'movement' };
+    if (m.includes('STEP OUT')) return { display: '←', type: 'movement' };
+    // If it's already a number or short code, determine type
+    if (['1', '2', '3', '4', '5', '6', '7', '8'].includes(m)) return { display: m, type: 'punch' };
+    if (['SL', 'SR', 'RL', 'RR', 'PL', 'BK'].includes(m)) return { display: m, type: 'defense' };
+    if (['↺', '↻', '→', '←'].includes(m)) return { display: m, type: 'movement' };
+    return { display: move, type: 'punch' };
+  };
+
   // Active workout screen
   return (
     <AppLayout hideNav>
@@ -571,6 +607,54 @@ const WorkoutSession = () => {
               </button>
             ))}
           </div>
+
+          {/* Rest Screen - Next Segment Preview */}
+          {isRestSegment && (
+            <div className="w-full max-w-sm space-y-4">
+              {/* Next Segment Card */}
+              <div className="bg-surface-2 rounded-xl p-4 border border-surface-3">
+                <p className="text-xs text-muted-foreground uppercase tracking-wider mb-2 text-center">
+                  UP NEXT
+                </p>
+                <p className="text-xl font-black text-foreground text-center uppercase">
+                  {nextSegment?.name || 'FINISH'}
+                </p>
+                {nextSegment?.duration && (
+                  <p className="text-sm text-muted-foreground text-center mt-1">
+                    {formatTime(nextSegment.duration)}
+                  </p>
+                )}
+              </div>
+              
+              {/* Incoming Combo Preview (if next segment has a combo) */}
+              {restComboPreview && restComboPreview.length > 0 && (
+                <div className="bg-surface-1 rounded-xl p-4 border border-surface-3">
+                  <p className="text-xs text-alert-red font-bold mb-3 text-center animate-pulse">
+                    INCOMING COMBO
+                  </p>
+                  <div className="flex items-center justify-center gap-2 flex-wrap">
+                    {restComboPreview.map((move, idx) => {
+                      const { display, type } = getDisplayMove(move);
+                      return (
+                        <div key={idx} className="flex items-center gap-1">
+                          <span className={cn(
+                            'text-2xl font-black',
+                            type === 'defense' ? 'text-yellow-500' : 
+                            type === 'movement' ? 'text-blue-400' : 'text-volt'
+                          )}>
+                            {display}
+                          </span>
+                          {idx < restComboPreview.length - 1 && (
+                            <ChevronRight className="w-3 h-3 text-muted-foreground" />
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Combo Display - for shadowboxing: show incoming combo OR freestyle */}
           {isShadowboxing && !isPreparation && (
