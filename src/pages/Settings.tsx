@@ -227,7 +227,7 @@ const Settings = () => {
 
           {/* Version */}
           <div className="text-center text-xs text-muted-foreground pt-4">
-            v1.3
+            v1.31
           </div>
         </div>
       </div>
