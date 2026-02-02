@@ -109,7 +109,7 @@ const Index = () => {
               </div>
               <div className="mt-auto">
                 <h3 className="text-lg font-black text-foreground">CREATE</h3>
-                <h3 className="text-lg font-black text-foreground">SET</h3>
+                <p className="text-sm text-muted-foreground">SET</p>
               </div>
             </button>
 
