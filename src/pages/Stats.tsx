@@ -1,48 +1,31 @@
-import { useState } from 'react';
-import { Flame, Trophy, Clock, Zap, ChevronRight, TrendingUp, TrendingDown, X, Target, Dumbbell, Activity } from 'lucide-react';
+import { Flame, Trophy, Clock, Zap, TrendingUp, TrendingDown, Target, Dumbbell, Activity } from 'lucide-react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { XPBar } from '@/components/ui/XPBar';
 import { PrestigeDisplay } from '@/components/ui/PrestigeDisplay';
 import { useProfile } from '@/hooks/useProfile';
-import { useWorkoutStats } from '@/hooks/useWorkoutStats';
+import { useWorkoutStats, WeeklyChange } from '@/hooks/useWorkoutStats';
 import { 
   Prestige, 
-  Ranking, 
-  PRESTIGE_NAMES, 
   RANKING_NAMES, 
-  PRESTIGE_ORDER,
   RANKING_ORDER,
   getRankingFromLevel,
   getLevelRangeForRanking,
-  getLevelFromXP
 } from '@/lib/xpSystem';
 import { cn } from '@/lib/utils';
-import { AreaChart, Area, XAxis, YAxis, ResponsiveContainer, Tooltip } from 'recharts';
-
-// Mock historical data generator
-function generateMockData(days: number, baseValue: number, variance: number = 0.2) {
-  return Array.from({ length: days }, (_, i) => ({
-    day: i + 1,
-    date: new Date(Date.now() - (days - i - 1) * 24 * 60 * 60 * 1000).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-    value: Math.max(0, baseValue + (Math.random() - 0.5) * baseValue * variance * 2 + (i * baseValue * 0.02)),
-  }));
-}
 
 interface StatCardProps {
   icon: React.ComponentType<{ className?: string }>;
   label: string;
   value: string;
   color: string;
-  change?: { value: number; period: string };
-  onClick: () => void;
+  change?: WeeklyChange | null;
 }
 
-function StatCard({ icon: Icon, label, value, color, change, onClick }: StatCardProps) {
+function StatCard({ icon: Icon, label, value, color, change }: StatCardProps) {
   return (
-    <button onClick={onClick} className="card-workout text-left w-full group">
+    <div className="card-workout text-left w-full">
       <div className="flex items-start justify-between">
         <Icon className={`w-5 h-5 ${color} mb-2`} />
-        <ChevronRight className="w-4 h-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
       </div>
       <p className="text-2xl font-bold text-foreground">{value}</p>
       <p className="text-sm text-muted-foreground">{label}</p>
@@ -55,143 +38,13 @@ function StatCard({ icon: Icon, label, value, color, change, onClick }: StatCard
           <span>{change.value >= 0 ? '+' : ''}{change.value}% {change.period}</span>
         </div>
       )}
-    </button>
-  );
-}
-
-interface StatDetailModalProps {
-  stat: {
-    label: string;
-    value: string;
-    color: string;
-    icon: React.ComponentType<{ className?: string }>;
-    data: { day: number; date: string; value: number }[];
-  } | null;
-  onClose: () => void;
-  timeframe: '1W' | '1M' | '1Y';
-  onTimeframeChange: (tf: '1W' | '1M' | '1Y') => void;
-}
-
-function StatDetailModal({ stat, onClose, timeframe, onTimeframeChange }: StatDetailModalProps) {
-  if (!stat) return null;
-
-  const Icon = stat.icon;
-  const data = stat.data.slice(timeframe === '1W' ? -7 : timeframe === '1M' ? -30 : -365);
-  
-  // Calculate change percentage
-  const firstValue = data[0]?.value || 0;
-  const lastValue = data[data.length - 1]?.value || 0;
-  const changePercent = firstValue > 0 ? Math.round(((lastValue - firstValue) / firstValue) * 100) : 0;
-
-  return (
-    <div className="fixed inset-0 bg-background/95 z-50 flex flex-col">
-      <header className="flex items-center justify-between px-4 py-4 border-b border-surface-3">
-        <button onClick={onClose} className="text-muted-foreground">
-          <X className="w-6 h-6" />
-        </button>
-        <h2 className="font-bold text-foreground">{stat.label}</h2>
-        <div className="w-6" />
-      </header>
-
-      <div className="flex-1 overflow-y-auto px-4 py-6">
-        {/* Current Value */}
-        <div className="text-center mb-6">
-          <Icon className={`w-8 h-8 ${stat.color} mx-auto mb-2`} />
-          <p className="text-4xl font-black text-foreground">{stat.value}</p>
-          <div className={cn(
-            'flex items-center justify-center gap-1 mt-2 text-sm font-medium',
-            changePercent >= 0 ? 'text-volt' : 'text-alert-red'
-          )}>
-            {changePercent >= 0 ? <TrendingUp className="w-4 h-4" /> : <TrendingDown className="w-4 h-4" />}
-            <span>{changePercent >= 0 ? '+' : ''}{changePercent}% this {timeframe === '1W' ? 'week' : timeframe === '1M' ? 'month' : 'year'}</span>
-          </div>
-        </div>
-
-        {/* Timeframe Toggle */}
-        <div className="flex gap-2 mb-6">
-          {(['1W', '1M', '1Y'] as const).map((tf) => (
-            <button
-              key={tf}
-              onClick={() => onTimeframeChange(tf)}
-              className={cn(
-                'flex-1 py-2 rounded-lg text-sm font-medium transition-colors',
-                timeframe === tf
-                  ? 'bg-volt text-primary-foreground'
-                  : 'bg-surface-1 text-muted-foreground'
-              )}
-            >
-              {tf}
-            </button>
-          ))}
-        </div>
-
-        {/* Chart */}
-        <div className="h-64 bg-surface-1 rounded-xl p-4 border border-surface-3">
-          <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={data}>
-              <defs>
-                <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="hsl(var(--electric-volt))" stopOpacity={0.3}/>
-                  <stop offset="95%" stopColor="hsl(var(--electric-volt))" stopOpacity={0}/>
-                </linearGradient>
-              </defs>
-              <XAxis 
-                dataKey="date" 
-                axisLine={false}
-                tickLine={false}
-                tick={{ fill: 'hsl(var(--text-secondary))', fontSize: 10 }}
-                interval="preserveStartEnd"
-              />
-              <YAxis 
-                axisLine={false}
-                tickLine={false}
-                tick={{ fill: 'hsl(var(--text-secondary))', fontSize: 10 }}
-                width={40}
-              />
-              <Tooltip
-                contentStyle={{
-                  backgroundColor: 'hsl(var(--surface-1))',
-                  border: '1px solid hsl(var(--surface-3))',
-                  borderRadius: '8px',
-                  color: 'hsl(var(--text-primary))',
-                }}
-              />
-              <Area
-                type="monotone"
-                dataKey="value"
-                stroke="hsl(var(--electric-volt))"
-                strokeWidth={2}
-                fill="url(#colorValue)"
-              />
-            </AreaChart>
-          </ResponsiveContainer>
-        </div>
-
-        {/* Stats Summary */}
-        <div className="grid grid-cols-3 gap-3 mt-6">
-          <div className="bg-surface-1 rounded-lg p-3 text-center border border-surface-3">
-            <p className="text-xs text-muted-foreground">Min</p>
-            <p className="font-bold text-foreground">{Math.round(Math.min(...data.map(d => d.value)))}</p>
-          </div>
-          <div className="bg-surface-1 rounded-lg p-3 text-center border border-surface-3">
-            <p className="text-xs text-muted-foreground">Avg</p>
-            <p className="font-bold text-foreground">{Math.round(data.reduce((a, b) => a + b.value, 0) / data.length)}</p>
-          </div>
-          <div className="bg-surface-1 rounded-lg p-3 text-center border border-surface-3">
-            <p className="text-xs text-muted-foreground">Max</p>
-            <p className="font-bold text-foreground">{Math.round(Math.max(...data.map(d => d.value)))}</p>
-          </div>
-        </div>
-      </div>
     </div>
   );
 }
 
 const Stats = () => {
   const { profile } = useProfile();
-  const { stats: workoutStats, isLoading } = useWorkoutStats();
-  const [selectedStat, setSelectedStat] = useState<string | null>(null);
-  const [timeframe, setTimeframe] = useState<'1W' | '1M' | '1Y'>('1M');
+  const { stats: workoutStats } = useWorkoutStats();
 
   // Get prestige data from profile
   const prestige: Prestige = profile?.prestige || 'beginner';
@@ -207,35 +60,22 @@ const Stats = () => {
   const totalRounds = workoutStats.totalRounds || 0;
   const avgIntensity = workoutStats.avgIntensity;
   const caloriesBurned = workoutStats.totalCalories || 0;
-
-  // Generate mock historical data (will be replaced with real historical queries later)
-  const statsData = {
-    xp: { data: generateMockData(365, totalXP || 100, 0.1), change: { value: 12, period: 'this week' } },
-    workouts: { data: generateMockData(365, workoutsCompleted || 1, 0.3), change: { value: 8, period: 'this week' } },
-    hours: { data: generateMockData(365, totalHours || 1, 0.25), change: { value: 15, period: 'this week' } },
-    streak: { data: generateMockData(365, currentStreak || 1, 0.5), change: { value: -5, period: 'this week' } },
-    calories: { data: generateMockData(365, caloriesBurned || 100, 0.2), change: { value: 18, period: 'this week' } },
-    rounds: { data: generateMockData(365, totalRounds || 1, 0.3), change: { value: 22, period: 'this week' } },
-    intensity: { data: generateMockData(365, (avgIntensity || 3) * 20, 0.15).map(d => ({ ...d, value: d.value / 20 })), change: { value: 5, period: 'this week' } },
-  };
+  const { changes } = workoutStats;
 
   // Gamification stats (XP, achievements, streaks)
   const progressStats = [
-    { id: 'xp', icon: Zap, label: 'Total XP', value: totalXP.toLocaleString(), color: 'text-muted-foreground', ...statsData.xp },
-    { id: 'workouts', icon: Trophy, label: 'Workouts', value: workoutsCompleted.toString(), color: 'text-muted-foreground', ...statsData.workouts },
-    { id: 'streak', icon: Flame, label: 'Current Streak', value: `${currentStreak} days`, color: 'text-muted-foreground', ...statsData.streak },
+    { id: 'xp', icon: Zap, label: 'Total XP', value: totalXP.toLocaleString(), color: 'text-muted-foreground', change: changes.xp },
+    { id: 'workouts', icon: Trophy, label: 'Workouts', value: workoutsCompleted.toString(), color: 'text-muted-foreground', change: changes.workouts },
+    { id: 'streak', icon: Flame, label: 'Current Streak', value: `${currentStreak} days`, color: 'text-muted-foreground', change: null },
   ];
 
   // Training stats (time, rounds, effort)
   const trainingStats = [
-    { id: 'hours', icon: Clock, label: 'Training Hours', value: `${totalHours}h`, color: 'text-muted-foreground', ...statsData.hours },
-    { id: 'rounds', icon: Target, label: 'Total Rounds', value: totalRounds.toLocaleString(), color: 'text-muted-foreground', ...statsData.rounds },
-    { id: 'calories', icon: Activity, label: 'Calories Burned', value: caloriesBurned.toLocaleString(), color: 'text-muted-foreground', ...statsData.calories },
-    { id: 'intensity', icon: Dumbbell, label: 'Avg Intensity', value: avgIntensity !== null ? `${avgIntensity}/5` : '--', color: 'text-muted-foreground', ...statsData.intensity },
+    { id: 'hours', icon: Clock, label: 'Training Hours', value: `${totalHours}h`, color: 'text-muted-foreground', change: changes.hours },
+    { id: 'rounds', icon: Target, label: 'Total Rounds', value: totalRounds.toLocaleString(), color: 'text-muted-foreground', change: changes.rounds },
+    { id: 'calories', icon: Activity, label: 'Calories Burned', value: caloriesBurned.toLocaleString(), color: 'text-muted-foreground', change: changes.calories },
+    { id: 'intensity', icon: Dumbbell, label: 'Avg Intensity', value: avgIntensity !== null ? `${avgIntensity}/5` : '--', color: 'text-muted-foreground', change: changes.intensity },
   ];
-
-  const allStats = [...progressStats, ...trainingStats];
-  const selectedStatData = selectedStat ? allStats.find(s => s.id === selectedStat) : null;
 
   return (
     <AppLayout>
@@ -286,7 +126,6 @@ const Stats = () => {
                   value={stat.value}
                   color={stat.color}
                   change={stat.change}
-                  onClick={() => setSelectedStat(stat.id)}
                 />
               ))}
             </div>
@@ -304,7 +143,6 @@ const Stats = () => {
                   value={stat.value}
                   color={stat.color}
                   change={stat.change}
-                  onClick={() => setSelectedStat(stat.id)}
                 />
               ))}
             </div>
@@ -373,16 +211,6 @@ const Stats = () => {
           </div>
         </div>
       </div>
-
-      {/* Stat Detail Modal */}
-      {selectedStatData && (
-        <StatDetailModal
-          stat={selectedStatData}
-          onClose={() => setSelectedStat(null)}
-          timeframe={timeframe}
-          onTimeframeChange={setTimeframe}
-        />
-      )}
     </AppLayout>
   );
 };
