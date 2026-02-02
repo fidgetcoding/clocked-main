@@ -224,6 +224,11 @@ const Settings = () => {
               <span className="font-medium">{isSigningOut ? 'Signing Out...' : 'Sign Out'}</span>
             </button>
           </div>
+
+          {/* Version */}
+          <div className="text-center text-xs text-muted-foreground pt-4">
+            v1.3
+          </div>
         </div>
       </div>
     </AppLayout>
