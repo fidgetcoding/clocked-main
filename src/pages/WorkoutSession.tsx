@@ -258,7 +258,7 @@ const WorkoutSession = () => {
   useEffect(() => {
     if (isComplete && totalElapsed > 0) {
       const xpEarned = Math.floor((totalElapsed / 60) * 10);
-      addXP(xpEarned);
+      addXP(xpEarned, true);
     }
   }, [isComplete, totalElapsed, addXP]);
 
@@ -278,7 +278,7 @@ const WorkoutSession = () => {
     setIsPaused(false);
     // Add 10 XP only on first start, not on resume
     if (!hasStartedOnce) {
-      addXP(10);
+      addXP(10, true);
       showXpBubble(10);
       setHasStartedOnce(true);
     }
