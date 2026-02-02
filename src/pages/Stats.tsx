@@ -13,7 +13,8 @@ import {
   PRESTIGE_ORDER,
   RANKING_ORDER,
   getRankingFromLevel,
-  getLevelRangeForRanking
+  getLevelRangeForRanking,
+  getLevelFromXP
 } from '@/lib/xpSystem';
 import { cn } from '@/lib/utils';
 import { AreaChart, Area, XAxis, YAxis, ResponsiveContainer, Tooltip } from 'recharts';

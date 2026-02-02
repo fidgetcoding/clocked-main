@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { Prestige, Ranking, getRankingFromLevel, experienceLevelToPrestige } from '@/lib/xpSystem';
+import { Prestige, Ranking, getRankingFromLevel, experienceLevelToPrestige, getLevelFromXP } from '@/lib/xpSystem';
 
 export interface Profile {
   id: string;
@@ -65,6 +65,11 @@ export function useProfile() {
       
       // Transform the data to match our Profile interface
       if (data) {
+        const prestige = (data.prestige || experienceLevelToPrestige(data.experience_level || 'beginner')) as Prestige;
+        const totalXP = data.total_xp || 0;
+        // Calculate level dynamically from XP - this is the source of truth
+        const calculatedLevel = getLevelFromXP(prestige, totalXP);
+        
         return {
           ...data,
           equipment: (data.equipment || {}) as Record<string, boolean>,
@@ -75,8 +80,8 @@ export function useProfile() {
             hapticEnabled: true,
             voiceAnnouncements: true,
           }) as Profile['preferences'],
-          prestige: (data.prestige || experienceLevelToPrestige(data.experience_level || 'beginner')) as Prestige,
-          current_level: data.current_level || 1,
+          prestige,
+          current_level: calculatedLevel, // Use calculated level, not stored
           combos_landed: data.combos_landed || 0,
           total_training_seconds: data.total_training_seconds || 0,
           sessions_completed_this_year: data.sessions_completed_this_year || 0,
