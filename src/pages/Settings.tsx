@@ -6,7 +6,7 @@ import { Switch } from '@/components/ui/switch';
 import { useUserStore } from '@/stores/userStore';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
-import { getAppVersion } from '@/lib/version';
+import { useAppVersion } from '@/hooks/useAppVersion';
 
 const Settings = () => {
   const navigate = useNavigate();
@@ -14,6 +14,7 @@ const Settings = () => {
   const updateUser = useUserStore((state) => state.updateUser);
   const setUser = useUserStore((state) => state.setUser);
   const { signOut } = useAuth();
+  const { data: version } = useAppVersion();
   
   const [isSigningOut, setIsSigningOut] = useState(false);
 
@@ -228,7 +229,7 @@ const Settings = () => {
 
           {/* Version */}
           <div className="text-center text-xs text-muted-foreground pt-4">
-            {getAppVersion()}
+            v{version || '1.0'}
           </div>
         </div>
       </div>
