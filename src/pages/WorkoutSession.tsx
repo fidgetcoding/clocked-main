@@ -236,7 +236,7 @@ const WorkoutSession = () => {
 
   // Handle segment transitions when time hits 0
   useEffect(() => {
-    if (timeRemaining === 0 && isRunning) {
+    if (timeRemaining <= 0 && isRunning) {
       if (isPreparation) {
         setIsPreparation(false);
         setTimeRemaining(flatSegments[0]?.duration || 60);
@@ -244,7 +244,8 @@ const WorkoutSession = () => {
         setCurrentSegmentIndex((prev) => prev + 1);
         setTimeRemaining(flatSegments[currentSegmentIndex + 1]?.duration || 60);
       } else {
-        // Workout complete
+        // Workout complete - cancel any ongoing speech
+        cancelSpeech();
         setIsComplete(true);
         setIsRunning(false);
         if (workout) {
@@ -252,7 +253,7 @@ const WorkoutSession = () => {
         }
       }
     }
-  }, [timeRemaining, isRunning, isPreparation, currentSegmentIndex, flatSegments, workout, markWorkoutUsed]);
+  }, [timeRemaining, isRunning, isPreparation, currentSegmentIndex, flatSegments, workout, markWorkoutUsed, cancelSpeech]);
 
   // Award XP when workout is complete
   useEffect(() => {
