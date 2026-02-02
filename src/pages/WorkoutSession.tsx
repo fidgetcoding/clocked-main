@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Home, Play, Pause, RotateCcw, SkipForward, SkipBack, ChevronRight, MoreVertical } from 'lucide-react';
 import { AppLayout } from '@/components/layout/AppLayout';
@@ -7,6 +7,7 @@ import { VerticalXPBar } from '@/components/ui/VerticalXPBar';
 import { useWorkoutStore } from '@/stores/workoutStore';
 import { useUserStore } from '@/stores/userStore';
 import { useHistoryStore } from '@/stores/historyStore';
+import { useSpeechSynthesis } from '@/hooks/useSpeechSynthesis';
 import { cn } from '@/lib/utils';
 
 interface FlatSegment {
@@ -43,6 +44,14 @@ const WorkoutSession = () => {
   const user = useUserStore((state) => state.user);
   const addXP = useUserStore((state) => state.addXP);
   const addCompletedWorkout = useHistoryStore((state) => state.addCompletedWorkout);
+  const { initialize: initSpeech, speak, cancel: cancelSpeech } = useSpeechSynthesis();
+
+  // Get user preferences for voice settings
+  const preferences = user?.preferences as {
+    voiceAnnouncements?: boolean;
+    voiceCountdown?: boolean;
+    voiceComboCallouts?: boolean;
+  } | undefined;
 
   const workout = workouts.find((w) => w.id === id);
 
@@ -155,15 +164,75 @@ const WorkoutSession = () => {
     };
   }, [isRunning, isPaused]);
 
-  // Countdown voice at 3 seconds
+  // Voice countdown at 3 seconds - respects voiceCountdown preference
   useEffect(() => {
     if (timeRemaining === 3 && isRunning && !isPaused) {
-      const utterance = new SpeechSynthesisUtterance('3, 2, 1');
-      utterance.rate = 0.9;
-      utterance.pitch = 1;
-      speechSynthesis.speak(utterance);
+      if (preferences?.voiceCountdown !== false && preferences?.voiceAnnouncements !== false) {
+        speak('3, 2, 1', { rate: 0.8 });
+      }
     }
-  }, [timeRemaining, isRunning, isPaused]);
+  }, [timeRemaining, isRunning, isPaused, preferences, speak]);
+
+  // 10-second warning voice
+  useEffect(() => {
+    if (timeRemaining === 10 && isRunning && !isPaused && !isPreparation) {
+      if (preferences?.voiceCountdown !== false && preferences?.voiceAnnouncements !== false) {
+        speak('10 seconds', { rate: 0.9 });
+      }
+    }
+  }, [timeRemaining, isRunning, isPaused, isPreparation, preferences, speak]);
+
+  // Track previous segment to detect transitions
+  const prevSegmentIndexRef = useRef<number>(-1);
+
+  // Phase/segment announcement voice
+  useEffect(() => {
+    // Only announce on actual segment change, not on every render
+    if (prevSegmentIndexRef.current === currentSegmentIndex) return;
+    prevSegmentIndexRef.current = currentSegmentIndex;
+
+    if (!isPreparation && currentSegment && isRunning && !isPaused) {
+      if (preferences?.voiceAnnouncements !== false) {
+        // Announce the segment type/name
+        let announcement = '';
+        
+        if (currentSegment.type === 'rest') {
+          announcement = 'Rest';
+        } else if (currentSegment.segmentType === 'shadowboxing' || 
+                   currentSegment.name.toLowerCase().includes('shadow')) {
+          announcement = 'Shadowboxing';
+        } else if (currentSegment.segmentType === 'combo') {
+          announcement = 'Combo';
+        } else {
+          // Use segment name for other types (warmup, cooldown, etc.)
+          announcement = currentSegment.name;
+        }
+        
+        speak(announcement, { rate: 0.9 });
+        
+        // If it's a combo segment, also read the combo punches after a delay
+        const combo = currentSegment.combo;
+        if (combo && combo.length > 0 && preferences?.voiceComboCallouts !== false) {
+          setTimeout(() => {
+            // Convert combo to speakable format
+            const speakableCombo = combo.map(move => {
+              const m = move.toUpperCase();
+              if (m === 'SLIP L') return 'slip left';
+              if (m === 'SLIP R') return 'slip right';
+              if (m === 'ROLL L') return 'roll left';
+              if (m === 'ROLL R') return 'roll right';
+              if (m === 'CIRCLE L') return 'circle left';
+              if (m === 'CIRCLE R') return 'circle right';
+              if (m === 'STEP IN') return 'step in';
+              if (m === 'STEP OUT') return 'step out';
+              return move;
+            }).join(', ');
+            speak(speakableCombo, { rate: 0.85 });
+          }, 1200);
+        }
+      }
+    }
+  }, [currentSegmentIndex, isPreparation, currentSegment, isRunning, isPaused, preferences, speak]);
 
   // Handle segment transitions when time hits 0
   useEffect(() => {
@@ -202,6 +271,9 @@ const WorkoutSession = () => {
   };
 
   const handleStart = () => {
+    // Initialize speech synthesis on user interaction (required by browsers)
+    initSpeech();
+    
     setIsRunning(true);
     setIsPaused(false);
     // Add 10 XP only on first start, not on resume
