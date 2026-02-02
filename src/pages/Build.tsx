@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { ArrowLeft, Plus, Trash2, GripVertical, Play, X, ChevronDown, ChevronUp, Sparkles } from 'lucide-react';
+import { ArrowLeft, Plus, Trash2, GripVertical, Pencil, Play, X, ChevronDown, ChevronUp, Sparkles } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
@@ -530,7 +530,7 @@ const Build = () => {
                         ))}
                       </div>
                       <button onClick={() => editCombo(idx)} className="text-muted-foreground hover:text-foreground">
-                        <Play className="w-4 h-4" />
+                        <Pencil className="w-4 h-4" />
                       </button>
                       <button onClick={() => deleteCombo(idx)} className="text-muted-foreground hover:text-destructive">
                         <Trash2 className="w-4 h-4" />
