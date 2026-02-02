@@ -333,7 +333,7 @@ const Stats = () => {
           <div className="card-workout">
             <h3 className="font-semibold text-foreground mb-4">Ranking Ladder</h3>
             <div className="space-y-2">
-              {RANKING_ORDER.slice(0, 6).map((rankItem) => {
+              {RANKING_ORDER.map((rankItem) => {
                 const isCurrentRanking = rankItem === ranking;
                 const levelRange = getLevelRangeForRanking(rankItem);
                 const isAchieved = currentLevel >= levelRange.min;
