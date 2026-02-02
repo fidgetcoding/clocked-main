@@ -516,7 +516,7 @@ const WorkoutSession = () => {
                 +{xpBubble.amount} XP
               </div>
             )}
-            <VerticalXPBar currentXP={(user?.totalXP || 0) + currentXP} />
+            <VerticalXPBar prestige="beginner" level={1} totalXP={(user?.totalXP || 0) + currentXP} />
           </div>
         </header>
 

@@ -3,21 +3,14 @@ import { ArrowLeft, Settings, User, MapPin, Link as LinkIcon, UserPlus, UserChec
 import { useNavigate, useParams } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
-import { useProfile } from '@/hooks/useProfile';
+import { useProfile, getProfileRanking } from '@/hooks/useProfile';
 import { useFollows } from '@/hooks/useFollows';
 import { useAuth } from '@/contexts/AuthContext';
 import { XPBar } from '@/components/ui/XPBar';
-import { RANK_NAMES, Rank, RANK_THRESHOLDS } from '@/types';
+import { PrestigeDisplay, PrestigeBadge } from '@/components/ui/PrestigeDisplay';
+import { Prestige, PRESTIGE_NAMES, RANKING_NAMES, getRankingFromLevel } from '@/lib/xpSystem';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
-
-function getCurrentRank(xp: number): Rank {
-  const ranks = Object.entries(RANK_THRESHOLDS).reverse() as [Rank, number][];
-  for (const [rank, threshold] of ranks) {
-    if (xp >= threshold) return rank;
-  }
-  return 'regional';
-}
 
 function formatDuration(seconds: number): string {
   const hours = Math.floor(seconds / 3600);
@@ -110,9 +103,15 @@ const Profile = () => {
   const isOwnProfile = !userId;
   const viewingUser = isOwnProfile ? null : MOCK_USERS[userId];
 
+  // Get prestige and ranking data
+  const prestige: Prestige = isOwnProfile 
+    ? (profile?.prestige || 'beginner') 
+    : 'beginner';
+  const currentLevel = isOwnProfile ? (profile?.current_level || 1) : 1;
+  const ranking = getRankingFromLevel(currentLevel);
+
   // Use real user data from database
   const totalXP = isOwnProfile ? (profile?.total_xp || 0) : (viewingUser?.totalXP || 0);
-  const currentRank = getCurrentRank(totalXP);
   const profileName = isOwnProfile ? (profile?.name || 'Fighter') : (viewingUser?.name || 'Unknown');
   const profileHandle = isOwnProfile ? '@' + (profile?.name?.toLowerCase().replace(/\s+/g, '') || 'fighter') : (viewingUser?.handle || '@unknown');
   const profileAvatar = isOwnProfile ? profile?.avatar_url : viewingUser?.avatar;
@@ -205,12 +204,14 @@ const Profile = () => {
             </div>
           </div>
 
-          {/* Rank Badge */}
-          <div className="flex items-center gap-2 mb-3">
-            <div className="bg-volt/20 px-3 py-1.5 rounded-full">
-              <span className="text-volt font-bold text-lg uppercase tracking-wide">{RANK_NAMES[currentRank]}</span>
-            </div>
-            <span className="text-sm text-muted-foreground">{totalXP.toLocaleString()} XP</span>
+          {/* Prestige/Ranking/Level Display */}
+          <div className="mb-3">
+            <PrestigeBadge 
+              prestige={prestige} 
+              ranking={ranking} 
+              level={currentLevel} 
+            />
+            <span className="text-sm text-muted-foreground ml-2">{totalXP.toLocaleString()} XP</span>
           </div>
 
           {/* Total Workout Time */}
@@ -225,7 +226,12 @@ const Profile = () => {
           </div>
 
           {/* XP Bar */}
-          <XPBar currentXP={totalXP} className="mb-4" />
+          <XPBar 
+            prestige={prestige}
+            level={currentLevel}
+            totalXP={totalXP}
+            className="mb-4" 
+          />
 
           {/* Bio (for other profiles) */}
           {!isOwnProfile && viewingUser?.bio && (
