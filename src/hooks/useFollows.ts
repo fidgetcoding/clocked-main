@@ -2,6 +2,13 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 
+export interface FollowUser {
+  id: string;
+  name: string;
+  avatar: string | null;
+  handle: string;
+}
+
 export function useFollows(userId?: string) {
   const { user } = useAuth();
   const queryClient = useQueryClient();
@@ -41,6 +48,74 @@ export function useFollows(userId?: string) {
     enabled: !!targetUserId,
   });
 
+  // Get actual followers list with profile info
+  const { data: followersList = [] } = useQuery({
+    queryKey: ['followers-list', targetUserId],
+    queryFn: async () => {
+      if (!targetUserId) return [];
+      
+      // Get all follows where target is being followed
+      const { data: follows, error: followsError } = await supabase
+        .from('follows')
+        .select('follower_id')
+        .eq('following_id', targetUserId);
+      
+      if (followsError) throw followsError;
+      if (!follows || follows.length === 0) return [];
+      
+      // Get profiles for those followers
+      const followerIds = follows.map(f => f.follower_id);
+      const { data: profiles, error: profilesError } = await supabase
+        .from('profiles')
+        .select('user_id, name, avatar_url')
+        .in('user_id', followerIds);
+      
+      if (profilesError) throw profilesError;
+      
+      return (profiles || []).map(p => ({
+        id: p.user_id,
+        name: p.name || 'Fighter',
+        avatar: p.avatar_url,
+        handle: '@' + (p.name?.toLowerCase().replace(/\s+/g, '') || 'fighter'),
+      })) as FollowUser[];
+    },
+    enabled: !!targetUserId,
+  });
+
+  // Get actual following list with profile info
+  const { data: followingList = [] } = useQuery({
+    queryKey: ['following-list', targetUserId],
+    queryFn: async () => {
+      if (!targetUserId) return [];
+      
+      // Get all follows where target is following others
+      const { data: follows, error: followsError } = await supabase
+        .from('follows')
+        .select('following_id')
+        .eq('follower_id', targetUserId);
+      
+      if (followsError) throw followsError;
+      if (!follows || follows.length === 0) return [];
+      
+      // Get profiles for those being followed
+      const followingIds = follows.map(f => f.following_id);
+      const { data: profiles, error: profilesError } = await supabase
+        .from('profiles')
+        .select('user_id, name, avatar_url')
+        .in('user_id', followingIds);
+      
+      if (profilesError) throw profilesError;
+      
+      return (profiles || []).map(p => ({
+        id: p.user_id,
+        name: p.name || 'Fighter',
+        avatar: p.avatar_url,
+        handle: '@' + (p.name?.toLowerCase().replace(/\s+/g, '') || 'fighter'),
+      })) as FollowUser[];
+    },
+    enabled: !!targetUserId,
+  });
+
   // Check if current user is following target user
   const { data: isFollowing = false } = useQuery({
     queryKey: ['is-following', user?.id, targetUserId],
@@ -73,7 +148,9 @@ export function useFollows(userId?: string) {
     },
     onSuccess: (_, targetId) => {
       queryClient.invalidateQueries({ queryKey: ['followers-count', targetId] });
+      queryClient.invalidateQueries({ queryKey: ['followers-list', targetId] });
       queryClient.invalidateQueries({ queryKey: ['following-count', user?.id] });
+      queryClient.invalidateQueries({ queryKey: ['following-list', user?.id] });
       queryClient.invalidateQueries({ queryKey: ['is-following', user?.id, targetId] });
     },
   });
@@ -93,7 +170,9 @@ export function useFollows(userId?: string) {
     },
     onSuccess: (_, targetId) => {
       queryClient.invalidateQueries({ queryKey: ['followers-count', targetId] });
+      queryClient.invalidateQueries({ queryKey: ['followers-list', targetId] });
       queryClient.invalidateQueries({ queryKey: ['following-count', user?.id] });
+      queryClient.invalidateQueries({ queryKey: ['following-list', user?.id] });
       queryClient.invalidateQueries({ queryKey: ['is-following', user?.id, targetId] });
     },
   });
@@ -101,6 +180,8 @@ export function useFollows(userId?: string) {
   return {
     followersCount,
     followingCount,
+    followersList,
+    followingList,
     isFollowing,
     follow,
     unfollow,

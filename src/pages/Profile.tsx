@@ -28,7 +28,7 @@ function formatDuration(seconds: number): string {
   return `${mins}m`;
 }
 
-// Mock data for users
+// Mock data for other users (when viewing someone else's profile)
 const MOCK_USERS: Record<string, any> = {
   'sarah-chen': {
     id: 'sarah-chen',
@@ -96,20 +96,6 @@ const MOCK_USERS: Record<string, any> = {
   },
 };
 
-// Mock followers and following lists
-const OWN_FOLLOWERS = [
-  { id: 'sarah-chen', name: 'Sarah Chen', avatar: '👩', handle: '@sarahfights' },
-  { id: 'mike-thompson', name: 'Mike Thompson', avatar: '👨', handle: '@ironmike' },
-  { id: 'alex-rodriguez', name: 'Alex Rodriguez', avatar: '🧔', handle: '@alexfists' },
-];
-
-const OWN_FOLLOWING = [
-  { id: 'mike-thompson', name: 'Mike Thompson', avatar: '👨', handle: '@ironmike' },
-  { id: 'jamie-lee', name: 'Jamie Lee', avatar: '👧', handle: '@jamiepunches' },
-  { id: 'sarah-chen', name: 'Sarah Chen', avatar: '👩', handle: '@sarahfights' },
-  { id: 'alex-rodriguez', name: 'Alex Rodriguez', avatar: '🧔', handle: '@alexfists' },
-];
-
 type ListModalType = 'followers' | 'following' | null;
 
 const Profile = () => {
@@ -117,7 +103,7 @@ const Profile = () => {
   const { userId } = useParams<{ userId?: string }>();
   const { profile } = useProfile();
   const { user: authUser } = useAuth();
-  const { followersCount, followingCount, isFollowing, follow, unfollow } = useFollows(userId);
+  const { followersCount, followingCount, followersList, followingList, isFollowing, follow, unfollow } = useFollows(userId);
   const [listModal, setListModal] = useState<ListModalType>(null);
 
   // Determine if viewing own profile or someone else's
@@ -144,10 +130,10 @@ const Profile = () => {
 
   const getListData = () => {
     if (listModal === 'followers') {
-      return isOwnProfile ? OWN_FOLLOWERS : [];
+      return followersList;
     }
     if (listModal === 'following') {
-      return isOwnProfile ? OWN_FOLLOWING : [];
+      return followingList;
     }
     return [];
   };
@@ -340,7 +326,7 @@ const Profile = () => {
         </div>
 
         {/* Followers Preview (own profile only) */}
-        {isOwnProfile && OWN_FOLLOWERS.length > 0 && (
+        {isOwnProfile && followersList.length > 0 && (
           <div className="px-4 mb-4">
             <div className="card-workout">
               <div className="flex items-center justify-between mb-3">
@@ -353,14 +339,14 @@ const Profile = () => {
                 </button>
               </div>
               <div className="space-y-2">
-                {OWN_FOLLOWERS.slice(0, 3).map((follower) => (
+                {followersList.slice(0, 3).map((follower) => (
                   <button
                     key={follower.id}
                     onClick={() => navigate(`/profile/${follower.id}`)}
                     className="flex items-center gap-3 w-full p-2 rounded-lg hover:bg-surface-2 transition-colors"
                   >
                     <div className="w-10 h-10 rounded-full bg-surface-2 flex items-center justify-center text-lg">
-                      {follower.avatar}
+                      {follower.avatar || '👤'}
                     </div>
                     <div className="flex-1 text-left">
                       <p className="font-medium text-foreground">{follower.name}</p>
@@ -375,7 +361,7 @@ const Profile = () => {
         )}
 
         {/* Following Preview (own profile only) */}
-        {isOwnProfile && OWN_FOLLOWING.length > 0 && (
+        {isOwnProfile && followingList.length > 0 && (
           <div className="px-4 mb-4">
             <div className="card-workout">
               <div className="flex items-center justify-between mb-3">
@@ -388,14 +374,14 @@ const Profile = () => {
                 </button>
               </div>
               <div className="space-y-2">
-                {OWN_FOLLOWING.slice(0, 3).map((person) => (
+                {followingList.slice(0, 3).map((person) => (
                   <button
                     key={person.id}
                     onClick={() => navigate(`/profile/${person.id}`)}
                     className="flex items-center gap-3 w-full p-2 rounded-lg hover:bg-surface-2 transition-colors"
                   >
                     <div className="w-10 h-10 rounded-full bg-surface-2 flex items-center justify-center text-lg">
-                      {person.avatar}
+                      {person.avatar || '👤'}
                     </div>
                     <div className="flex-1 text-left">
                       <p className="font-medium text-foreground">{person.name}</p>
@@ -449,7 +435,7 @@ const Profile = () => {
                       className="flex items-center gap-3 w-full p-3 rounded-lg hover:bg-surface-2 transition-colors"
                     >
                       <div className="w-12 h-12 rounded-full bg-surface-2 flex items-center justify-center text-xl">
-                        {person.avatar}
+                        {person.avatar || '👤'}
                       </div>
                       <div className="flex-1 text-left">
                         <p className="font-semibold text-foreground">{person.name}</p>
