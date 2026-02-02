@@ -558,6 +558,15 @@ const WorkoutSession = () => {
 
         {/* Main Timer */}
         <div className="flex-1 flex flex-col items-center justify-center px-4">
+          {/* Section Indicator */}
+          {!isPreparation && currentSegment?.section && (
+            <p className="text-xs text-muted-foreground uppercase tracking-widest mb-1">
+              {currentSegment.section === 'warmup' ? 'WARM-UP' : 
+               currentSegment.section === 'grind' ? 'ROUNDS' : 
+               'COOL DOWN'}
+            </p>
+          )}
+          
           {/* Phase Title */}
           <h2 className="text-2xl font-black text-foreground mb-2 uppercase tracking-wider text-center">
             {isPreparation ? 'GET READY' : currentSegment?.name || 'WORK'}
