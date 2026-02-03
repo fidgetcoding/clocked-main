@@ -31,7 +31,8 @@ interface Club {
 const FightClub = () => {
   const navigate = useNavigate();
   const { addWorkout } = useWorkoutStore();
-  const { data: communityPosts, isLoading: postsLoading } = useCommunityPosts();
+  const [feedFilter, setFeedFilter] = useState<'all' | 'following'>('all');
+  const { data: communityPosts, isLoading: postsLoading } = useCommunityPosts(feedFilter);
   const [activeTab, setActiveTab] = useState<Tab>('feed');
   const [selectedClub, setSelectedClub] = useState<Club | null>(null);
   const [clubTab, setClubTab] = useState<ClubTab>('feed');
@@ -436,6 +437,32 @@ const FightClub = () => {
         <div className="px-4 py-4">
           {activeTab === 'feed' && (
             <div className="space-y-4">
+              {/* Feed Filter Toggle */}
+              <div className="flex gap-2 p-1 bg-surface-1 rounded-lg">
+                <button
+                  onClick={() => setFeedFilter('all')}
+                  className={cn(
+                    'flex-1 py-2 px-3 rounded-md text-sm font-medium transition-all',
+                    feedFilter === 'all'
+                      ? 'bg-volt text-primary-foreground'
+                      : 'text-muted-foreground hover:text-foreground'
+                  )}
+                >
+                  All
+                </button>
+                <button
+                  onClick={() => setFeedFilter('following')}
+                  className={cn(
+                    'flex-1 py-2 px-3 rounded-md text-sm font-medium transition-all',
+                    feedFilter === 'following'
+                      ? 'bg-volt text-primary-foreground'
+                      : 'text-muted-foreground hover:text-foreground'
+                  )}
+                >
+                  Following
+                </button>
+              </div>
+              
               {/* Real community posts */}
               {communityPosts && communityPosts.length > 0 && communityPosts.map((post) => (
                 <div key={post.id} className="card-workout">
@@ -488,12 +515,20 @@ const FightClub = () => {
               {/* Loading state */}
               {postsLoading && (
                 <div className="text-center py-8 text-muted-foreground">
-                  Loading community posts...
+                  Loading posts...
                 </div>
               )}
 
-              {/* Mock feed posts as demo/fallback */}
-              {mockFeedPosts.map((post) => (
+              {/* Empty state for Following filter */}
+              {!postsLoading && feedFilter === 'following' && (!communityPosts || communityPosts.length === 0) && (
+                <div className="text-center py-8">
+                  <p className="text-muted-foreground">No posts from people you follow yet.</p>
+                  <p className="text-sm text-muted-foreground mt-1">Follow more fighters to see their posts here!</p>
+                </div>
+              )}
+
+              {/* Mock feed posts as demo/fallback - only show on "All" tab */}
+              {feedFilter === 'all' && mockFeedPosts.map((post) => (
                 <div key={post.id} className="card-workout">
                   <div className="flex items-start gap-3">
                     {/* Clickable Avatar */}

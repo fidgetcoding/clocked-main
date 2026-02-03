@@ -18,56 +18,60 @@ export interface CommunityPost {
   user_avatar?: string;
 }
 
-export function useCommunityPosts() {
+export function useCommunityPosts(filter: 'all' | 'following' = 'all') {
   const { user } = useAuth();
 
   return useQuery({
-    queryKey: ['community-posts'],
+    queryKey: ['community-posts', filter, user?.id],
     queryFn: async () => {
-      const { data, error } = await supabase
+      // If filtering by following, first get the list of users we follow
+      let followingIds: string[] = [];
+      if (filter === 'following' && user) {
+        const { data: follows } = await supabase
+          .from('follows')
+          .select('following_id')
+          .eq('follower_id', user.id);
+        
+        followingIds = follows?.map(f => f.following_id) || [];
+        
+        // If not following anyone, return empty
+        if (followingIds.length === 0) {
+          return [];
+        }
+      }
+
+      // Build the query
+      let query = supabase
         .from('community_posts')
-        .select(`
-          *,
-          profiles!community_posts_user_id_fkey (
-            name,
-            avatar_url
-          )
-        `)
+        .select('*')
         .order('created_at', { ascending: false })
         .limit(50);
 
-      if (error) {
-        // If the join fails (no FK constraint), fetch posts and profiles separately
-        const { data: posts, error: postsError } = await supabase
-          .from('community_posts')
-          .select('*')
-          .order('created_at', { ascending: false })
-          .limit(50);
-
-        if (postsError) throw postsError;
-
-        // Fetch profiles for all user_ids
-        const userIds = [...new Set(posts?.map(p => p.user_id) || [])];
-        const { data: profiles } = await supabase
-          .from('profiles')
-          .select('user_id, name, avatar_url')
-          .in('user_id', userIds);
-
-        const profileMap = new Map(profiles?.map(p => [p.user_id, p]) || []);
-
-        return (posts || []).map(post => ({
-          ...post,
-          workout_data: post.workout_data as unknown as Workout | null,
-          user_name: profileMap.get(post.user_id)?.name || 'Fighter',
-          user_avatar: profileMap.get(post.user_id)?.avatar_url || null,
-        })) as CommunityPost[];
+      // Filter by following if needed
+      if (filter === 'following' && followingIds.length > 0) {
+        query = query.in('user_id', followingIds);
       }
 
-      return (data || []).map(post => ({
+      const { data: posts, error: postsError } = await query;
+
+      if (postsError) throw postsError;
+
+      // Fetch profiles for all user_ids
+      const userIds = [...new Set(posts?.map(p => p.user_id) || [])];
+      if (userIds.length === 0) return [];
+
+      const { data: profiles } = await supabase
+        .from('profiles')
+        .select('user_id, name, avatar_url')
+        .in('user_id', userIds);
+
+      const profileMap = new Map(profiles?.map(p => [p.user_id, p]) || []);
+
+      return (posts || []).map(post => ({
         ...post,
         workout_data: post.workout_data as unknown as Workout | null,
-        user_name: (post.profiles as any)?.name || 'Fighter',
-        user_avatar: (post.profiles as any)?.avatar_url || null,
+        user_name: profileMap.get(post.user_id)?.name || 'Fighter',
+        user_avatar: profileMap.get(post.user_id)?.avatar_url || null,
       })) as CommunityPost[];
     },
     enabled: !!user,
