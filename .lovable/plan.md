@@ -1,97 +1,149 @@
 
-# Plan: Add "Share to Community Feed" Feature
+# Fix: Infinite Loop on Workout Completion
 
-## Overview
-Add the ability for users to share their workouts (including preset workouts) to the community feed directly from the Edit Set window. This will create a "preset_shared" type post visible in the Fight Club feed.
+## Problem
 
-## Database Changes
+When the workout timer reaches zero on the last phase, an infinite loop error ("Maximum update depth exceeded") crashes the app instead of showing the workout complete screen. The error originates from line 259 in `WorkoutSession.tsx`.
 
-### New Table: `community_posts`
-This table will store all community feed posts, including shared presets.
+## Root Cause
 
-```sql
-CREATE TABLE public.community_posts (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id uuid NOT NULL,
-  type text NOT NULL, -- 'workout_complete', 'preset_shared', 'rank_up', 'streak_milestone'
-  workout_id text, -- References the workout being shared
-  workout_name text,
-  workout_data jsonb, -- Full workout structure for shared presets
-  message text, -- Optional message from the user
-  likes integer DEFAULT 0,
-  created_at timestamptz DEFAULT now()
-);
+There are multiple issues causing this infinite loop:
+
+1. **Effect dependency chain**: When `isComplete` becomes true, the XP-awarding effect runs and calls `addXP()`. This updates the Zustand store, which triggers a re-render because the component subscribes to `user` state. On re-render, if the ref guard fails or timing issues occur, the effect can fire again.
+
+2. **Competing effects**: The segment transition effect (lines 238-256) sets `isComplete = true` when the timer hits zero. This triggers the XP effect. But both effects are reacting to state changes in a way that can cascade.
+
+3. **Missing state isolation**: The `xpAwardedRef` guard should prevent multiple executions, but refs can have timing issues with React's rendering cycle, especially in strict mode or with rapid state updates.
+
+## Solution
+
+I'll implement a more robust fix with these changes:
+
+### 1. Consolidate completion logic
+Move the XP awarding into the same effect that sets `isComplete`, so it happens atomically in one place rather than as a reaction to state changes.
+
+### 2. Add state flag instead of ref
+Use a state flag `hasAwardedXP` in addition to the ref, since state updates are synchronized with React's render cycle.
+
+### 3. Wrap async operations in try-catch
+Add error handling to prevent unhandled exceptions from crashing the app.
+
+## Code Changes
+
+**File: `src/pages/WorkoutSession.tsx`**
+
+**Change 1**: Add a state flag for XP awarding (around line 139)
+```typescript
+const [hasAwardedXP, setHasAwardedXP] = useState(false);
 ```
 
-RLS policies will allow:
-- Anyone authenticated can view all posts (community is public)
-- Users can only insert their own posts
-- Users can only delete their own posts
-
-## UI Changes
-
-### File: `src/pages/Build.tsx`
-
-Add a "Share" button in the header area near the spacer, visible when editing an existing workout:
-
+**Change 2**: Modify the segment transition effect (lines 238-256) to award XP atomically when workout completes:
+```typescript
+useEffect(() => {
+  if (timeRemaining <= 0 && isRunning) {
+    if (isPreparation) {
+      setIsPreparation(false);
+      setTimeRemaining(flatSegments[0]?.duration || 60);
+    } else if (currentSegmentIndex < flatSegments.length - 1) {
+      setCurrentSegmentIndex((prev) => prev + 1);
+      setTimeRemaining(flatSegments[currentSegmentIndex + 1]?.duration || 60);
+    } else if (!isComplete) {
+      // Workout complete - award XP and transition in one atomic update
+      cancelSpeech();
+      setIsComplete(true);
+      setIsRunning(false);
+      
+      // Award XP immediately here, not in a separate effect
+      if (!xpAwardedRef.current) {
+        xpAwardedRef.current = true;
+        setHasAwardedXP(true);
+        const xpEarned = Math.floor((totalElapsed / 60) * 10);
+        try {
+          useUserStore.getState().addXP(xpEarned, true);
+        } catch (error) {
+          console.error('Failed to award XP:', error);
+        }
+      }
+      
+      if (workout) {
+        markWorkoutUsed(workout.id);
+      }
+    }
+  }
+}, [timeRemaining, isRunning, isPreparation, currentSegmentIndex, flatSegments, workout, markWorkoutUsed, cancelSpeech, isComplete, totalElapsed]);
 ```
-Location: Line ~314-322 (header section)
 
-Before:
-┌─────────────────────────────────────────┐
-│  ← Back       Edit Set        [spacer]  │
-└─────────────────────────────────────────┘
-
-After:
-┌─────────────────────────────────────────┐
-│  ← Back       Edit Set         [Share]  │
-└─────────────────────────────────────────┘
+**Change 3**: Remove the separate XP-awarding effect entirely (delete lines 258-269):
+```typescript
+// DELETE THIS ENTIRE EFFECT:
+// const xpAwardedRef = useRef(false);
+// useEffect(() => {
+//   if (isComplete && totalElapsed > 0 && !xpAwardedRef.current) {
+//     ...
+//   }
+// }, [isComplete, totalElapsed]);
 ```
 
-The Share button will:
-- Only appear when editing an existing workout (`editId` is present)
-- Open a confirmation dialog with an optional message field
-- Post to the community feed using the new `useCommunityPosts` hook
-- Show a success toast: "Shared to Fight Club!"
+**Change 4**: Keep the `xpAwardedRef` declaration but move it earlier with other refs (around line 186):
+```typescript
+const prevSegmentIndexRef = useRef<number>(-1);
+const xpAwardedRef = useRef(false);  // Move here
+```
 
-## New Files
+**Change 5**: Update `handleCompleteEarly` function (lines 333-343) to also award XP atomically:
+```typescript
+const handleCompleteEarly = () => {
+  cancelSpeech();
+  setIsComplete(true);
+  setIsRunning(false);
+  
+  // Award XP immediately
+  if (!xpAwardedRef.current) {
+    xpAwardedRef.current = true;
+    setHasAwardedXP(true);
+    const xpEarned = Math.floor((totalElapsed / 60) * 10);
+    try {
+      useUserStore.getState().addXP(xpEarned, true);
+    } catch (error) {
+      console.error('Failed to award XP:', error);
+    }
+  }
+  
+  if (workout) {
+    markWorkoutUsed(workout.id);
+  }
+};
+```
 
-### `src/hooks/useCommunityPosts.ts`
-A React Query-based hook for:
-- `useCommunityPosts()` - Fetch all community posts
-- `useShareWorkout()` - Share a workout to the community feed
-
-## Updated Files
-
-### `src/pages/FightClub.tsx`
-Update the Feed tab to:
-- Fetch real posts from `community_posts` table
-- Join with `profiles` table to get user info
-- Display `preset_shared` posts with a "Save Workout" button
-- Keep existing mock data as fallback for demo purposes
-
-## User Flow
-
-1. User opens an existing workout in Edit Set
-2. User clicks "Share" button (icon: Share2 from lucide)
-3. Dialog appears: "Share to Fight Club?"
-   - Optional message input: "Add a note about this workout..."
-   - "Cancel" and "Share" buttons
-4. On share:
-   - Post created in `community_posts` table
-   - Toast: "Shared to Fight Club!"
-   - Dialog closes
-5. Post appears in Fight Club > Feed tab
+**Change 6**: Update `handleReset` to reset the XP awarded flag (around line 297-305):
+```typescript
+const handleReset = () => {
+  setCurrentSegmentIndex(0);
+  setTimeRemaining(10);
+  setTotalElapsed(0);
+  setIsRunning(false);
+  setIsPaused(true);
+  setIsPreparation(true);
+  setIsComplete(false);
+  setHasAwardedXP(false);  // Add this
+  xpAwardedRef.current = false;  // Reset the ref too
+};
+```
 
 ## Technical Details
 
-- The workout data is stored as JSONB so other users can save it to their library
-- User info (name, avatar) is fetched via join with profiles
-- Posts are ordered by `created_at DESC` (newest first)
-- The Share button uses the existing `Share2` icon from lucide-react
+| Issue | Solution |
+|-------|----------|
+| XP effect triggering re-renders | Move XP awarding into completion effect |
+| Ref timing issues | Add state flag as backup |
+| Unhandled async errors | Wrap in try-catch |
+| Cascading state updates | Consolidate into single effect |
 
-## Security
+## Testing
 
-- RLS ensures users can only create posts for themselves
-- Workout data is sanitized before storing (no sensitive user info)
-- Public read access allows community viewing
+After this fix:
+1. Start a workout and let it run to the last segment
+2. Wait for the timer to reach zero
+3. The workout complete screen should appear without errors
+4. XP should be awarded once
+5. Test "Complete Early" button - should also work without errors
