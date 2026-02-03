@@ -263,9 +263,10 @@ const WorkoutSession = () => {
     if (isComplete && totalElapsed > 0 && !xpAwardedRef.current) {
       xpAwardedRef.current = true;
       const xpEarned = Math.floor((totalElapsed / 60) * 10);
-      addXP(xpEarned, true);
+      // Get fresh addXP from store to avoid dependency issues
+      useUserStore.getState().addXP(xpEarned, true);
     }
-  }, [isComplete, totalElapsed, addXP]);
+  }, [isComplete, totalElapsed]);
 
   const showXpBubble = (amount: number) => {
     const id = Date.now();
