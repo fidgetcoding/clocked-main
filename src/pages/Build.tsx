@@ -328,13 +328,14 @@ const Build = () => {
           {editId ? (
             <button
               onClick={() => setShowShareDialog(true)}
-              className="text-muted-foreground hover:text-volt transition-colors"
+              className="flex items-center gap-1.5 text-muted-foreground hover:text-volt transition-colors text-sm font-medium"
               title="Share to Fight Club"
             >
-              <Share2 className="w-5 h-5" />
+              <Share2 className="w-4 h-4" />
+              Share
             </button>
           ) : (
-            <div className="w-5" /> 
+            <div className="w-14" /> 
           )}
         </header>
 
