@@ -246,23 +246,24 @@ const WorkoutSession = () => {
       } else if (currentSegmentIndex < flatSegments.length - 1) {
         setCurrentSegmentIndex((prev) => prev + 1);
         setTimeRemaining(flatSegments[currentSegmentIndex + 1]?.duration || 60);
-      } else if (!isComplete) {
-        // Workout complete - award XP and transition in one atomic update
+      } else if (!isComplete && !xpAwardedRef.current) {
+        // Mark as awarded FIRST to prevent re-entry
+        xpAwardedRef.current = true;
+        
+        // Workout complete
         cancelSpeech();
         setIsComplete(true);
         setIsRunning(false);
         
-        // Award XP immediately here, not in a separate effect
-        if (!xpAwardedRef.current) {
-          xpAwardedRef.current = true;
-          setHasAwardedXP(true);
-          const xpEarned = Math.floor((totalElapsed / 60) * 10);
+        // Defer XP awarding to avoid state cascade
+        const xpEarned = Math.floor((totalElapsed / 60) * 10);
+        queueMicrotask(() => {
           try {
             useUserStore.getState().addXP(xpEarned, true);
           } catch (error) {
             console.error('Failed to award XP:', error);
           }
-        }
+        });
         
         if (workout) {
           markWorkoutUsed(workout.id);
