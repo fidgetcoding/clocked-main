@@ -255,9 +255,13 @@ const WorkoutSession = () => {
     }
   }, [timeRemaining, isRunning, isPreparation, currentSegmentIndex, flatSegments, workout, markWorkoutUsed, cancelSpeech]);
 
-  // Award XP when workout is complete
+  // Track if XP has already been awarded
+  const xpAwardedRef = useRef(false);
+
+  // Award XP when workout is complete (only once)
   useEffect(() => {
-    if (isComplete && totalElapsed > 0) {
+    if (isComplete && totalElapsed > 0 && !xpAwardedRef.current) {
+      xpAwardedRef.current = true;
       const xpEarned = Math.floor((totalElapsed / 60) * 10);
       addXP(xpEarned, true);
     }
