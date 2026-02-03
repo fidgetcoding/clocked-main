@@ -271,16 +271,17 @@ const Build = () => {
 
   const handleSave = (andStart: boolean = false) => {
     const id = workoutId || editId || generateId();
+    const existingWorkout = workouts.find(w => w.id === id);
     const workout: Workout = {
       id,
       name,
       icon: '🥊',
       difficulty,
       totalDuration: calculateTotalDuration(),
-      isPreset: false,
+      isPreset: existingWorkout?.isPreset || false, // Preserve preset status
       isArchived: false,
-      createdAt: editId ? workouts.find(w => w.id === editId)?.createdAt || new Date() : new Date(),
-      timesCompleted: editId ? workouts.find(w => w.id === editId)?.timesCompleted || 0 : 0,
+      createdAt: existingWorkout?.createdAt || new Date(),
+      timesCompleted: existingWorkout?.timesCompleted || 0,
       sections: {
         warmup: warmupPhases,
         grind: grindPhases,
