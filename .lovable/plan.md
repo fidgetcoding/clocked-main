@@ -1,69 +1,97 @@
 
-# Plan: Fix Workout Auto-Completion When Last Segment Timer Ends
+# Plan: Add "Share to Community Feed" Feature
 
-## Problem
-When the timer reaches 0 on the last segment of a workout (e.g., the 10-minute Treadmill in Beginner Boxing I), the "Workout Complete" screen does not appear. Users must manually click the "Complete Early" button to see the completion screen.
+## Overview
+Add the ability for users to share their workouts (including preset workouts) to the community feed directly from the Edit Set window. This will create a "preset_shared" type post visible in the Fight Club feed.
 
-## Root Cause
-The segment transition logic checks `timeRemaining === 0` exactly, which is fragile because:
-1. **Race condition**: The interval may tick past 0 to -1 before the effect processes
-2. **React batching**: Multiple state updates may not trigger the effect in the expected order
-3. **Missing cleanup**: The natural completion path doesn't cancel speech synthesis (unlike early completion)
+## Database Changes
 
-## Solution
+### New Table: `community_posts`
+This table will store all community feed posts, including shared presets.
 
-### File: `src/pages/WorkoutSession.tsx`
-
-**Change 1: Make the timer check more robust (line 239)**
-
-Change from:
-```typescript
-if (timeRemaining === 0 && isRunning) {
+```sql
+CREATE TABLE public.community_posts (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL,
+  type text NOT NULL, -- 'workout_complete', 'preset_shared', 'rank_up', 'streak_milestone'
+  workout_id text, -- References the workout being shared
+  workout_name text,
+  workout_data jsonb, -- Full workout structure for shared presets
+  message text, -- Optional message from the user
+  likes integer DEFAULT 0,
+  created_at timestamptz DEFAULT now()
+);
 ```
 
-To:
-```typescript
-if (timeRemaining <= 0 && isRunning) {
+RLS policies will allow:
+- Anyone authenticated can view all posts (community is public)
+- Users can only insert their own posts
+- Users can only delete their own posts
+
+## UI Changes
+
+### File: `src/pages/Build.tsx`
+
+Add a "Share" button in the header area near the spacer, visible when editing an existing workout:
+
+```
+Location: Line ~314-322 (header section)
+
+Before:
+┌─────────────────────────────────────────┐
+│  ← Back       Edit Set        [spacer]  │
+└─────────────────────────────────────────┘
+
+After:
+┌─────────────────────────────────────────┐
+│  ← Back       Edit Set         [Share]  │
+└─────────────────────────────────────────┘
 ```
 
-This ensures the completion triggers even if the timer decrements past 0.
+The Share button will:
+- Only appear when editing an existing workout (`editId` is present)
+- Open a confirmation dialog with an optional message field
+- Post to the community feed using the new `useCommunityPosts` hook
+- Show a success toast: "Shared to Fight Club!"
 
-**Change 2: Cancel speech synthesis on natural completion (around line 247)**
+## New Files
 
-Add `cancelSpeech()` call when workout completes naturally, matching the behavior of `handleCompleteEarly`:
+### `src/hooks/useCommunityPosts.ts`
+A React Query-based hook for:
+- `useCommunityPosts()` - Fetch all community posts
+- `useShareWorkout()` - Share a workout to the community feed
 
-```typescript
-} else {
-  // Workout complete - cancel any ongoing speech
-  cancelSpeech();
-  setIsComplete(true);
-  setIsRunning(false);
-  if (workout) {
-    markWorkoutUsed(workout.id);
-  }
-}
-```
+## Updated Files
 
-**Change 3: Add `cancelSpeech` to the effect's dependencies (line 255)**
+### `src/pages/FightClub.tsx`
+Update the Feed tab to:
+- Fetch real posts from `community_posts` table
+- Join with `profiles` table to get user info
+- Display `preset_shared` posts with a "Save Workout" button
+- Keep existing mock data as fallback for demo purposes
 
-Update the dependency array to include `cancelSpeech`:
-```typescript
-}, [timeRemaining, isRunning, isPreparation, currentSegmentIndex, flatSegments, workout, markWorkoutUsed, cancelSpeech]);
-```
+## User Flow
 
-## Expected Behavior After Fix
-
-1. User starts "Beginner Boxing I" workout
-2. Timer progresses through all segments (warmup, grind cycles, cooldown)
-3. When the final segment (Treadmill - 10 min) timer hits 0:
-   - Any ongoing voice announcement stops
-   - `isComplete` is set to `true`
-   - The "Workout Complete" screen appears
-   - Duration shows the actual elapsed time
-   - XP earned shows the calculated value based on duration
+1. User opens an existing workout in Edit Set
+2. User clicks "Share" button (icon: Share2 from lucide)
+3. Dialog appears: "Share to Fight Club?"
+   - Optional message input: "Add a note about this workout..."
+   - "Cancel" and "Share" buttons
+4. On share:
+   - Post created in `community_posts` table
+   - Toast: "Shared to Fight Club!"
+   - Dialog closes
+5. Post appears in Fight Club > Feed tab
 
 ## Technical Details
 
-- The fix uses `<= 0` instead of `=== 0` to handle edge cases where the interval fires faster than React processes effects
-- Adding `cancelSpeech()` ensures voice announcements don't continue playing after workout ends
-- This matches the existing behavior of the "Complete Early" button for consistency
+- The workout data is stored as JSONB so other users can save it to their library
+- User info (name, avatar) is fetched via join with profiles
+- Posts are ordered by `created_at DESC` (newest first)
+- The Share button uses the existing `Share2` icon from lucide-react
+
+## Security
+
+- RLS ensures users can only create posts for themselves
+- Workout data is sanitized before storing (no sensitive user info)
+- Public read access allows community viewing
