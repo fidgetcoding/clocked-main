@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ArrowLeft, Users, Newspaper, Trophy, Search, MessageCircle, BarChart3, Send, ChevronRight, Mic, MicOff } from 'lucide-react';
+import { ArrowLeft, Users, Newspaper, Trophy, Search, MessageCircle, BarChart3, Send, ChevronRight, Mic, MicOff, Download } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
@@ -10,6 +10,8 @@ import { WorkoutPreviewModal } from '@/components/WorkoutPreviewModal';
 import { AIBuilderModal } from '@/components/AIBuilderModal';
 import { LiveStreamModal } from '@/components/LiveStreamModal';
 import { useWorkoutStore } from '@/stores/workoutStore';
+import { useCommunityPosts, CommunityPost } from '@/hooks/useCommunityPosts';
+import { Workout } from '@/types';
 import { toast } from 'sonner';
 
 type Tab = 'feed' | 'clubs' | 'presets';
@@ -29,6 +31,7 @@ interface Club {
 const FightClub = () => {
   const navigate = useNavigate();
   const { addWorkout } = useWorkoutStore();
+  const { data: communityPosts, isLoading: postsLoading } = useCommunityPosts();
   const [activeTab, setActiveTab] = useState<Tab>('feed');
   const [selectedClub, setSelectedClub] = useState<Club | null>(null);
   const [clubTab, setClubTab] = useState<ClubTab>('feed');
@@ -97,6 +100,24 @@ const FightClub = () => {
     navigate('/build');
   };
 
+  // Handle saving a community shared workout
+  const handleSaveCommunityWorkout = (post: CommunityPost) => {
+    if (!post.workout_data) {
+      toast.error('Workout data not available');
+      return;
+    }
+    
+    const workout: Workout = {
+      ...post.workout_data,
+      id: crypto.randomUUID(),
+      isPreset: false,
+      createdAt: new Date(),
+      timesCompleted: 0,
+    };
+    addWorkout(workout);
+    toast.success(`"${post.workout_name}" saved to your workouts!`);
+  };
+
   // Mock clubs data
   const myClubs: Club[] = [
     { id: '1', name: 'Iron Fist Boxing', icon: '⚡', type: 'private', coach: 'Mike T.', memberCount: 12, activeNow: 3 },
@@ -107,12 +128,26 @@ const FightClub = () => {
     { id: '3', name: 'Global Fighters', icon: '🌍', type: 'public', memberCount: 2400, activeNow: 156 },
   ];
 
-  // Mock feed posts
-  const feedPosts = [
+  // Mock feed posts as fallback
+  const mockFeedPosts = [
     { id: '1', userName: 'Sarah Chen', status: 'live' as const, type: 'currently_training' as const, workoutName: 'Heavy Bag Blast', elapsed: '18:34', avatar: '👩' },
     { id: '2', userName: 'Mike Thompson', status: 'active' as const, type: 'workout_complete' as const, workoutName: '30-Min Blast', xpEarned: 421, message: 'Legs are dead but worth it!', timeAgo: '5 min ago', likes: 12, comments: 3, avatar: '👨' },
     { id: '3', userName: 'James Wilson', status: 'active' as const, type: 'rank_up' as const, newRank: 'SEMI-PRO', timeAgo: '1 hr ago', likes: 89, comments: 12, avatar: '🧔' },
   ];
+
+  // Helper to format time ago
+  const formatTimeAgo = (dateString: string) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    if (diffMins < 1) return 'just now';
+    if (diffMins < 60) return `${diffMins} min ago`;
+    const diffHours = Math.floor(diffMins / 60);
+    if (diffHours < 24) return `${diffHours}h ago`;
+    const diffDays = Math.floor(diffHours / 24);
+    return `${diffDays}d ago`;
+  };
 
   // Mock club-specific data
   const clubFeed = [
@@ -401,7 +436,64 @@ const FightClub = () => {
         <div className="px-4 py-4">
           {activeTab === 'feed' && (
             <div className="space-y-4">
-              {feedPosts.map((post) => (
+              {/* Real community posts */}
+              {communityPosts && communityPosts.length > 0 && communityPosts.map((post) => (
+                <div key={post.id} className="card-workout">
+                  <div className="flex items-start gap-3">
+                    <div className="w-10 h-10 rounded-full bg-surface-2 flex items-center justify-center text-xl flex-shrink-0 overflow-hidden">
+                      {post.user_avatar ? (
+                        <img src={post.user_avatar} alt="" className="w-full h-full object-cover" />
+                      ) : (
+                        '🥊'
+                      )}
+                    </div>
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2">
+                        <span className="font-semibold text-foreground">
+                          {post.user_name}
+                        </span>
+                        <span className="text-xs text-muted-foreground">
+                          {formatTimeAgo(post.created_at)}
+                        </span>
+                      </div>
+
+                      {post.type === 'preset_shared' && (
+                        <>
+                          <p className="text-sm text-foreground mt-1">
+                            Shared a workout: <span className="text-volt font-medium">{post.workout_name}</span> 🥊
+                          </p>
+                          {post.message && (
+                            <p className="text-sm text-muted-foreground mt-2 italic">"{post.message}"</p>
+                          )}
+                          <div className="flex items-center gap-2 mt-3">
+                            <Button 
+                              size="sm" 
+                              className="bg-volt text-primary-foreground text-xs"
+                              onClick={() => handleSaveCommunityWorkout(post)}
+                            >
+                              <Download className="w-3 h-3 mr-1" />
+                              Save Workout
+                            </Button>
+                          </div>
+                          <div className="flex items-center gap-4 mt-3 text-xs text-muted-foreground">
+                            <span>❤️ {post.likes}</span>
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))}
+
+              {/* Loading state */}
+              {postsLoading && (
+                <div className="text-center py-8 text-muted-foreground">
+                  Loading community posts...
+                </div>
+              )}
+
+              {/* Mock feed posts as demo/fallback */}
+              {mockFeedPosts.map((post) => (
                 <div key={post.id} className="card-workout">
                   <div className="flex items-start gap-3">
                     {/* Clickable Avatar */}
