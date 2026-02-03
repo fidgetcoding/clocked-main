@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react';
-import { ArrowLeft, Plus, Trash2, GripVertical, Pencil, Play, X, ChevronDown, ChevronUp, Sparkles } from 'lucide-react';
+import { ArrowLeft, Plus, Trash2, GripVertical, Pencil, Play, X, ChevronDown, ChevronUp, Sparkles, Share2 } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { useWorkoutStore } from '@/stores/workoutStore';
 import { useUserStore } from '@/stores/userStore';
 import { Workout, WorkoutPhase, WorkoutSegment, SegmentType } from '@/types';
@@ -16,6 +18,7 @@ import {
   ComboPreset 
 } from '@/data/comboPresets';
 import { AIBuilderModal } from '@/components/AIBuilderModal';
+import { useShareWorkout } from '@/hooks/useCommunityPosts';
 import { toast } from 'sonner';
 
 const SEGMENT_TYPES: { key: SegmentType; label: string; color: string }[] = [
@@ -83,6 +86,10 @@ const Build = () => {
   const [currentCombo, setCurrentCombo] = useState<string[]>([]);
   const [editingComboIndex, setEditingComboIndex] = useState<number | null>(null);
   const [showAIBuilder, setShowAIBuilder] = useState(false);
+  const [showShareDialog, setShowShareDialog] = useState(false);
+  const [shareMessage, setShareMessage] = useState('');
+  
+  const shareWorkout = useShareWorkout();
 
   // Load AI-generated workout from URL params
   useEffect(() => {
@@ -318,7 +325,17 @@ const Build = () => {
           <h1 className="text-lg font-bold text-muted-foreground">
             {editId ? 'Edit Set' : 'Create New Set'}
           </h1>
-          <div className="w-16" /> {/* Spacer */}
+          {editId ? (
+            <button
+              onClick={() => setShowShareDialog(true)}
+              className="text-muted-foreground hover:text-volt transition-colors"
+              title="Share to Fight Club"
+            >
+              <Share2 className="w-5 h-5" />
+            </button>
+          ) : (
+            <div className="w-5" /> 
+          )}
         </header>
 
         {/* Mode Toggle - Custom first, AI second */}
@@ -737,6 +754,78 @@ const Build = () => {
             }}
           />
         )}
+
+        {/* Share to Fight Club Dialog */}
+        <Dialog open={showShareDialog} onOpenChange={setShowShareDialog}>
+          <DialogContent className="bg-background border-surface-3">
+            <DialogHeader>
+              <DialogTitle className="text-foreground">Share to Fight Club</DialogTitle>
+              <DialogDescription className="text-muted-foreground">
+                Share "{name}" with the community. Others will be able to save this workout to their library.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="py-4">
+              <Textarea
+                value={shareMessage}
+                onChange={(e) => setShareMessage(e.target.value)}
+                placeholder="Add a note about this workout... (optional)"
+                className="bg-surface-1 border-surface-3 text-foreground placeholder:text-muted-foreground resize-none"
+                rows={3}
+              />
+            </div>
+            <DialogFooter className="gap-2">
+              <Button 
+                variant="outline" 
+                onClick={() => {
+                  setShowShareDialog(false);
+                  setShareMessage('');
+                }}
+                className="border-surface-3"
+              >
+                Cancel
+              </Button>
+              <Button 
+                onClick={() => {
+                  const workout: Workout = {
+                    id: workoutId || editId || generateId(),
+                    name,
+                    icon: '🥊',
+                    difficulty,
+                    totalDuration: calculateTotalDuration(),
+                    isPreset: false,
+                    isArchived: false,
+                    createdAt: new Date(),
+                    timesCompleted: 0,
+                    sections: {
+                      warmup: warmupPhases,
+                      grind: grindPhases,
+                      cooldown: cooldownPhases,
+                    },
+                    combos: combos.length > 0 ? combos : undefined,
+                  };
+                  
+                  shareWorkout.mutate(
+                    { workout, message: shareMessage || undefined },
+                    {
+                      onSuccess: () => {
+                        toast.success('Shared to Fight Club!');
+                        setShowShareDialog(false);
+                        setShareMessage('');
+                      },
+                      onError: (error) => {
+                        toast.error('Failed to share: ' + error.message);
+                      },
+                    }
+                  );
+                }}
+                className="bg-volt text-primary-foreground hover:bg-volt/90"
+                disabled={shareWorkout.isPending}
+              >
+                {shareWorkout.isPending ? 'Sharing...' : 'Share'}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </AppLayout>
   );

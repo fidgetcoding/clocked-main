@@ -59,6 +59,42 @@ export type Database = {
         }
         Relationships: []
       }
+      community_posts: {
+        Row: {
+          created_at: string | null
+          id: string
+          likes: number | null
+          message: string | null
+          type: string
+          user_id: string
+          workout_data: Json | null
+          workout_id: string | null
+          workout_name: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          likes?: number | null
+          message?: string | null
+          type: string
+          user_id: string
+          workout_data?: Json | null
+          workout_id?: string | null
+          workout_name?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          likes?: number | null
+          message?: string | null
+          type?: string
+          user_id?: string
+          workout_data?: Json | null
+          workout_id?: string | null
+          workout_name?: string | null
+        }
+        Relationships: []
+      }
       follows: {
         Row: {
           created_at: string
