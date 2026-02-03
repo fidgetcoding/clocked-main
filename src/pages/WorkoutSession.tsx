@@ -137,6 +137,7 @@ const WorkoutSession = () => {
   const [difficultyRating, setDifficultyRating] = useState<'too_easy' | 'just_right' | 'too_hard' | null>(null);
   const [xpBubble, setXpBubble] = useState<{ amount: number; id: number } | null>(null);
   const [hasStartedOnce, setHasStartedOnce] = useState(false);
+  const [hasAwardedXP, setHasAwardedXP] = useState(false);
 
   const currentSegment = flatSegments[currentSegmentIndex];
   const nextSegment = flatSegments[currentSegmentIndex + 1];
@@ -184,6 +185,8 @@ const WorkoutSession = () => {
 
   // Track previous segment to detect transitions
   const prevSegmentIndexRef = useRef<number>(-1);
+  // Track if XP has already been awarded
+  const xpAwardedRef = useRef(false);
 
   // Phase/segment announcement voice
   useEffect(() => {
@@ -243,30 +246,31 @@ const WorkoutSession = () => {
       } else if (currentSegmentIndex < flatSegments.length - 1) {
         setCurrentSegmentIndex((prev) => prev + 1);
         setTimeRemaining(flatSegments[currentSegmentIndex + 1]?.duration || 60);
-      } else {
-        // Workout complete - cancel any ongoing speech
+      } else if (!isComplete) {
+        // Workout complete - award XP and transition in one atomic update
         cancelSpeech();
         setIsComplete(true);
         setIsRunning(false);
+        
+        // Award XP immediately here, not in a separate effect
+        if (!xpAwardedRef.current) {
+          xpAwardedRef.current = true;
+          setHasAwardedXP(true);
+          const xpEarned = Math.floor((totalElapsed / 60) * 10);
+          try {
+            useUserStore.getState().addXP(xpEarned, true);
+          } catch (error) {
+            console.error('Failed to award XP:', error);
+          }
+        }
+        
         if (workout) {
           markWorkoutUsed(workout.id);
         }
       }
     }
-  }, [timeRemaining, isRunning, isPreparation, currentSegmentIndex, flatSegments, workout, markWorkoutUsed, cancelSpeech]);
+  }, [timeRemaining, isRunning, isPreparation, currentSegmentIndex, flatSegments, workout, markWorkoutUsed, cancelSpeech, isComplete, totalElapsed]);
 
-  // Track if XP has already been awarded
-  const xpAwardedRef = useRef(false);
-
-  // Award XP when workout is complete (only once)
-  useEffect(() => {
-    if (isComplete && totalElapsed > 0 && !xpAwardedRef.current) {
-      xpAwardedRef.current = true;
-      const xpEarned = Math.floor((totalElapsed / 60) * 10);
-      // Get fresh addXP from store to avoid dependency issues
-      useUserStore.getState().addXP(xpEarned, true);
-    }
-  }, [isComplete, totalElapsed]);
 
   const showXpBubble = (amount: number) => {
     const id = Date.now();
@@ -302,6 +306,8 @@ const WorkoutSession = () => {
     setIsPaused(true);
     setIsPreparation(true);
     setIsComplete(false);
+    setHasAwardedXP(false);
+    xpAwardedRef.current = false;
   };
 
   const handleBack = () => {
@@ -336,6 +342,19 @@ const WorkoutSession = () => {
     // Mark workout as complete
     setIsComplete(true);
     setIsRunning(false);
+    
+    // Award XP immediately
+    if (!xpAwardedRef.current) {
+      xpAwardedRef.current = true;
+      setHasAwardedXP(true);
+      const xpEarned = Math.floor((totalElapsed / 60) * 10);
+      try {
+        useUserStore.getState().addXP(xpEarned, true);
+      } catch (error) {
+        console.error('Failed to award XP:', error);
+      }
+    }
+    
     // Mark workout as used
     if (workout) {
       markWorkoutUsed(workout.id);
