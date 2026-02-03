@@ -319,7 +319,16 @@ const Build = () => {
       <div className="min-h-screen bg-background flex flex-col">
         {/* Header */}
         <header className="flex items-center justify-between px-4 py-4 safe-top border-b border-surface-3">
-          <button onClick={() => window.history.length > 1 ? navigate(-1) : navigate('/')} className="text-muted-foreground">
+          <button 
+            onClick={() => {
+              if (window.history.length > 1) {
+                navigate(-1);
+              } else {
+                navigate('/');
+              }
+            }} 
+            className="text-muted-foreground"
+          >
             <ArrowLeft className="w-6 h-6" />
           </button>
           <h1 className="text-lg font-bold text-muted-foreground">
