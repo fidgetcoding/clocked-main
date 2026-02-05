@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { ArrowLeft, User, Pencil, Archive, RotateCcw, Trash2, ChevronRight, Camera, Loader2, Check } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
@@ -34,12 +34,21 @@ const EditProfile = () => {
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
   const [isEditingName, setIsEditingName] = useState(false);
   const [isEditingHandle, setIsEditingHandle] = useState(false);
+  const [isEditingBio, setIsEditingBio] = useState(false);
   const [editedName, setEditedName] = useState(user?.name || '');
   const [editedHandle, setEditedHandle] = useState(profile?.handle || '');
+  const [editedBio, setEditedBio] = useState(profile?.bio || '');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Update editedHandle when profile loads
+  // Update editedHandle and editedBio when profile loads
   const currentHandle = profile?.handle || profile?.name?.toLowerCase().replace(/\s+/g, '') || 'fighter';
+  const currentBio = profile?.bio || '';
+
+  useEffect(() => {
+    if (profile?.bio !== undefined) {
+      setEditedBio(profile.bio || '');
+    }
+  }, [profile?.bio]);
 
   const profilePhoto = profile?.avatar_url || null;
 
@@ -108,6 +117,18 @@ const EditProfile = () => {
       }
     }
     setIsEditingHandle(false);
+  };
+
+  const handleSaveBio = async () => {
+    if (editedBio !== currentBio) {
+      try {
+        await updateProfile.mutateAsync({ bio: editedBio.trim() });
+        toast.success('Bio updated!');
+      } catch (error) {
+        toast.error('Failed to update bio');
+      }
+    }
+    setIsEditingBio(false);
   };
 
   const handleRestore = (id: string) => {
@@ -248,6 +269,58 @@ const EditProfile = () => {
                 <p className="font-semibold text-volt">ACTIVE</p>
               </div>
             </div>
+          </div>
+
+          {/* Bio Section */}
+          <div className="card-workout">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-lg font-bold text-foreground">Bio</h3>
+              {!isEditingBio && (
+                <button 
+                  onClick={() => setIsEditingBio(true)}
+                  className="text-muted-foreground hover:text-foreground"
+                >
+                  <Pencil className="w-4 h-4" />
+                </button>
+              )}
+            </div>
+            {isEditingBio ? (
+              <div className="space-y-3">
+                <textarea
+                  value={editedBio}
+                  onChange={(e) => setEditedBio(e.target.value)}
+                  className="w-full bg-surface-2 border border-surface-3 rounded-lg p-3 text-foreground placeholder:text-muted-foreground resize-none focus:outline-none focus:ring-2 focus:ring-volt"
+                  placeholder="Tell others about yourself..."
+                  rows={3}
+                  maxLength={160}
+                  autoFocus
+                />
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-muted-foreground">{editedBio.length}/160</span>
+                  <div className="flex gap-2">
+                    <button 
+                      onClick={() => {
+                        setEditedBio(currentBio);
+                        setIsEditingBio(false);
+                      }}
+                      className="px-3 py-1.5 rounded-lg bg-surface-2 text-muted-foreground text-sm"
+                    >
+                      Cancel
+                    </button>
+                    <button 
+                      onClick={handleSaveBio}
+                      className="px-3 py-1.5 rounded-lg bg-volt text-primary-foreground text-sm font-medium"
+                    >
+                      Save
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <p className="text-muted-foreground text-sm">
+                {currentBio || 'Add a bio to tell others about yourself...'}
+              </p>
+            )}
           </div>
 
           {/* Archived Workouts */}
