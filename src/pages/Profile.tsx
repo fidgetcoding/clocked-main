@@ -177,13 +177,6 @@ const Profile = () => {
             </span>
           </div>
 
-          {/* XP Bar */}
-          <XPBar 
-            prestige={prestige}
-            level={currentLevel}
-            totalXP={totalXP}
-            className="mb-4" 
-          />
 
           {/* Bio */}
           {bio && (
