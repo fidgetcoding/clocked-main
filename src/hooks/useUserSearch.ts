@@ -31,7 +31,13 @@ export function useUserSearch(searchQuery: string) {
         return [];
       }
 
-      const searchTerm = `%${debouncedQuery}%`;
+      // Clean the search query - remove @ prefix if present
+      const cleanQuery = debouncedQuery.replace(/^@/, '').trim();
+      if (cleanQuery.length < 2) {
+        return [];
+      }
+      
+      const searchTerm = `%${cleanQuery}%`;
       
       const { data, error } = await supabase
         .from('profiles')
