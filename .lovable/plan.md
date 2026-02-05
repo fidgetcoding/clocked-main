@@ -1,149 +1,153 @@
 
-# Fix: Infinite Loop on Workout Completion
+# Fix: User Data Isolation - Workouts Bleeding Across Accounts
 
-## Problem
+## Problem Summary
 
-When the workout timer reaches zero on the last phase, an infinite loop error ("Maximum update depth exceeded") crashes the app instead of showing the workout complete screen. The error originates from line 259 in `WorkoutSession.tsx`.
+You're experiencing a critical data isolation issue where:
+1. Workouts you add/edit appear in other users' accounts
+2. New users see workouts that weren't meant for them
+3. Changes made to presets affect all users universally
 
-## Root Cause
+This is a multi-tenant data isolation failure.
 
-There are multiple issues causing this infinite loop:
+## Root Cause Analysis
 
-1. **Effect dependency chain**: When `isComplete` becomes true, the XP-awarding effect runs and calls `addXP()`. This updates the Zustand store, which triggers a re-render because the component subscribes to `user` state. On re-render, if the ref guard fails or timing issues occur, the effect can fire again.
+The app is using **two conflicting data systems** simultaneously:
 
-2. **Competing effects**: The segment transition effect (lines 238-256) sets `isComplete = true` when the timer hits zero. This triggers the XP effect. But both effects are reacting to state changes in a way that can cascade.
+### 1. Zustand + localStorage (The Problem)
+All the Zustand stores use `persist` middleware with **shared localStorage keys** that are NOT namespaced by user:
 
-3. **Missing state isolation**: The `xpAwardedRef` guard should prevent multiple executions, but refs can have timing issues with React's rendering cycle, especially in strict mode or with rapid state updates.
+| Store | localStorage Key | Problem |
+|-------|------------------|---------|
+| `workoutStore` | `get-clocked-workouts` | Shared across ALL users on same device |
+| `userStore` | `get-clocked-user` | Shared across ALL users |
+| `historyStore` | `get-clocked-history` | Shared across ALL users |
+| `timerStore` | `get-clocked-timer` | Shared (less critical) |
 
-## Solution
+When User A logs out and User B logs in on the same device, User B sees User A's localStorage data because **the keys don't include the user ID**.
 
-I'll implement a more robust fix with these changes:
+### 2. Supabase Database (Not Being Used for Workouts)
+There's a `useWorkouts` hook that correctly fetches from Supabase with user filtering (`.eq('user_id', user.id)`), but:
+- The Index page uses `useWorkoutStore` (localStorage), NOT `useWorkouts`
+- The Build page uses `useWorkoutStore` (localStorage), NOT `useWorkouts`
+- Presets are loaded from static data into localStorage, shared across accounts
 
-### 1. Consolidate completion logic
-Move the XP awarding into the same effect that sets `isComplete`, so it happens atomically in one place rather than as a reaction to state changes.
+### Flow of the Bug
 
-### 2. Add state flag instead of ref
-Use a state flag `hasAwardedXP` in addition to the ref, since state updates are synchronized with React's render cycle.
-
-### 3. Wrap async operations in try-catch
-Add error handling to prevent unhandled exceptions from crashing the app.
-
-## Code Changes
-
-**File: `src/pages/WorkoutSession.tsx`**
-
-**Change 1**: Add a state flag for XP awarding (around line 139)
-```typescript
-const [hasAwardedXP, setHasAwardedXP] = useState(false);
+```text
+1. User A signs up → presets loaded to localStorage
+2. User A adds "Morning Shadow Boxing" → stored in localStorage
+3. User A logs out (localStorage NOT cleared)
+4. User B signs up → sees User A's data from localStorage!
+5. User B edits a preset → User A sees the edit next time
 ```
 
-**Change 2**: Modify the segment transition effect (lines 238-256) to award XP atomically when workout completes:
-```typescript
-useEffect(() => {
-  if (timeRemaining <= 0 && isRunning) {
-    if (isPreparation) {
-      setIsPreparation(false);
-      setTimeRemaining(flatSegments[0]?.duration || 60);
-    } else if (currentSegmentIndex < flatSegments.length - 1) {
-      setCurrentSegmentIndex((prev) => prev + 1);
-      setTimeRemaining(flatSegments[currentSegmentIndex + 1]?.duration || 60);
-    } else if (!isComplete) {
-      // Workout complete - award XP and transition in one atomic update
-      cancelSpeech();
-      setIsComplete(true);
-      setIsRunning(false);
-      
-      // Award XP immediately here, not in a separate effect
-      if (!xpAwardedRef.current) {
-        xpAwardedRef.current = true;
-        setHasAwardedXP(true);
-        const xpEarned = Math.floor((totalElapsed / 60) * 10);
-        try {
-          useUserStore.getState().addXP(xpEarned, true);
-        } catch (error) {
-          console.error('Failed to award XP:', error);
-        }
-      }
-      
-      if (workout) {
-        markWorkoutUsed(workout.id);
-      }
-    }
-  }
-}, [timeRemaining, isRunning, isPreparation, currentSegmentIndex, flatSegments, workout, markWorkoutUsed, cancelSpeech, isComplete, totalElapsed]);
-```
+## Solution Overview
 
-**Change 3**: Remove the separate XP-awarding effect entirely (delete lines 258-269):
-```typescript
-// DELETE THIS ENTIRE EFFECT:
-// const xpAwardedRef = useRef(false);
-// useEffect(() => {
-//   if (isComplete && totalElapsed > 0 && !xpAwardedRef.current) {
-//     ...
-//   }
-// }, [isComplete, totalElapsed]);
-```
+Migrate from localStorage-based Zustand stores to Supabase-backed data with proper user isolation.
 
-**Change 4**: Keep the `xpAwardedRef` declaration but move it earlier with other refs (around line 186):
-```typescript
-const prevSegmentIndexRef = useRef<number>(-1);
-const xpAwardedRef = useRef(false);  // Move here
-```
+### Phase 1: Clear localStorage on Auth State Change
 
-**Change 5**: Update `handleCompleteEarly` function (lines 333-343) to also award XP atomically:
-```typescript
-const handleCompleteEarly = () => {
-  cancelSpeech();
-  setIsComplete(true);
-  setIsRunning(false);
-  
-  // Award XP immediately
-  if (!xpAwardedRef.current) {
-    xpAwardedRef.current = true;
-    setHasAwardedXP(true);
-    const xpEarned = Math.floor((totalElapsed / 60) * 10);
-    try {
-      useUserStore.getState().addXP(xpEarned, true);
-    } catch (error) {
-      console.error('Failed to award XP:', error);
-    }
-  }
-  
-  if (workout) {
-    markWorkoutUsed(workout.id);
-  }
-};
-```
+When a user logs out or a new user logs in, clear user-specific localStorage data.
 
-**Change 6**: Update `handleReset` to reset the XP awarded flag (around line 297-305):
-```typescript
-const handleReset = () => {
-  setCurrentSegmentIndex(0);
-  setTimeRemaining(10);
-  setTotalElapsed(0);
-  setIsRunning(false);
-  setIsPaused(true);
-  setIsPreparation(true);
-  setIsComplete(false);
-  setHasAwardedXP(false);  // Add this
-  xpAwardedRef.current = false;  // Reset the ref too
-};
-```
+**File: `src/contexts/AuthContext.tsx`**
+- Add logic to clear localStorage keys on logout
+- Add logic to clear React Query cache when user changes
+- Clear Zustand stores when auth state changes
 
-## Technical Details
+### Phase 2: Namespace localStorage by User ID (Interim Solution)
 
-| Issue | Solution |
-|-------|----------|
-| XP effect triggering re-renders | Move XP awarding into completion effect |
-| Ref timing issues | Add state flag as backup |
-| Unhandled async errors | Wrap in try-catch |
-| Cascading state updates | Consolidate into single effect |
+Update Zustand persist configuration to use user-specific keys.
 
-## Testing
+**File: `src/stores/workoutStore.ts`**
+- Change persist key from `get-clocked-workouts` to include user ID
+- Add migration logic for existing data
 
-After this fix:
-1. Start a workout and let it run to the last segment
-2. Wait for the timer to reach zero
-3. The workout complete screen should appear without errors
-4. XP should be awarded once
-5. Test "Complete Early" button - should also work without errors
+**File: `src/stores/userStore.ts`**
+- Same pattern for user-specific storage
+
+**File: `src/stores/historyStore.ts`**
+- Same pattern for history data
+
+### Phase 3: Migrate Workouts to Supabase (Long-term Solution)
+
+Replace localStorage workout storage with the existing Supabase `workouts` table.
+
+**File: `src/pages/Index.tsx`**
+- Replace `useWorkoutStore` with `useWorkouts` hook
+- Load presets from database, not static files
+- Handle preset seeding on first login
+
+**File: `src/pages/Build.tsx`**
+- Replace `useWorkoutStore` mutations with `useWorkouts` mutations
+- Ensure all CRUD operations go to Supabase
+
+### Phase 4: Handle Preset Initialization Per User
+
+When a new user signs up:
+1. Check if they have any workouts in the database
+2. If not, seed their account with the appropriate presets based on experience level
+3. Mark presets with `is_preset: true` so they can be identified
+
+**New file: `src/hooks/usePresetSeeding.ts`**
+- Check if user needs presets
+- Insert user-specific copies of presets into database
+- Run once on first login
+
+### Phase 5: Community Preset Update Notification
+
+When a user shares a workout to community and later edits it:
+1. Track shared workout IDs
+2. On edit, check if this workout was shared
+3. Show prompt asking if they want to update the community post
+
+**File: `src/pages/Build.tsx`**
+- Add check on save for community-shared workouts
+- Show update prompt dialog
+
+## Code Changes Summary
+
+### AuthContext.tsx
+- Add `useEffect` to clear localStorage on logout
+- Clear React Query cache when user changes
+- Reset Zustand stores
+
+### workoutStore.ts
+- Remove `persist` middleware entirely (move to Supabase)
+- Keep only for temporary session state if needed
+
+### Index.tsx
+- Import `useWorkouts` hook instead of `useWorkoutStore`
+- Add preset seeding logic for new users
+- Use database-backed workout list
+
+### Build.tsx
+- Use `useWorkouts` mutations for add/update
+- Remove `useWorkoutStore` dependency
+
+### New: usePresetSeeding.ts
+- Check if user has workouts
+- Seed experience-level-appropriate presets
+- Mark as completed in profile
+
+## Database Changes
+
+None required - the `workouts` table already exists with proper RLS:
+- `is_preset` column exists
+- `user_id` filtering is in place
+- RLS policies restrict access to own workouts
+
+## Migration Strategy
+
+1. Clear localStorage for existing users on next login
+2. Seed their account with presets if they have none in database
+3. Optionally: migrate localStorage workouts to database (one-time)
+
+## Testing Checklist
+
+After implementation:
+- [ ] Create Account A, add custom workout, log out
+- [ ] Create Account B - should NOT see Account A's workouts
+- [ ] Edit preset in Account B - Account A's preset unchanged
+- [ ] Share workout to community, edit it - prompted to update
+- [ ] New user sees only experience-level-appropriate presets
