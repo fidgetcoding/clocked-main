@@ -8,6 +8,7 @@ export interface Profile {
   user_id: string;
   name: string;
   handle: string | null;
+  bio: string | null;
   role: 'fighter' | 'coach';
   avatar_url: string | null;
   experience_level: string | null;

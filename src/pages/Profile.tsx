@@ -252,7 +252,10 @@ const Profile = () => {
             className="mb-4" 
           />
 
-          {/* Bio (for other profiles) */}
+          {/* Bio */}
+          {isOwnProfile && profile?.bio && (
+            <p className="text-sm text-foreground mb-3">{profile.bio}</p>
+          )}
           {!isOwnProfile && viewingUser?.bio && (
             <p className="text-sm text-foreground mb-3">{viewingUser.bio}</p>
           )}
