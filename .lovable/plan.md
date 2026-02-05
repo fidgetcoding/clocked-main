@@ -1,71 +1,95 @@
 
-# User Search Feature for Finding and Following Users
+# Remove Mock Data and Add Early Adopters Club
 
 ## Overview
-Add a search feature to the Profile page that allows users to find other users by name or handle, view their profiles, and follow them.
+Clean up all fake demo accounts, clubs, and placeholder data throughout the app. Keep only one demo user (renamed to "Demo" with handle @demo) and their LIVE feed post. Create a real "Early Adopters" club capped at 100 members. Ensure the feed only shows actual user activity from the database.
 
-## Current State
-- The followers/following modal exists but only shows existing connections
-- The `profiles` table RLS policy only allows users to view their own profile
-- No search functionality exists for discovering other users
+## Changes Required
 
-## Implementation Steps
+### 1. Update Mock Users in Profile.tsx
+**File: `src/pages/Profile.tsx`**
 
-### 1. Database Changes
-Update the RLS policy on the `profiles` table to allow authenticated users to view other users' public profile information (name, handle, avatar). This is required for the search to work.
+- Reduce `MOCK_USERS` to only contain the Demo user
+- Rename "Sarah Chen" to "Demo" with handle `@demo`
+- Remove all other mock users (Mike Thompson, Alex Rodriguez, Jamie Lee)
 
-**New RLS Policy:**
-- Add a SELECT policy allowing authenticated users to view all profiles
-- This enables user discovery while maintaining insert/update/delete restrictions
+### 2. Update Feed Mock Data in FightClub.tsx
+**File: `src/pages/FightClub.tsx`**
 
-### 2. Create User Search Hook
-Create a new hook `useUserSearch` that:
-- Takes a search query string
-- Searches the `profiles` table by name or handle using `ilike` for partial matching
-- Returns matching users with their basic info (id, name, handle, avatar)
-- Excludes the current user from results
-- Has debounced search to avoid excessive API calls
+**Mock Feed Posts (lines 141-145):**
+- Keep only the Demo "LIVE" post showing "Currently doing: Heavy Bag Blast"
+- Update name from "Sarah Chen" to "Demo"
+- Remove Mike Thompson and James Wilson mock posts
 
-### 3. Update Profile Page Modal
-Enhance the existing followers/following modal to include:
-- A third mode: "search" for finding new users
-- Search input field at the top of the modal
-- Display search results with user cards
-- Each result links to the user's profile page where they can be followed
-- Add a "Find People" button or search tab in the modal
+**My Clubs (lines 131-134):**
+- Remove "Iron Fist Boxing" and "Morning Grinders" fake clubs
+- Replace with "Early Adopters" club (capped at 100 members)
 
-### 4. UI/UX Design
-- Add a search icon/button on the Profile page to open the search modal
-- The modal will have tabs or modes: "Followers", "Following", "Search"
-- Search input with real-time results
-- User cards showing avatar, name, and handle
-- Tapping a result navigates to that user's profile
+**Discover Clubs (lines 136-138):**
+- Remove "Global Fighters" fake club
+- This section can be empty or removed
 
-## Files to Modify
-1. **Database Migration** - Add RLS policy for public profile viewing
-2. **src/hooks/useUserSearch.ts** (new) - Search hook with debounce
-3. **src/pages/Profile.tsx** - Add search modal mode and UI
+**Club Chat Messages (lines 43-47):**
+- Remove fake chat messages from "Coach Mike" and "Alex R."
+- Start with empty array or placeholder for when real chat is implemented
+
+**Club Feed (lines 162-166):**
+- Remove fake posts from "Coach Mike", "Alex R.", and "Sarah C."
+- Start with empty array
+
+**Club Leaderboard (lines 223-229):**
+- Remove fake leaderboard data
+- Start with empty array or show placeholder message
+
+### 3. Update Trending Workouts in trendingWorkouts.ts
+**File: `src/data/trendingWorkouts.ts`**
+
+- Keep only the workout by "Demo" (rename Sarah Chen's "Quick Morning Jabs" to be by Demo)
+- Remove all other mock workouts by Mike Thompson, James Wilson, Alex Rodriguez, Coach Davis, Flash Martinez
+- OR: Clear the entire array to only show real community-shared presets
+
+### 4. Early Adopters Club
+**In FightClub.tsx clubs section:**
+
+Create a single club:
+```typescript
+const myClubs: Club[] = [
+  { 
+    id: 'early-adopters', 
+    name: 'Early Adopters', 
+    icon: '🚀', 
+    type: 'public', 
+    memberCount: 0,  // Will be tracked from real data eventually
+    activeNow: 0,
+    maxMembers: 100  // Add new property for cap
+  },
+];
+```
+
+The Discover section will be empty since we're removing fake clubs.
+
+## Summary of Removals
+
+| Location | Items to Remove |
+|----------|----------------|
+| Profile.tsx MOCK_USERS | mike-thompson, alex-rodriguez, jamie-lee |
+| FightClub.tsx mockFeedPosts | Mike Thompson post, James Wilson post |
+| FightClub.tsx myClubs | Iron Fist Boxing, Morning Grinders |
+| FightClub.tsx discoverClubs | Global Fighters |
+| FightClub.tsx clubChatMessages | All fake messages |
+| FightClub.tsx clubFeed | All fake posts |
+| FightClub.tsx clubLeaderboard | All fake entries |
+| trendingWorkouts.ts | All workouts except Demo's |
+
+## Items to Keep/Rename
+
+| Item | Change |
+|------|--------|
+| Sarah Chen | Rename to "Demo" with handle @demo |
+| LIVE feed post | Keep, update to show Demo user |
+| Quick Morning Jabs workout | Rename author to Demo |
+| Early Adopters club | Add new, cap at 100 |
 
 ## Technical Details
 
-### RLS Policy SQL
-```sql
-CREATE POLICY "Authenticated users can view all profiles"
-ON public.profiles
-FOR SELECT
-TO authenticated
-USING (true);
-```
-
-### Search Query Pattern
-```typescript
-const { data } = await supabase
-  .from('profiles')
-  .select('user_id, name, handle, avatar_url')
-  .or(`name.ilike.%${query}%,handle.ilike.%${query}%`)
-  .neq('user_id', currentUserId)
-  .limit(20);
-```
-
-### Modal Enhancement
-The existing `listModal` state will be expanded to include a "search" type, and the modal content will conditionally render a search interface when in search mode.
+The feed will now prioritize real `community_posts` from Supabase. The Demo LIVE post will remain as a single static example showing the "Watch" feature. All clubs will be placeholder until real club functionality is implemented with database backing.
