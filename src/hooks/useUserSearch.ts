@@ -37,7 +37,8 @@ export function useUserSearch(searchQuery: string) {
         return [];
       }
       
-      const searchTerm = `%${cleanQuery}%`;
+      // Use * instead of % for PostgREST filter syntax
+      const searchTerm = `*${cleanQuery}*`;
       
       const { data, error } = await supabase
         .from('profiles')
