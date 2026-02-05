@@ -123,7 +123,7 @@ const EditProfile = () => {
     }
   };
 
-  const joinedDate = user?.createdAt ? new Date(user.createdAt).toLocaleDateString() : 'N/A';
+  const joinedDate = profile?.created_at ? new Date(profile.created_at).toLocaleDateString() : 'N/A';
 
   return (
     <AppLayout>
