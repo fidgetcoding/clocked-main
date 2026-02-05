@@ -1,16 +1,17 @@
 import { useState } from 'react';
-import { ArrowLeft, Settings, User, MapPin, Link as LinkIcon, UserPlus, UserCheck, Clock, Trophy, Flame, ChevronRight, X, Search } from 'lucide-react';
+import { Settings, User, Link as LinkIcon, UserPlus, UserCheck, Clock, Trophy, Flame, ChevronRight, X, Search } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { useUserSearch } from '@/hooks/useUserSearch';
 import { useNavigate, useParams } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
-import { useProfile, getProfileRanking } from '@/hooks/useProfile';
+import { useProfile } from '@/hooks/useProfile';
+import { usePublicProfile } from '@/hooks/usePublicProfile';
 import { useFollows } from '@/hooks/useFollows';
 import { useAuth } from '@/contexts/AuthContext';
 import { XPBar } from '@/components/ui/XPBar';
-import { PrestigeDisplay, PrestigeBadge } from '@/components/ui/PrestigeDisplay';
-import { Prestige, PRESTIGE_NAMES, RANKING_NAMES, getRankingFromLevel } from '@/lib/xpSystem';
+import { PrestigeBadge } from '@/components/ui/PrestigeDisplay';
+import { Prestige, getRankingFromLevel } from '@/lib/xpSystem';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 
@@ -23,26 +24,6 @@ function formatDuration(seconds: number): string {
   return `${mins}m`;
 }
 
-// Demo user for demonstration purposes
-const MOCK_USERS: Record<string, any> = {
-  'demo': {
-    id: 'demo',
-    name: 'Demo',
-    handle: '@demo',
-    avatar: '🤖',
-    bio: 'Demo account for CLOCKED 🥊',
-    location: 'The Cloud',
-    totalXP: 32000,
-    workoutsCompleted: 156,
-    currentStreak: 12,
-    longestStreak: 45,
-    totalWorkoutTime: 280800,
-    followers: 1245,
-    following: 89,
-    isFollowing: false,
-  },
-};
-
 type ListModalType = 'followers' | 'following' | 'search' | null;
 
 const Profile = () => {
@@ -50,32 +31,35 @@ const Profile = () => {
   const { userId } = useParams<{ userId?: string }>();
   const { profile } = useProfile();
   const { user: authUser } = useAuth();
+  const { data: publicProfile, isLoading: isLoadingPublic } = usePublicProfile(userId);
   const { followersCount, followingCount, followersList, followingList, isFollowing, follow, unfollow } = useFollows(userId);
   const [listModal, setListModal] = useState<ListModalType>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const { results: searchResults, isLoading: isSearching, hasQuery } = useUserSearch(searchQuery);
 
   // Determine if viewing own profile or someone else's
-  const isOwnProfile = !userId;
-  const viewingUser = isOwnProfile ? null : MOCK_USERS[userId];
+  const isOwnProfile = !userId || userId === authUser?.id;
+  const viewingUser = isOwnProfile ? null : publicProfile;
 
-  // Get prestige and ranking data
+  // Get prestige and ranking data - use real data from database for both own and other profiles
   const prestige: Prestige = isOwnProfile 
     ? (profile?.prestige || 'beginner') 
-    : 'beginner';
-  const currentLevel = isOwnProfile ? (profile?.current_level || 1) : 1;
+    : (viewingUser?.prestige || 'beginner');
+  const currentLevel = isOwnProfile ? (profile?.current_level || 1) : (viewingUser?.current_level || 1);
   const ranking = getRankingFromLevel(currentLevel);
 
-  // Use real user data from database
-  const totalXP = isOwnProfile ? (profile?.total_xp || 0) : (viewingUser?.totalXP || 0);
-  const profileName = isOwnProfile ? (profile?.name || 'Fighter') : (viewingUser?.name || 'Unknown');
+  // Use real user data from database for both own and other profiles
+  const totalXP = isOwnProfile ? (profile?.total_xp || 0) : (viewingUser?.total_xp || 0);
+  const profileName = isOwnProfile ? (profile?.name || 'Fighter') : (viewingUser?.name || 'Fighter');
   const profileHandle = isOwnProfile 
     ? '@' + (profile?.handle || profile?.name?.toLowerCase().replace(/\s+/g, '') || 'fighter') 
-    : (viewingUser?.handle || '@unknown');
-  const profileAvatar = isOwnProfile ? profile?.avatar_url : viewingUser?.avatar;
-  const workoutsCompleted = isOwnProfile ? (profile?.workouts_completed || 0) : (viewingUser?.workoutsCompleted || 0);
-  const currentStreak = isOwnProfile ? (profile?.current_streak || 0) : (viewingUser?.currentStreak || 0);
-  const longestStreak = isOwnProfile ? (profile?.longest_streak || 0) : (viewingUser?.longestStreak || 0);
+    : '@' + (viewingUser?.handle || viewingUser?.name?.toLowerCase().replace(/\s+/g, '') || 'fighter');
+  const profileAvatar = isOwnProfile ? profile?.avatar_url : viewingUser?.avatar_url;
+  const workoutsCompleted = isOwnProfile ? (profile?.workouts_completed || 0) : (viewingUser?.workouts_completed || 0);
+  const currentStreak = isOwnProfile ? (profile?.current_streak || 0) : (viewingUser?.current_streak || 0);
+  const longestStreak = isOwnProfile ? (profile?.longest_streak || 0) : (viewingUser?.longest_streak || 0);
+  const totalTrainingSeconds = isOwnProfile ? (profile?.total_training_seconds || 0) : (viewingUser?.total_training_seconds || 0);
+  const bio = isOwnProfile ? profile?.bio : viewingUser?.bio;
 
   const handleFollow = (id: string) => {
     if (isFollowing) {
@@ -189,10 +173,7 @@ const Profile = () => {
           <div className="flex items-center gap-2 text-sm text-muted-foreground mb-3">
             <Clock className="w-4 h-4" />
             <span>
-              {isOwnProfile 
-                ? formatDuration(workoutsCompleted * 1800)
-                : formatDuration(viewingUser?.totalWorkoutTime || 0)
-              } total training
+              {formatDuration(totalTrainingSeconds)} total training
             </span>
           </div>
 
@@ -205,19 +186,8 @@ const Profile = () => {
           />
 
           {/* Bio */}
-          {isOwnProfile && profile?.bio && (
-            <p className="text-sm text-foreground mb-3">{profile.bio}</p>
-          )}
-          {!isOwnProfile && viewingUser?.bio && (
-            <p className="text-sm text-foreground mb-3">{viewingUser.bio}</p>
-          )}
-
-          {/* Location */}
-          {!isOwnProfile && viewingUser?.location && (
-            <div className="flex items-center gap-1 text-sm text-muted-foreground mb-4">
-              <MapPin className="w-3 h-3" />
-              <span>{viewingUser.location}</span>
-            </div>
+          {bio && (
+            <p className="text-sm text-foreground mb-3">{bio}</p>
           )}
 
           {/* Action Buttons */}
@@ -298,10 +268,7 @@ const Profile = () => {
           <div className="card-workout text-center py-3">
             <Clock className="w-5 h-5 text-muted-foreground mx-auto mb-1" />
             <p className="text-xl font-bold text-volt">
-              {isOwnProfile 
-                ? Math.floor(workoutsCompleted * 30 / 60) 
-                : Math.floor((viewingUser?.totalWorkoutTime || 0) / 3600)
-              }h
+              {Math.floor(totalTrainingSeconds / 3600)}h
             </p>
             <p className="text-[10px] text-muted-foreground">Total Time</p>
           </div>
