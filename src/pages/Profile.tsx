@@ -128,20 +128,14 @@ const Profile = () => {
                 </p>
                 <p className="text-xs text-muted-foreground">Workouts</p>
               </div>
-              <button 
-                onClick={() => setListModal('followers')}
-                className="text-center hover:opacity-80 transition-opacity"
-              >
+              <div className="text-center">
                 <p className="text-xl font-bold text-foreground">{followersCount}</p>
                 <p className="text-xs text-muted-foreground">Followers</p>
-              </button>
-              <button 
-                onClick={() => setListModal('following')}
-                className="text-center hover:opacity-80 transition-opacity"
-              >
+              </div>
+              <div className="text-center">
                 <p className="text-xl font-bold text-foreground">{followingCount}</p>
                 <p className="text-xs text-muted-foreground">Following</p>
-              </button>
+              </div>
             </div>
           </div>
 
