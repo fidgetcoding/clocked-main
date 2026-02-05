@@ -1,68 +1,71 @@
 
-# Fix: User Data Isolation - Workouts Bleeding Across Accounts
+# User Search Feature for Finding and Following Users
 
-## ✅ COMPLETED
+## Overview
+Add a search feature to the Profile page that allows users to find other users by name or handle, view their profiles, and follow them.
 
-This fix has been implemented. All user data is now properly isolated per account.
+## Current State
+- The followers/following modal exists but only shows existing connections
+- The `profiles` table RLS policy only allows users to view their own profile
+- No search functionality exists for discovering other users
 
-## Changes Made
+## Implementation Steps
 
-### 1. AuthContext - Clear localStorage on Auth Changes
-- Added `clearUserLocalStorage()` function to remove all user-specific data on logout
-- Clears React Query cache when user changes
-- Tracks previous user ID to detect account switches
+### 1. Database Changes
+Update the RLS policy on the `profiles` table to allow authenticated users to view other users' public profile information (name, handle, avatar). This is required for the search to work.
 
-### 2. Preset Seeding Hook (`src/hooks/usePresetSeeding.ts`)
-- New hook that seeds experience-level-appropriate presets for new users
-- Runs once when a user first logs in and has no workouts in database
-- Stores presets in Supabase with `is_preset: true` flag
+**New RLS Policy:**
+- Add a SELECT policy allowing authenticated users to view all profiles
+- This enables user discovery while maintaining insert/update/delete restrictions
 
-### 3. Index.tsx - Migrated to Supabase
-- Replaced `useWorkoutStore` with `useWorkouts` hook
-- Added `usePresetSeeding()` to seed presets for new users
-- All workout data now comes from database, not localStorage
+### 2. Create User Search Hook
+Create a new hook `useUserSearch` that:
+- Takes a search query string
+- Searches the `profiles` table by name or handle using `ilike` for partial matching
+- Returns matching users with their basic info (id, name, handle, avatar)
+- Excludes the current user from results
+- Has debounced search to avoid excessive API calls
 
-### 4. Build.tsx - Migrated to Supabase
-- Replaced `useWorkoutStore` with `useWorkouts` hook
-- All CRUD operations go through Supabase mutations
-- Properly converts between local and database formats
+### 3. Update Profile Page Modal
+Enhance the existing followers/following modal to include:
+- A third mode: "search" for finding new users
+- Search input field at the top of the modal
+- Display search results with user cards
+- Each result links to the user's profile page where they can be followed
+- Add a "Find People" button or search tab in the modal
 
-### 5. WorkoutSession.tsx - Migrated to Supabase
-- Uses `useWorkouts` hook to fetch workout data
-- Uses `useWorkoutHistory` hook to log completed workouts
-- Converts database format to local format for timer logic
+### 4. UI/UX Design
+- Add a search icon/button on the Profile page to open the search modal
+- The modal will have tabs or modes: "Followers", "Following", "Search"
+- Search input with real-time results
+- User cards showing avatar, name, and handle
+- Tapping a result navigates to that user's profile
 
-### 6. History.tsx - Migrated to Supabase
-- Replaced `useHistoryStore` with `useWorkoutHistory` hook
-- All history data now comes from database
+## Files to Modify
+1. **Database Migration** - Add RLS policy for public profile viewing
+2. **src/hooks/useUserSearch.ts** (new) - Search hook with debounce
+3. **src/pages/Profile.tsx** - Add search modal mode and UI
 
-### 7. AddWorkoutModal.tsx - Migrated to Supabase
-- Uses `useWorkoutHistory` hook to add manual workout entries
+## Technical Details
 
-## Data Flow (After Fix)
-
-```text
-User A signs up → presets seeded to DB (user_id = A)
-User A adds "Morning Shadow Boxing" → stored in DB (user_id = A)
-User A logs out → localStorage cleared
-User B signs up → presets seeded to DB (user_id = B)
-User B sees ONLY their own workouts (user_id = B)
-User A logs back in → sees ONLY their workouts (user_id = A)
+### RLS Policy SQL
+```sql
+CREATE POLICY "Authenticated users can view all profiles"
+ON public.profiles
+FOR SELECT
+TO authenticated
+USING (true);
 ```
 
-## Database Schema (Already Exists)
+### Search Query Pattern
+```typescript
+const { data } = await supabase
+  .from('profiles')
+  .select('user_id, name, handle, avatar_url')
+  .or(`name.ilike.%${query}%,handle.ilike.%${query}%`)
+  .neq('user_id', currentUserId)
+  .limit(20);
+```
 
-The `workouts` table has proper RLS policies:
-- `user_id` column for ownership
-- SELECT: `auth.uid() = user_id`
-- INSERT: `auth.uid() = user_id`
-- UPDATE: `auth.uid() = user_id`
-- DELETE: `auth.uid() = user_id`
-
-## Testing Checklist
-
-- [ ] Create Account A, add custom workout, log out
-- [ ] Create Account B - should NOT see Account A's workouts
-- [ ] Edit preset in Account B - Account A's preset unchanged
-- [ ] New user sees only experience-level-appropriate presets
-- [ ] Workout history is separate per user
+### Modal Enhancement
+The existing `listModal` state will be expanded to include a "search" type, and the modal content will conditionally render a search interface when in search mode.
