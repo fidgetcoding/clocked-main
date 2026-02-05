@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
-import { useWorkoutStore } from '@/stores/workoutStore';
+import { useWorkouts, DbWorkout } from '@/hooks/useWorkouts';
 import { useUserStore } from '@/stores/userStore';
 import { Workout, WorkoutPhase, WorkoutSegment, SegmentType } from '@/types';
 import { cn } from '@/lib/utils';
@@ -52,13 +52,31 @@ function formatDuration(seconds: number): string {
   return `${mins}:${secs.toString().padStart(2, '0')}`;
 }
 
+// Helper to convert DB workout phases to local format
+function dbPhasesToLocal(dbWorkout: DbWorkout): { warmup: WorkoutPhase[], grind: WorkoutPhase[], cooldown: WorkoutPhase[], combos: string[][] } {
+  const phases = dbWorkout.phases as any[];
+  const warmup = phases?.filter((p: any) => p.section === 'warmup').map(({ section, ...rest }) => rest) || [];
+  const grind = phases?.filter((p: any) => p.section === 'grind').map(({ section, ...rest }) => rest) || [];
+  const cooldown = phases?.filter((p: any) => p.section === 'cooldown').map(({ section, ...rest }) => rest) || [];
+  
+  // Extract combos from any phase that has them, or from the workout's combos field
+  const combos: string[][] = [];
+  phases?.forEach((phase: any) => {
+    if (phase.combos) {
+      combos.push(...phase.combos);
+    }
+  });
+  
+  return { warmup, grind, cooldown, combos };
+}
+
 const Build = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const editId = searchParams.get('edit');
   const aiWorkoutData = searchParams.get('ai');
   
-  const { workouts, addWorkout, updateWorkout } = useWorkoutStore();
+  const { workouts, addWorkout, updateWorkout } = useWorkouts();
   const user = useUserStore((state) => state.user);
   
   // Get default difficulty based on user's experience level
@@ -78,6 +96,7 @@ const Build = () => {
   const [cooldownPhases, setCooldownPhases] = useState<WorkoutPhase[]>([]);
   const [combos, setCombos] = useState<string[][]>([]);
   const [workoutId, setWorkoutId] = useState<string | null>(null);
+  const [isPreset, setIsPreset] = useState(false);
   
   // UI state
   const [activeSection, setActiveSection] = useState<'warmup' | 'grind' | 'cooldown'>('grind');
@@ -103,6 +122,7 @@ const Build = () => {
         setGrindPhases(workout.sections.grind);
         setCooldownPhases(workout.sections.cooldown);
         setCombos(workout.combos || []);
+        setIsPreset(false);
         toast.success(`Loaded "${workout.name}" - customize and save or start!`);
       } catch (e) {
         console.error('Failed to parse AI workout data', e);
@@ -110,18 +130,20 @@ const Build = () => {
     }
   }, [aiWorkoutData]);
 
-  // Load existing workout for editing
+  // Load existing workout for editing from Supabase
   useEffect(() => {
-    if (editId) {
-      const workout = workouts.find(w => w.id === editId);
-      if (workout) {
-        setWorkoutId(workout.id);
-        setName(workout.name);
-        setDifficulty(workout.difficulty);
-        setWarmupPhases(workout.sections.warmup);
-        setGrindPhases(workout.sections.grind);
-        setCooldownPhases(workout.sections.cooldown);
-        setCombos(workout.combos || []);
+    if (editId && workouts.length > 0) {
+      const dbWorkout = workouts.find(w => w.id === editId);
+      if (dbWorkout) {
+        const { warmup, grind, cooldown, combos: extractedCombos } = dbPhasesToLocal(dbWorkout);
+        setWorkoutId(dbWorkout.id);
+        setName(dbWorkout.name);
+        setDifficulty((dbWorkout.difficulty as 'beginner' | 'intermediate' | 'advanced') || 'beginner');
+        setWarmupPhases(warmup);
+        setGrindPhases(grind);
+        setCooldownPhases(cooldown);
+        setCombos(extractedCombos);
+        setIsPreset(dbWorkout.is_preset || false);
       }
     }
   }, [editId, workouts]);
@@ -272,36 +294,50 @@ const Build = () => {
   const handleSave = (andStart: boolean = false) => {
     const id = workoutId || editId || generateId();
     const existingWorkout = workouts.find(w => w.id === id);
-    const workout: Workout = {
-      id,
+    
+    // Convert to database format
+    const phasesForDb = JSON.parse(JSON.stringify([
+      ...warmupPhases.map(p => ({ ...p, section: 'warmup' })),
+      ...grindPhases.map(p => ({ ...p, section: 'grind' })),
+      ...cooldownPhases.map(p => ({ ...p, section: 'cooldown' })),
+    ]));
+    
+    const workoutData = {
       name,
-      icon: '🥊',
+      description: null,
+      duration: calculateTotalDuration(),
       difficulty,
-      totalDuration: calculateTotalDuration(),
-      isPreset: existingWorkout?.isPreset || false, // Preserve preset status
-      isArchived: false,
-      createdAt: existingWorkout?.createdAt || new Date(),
-      timesCompleted: existingWorkout?.timesCompleted || 0,
-      sections: {
-        warmup: warmupPhases,
-        grind: grindPhases,
-        cooldown: cooldownPhases,
-      },
-      combos: combos.length > 0 ? combos : undefined,
+      phases: phasesForDb,
+      tags: ['boxing', difficulty],
+      is_preset: existingWorkout?.is_preset || isPreset || false,
+      is_archived: false,
+      times_completed: existingWorkout?.times_completed || 0,
+      last_used_at: existingWorkout?.last_used_at || null,
     };
 
-    if (editId || workouts.some(w => w.id === id)) {
-      updateWorkout(id, workout);
+    const saveAndNavigate = (savedId: string) => {
+      if (andStart) {
+        toast.success(`Starting "${name}"`);
+        navigate(`/workout/${savedId}/session`);
+      } else {
+        toast.success(`Saved "${name}"`);
+        navigate('/');
+      }
+    };
+
+    if (editId) {
+      updateWorkout.mutate(
+        { id: editId, ...workoutData },
+        {
+          onSuccess: (data) => saveAndNavigate(data.id),
+          onError: (error) => toast.error('Failed to save: ' + error.message),
+        }
+      );
     } else {
-      addWorkout(workout);
-    }
-    
-    if (andStart) {
-      toast.success(`Starting "${name}"`);
-      navigate(`/workout/${id}/session`);
-    } else {
-      toast.success(`Saved "${name}"`);
-      navigate('/');
+      addWorkout.mutate(workoutData, {
+        onSuccess: (data) => saveAndNavigate(data.id),
+        onError: (error) => toast.error('Failed to save: ' + error.message),
+      });
     }
   };
 

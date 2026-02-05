@@ -1,10 +1,11 @@
-import { useState, useEffect } from 'react';
-import { Plus, History, Play, Pencil, Trash2, Clock, RotateCcw, Archive } from 'lucide-react';
+import { useState } from 'react';
+import { Plus, History, Play, Pencil, Trash2, Clock, RotateCcw, Archive, Loader2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import clockedTextLogo from '@/assets/clocked-text-logo.png';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { useUserStore } from '@/stores/userStore';
-import { useWorkoutStore } from '@/stores/workoutStore';
+import { useWorkouts } from '@/hooks/useWorkouts';
+import { usePresetSeeding } from '@/hooks/usePresetSeeding';
 import { Button } from '@/components/ui/button';
 import {
   AlertDialog,
@@ -16,7 +17,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 
 function formatDuration(seconds: number): string {
@@ -24,58 +24,59 @@ function formatDuration(seconds: number): string {
   return `${mins} MIN`;
 }
 
+// Helper to extract workout data from phases (database format)
+function getWorkoutStats(workout: ReturnType<typeof useWorkouts>['workouts'][0]) {
+  const phases = workout.phases as any[];
+  const warmupPhases = phases?.filter((p: any) => p.section === 'warmup') || [];
+  const grindPhases = phases?.filter((p: any) => p.section === 'grind') || [];
+  const cooldownPhases = phases?.filter((p: any) => p.section === 'cooldown') || [];
+  const totalPhases = warmupPhases.length + grindPhases.length + cooldownPhases.length;
+  return { totalPhases };
+}
+
 const Index = () => {
   const navigate = useNavigate();
-  const { hasCompletedOnboarding, user } = useUserStore();
-  const { workouts, deleteWorkout, archiveWorkout, loadBeginnerPresets, loadIntermediatePresets, loadAdvancedPresets, loadProPresets, loadCoachPresets } = useWorkoutStore();
+  const { hasCompletedOnboarding } = useUserStore();
+  const { workouts, isLoading, deleteWorkout, archiveWorkout } = useWorkouts();
   const [workoutToDelete, setWorkoutToDelete] = useState<string | null>(null);
 
+  // Seed presets for new users (runs once per user)
+  usePresetSeeding();
+
   // Redirect to onboarding if not completed
-  useEffect(() => {
-    if (!hasCompletedOnboarding) {
-      navigate('/onboarding');
-    }
-  }, [hasCompletedOnboarding, navigate]);
+  if (!hasCompletedOnboarding) {
+    navigate('/onboarding');
+    return null;
+  }
 
-  // Load presets based on user's role and experience level
-  useEffect(() => {
-    // Coaches get the special coach preset
-    if (user?.role === 'coach') {
-      loadCoachPresets();
-      return;
-    }
-    
-    // Fighters get presets based on their experience level
-    const level = user?.experienceLevel;
-    if (level === 'complete_beginner' || level === 'beginner') {
-      loadBeginnerPresets();
-    } else if (level === 'intermediate') {
-      loadIntermediatePresets();
-    } else if (level === 'advanced') {
-      loadAdvancedPresets();
-    } else if (level === 'pro') {
-      loadProPresets();
-    } else {
-      // Default to beginner if no level set
-      loadBeginnerPresets();
-    }
-  }, [user?.role, user?.experienceLevel, loadBeginnerPresets, loadIntermediatePresets, loadAdvancedPresets, loadProPresets, loadCoachPresets]);
-
-  const activeWorkouts = workouts.filter((w) => !w.isArchived);
+  // Filter active workouts (not archived)
+  const activeWorkouts = workouts.filter((w) => !w.is_archived);
 
   const handleDelete = () => {
     if (workoutToDelete) {
-      deleteWorkout(workoutToDelete);
-      setWorkoutToDelete(null);
-      toast.success('Workout deleted permanently');
+      deleteWorkout.mutate(workoutToDelete, {
+        onSuccess: () => {
+          setWorkoutToDelete(null);
+          toast.success('Workout deleted permanently');
+        },
+        onError: (error) => {
+          toast.error('Failed to delete: ' + error.message);
+        },
+      });
     }
   };
 
   const handleArchive = () => {
     if (workoutToDelete) {
-      archiveWorkout(workoutToDelete);
-      setWorkoutToDelete(null);
-      toast.success('Workout archived. Access it in Settings.');
+      archiveWorkout.mutate(workoutToDelete, {
+        onSuccess: () => {
+          setWorkoutToDelete(null);
+          toast.success('Workout archived. Access it in Settings.');
+        },
+        onError: (error) => {
+          toast.error('Failed to archive: ' + error.message);
+        },
+      });
     }
   };
 
@@ -150,7 +151,9 @@ const Index = () => {
                 </Button>
               </div>
             ) : (
-              activeWorkouts.map((workout) => (
+              activeWorkouts.map((workout) => {
+                const { totalPhases } = getWorkoutStats(workout);
+                return (
                 <div
                   key={workout.id}
                   className="card-workout group"
@@ -164,17 +167,17 @@ const Index = () => {
                         <div className="flex items-center gap-4 text-sm text-muted-foreground mb-3">
                           <span className="flex items-center gap-1">
                             <Clock className="w-4 h-4" />
-                            {formatDuration(workout.totalDuration)}
+                            {formatDuration(workout.duration)}
                           </span>
                           <span className="flex items-center gap-1">
                             <RotateCcw className="w-4 h-4" />
-                            {workout.sections.warmup.length + workout.sections.grind.length + workout.sections.cooldown.length} PHASES
+                            {totalPhases} PHASES
                           </span>
                         </div>
 
                         {/* Tags */}
                         <div className="flex flex-wrap gap-2">
-                          <span className="tag">{workout.difficulty.toUpperCase()}</span>
+                          <span className="tag">{(workout.difficulty || 'beginner').toUpperCase()}</span>
                           <span className="tag">BOXING</span>
                           <span className="tag">HIIT</span>
                         </div>
@@ -208,7 +211,8 @@ const Index = () => {
                     </div>
                   </div>
                 </div>
-              ))
+                );
+              })
             )}
           </div>
         </section>

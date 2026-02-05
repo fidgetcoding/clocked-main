@@ -4,9 +4,9 @@ import { ArrowLeft, Home, Play, Pause, RotateCcw, SkipForward, SkipBack, Chevron
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
 import { VerticalXPBar } from '@/components/ui/VerticalXPBar';
-import { useWorkoutStore } from '@/stores/workoutStore';
+import { useWorkouts, DbWorkout } from '@/hooks/useWorkouts';
+import { useWorkoutHistory } from '@/hooks/useWorkoutHistory';
 import { useUserStore } from '@/stores/userStore';
-import { useHistoryStore } from '@/stores/historyStore';
 import { useSpeechSynthesis } from '@/hooks/useSpeechSynthesis';
 import { cn } from '@/lib/utils';
 
@@ -37,13 +37,41 @@ function formatTimeCompact(seconds: number): string {
   return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
 }
 
+// Helper to convert DB workout to local format for session
+function dbWorkoutToLocal(dbWorkout: DbWorkout) {
+  const phases = dbWorkout.phases as any[];
+  const sections = {
+    warmup: phases?.filter((p: any) => p.section === 'warmup').map(({ section, ...rest }) => rest) || [],
+    grind: phases?.filter((p: any) => p.section === 'grind').map(({ section, ...rest }) => rest) || [],
+    cooldown: phases?.filter((p: any) => p.section === 'cooldown').map(({ section, ...rest }) => rest) || [],
+  };
+  
+  // Extract combos from phases
+  const combos: string[][] = [];
+  phases?.forEach((phase: any) => {
+    if (phase.combos) {
+      combos.push(...phase.combos);
+    }
+  });
+  
+  return {
+    id: dbWorkout.id,
+    name: dbWorkout.name,
+    duration: dbWorkout.duration,
+    difficulty: dbWorkout.difficulty,
+    sections,
+    combos: combos.length > 0 ? combos : undefined,
+    is_preset: dbWorkout.is_preset,
+  };
+}
+
 const WorkoutSession = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { workouts, markWorkoutUsed } = useWorkoutStore();
+  const { workouts, updateWorkout } = useWorkouts();
+  const { addHistoryEntry } = useWorkoutHistory();
   const user = useUserStore((state) => state.user);
   const addXP = useUserStore((state) => state.addXP);
-  const addCompletedWorkout = useHistoryStore((state) => state.addCompletedWorkout);
   const { initialize: initSpeech, speak, cancel: cancelSpeech } = useSpeechSynthesis();
 
   // Get user preferences for voice settings
@@ -53,7 +81,8 @@ const WorkoutSession = () => {
     voiceComboCallouts?: boolean;
   } | undefined;
 
-  const workout = workouts.find((w) => w.id === id);
+  const dbWorkout = workouts.find((w) => w.id === id);
+  const workout = useMemo(() => dbWorkout ? dbWorkoutToLocal(dbWorkout) : null, [dbWorkout]);
 
   // Flatten workout into segments
   const flatSegments = useMemo(() => {
@@ -265,12 +294,17 @@ const WorkoutSession = () => {
           }
         });
         
-        if (workout) {
-          markWorkoutUsed(workout.id);
+        // Mark workout as used
+        if (dbWorkout) {
+          updateWorkout.mutate({
+            id: dbWorkout.id,
+            times_completed: (dbWorkout.times_completed || 0) + 1,
+            last_used_at: new Date().toISOString(),
+          });
         }
       }
     }
-  }, [timeRemaining, isRunning, isPreparation, currentSegmentIndex, flatSegments, workout, markWorkoutUsed, cancelSpeech, isComplete, totalElapsed]);
+  }, [timeRemaining, isRunning, isPreparation, currentSegmentIndex, flatSegments, dbWorkout, updateWorkout, cancelSpeech, isComplete, totalElapsed]);
 
 
   const showXpBubble = (amount: number) => {
@@ -357,8 +391,12 @@ const WorkoutSession = () => {
     }
     
     // Mark workout as used
-    if (workout) {
-      markWorkoutUsed(workout.id);
+    if (dbWorkout) {
+      updateWorkout.mutate({
+        id: dbWorkout.id,
+        times_completed: (dbWorkout.times_completed || 0) + 1,
+        last_used_at: new Date().toISOString(),
+      });
     }
   };
 
@@ -390,18 +428,20 @@ const WorkoutSession = () => {
 
   const handleLog = () => {
     const xpEarned = Math.floor((totalElapsed / 60) * 10);
-    addCompletedWorkout({
-      id: crypto.randomUUID(),
-      workoutId: workout?.id,
-      workoutName: workout?.name || 'Workout',
-      completedAt: new Date(),
+    addHistoryEntry.mutate({
+      workout_id: workout?.id || null,
+      workout_name: workout?.name || 'Workout',
+      completed_at: new Date().toISOString(),
       duration: totalElapsed,
-      xpEarned,
-      difficulty: difficultyRating || undefined,
-      notes: notes || undefined,
-      isManualEntry: false,
+      xp_earned: xpEarned,
+      difficulty: difficultyRating || null,
+      notes: notes || null,
+      is_manual_entry: false,
+      round_feedback: [],
+    }, {
+      onSuccess: () => setLogged(true),
+      onError: (error) => console.error('Failed to log workout:', error),
     });
-    setLogged(true);
   };
 
   // Workout complete screen

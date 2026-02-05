@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { History as HistoryIcon, Plus, ChevronRight, Calendar, Sparkles, Brain, X, Wand2 } from 'lucide-react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
-import { useHistoryStore } from '@/stores/historyStore';
+import { useWorkoutHistory } from '@/hooks/useWorkoutHistory';
 import { useUserStore } from '@/stores/userStore';
 import { AddWorkoutModal } from '@/components/AddWorkoutModal';
 import { cn } from '@/lib/utils';
@@ -27,7 +27,7 @@ const History = () => {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysis, setAnalysis] = useState<string | null>(null);
   
-  const completedWorkouts = useHistoryStore((state) => state.completedWorkouts);
+  const { history: completedWorkouts, isLoading, addHistoryEntry } = useWorkoutHistory();
   const user = useUserStore((state) => state.user);
 
   const handleAnalyze = () => {
@@ -43,7 +43,7 @@ const History = () => {
     setTimeout(() => {
       const workoutCount = completedWorkouts.length;
       const avgDuration = Math.round(completedWorkouts.reduce((acc, w) => acc + w.duration, 0) / workoutCount / 60);
-      const totalXP = completedWorkouts.reduce((acc, w) => acc + w.xpEarned, 0);
+      const totalXP = completedWorkouts.reduce((acc, w) => acc + w.xp_earned, 0);
       const tooHardCount = completedWorkouts.filter(w => w.difficulty === 'too_hard').length;
       const tooEasyCount = completedWorkouts.filter(w => w.difficulty === 'too_easy').length;
       
@@ -238,15 +238,15 @@ const History = () => {
                   >
                     <div className="flex-1 text-left">
                       <div className="flex items-center gap-2 mb-1">
-                        <h3 className="font-bold text-foreground">{workout.workoutName}</h3>
+                        <h3 className="font-bold text-foreground">{workout.workout_name}</h3>
                       </div>
                       <div className="flex items-center gap-3 text-xs text-muted-foreground">
                         <span className="flex items-center gap-1">
                           <Calendar className="w-3 h-3" />
-                          {formatDistanceToNow(new Date(workout.completedAt), { addSuffix: true })}
+                          {formatDistanceToNow(new Date(workout.completed_at), { addSuffix: true })}
                         </span>
                         <span>{formatDuration(workout.duration)}</span>
-                        <span className="text-volt font-semibold">+{workout.xpEarned} XP</span>
+                        <span className="text-volt font-semibold">+{workout.xp_earned} XP</span>
                       </div>
                     </div>
                     <ChevronRight
@@ -280,11 +280,11 @@ const History = () => {
                       )}
 
                       {/* Round Feedback */}
-                      {workout.roundFeedback && workout.roundFeedback.length > 0 && (
+                      {workout.round_feedback && workout.round_feedback.length > 0 && (
                         <div className="mt-3">
                           <p className="text-xs text-muted-foreground mb-2">Round Ratings</p>
                           <div className="flex flex-wrap gap-1">
-                            {workout.roundFeedback.map((rf) => (
+                            {workout.round_feedback.map((rf: any) => (
                               <div
                                 key={rf.roundNumber}
                                 className="flex items-center gap-1 bg-surface-2 rounded px-2 py-1"
@@ -309,7 +309,7 @@ const History = () => {
 
                       {/* Date */}
                       <p className="text-[10px] text-muted-foreground mt-3">
-                        {format(new Date(workout.completedAt), 'EEEE, MMMM d, yyyy • h:mm a')}
+                        {format(new Date(workout.completed_at), 'EEEE, MMMM d, yyyy • h:mm a')}
                       </p>
                     </div>
                   )}
