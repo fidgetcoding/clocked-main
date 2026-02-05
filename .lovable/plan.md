@@ -1,39 +1,60 @@
 
 
-# Fix User Search to Find Existing Users
+# Fix User Search to Actually Find Users
 
 ## Problem
-When searching for users like "@dan", "@a tester", or "@scrap", they don't appear in results even though they exist in the database.
+The search functionality is not returning any results, even though users like "Dan", "a tester", and "Scrap" exist in the database. The fix to strip the "@" symbol was applied but the underlying Supabase query is failing.
 
-## Root Causes
-1. **@ symbol in search** - When you search "@dan", the search looks for `%@dan%` which doesn't match "Dan" in the name field
-2. **Handles are empty** - All users have null handles, so handle-based search fails
+## Root Cause
+The Supabase JavaScript client's `.or()` filter syntax has issues with the `%` wildcard character in `ilike` patterns. When the search term `%dan%` is placed directly in the filter string, it doesn't work correctly.
 
-## Solution
-
-### 1. Strip @ Symbol from Search Query
-**File: `src/hooks/useUserSearch.ts`**
-
-Before searching, remove any leading `@` symbol from the query so "@dan" becomes "dan":
-
+**Current broken code:**
 ```typescript
-// Clean the search query - remove @ prefix if present
-const cleanQuery = debouncedQuery.replace(/^@/, '').trim();
-const searchTerm = `%${cleanQuery}%`;
+.or(`name.ilike.${searchTerm},handle.ilike.${searchTerm}`)
+// Results in: name.ilike.%dan%,handle.ilike.%dan%
 ```
 
-### 2. Auto-Generate Handles for Existing Users (Optional)
-If handles should be searchable, we could auto-generate them from names when null. For now, the name search will work once we strip the @ symbol.
+The `%` character needs special handling in the PostgREST filter syntax.
+
+## Solution
+Use the proper Supabase filter pattern by encoding the wildcards or restructuring the query:
+
+**Option 1: Use `textSearch` instead of `ilike`** (not ideal for partial matching)
+
+**Option 2: Use separate filters with `or`** 
+```typescript
+.or(`name.ilike.*dan*,handle.ilike.*dan*`)
+```
+PostgREST uses `*` as the wildcard in URL query strings, which gets converted to `%` internally.
+
+**Option 3: Execute two queries and combine** (less efficient)
 
 ## Changes Required
 
 | File | Change |
 |------|--------|
-| `src/hooks/useUserSearch.ts` | Strip `@` prefix from search query before searching |
+| `src/hooks/useUserSearch.ts` | Fix the `.or()` filter to use `*` wildcards instead of `%` |
+
+## Implementation
+
+```typescript
+// In src/hooks/useUserSearch.ts, line 40-46
+
+// Use * instead of % for the Supabase filter syntax
+const searchTerm = `*${cleanQuery}*`;
+
+const { data, error } = await supabase
+  .from('profiles')
+  .select('id, user_id, name, handle, avatar_url')
+  .or(`name.ilike.${searchTerm},handle.ilike.${searchTerm}`)
+  .neq('user_id', user?.id || '')
+  .limit(20);
+```
 
 ## Expected Result
 After this fix:
-- Searching "@dan" will find user "Dan"
 - Searching "dan" will find user "Dan"
-- Searching "a tester" or "@a tester" will find user "a tester"
+- Searching "a tester" will find user "a tester"  
+- Searching "scrap" will find user "Scrap"
+- Searching "@dan" will also work (@ is stripped first)
 
