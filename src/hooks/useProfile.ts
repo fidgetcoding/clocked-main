@@ -7,6 +7,7 @@ export interface Profile {
   id: string;
   user_id: string;
   name: string;
+  handle: string | null;
   role: 'fighter' | 'coach';
   avatar_url: string | null;
   experience_level: string | null;
@@ -33,6 +34,11 @@ export interface Profile {
   sessions_completed_this_year: number;
   last_workout_date: string | null;
   streak_multiplier: number;
+}
+
+// Helper to generate handle from name
+export function generateHandleFromName(name: string): string {
+  return name.toLowerCase().replace(/\s+/g, '');
 }
 
 // Helper to get ranking from profile
