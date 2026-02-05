@@ -1,5 +1,7 @@
 import { useState } from 'react';
-import { ArrowLeft, Settings, User, MapPin, Link as LinkIcon, UserPlus, UserCheck, Clock, Trophy, Flame, ChevronRight, X } from 'lucide-react';
+import { ArrowLeft, Settings, User, MapPin, Link as LinkIcon, UserPlus, UserCheck, Clock, Trophy, Flame, ChevronRight, X, Search } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { useUserSearch } from '@/hooks/useUserSearch';
 import { useNavigate, useParams } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
@@ -89,7 +91,7 @@ const MOCK_USERS: Record<string, any> = {
   },
 };
 
-type ListModalType = 'followers' | 'following' | null;
+type ListModalType = 'followers' | 'following' | 'search' | null;
 
 const Profile = () => {
   const navigate = useNavigate();
@@ -98,6 +100,8 @@ const Profile = () => {
   const { user: authUser } = useAuth();
   const { followersCount, followingCount, followersList, followingList, isFollowing, follow, unfollow } = useFollows(userId);
   const [listModal, setListModal] = useState<ListModalType>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const { results: searchResults, isLoading: isSearching, hasQuery } = useUserSearch(searchQuery);
 
   // Determine if viewing own profile or someone else's
   const isOwnProfile = !userId;
@@ -136,7 +140,20 @@ const Profile = () => {
     if (listModal === 'following') {
       return followingList;
     }
+    if (listModal === 'search') {
+      return searchResults.map(r => ({
+        id: r.user_id,
+        name: r.name,
+        handle: r.handle ? `@${r.handle}` : `@${r.name.toLowerCase().replace(/\s+/g, '')}`,
+        avatar: r.avatar_url,
+      }));
+    }
     return [];
+  };
+
+  const handleOpenSearch = () => {
+    setSearchQuery('');
+    setListModal('search');
   };
 
   return (
@@ -257,6 +274,13 @@ const Profile = () => {
                 className="flex-1 bg-surface-1 border-surface-3"
               >
                 Edit Profile
+              </Button>
+              <Button 
+                onClick={handleOpenSearch}
+                variant="outline" 
+                className="bg-surface-1 border-surface-3"
+              >
+                <Search className="w-4 h-4" />
               </Button>
               <Button 
                 onClick={() => {
@@ -410,7 +434,7 @@ const Profile = () => {
             {/* Modal Header */}
             <div className="flex items-center justify-between p-4 border-b border-surface-3">
               <h2 className="text-lg font-bold text-foreground capitalize">
-                {listModal}
+                {listModal === 'search' ? 'Find People' : listModal}
               </h2>
               <button 
                 onClick={() => setListModal(null)}
@@ -420,11 +444,35 @@ const Profile = () => {
               </button>
             </div>
 
+            {/* Search Input (only for search mode) */}
+            {listModal === 'search' && (
+              <div className="px-4 pt-4">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Search by name or @handle..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="pl-10 bg-surface-2 border-surface-3"
+                    autoFocus
+                  />
+                </div>
+              </div>
+            )}
+
             {/* Modal Content */}
             <div className="flex-1 overflow-y-auto p-4">
-              {getListData().length === 0 ? (
+              {listModal === 'search' && !hasQuery ? (
                 <p className="text-center text-muted-foreground py-8">
-                  No {listModal} yet
+                  Type at least 2 characters to search
+                </p>
+              ) : listModal === 'search' && isSearching ? (
+                <p className="text-center text-muted-foreground py-8">
+                  Searching...
+                </p>
+              ) : getListData().length === 0 ? (
+                <p className="text-center text-muted-foreground py-8">
+                  {listModal === 'search' ? 'No users found' : `No ${listModal} yet`}
                 </p>
               ) : (
                 <div className="space-y-2">
