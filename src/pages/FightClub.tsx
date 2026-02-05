@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ArrowLeft, Users, Newspaper, Trophy, Search, MessageCircle, BarChart3, Send, ChevronRight, Mic, MicOff, Download } from 'lucide-react';
+import { ArrowLeft, Users, Newspaper, Trophy, Search, MessageCircle, BarChart3, Send, ChevronRight, Mic, MicOff, Download, X, UserPlus } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
@@ -13,6 +13,8 @@ import { useWorkoutStore } from '@/stores/workoutStore';
 import { useCommunityPosts, CommunityPost } from '@/hooks/useCommunityPosts';
 import { Workout } from '@/types';
 import { toast } from 'sonner';
+import { useUserSearch } from '@/hooks/useUserSearch';
+import { useFollows } from '@/hooks/useFollows';
 
 type Tab = 'feed' | 'clubs' | 'presets';
 type ClubTab = 'feed' | 'chat' | 'leaderboard';
@@ -50,6 +52,12 @@ const FightClub = () => {
   const [showAIBuilder, setShowAIBuilder] = useState(false);
   const [customizeWorkout, setCustomizeWorkout] = useState<TrendingWorkout | undefined>(undefined);
   const [watchingStream, setWatchingStream] = useState<{userName: string; userAvatar: string; workoutName: string; elapsed: string} | null>(null);
+  
+  // User search state
+  const [showUserSearch, setShowUserSearch] = useState(false);
+  const [userSearchQuery, setUserSearchQuery] = useState('');
+  const { results: searchResults, isLoading: searchLoading, hasQuery } = useUserSearch(userSearchQuery);
+  const { follow } = useFollows();
 
   const tabs: { id: Tab; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
     { id: 'feed', label: 'Feed', icon: Newspaper },
@@ -437,29 +445,37 @@ const FightClub = () => {
         <div className="px-4 py-4">
           {activeTab === 'feed' && (
             <div className="space-y-4">
-              {/* Feed Filter Toggle */}
-              <div className="flex gap-2 p-1 bg-surface-1 rounded-lg">
+              {/* Feed Filter Toggle + Search */}
+              <div className="flex gap-2 items-center">
+                <div className="flex gap-2 p-1 bg-surface-1 rounded-lg flex-1">
+                  <button
+                    onClick={() => setFeedFilter('all')}
+                    className={cn(
+                      'flex-1 py-2 px-3 rounded-md text-sm font-medium transition-all',
+                      feedFilter === 'all'
+                        ? 'bg-volt text-primary-foreground'
+                        : 'text-muted-foreground hover:text-foreground'
+                    )}
+                  >
+                    All
+                  </button>
+                  <button
+                    onClick={() => setFeedFilter('following')}
+                    className={cn(
+                      'flex-1 py-2 px-3 rounded-md text-sm font-medium transition-all',
+                      feedFilter === 'following'
+                        ? 'bg-volt text-primary-foreground'
+                        : 'text-muted-foreground hover:text-foreground'
+                    )}
+                  >
+                    Following
+                  </button>
+                </div>
                 <button
-                  onClick={() => setFeedFilter('all')}
-                  className={cn(
-                    'flex-1 py-2 px-3 rounded-md text-sm font-medium transition-all',
-                    feedFilter === 'all'
-                      ? 'bg-volt text-primary-foreground'
-                      : 'text-muted-foreground hover:text-foreground'
-                  )}
+                  onClick={() => setShowUserSearch(true)}
+                  className="w-10 h-10 rounded-lg bg-surface-1 flex items-center justify-center text-muted-foreground hover:text-volt hover:bg-surface-2 transition-colors"
                 >
-                  All
-                </button>
-                <button
-                  onClick={() => setFeedFilter('following')}
-                  className={cn(
-                    'flex-1 py-2 px-3 rounded-md text-sm font-medium transition-all',
-                    feedFilter === 'following'
-                      ? 'bg-volt text-primary-foreground'
-                      : 'text-muted-foreground hover:text-foreground'
-                  )}
-                >
-                  Following
+                  <UserPlus className="w-5 h-5" />
                 </button>
               </div>
               
@@ -780,6 +796,80 @@ const FightClub = () => {
           elapsed={watchingStream.elapsed}
           onClose={() => setWatchingStream(null)}
         />
+      )}
+
+      {/* User Search Modal */}
+      {showUserSearch && (
+        <div className="fixed inset-0 bg-background/95 z-50 flex flex-col">
+          <header className="flex items-center gap-3 px-4 py-4 border-b border-surface-3 safe-top">
+            <button onClick={() => { setShowUserSearch(false); setUserSearchQuery(''); }} className="text-muted-foreground">
+              <X className="w-6 h-6" />
+            </button>
+            <h2 className="font-bold text-foreground">Find Fighters</h2>
+          </header>
+
+          <div className="px-4 py-4">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Input
+                value={userSearchQuery}
+                onChange={(e) => setUserSearchQuery(e.target.value)}
+                placeholder="Search by name or @handle..."
+                className="pl-10 bg-surface-1 border-surface-3"
+                autoFocus
+              />
+            </div>
+          </div>
+
+          <div className="flex-1 overflow-y-auto px-4 pb-4">
+            {searchLoading && hasQuery && (
+              <div className="text-center py-8 text-muted-foreground">
+                Searching...
+              </div>
+            )}
+
+            {!hasQuery && (
+              <div className="text-center py-8 text-muted-foreground">
+                <UserPlus className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                <p>Search for fighters to follow</p>
+                <p className="text-sm mt-1">Enter at least 2 characters</p>
+              </div>
+            )}
+
+            {hasQuery && !searchLoading && searchResults.length === 0 && (
+              <div className="text-center py-8 text-muted-foreground">
+                No fighters found matching "{userSearchQuery}"
+              </div>
+            )}
+
+            {searchResults.map((user) => (
+              <button
+                key={user.id}
+                onClick={() => {
+                  setShowUserSearch(false);
+                  setUserSearchQuery('');
+                  navigate(`/profile/${user.user_id}`);
+                }}
+                className="w-full flex items-center gap-3 p-3 rounded-xl bg-surface-1 border border-surface-3 hover:border-volt transition-colors mb-2"
+              >
+                <div className="w-12 h-12 rounded-full bg-surface-2 flex items-center justify-center text-xl overflow-hidden flex-shrink-0">
+                  {user.avatar_url ? (
+                    <img src={user.avatar_url} alt="" className="w-full h-full object-cover" />
+                  ) : (
+                    '🥊'
+                  )}
+                </div>
+                <div className="flex-1 text-left">
+                  <p className="font-semibold text-foreground">{user.name}</p>
+                  <p className="text-sm text-muted-foreground">
+                    @{user.handle || user.name.toLowerCase().replace(/\s+/g, '')}
+                  </p>
+                </div>
+                <ChevronRight className="w-5 h-5 text-muted-foreground" />
+              </button>
+            ))}
+          </div>
+        </div>
       )}
     </AppLayout>
   );
