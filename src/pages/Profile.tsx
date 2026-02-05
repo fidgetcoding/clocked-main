@@ -23,15 +23,15 @@ function formatDuration(seconds: number): string {
   return `${mins}m`;
 }
 
-// Mock data for other users (when viewing someone else's profile)
+// Demo user for demonstration purposes
 const MOCK_USERS: Record<string, any> = {
-  'sarah-chen': {
-    id: 'sarah-chen',
-    name: 'Sarah Chen',
-    handle: '@sarahfights',
-    avatar: '👩',
-    bio: 'Boxing enthusiast 🥊 | 3x Amateur Champion | Training daily',
-    location: 'Los Angeles, CA',
+  'demo': {
+    id: 'demo',
+    name: 'Demo',
+    handle: '@demo',
+    avatar: '🤖',
+    bio: 'Demo account for CLOCKED 🥊',
+    location: 'The Cloud',
     totalXP: 32000,
     workoutsCompleted: 156,
     currentStreak: 12,
@@ -40,54 +40,6 @@ const MOCK_USERS: Record<string, any> = {
     followers: 1245,
     following: 89,
     isFollowing: false,
-  },
-  'mike-thompson': {
-    id: 'mike-thompson',
-    name: 'Mike Thompson',
-    handle: '@ironmike',
-    avatar: '👨',
-    bio: 'Coach at Iron Fist Boxing | 15 years experience',
-    location: 'New York, NY',
-    totalXP: 89000,
-    workoutsCompleted: 412,
-    currentStreak: 28,
-    longestStreak: 120,
-    totalWorkoutTime: 842400,
-    followers: 5680,
-    following: 156,
-    isFollowing: true,
-  },
-  'alex-rodriguez': {
-    id: 'alex-rodriguez',
-    name: 'Alex Rodriguez',
-    handle: '@alexfists',
-    avatar: '🧔',
-    bio: 'Amateur boxer | Training 5 days a week',
-    location: 'Miami, FL',
-    totalXP: 15000,
-    workoutsCompleted: 78,
-    currentStreak: 5,
-    longestStreak: 21,
-    totalWorkoutTime: 140400,
-    followers: 342,
-    following: 67,
-    isFollowing: false,
-  },
-  'jamie-lee': {
-    id: 'jamie-lee',
-    name: 'Jamie Lee',
-    handle: '@jamiepunches',
-    avatar: '👧',
-    bio: 'Fitness coach | Boxing for cardio',
-    location: 'Chicago, IL',
-    totalXP: 22000,
-    workoutsCompleted: 112,
-    currentStreak: 8,
-    longestStreak: 35,
-    totalWorkoutTime: 201600,
-    followers: 890,
-    following: 134,
-    isFollowing: true,
   },
 };
 

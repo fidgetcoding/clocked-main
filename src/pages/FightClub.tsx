@@ -40,11 +40,7 @@ const FightClub = () => {
   const [clubTab, setClubTab] = useState<ClubTab>('feed');
   const [chatMessage, setChatMessage] = useState('');
   const [isRecordingVoice, setIsRecordingVoice] = useState(false);
-  const [clubChatMessages, setClubChatMessages] = useState([
-    { id: '1', userName: 'Coach Mike', avatar: '🧔', message: 'Good morning fighters!', time: '9:00 AM', isOwn: false },
-    { id: '2', userName: 'You', avatar: '⚡', message: 'Ready to train!', time: '9:05 AM', isOwn: true },
-    { id: '3', userName: 'Alex R.', avatar: '👨', message: 'Let\'s go! Starting my warmup now', time: '9:07 AM', isOwn: false },
-  ]);
+  const [clubChatMessages, setClubChatMessages] = useState<{id: string; userName: string; avatar: string; message: string; time: string; isOwn: boolean; isVoice?: boolean}[]>([]);
   // Presets tab state
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<WorkoutCategory>('All');
@@ -127,21 +123,32 @@ const FightClub = () => {
     toast.success(`"${post.workout_name}" saved to your workouts!`);
   };
 
-  // Mock clubs data
+  // Clubs data - Early Adopters is the only club for now
   const myClubs: Club[] = [
-    { id: '1', name: 'Iron Fist Boxing', icon: '⚡', type: 'private', coach: 'Mike T.', memberCount: 12, activeNow: 3 },
-    { id: '2', name: 'Morning Grinders', icon: '💪', type: 'public', memberCount: 47, activeNow: 8, rank: 3 },
+    { id: 'early-adopters', name: 'Early Adopters', icon: '🚀', type: 'public', memberCount: 0, activeNow: 0 },
   ];
 
-  const discoverClubs: Club[] = [
-    { id: '3', name: 'Global Fighters', icon: '🌍', type: 'public', memberCount: 2400, activeNow: 156 },
-  ];
+  const discoverClubs: Club[] = [];
 
-  // Mock feed posts as fallback
-  const mockFeedPosts = [
-    { id: '1', userName: 'Sarah Chen', status: 'live' as const, type: 'currently_training' as const, workoutName: 'Heavy Bag Blast', elapsed: '18:34', avatar: '👩' },
-    { id: '2', userName: 'Mike Thompson', status: 'active' as const, type: 'workout_complete' as const, workoutName: '30-Min Blast', xpEarned: 421, message: 'Legs are dead but worth it!', timeAgo: '5 min ago', likes: 12, comments: 3, avatar: '👨' },
-    { id: '3', userName: 'James Wilson', status: 'active' as const, type: 'rank_up' as const, newRank: 'SEMI-PRO', timeAgo: '1 hr ago', likes: 89, comments: 12, avatar: '🧔' },
+  // Demo feed post - shows LIVE feature example
+  type MockFeedPost = {
+    id: string;
+    userName: string;
+    avatar: string;
+    status: 'live' | 'active';
+    type: 'currently_training' | 'workout_complete' | 'rank_up';
+    workoutName?: string;
+    elapsed?: string;
+    xpEarned?: number;
+    message?: string;
+    timeAgo?: string;
+    likes?: number;
+    comments?: number;
+    newRank?: string;
+  };
+  
+  const mockFeedPosts: MockFeedPost[] = [
+    { id: 'demo-live', userName: 'Demo', status: 'live', type: 'currently_training', workoutName: 'Heavy Bag Blast', elapsed: '18:34', avatar: '🤖' },
   ];
 
   // Helper to format time ago
@@ -158,12 +165,8 @@ const FightClub = () => {
     return `${diffDays}d ago`;
   };
 
-  // Mock club-specific data
-  const clubFeed = [
-    { id: '1', userName: 'Coach Mike', avatar: '🧔', message: 'Great session today team! Remember to hydrate.', timeAgo: '2h ago', likes: 8 },
-    { id: '2', userName: 'Alex R.', avatar: '👨', message: 'Just hit a new PR on the heavy bag! 💪', timeAgo: '4h ago', likes: 15 },
-    { id: '3', userName: 'Sarah C.', avatar: '👩', message: 'Anyone up for a live session tonight?', timeAgo: '6h ago', likes: 4 },
-  ];
+  // Club-specific data - empty for now, will be populated from database
+  const clubFeed: {id: string; userName: string; avatar: string; message: string; timeAgo: string; likes: number}[] = [];
 
   // Voice recording for chat
   const handleVoiceRecord = () => {
@@ -220,13 +223,8 @@ const FightClub = () => {
     setChatMessage('');
   };
 
-  const clubLeaderboard = [
-    { rank: 1, name: 'Coach Mike', xp: 45000, avatar: '🧔', isLive: false },
-    { rank: 2, name: 'Sarah C.', xp: 32000, avatar: '👩', isLive: true },
-    { rank: 3, name: 'You', xp: 28500, avatar: '⚡', isLive: false, isYou: true },
-    { rank: 4, name: 'Alex R.', xp: 25000, avatar: '👨', isLive: false },
-    { rank: 5, name: 'Mike T.', xp: 21000, avatar: '👨', isLive: false },
-  ];
+  // Club leaderboard - empty for now, will be populated from database
+  const clubLeaderboard: {rank: number; name: string; xp: number; avatar: string; isLive: boolean; isYou?: boolean}[] = [];
 
   // Club Detail View
   if (selectedClub) {
