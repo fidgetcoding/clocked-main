@@ -3,8 +3,8 @@ import { X, Mic, MicOff, ChevronDown, ChevronUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
-import { CompletedWorkout, RoundFeedback } from '@/types';
-import { useHistoryStore } from '@/stores/historyStore';
+import { RoundFeedback } from '@/types';
+import { useWorkoutHistory } from '@/hooks/useWorkoutHistory';
 import { useUserStore } from '@/stores/userStore';
 
 interface AddWorkoutModalProps {
@@ -22,7 +22,7 @@ export function AddWorkoutModal({ isOpen, onClose }: AddWorkoutModalProps) {
   const [rounds, setRounds] = useState(6);
   const [roundFeedback, setRoundFeedback] = useState<RoundFeedback[]>([]);
 
-  const addCompletedWorkout = useHistoryStore((state) => state.addCompletedWorkout);
+  const { addHistoryEntry } = useWorkoutHistory();
   const addXP = useUserStore((state) => state.addXP);
 
   const handleRoundRating = (roundNum: number, rating: number) => {
@@ -52,28 +52,29 @@ export function AddWorkoutModal({ isOpen, onClose }: AddWorkoutModalProps) {
   const handleSave = () => {
     const xpEarned = Math.floor((duration / 60) * 10) * 60; // 10 XP per minute
     
-    const workout: CompletedWorkout = {
-      id: crypto.randomUUID(),
-      workoutName: workoutName || 'Manual Entry',
-      completedAt: new Date(),
+    addHistoryEntry.mutate({
+      workout_id: null,
+      workout_name: workoutName || 'Manual Entry',
+      completed_at: new Date().toISOString(),
       duration: duration * 60,
-      xpEarned,
-      difficulty: difficulty || undefined,
-      notes: notes || undefined,
-      roundFeedback: mode === 'advanced' && roundFeedback.length > 0 ? roundFeedback : undefined,
-      isManualEntry: true,
-    };
-
-    addCompletedWorkout(workout);
-    addXP(xpEarned);
-    
-    // Reset and close
-    setWorkoutName('');
-    setDuration(30);
-    setNotes('');
-    setDifficulty(null);
-    setRoundFeedback([]);
-    onClose();
+      xp_earned: xpEarned,
+      difficulty: difficulty || null,
+      notes: notes || null,
+      round_feedback: mode === 'advanced' && roundFeedback.length > 0 ? roundFeedback : [],
+      is_manual_entry: true,
+    }, {
+      onSuccess: () => {
+        addXP(xpEarned);
+        
+        // Reset and close
+        setWorkoutName('');
+        setDuration(30);
+        setNotes('');
+        setDifficulty(null);
+        setRoundFeedback([]);
+        onClose();
+      },
+    });
   };
 
   if (!isOpen) return null;
