@@ -113,7 +113,9 @@ const Profile = () => {
   // Use real user data from database
   const totalXP = isOwnProfile ? (profile?.total_xp || 0) : (viewingUser?.totalXP || 0);
   const profileName = isOwnProfile ? (profile?.name || 'Fighter') : (viewingUser?.name || 'Unknown');
-  const profileHandle = isOwnProfile ? '@' + (profile?.name?.toLowerCase().replace(/\s+/g, '') || 'fighter') : (viewingUser?.handle || '@unknown');
+  const profileHandle = isOwnProfile 
+    ? '@' + (profile?.handle || profile?.name?.toLowerCase().replace(/\s+/g, '') || 'fighter') 
+    : (viewingUser?.handle || '@unknown');
   const profileAvatar = isOwnProfile ? profile?.avatar_url : viewingUser?.avatar;
   const workoutsCompleted = isOwnProfile ? (profile?.workouts_completed || 0) : (viewingUser?.workoutsCompleted || 0);
   const currentStreak = isOwnProfile ? (profile?.current_streak || 0) : (viewingUser?.currentStreak || 0);

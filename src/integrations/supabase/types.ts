@@ -150,6 +150,7 @@ export type Database = {
           equipment: Json | null
           experience_level: string | null
           goals: string[] | null
+          handle: string | null
           id: string
           last_active_at: string | null
           last_workout_date: string | null
@@ -175,6 +176,7 @@ export type Database = {
           equipment?: Json | null
           experience_level?: string | null
           goals?: string[] | null
+          handle?: string | null
           id?: string
           last_active_at?: string | null
           last_workout_date?: string | null
@@ -200,6 +202,7 @@ export type Database = {
           equipment?: Json | null
           experience_level?: string | null
           goals?: string[] | null
+          handle?: string | null
           id?: string
           last_active_at?: string | null
           last_workout_date?: string | null

@@ -33,8 +33,13 @@ const EditProfile = () => {
   const [workoutToDelete, setWorkoutToDelete] = useState<string | null>(null);
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
   const [isEditingName, setIsEditingName] = useState(false);
+  const [isEditingHandle, setIsEditingHandle] = useState(false);
   const [editedName, setEditedName] = useState(user?.name || '');
+  const [editedHandle, setEditedHandle] = useState(profile?.handle || '');
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Update editedHandle when profile loads
+  const currentHandle = profile?.handle || profile?.name?.toLowerCase().replace(/\s+/g, '') || 'fighter';
 
   const profilePhoto = profile?.avatar_url || null;
 
@@ -86,6 +91,23 @@ const EditProfile = () => {
       toast.success('Name updated!');
     }
     setIsEditingName(false);
+  };
+
+  const handleSaveHandle = async () => {
+    const cleanHandle = editedHandle.trim().toLowerCase().replace(/[^a-z0-9_]/g, '');
+    if (cleanHandle && cleanHandle !== currentHandle) {
+      try {
+        await updateProfile.mutateAsync({ handle: cleanHandle });
+        toast.success('Handle updated!');
+      } catch (error: any) {
+        if (error?.message?.includes('unique') || error?.code === '23505') {
+          toast.error('This handle is already taken');
+          return;
+        }
+        toast.error('Failed to update handle');
+      }
+    }
+    setIsEditingHandle(false);
   };
 
   const handleRestore = (id: string) => {
@@ -166,20 +188,50 @@ const EditProfile = () => {
                     </button>
                   </div>
                 ) : (
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <h2 className="text-xl font-bold text-foreground">{user?.name || 'Fighter'}</h2>
-                      <button 
-                        onClick={() => {
-                          setEditedName(user?.name || '');
-                          setIsEditingName(true);
-                        }}
-                        className="text-muted-foreground hover:text-foreground"
-                      >
-                        <Pencil className="w-4 h-4" />
-                      </button>
-                    </div>
-                    <p className="text-sm text-muted-foreground">@{(user?.name || 'fighter').toLowerCase().replace(/\s+/g, '')}</p>
+                  <div className="flex items-center gap-2">
+                    <h2 className="text-xl font-bold text-foreground">{user?.name || 'Fighter'}</h2>
+                    <button 
+                      onClick={() => {
+                        setEditedName(user?.name || '');
+                        setIsEditingName(true);
+                      }}
+                      className="text-muted-foreground hover:text-foreground"
+                    >
+                      <Pencil className="w-4 h-4" />
+                    </button>
+                  </div>
+                )}
+                {/* Handle editing */}
+                {isEditingHandle ? (
+                  <div className="flex items-center gap-2 mt-1">
+                    <span className="text-muted-foreground">@</span>
+                    <Input
+                      value={editedHandle}
+                      onChange={(e) => setEditedHandle(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, ''))}
+                      className="bg-surface-2 border-surface-3 text-foreground h-8 text-sm"
+                      placeholder="yourhandle"
+                      autoFocus
+                      onKeyDown={(e) => e.key === 'Enter' && handleSaveHandle()}
+                    />
+                    <button 
+                      onClick={handleSaveHandle}
+                      className="w-6 h-6 rounded-full bg-volt flex items-center justify-center text-primary-foreground"
+                    >
+                      <Check className="w-3 h-3" />
+                    </button>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-1 mt-1">
+                    <p className="text-sm text-muted-foreground">@{currentHandle}</p>
+                    <button 
+                      onClick={() => {
+                        setEditedHandle(currentHandle);
+                        setIsEditingHandle(true);
+                      }}
+                      className="text-muted-foreground hover:text-foreground"
+                    >
+                      <Pencil className="w-3 h-3" />
+                    </button>
                   </div>
                 )}
               </div>
