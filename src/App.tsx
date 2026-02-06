@@ -11,6 +11,7 @@ import EditProfile from "./pages/EditProfile";
 import History from "./pages/History";
 import Onboarding from "./pages/Onboarding";
 import WorkoutSession from "./pages/WorkoutSession";
+import QuickSession from "./pages/QuickSession";
 import FightClub from "./pages/FightClub";
 import Stats from "./pages/Stats";
 import Profile from "./pages/Profile";
@@ -38,6 +39,7 @@ const App = () => (
             <Route path="/fight-club" element={<FightClub />} />
             <Route path="/profile" element={<Profile />} />
             <Route path="/profile/:userId" element={<Profile />} />
+            <Route path="/quick-session" element={<QuickSession />} />
             <Route path="/workout/:id" element={<WorkoutSession />} />
             <Route path="/workout/:id/session" element={<WorkoutSession />} />
             <Route path="*" element={<NotFound />} />

@@ -1,0 +1,337 @@
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { ArrowLeft, Home, Play, Pause, Square } from 'lucide-react';
+import { AppLayout } from '@/components/layout/AppLayout';
+import { Button } from '@/components/ui/button';
+import { VerticalXPBar } from '@/components/ui/VerticalXPBar';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { useWorkoutHistory } from '@/hooks/useWorkoutHistory';
+import { useUserStore } from '@/stores/userStore';
+import { useProfile } from '@/hooks/useProfile';
+import { cn } from '@/lib/utils';
+import { getStreakMultiplier } from '@/lib/xpSystem';
+
+const QUICK_SESSION_XP_RATE = 0.10; // XP per second
+
+function formatTime(seconds: number): string {
+  const mins = Math.floor(seconds / 60);
+  const secs = seconds % 60;
+  return `${mins}:${secs.toString().padStart(2, '0')}`;
+}
+
+function formatTimeCompact(seconds: number): string {
+  const hrs = Math.floor(seconds / 3600);
+  const mins = Math.floor((seconds % 3600) / 60);
+  const secs = seconds % 60;
+  if (hrs > 0) {
+    return `${hrs}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  }
+  return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+}
+
+const QuickSession = () => {
+  const navigate = useNavigate();
+  const { addHistoryEntry } = useWorkoutHistory();
+  const { profile, addXP: addProfileXP } = useProfile();
+  const user = useUserStore((state) => state.user);
+  const addLocalXP = useUserStore((state) => state.addXP);
+
+  const [totalElapsed, setTotalElapsed] = useState(0);
+  const [isRunning, setIsRunning] = useState(false);
+  const [isPaused, setIsPaused] = useState(true);
+  const [isComplete, setIsComplete] = useState(false);
+  const [accumulatedXP, setAccumulatedXP] = useState(0);
+  const [notes, setNotes] = useState('');
+  const [logged, setLogged] = useState(false);
+  const [difficultyRating, setDifficultyRating] = useState<'too_easy' | 'just_right' | 'too_hard' | null>(null);
+  const [showExitConfirm, setShowExitConfirm] = useState(false);
+
+  const lastTickTimeRef = useRef<number>(Date.now());
+  const xpAwardedRef = useRef(false);
+
+  const streakMultiplier = getStreakMultiplier(profile?.current_streak || 0);
+
+  // Wall-clock timer
+  useEffect(() => {
+    let interval: NodeJS.Timeout | null = null;
+
+    if (isRunning && !isPaused) {
+      lastTickTimeRef.current = Date.now();
+
+      interval = setInterval(() => {
+        const now = Date.now();
+        const delta = Math.floor((now - lastTickTimeRef.current) / 1000);
+        if (delta < 1) return;
+        lastTickTimeRef.current = now;
+
+        setTotalElapsed(prev => prev + delta);
+        setAccumulatedXP(prev => prev + (QUICK_SESSION_XP_RATE * streakMultiplier * delta));
+      }, 250);
+    }
+
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [isRunning, isPaused, streakMultiplier]);
+
+  const handleStart = () => {
+    setIsRunning(true);
+    setIsPaused(false);
+  };
+
+  const handlePauseResume = () => {
+    setIsPaused(prev => !prev);
+  };
+
+  const handleFinish = useCallback(() => {
+    if (xpAwardedRef.current) return;
+    xpAwardedRef.current = true;
+
+    setIsComplete(true);
+    setIsRunning(false);
+
+    const xpEarned = Math.round(accumulatedXP);
+    queueMicrotask(() => {
+      try {
+        addLocalXP(xpEarned, true);
+        addProfileXP.mutate(xpEarned);
+      } catch (error) {
+        console.error('Failed to award XP:', error);
+      }
+    });
+  }, [accumulatedXP, addLocalXP, addProfileXP]);
+
+  const handleConfirmExit = () => {
+    if (accumulatedXP > 0 && !xpAwardedRef.current) {
+      xpAwardedRef.current = true;
+      const xpEarned = Math.round(accumulatedXP);
+      try {
+        addLocalXP(xpEarned, true);
+        addProfileXP.mutate(xpEarned);
+      } catch (error) {
+        console.error('Failed to award XP on exit:', error);
+      }
+    }
+    setShowExitConfirm(false);
+    navigate('/');
+  };
+
+  const handleLog = () => {
+    const xpEarned = Math.round(accumulatedXP);
+    addHistoryEntry.mutate({
+      workout_id: null,
+      workout_name: 'Quick Session',
+      completed_at: new Date().toISOString(),
+      duration: totalElapsed,
+      xp_earned: xpEarned,
+      difficulty: difficultyRating || null,
+      notes: notes || null,
+      is_manual_entry: false,
+      round_feedback: [],
+    }, {
+      onSuccess: () => setLogged(true),
+      onError: (error) => console.error('Failed to log session:', error),
+    });
+  };
+
+  // Completion screen
+  if (isComplete) {
+    const xpEarned = Math.round(accumulatedXP);
+
+    return (
+      <AppLayout hideNav>
+        <div className="min-h-screen flex flex-col items-center justify-center px-4 bg-background">
+          <div className="text-6xl mb-6">⏱️</div>
+          <h1 className="text-3xl font-black text-foreground mb-2">SESSION COMPLETE!</h1>
+          <p className="text-muted-foreground mb-6">Quick Session</p>
+
+          <div className="grid grid-cols-2 gap-4 mb-6 w-full max-w-xs">
+            <div className="card-workout text-center">
+              <p className="text-2xl font-bold text-volt">{formatTimeCompact(totalElapsed)}</p>
+              <p className="text-sm text-muted-foreground">Duration</p>
+            </div>
+            <div className="card-workout text-center">
+              <p className="text-2xl font-bold text-volt">+{xpEarned}</p>
+              <p className="text-sm text-muted-foreground">XP Earned</p>
+            </div>
+          </div>
+
+          {!logged ? (
+            <div className="w-full max-w-xs space-y-4 mb-6">
+              <div>
+                <label className="text-sm text-muted-foreground mb-2 block">How did it go?</label>
+                <textarea
+                  value={notes}
+                  onChange={(e) => setNotes(e.target.value)}
+                  placeholder="Add notes about your session..."
+                  className="w-full h-24 p-3 rounded-xl bg-surface-1 border border-surface-3 text-foreground placeholder:text-muted-foreground text-sm resize-none focus:outline-none focus:ring-2 focus:ring-volt"
+                />
+              </div>
+
+              <div>
+                <label className="text-sm text-muted-foreground mb-2 block">Difficulty</label>
+                <div className="flex gap-2">
+                  {[
+                    { value: 'too_easy', label: 'Too Easy' },
+                    { value: 'just_right', label: 'Just Right' },
+                    { value: 'too_hard', label: 'Too Hard' },
+                  ].map((opt) => (
+                    <button
+                      key={opt.value}
+                      onClick={() => setDifficultyRating(opt.value as typeof difficultyRating)}
+                      className={cn(
+                        'flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-colors',
+                        difficultyRating === opt.value
+                          ? 'bg-volt text-primary-foreground'
+                          : 'bg-surface-1 border border-surface-3 text-muted-foreground hover:bg-surface-2'
+                      )}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <Button onClick={handleLog} className="btn-primary-glow w-full">
+                Log Session
+              </Button>
+            </div>
+          ) : (
+            <div className="w-full max-w-xs mb-6">
+              <div className="card-workout text-center">
+                <p className="text-volt font-semibold">Session Logged!</p>
+              </div>
+            </div>
+          )}
+
+          <Button onClick={() => navigate('/')} variant="outline" className="w-full max-w-xs bg-surface-1 border-surface-3">
+            Back to Home
+          </Button>
+        </div>
+      </AppLayout>
+    );
+  }
+
+  // Active timer screen
+  return (
+    <AppLayout hideNav>
+      <div className="min-h-screen flex flex-col bg-background">
+        {/* Top Bar */}
+        <header className="flex items-start justify-between px-4 py-3 safe-top">
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => {
+                if (isRunning && totalElapsed > 0) {
+                  setShowExitConfirm(true);
+                } else {
+                  navigate('/');
+                }
+              }}
+              className="flex items-center gap-2 px-3 py-2 rounded-full bg-surface-1 border border-surface-3"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              <Home className="w-4 h-4" />
+            </button>
+          </div>
+
+          {/* XP counter */}
+          <span className="text-sm font-bold text-volt/60">
+            +{Math.round(accumulatedXP)} XP
+          </span>
+
+          {/* XP Bar */}
+          <div className="flex items-center">
+            <VerticalXPBar
+              prestige={user?.prestige || 'beginner'}
+              level={user?.currentLevel || 1}
+              totalXP={(user?.totalXP || 0) + accumulatedXP}
+            />
+          </div>
+        </header>
+
+        {/* Main Timer */}
+        <div className="flex-1 flex flex-col items-center justify-center px-4">
+          <h2 className="text-2xl font-black text-foreground mb-2 uppercase tracking-wider">
+            QUICK SESSION
+          </h2>
+
+          {/* Count-up timer */}
+          <span className="timer-display text-8xl font-black text-volt text-glow-volt mb-2">
+            {formatTime(totalElapsed)}
+          </span>
+
+          {/* Label */}
+          <div className="flex items-center gap-2 mb-8">
+            <div className="h-px w-12 bg-surface-3" />
+            <span className="text-xs text-muted-foreground uppercase tracking-widest">
+              FREEFORM
+            </span>
+            <div className="h-px w-12 bg-surface-3" />
+          </div>
+
+          {/* Controls */}
+          <div className="flex items-center gap-6">
+            {!isRunning ? (
+              <button
+                onClick={handleStart}
+                className="w-20 h-20 rounded-full bg-volt flex items-center justify-center shadow-lg shadow-volt/30 active:scale-95 transition-transform"
+              >
+                <Play className="w-8 h-8 text-primary-foreground ml-1" />
+              </button>
+            ) : (
+              <>
+                <button
+                  onClick={handlePauseResume}
+                  className="w-16 h-16 rounded-full bg-surface-1 border border-surface-3 flex items-center justify-center active:scale-95 transition-transform"
+                >
+                  {isPaused ? (
+                    <Play className="w-6 h-6 text-volt ml-0.5" />
+                  ) : (
+                    <Pause className="w-6 h-6 text-foreground" />
+                  )}
+                </button>
+                <button
+                  onClick={handleFinish}
+                  className="w-20 h-20 rounded-full bg-volt flex items-center justify-center shadow-lg shadow-volt/30 active:scale-95 transition-transform"
+                >
+                  <Square className="w-7 h-7 text-primary-foreground" />
+                </button>
+              </>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Exit Confirmation */}
+      <AlertDialog open={showExitConfirm} onOpenChange={setShowExitConfirm}>
+        <AlertDialogContent className="bg-surface-1 border-surface-3">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-foreground">End Session?</AlertDialogTitle>
+            <AlertDialogDescription className="text-muted-foreground">
+              You've trained for {formatTimeCompact(totalElapsed)}. Your XP will be saved.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="bg-surface-2 border-surface-3 text-foreground">
+              Keep Going
+            </AlertDialogCancel>
+            <AlertDialogAction onClick={handleConfirmExit} className="bg-volt text-primary-foreground">
+              End & Save
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </AppLayout>
+  );
+};
+
+export default QuickSession;

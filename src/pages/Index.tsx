@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, History, Archive, ArrowUpDown, Check } from 'lucide-react';
+import { Plus, History, Archive, GripVertical, Check } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import {
   DndContext,
@@ -210,10 +210,10 @@ const Index = () => {
                     setIsReorderMode(true);
                     setLocalWorkouts(activeWorkouts);
                   }}
-                  className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
+                  className="text-muted-foreground hover:text-foreground transition-colors p-1"
+                  aria-label="Reorder workouts"
                 >
-                  <ArrowUpDown className="w-4 h-4" />
-                  Reorder
+                  <GripVertical className="w-4 h-4" />
                 </button>
               )
             )}
