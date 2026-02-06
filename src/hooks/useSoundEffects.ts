@@ -15,12 +15,9 @@ export const useSoundEffects = () => {
   const user = useUserStore((state) => state.user);
   const prefs = user?.preferences as Record<string, any> | undefined;
   
-  // Master toggle and individual toggles
+  // Individual toggles (no master toggle - each sound controls itself)
   const soundEnabled = prefs?.soundEnabled !== false;
-  const roundStartBellEnabled = prefs?.roundStartBell !== false;
-  const roundEndBellEnabled = prefs?.roundEndBell !== false;
   const tenSecondWarningEnabled = prefs?.tenSecondWarning !== false;
-  const segmentTransitionBeepEnabled = prefs?.segmentTransitionBeep !== false;
   
   const lastPlayedRef = useRef<number>(0);
 
@@ -62,46 +59,7 @@ export const useSoundEffects = () => {
     }
   }, [soundEnabled]);
 
-  // Boxing bell sound (traditional ring bell - layered frequencies)
-  const playBellSound = useCallback((isRoundStart: boolean = true) => {
-    const enabled = isRoundStart ? roundStartBellEnabled : roundEndBellEnabled;
-    if (!soundEnabled || !enabled) return;
-
-    try {
-      const ctx = getAudioContext();
-      if (ctx.state === 'suspended') {
-        ctx.resume();
-      }
-
-      // Bell frequencies (harmonics of a boxing bell ~800Hz)
-      const frequencies = [800, 1600, 2400];
-      const now = ctx.currentTime;
-
-      frequencies.forEach((freq, i) => {
-        const oscillator = ctx.createOscillator();
-        const gainNode = ctx.createGain();
-
-        oscillator.connect(gainNode);
-        gainNode.connect(ctx.destination);
-
-        oscillator.type = 'sine';
-        oscillator.frequency.setValueAtTime(freq, now);
-
-        // Bell-like envelope: quick attack, long decay
-        const volume = 0.15 / (i + 1); // Higher harmonics quieter
-        gainNode.gain.setValueAtTime(0, now);
-        gainNode.gain.linearRampToValueAtTime(volume, now + 0.01);
-        gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.8);
-
-        oscillator.start(now);
-        oscillator.stop(now + 0.8);
-      });
-    } catch (e) {
-      console.warn('Failed to play bell sound:', e);
-    }
-  }, [soundEnabled, roundStartBellEnabled, roundEndBellEnabled]);
-
-  // Warning beep (two short beeps)
+  // Warning beep (two short beeps) - for 10-second warning
   const playWarningBeep = useCallback(() => {
     if (!soundEnabled || !tenSecondWarningEnabled) return;
 
@@ -136,36 +94,6 @@ export const useSoundEffects = () => {
       console.warn('Failed to play warning beep:', e);
     }
   }, [soundEnabled, tenSecondWarningEnabled]);
-
-  // Transition beep (single subtle blip)
-  const playTransitionBeep = useCallback(() => {
-    if (!soundEnabled || !segmentTransitionBeepEnabled) return;
-
-    try {
-      const ctx = getAudioContext();
-      if (ctx.state === 'suspended') {
-        ctx.resume();
-      }
-
-      const oscillator = ctx.createOscillator();
-      const gainNode = ctx.createGain();
-
-      oscillator.connect(gainNode);
-      gainNode.connect(ctx.destination);
-
-      oscillator.type = 'sine';
-      oscillator.frequency.setValueAtTime(660, ctx.currentTime); // E5
-
-      gainNode.gain.setValueAtTime(0, ctx.currentTime);
-      gainNode.gain.linearRampToValueAtTime(0.08, ctx.currentTime + 0.01);
-      gainNode.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.12);
-
-      oscillator.start(ctx.currentTime);
-      oscillator.stop(ctx.currentTime + 0.12);
-    } catch (e) {
-      console.warn('Failed to play transition beep:', e);
-    }
-  }, [soundEnabled, segmentTransitionBeepEnabled]);
 
   // Play a triumphant level-up sound (ascending arpeggio)
   const playLevelUpSound = useCallback(() => {
@@ -232,9 +160,7 @@ export const useSoundEffects = () => {
   return {
     playXPSound,
     playLevelUpSound,
-    playBellSound,
     playWarningBeep,
-    playTransitionBeep,
   };
 };
 
