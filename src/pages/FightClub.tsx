@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ArrowLeft, Users, Newspaper, Trophy, Search, MessageCircle, BarChart3, Send, ChevronRight, Mic, MicOff, Download, X, UserPlus } from 'lucide-react';
+import { ArrowLeft, Users, Newspaper, Trophy, Search, MessageCircle, BarChart3, Send, ChevronRight, Mic, MicOff, Download, X, UserPlus, LogIn, LogOut } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
@@ -15,6 +15,8 @@ import { Workout } from '@/types';
 import { toast } from 'sonner';
 import { useUserSearch } from '@/hooks/useUserSearch';
 import { useFollows } from '@/hooks/useFollows';
+import { useClubs, EARLY_ADOPTERS_CLUB_ID } from '@/hooks/useClubs';
+import { useAuth } from '@/contexts/AuthContext';
 
 type Tab = 'feed' | 'clubs' | 'presets';
 type ClubTab = 'feed' | 'chat' | 'leaderboard';
@@ -54,6 +56,12 @@ const FightClub = () => {
   const [userSearchQuery, setUserSearchQuery] = useState('');
   const { results: searchResults, isLoading: searchLoading, hasQuery } = useUserSearch(userSearchQuery);
   const { follow } = useFollows();
+  
+  // Clubs
+  const { user } = useAuth();
+  const { clubs, isMemberOf, joinClub, leaveClub, useClubMemberCount } = useClubs();
+  const { data: earlyAdoptersMemberCount = 0 } = useClubMemberCount(EARLY_ADOPTERS_CLUB_ID);
+  const earlyAdoptersClub = clubs.find(c => c.id === EARLY_ADOPTERS_CLUB_ID);
 
   const tabs: { id: Tab; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
     { id: 'feed', label: 'Feed', icon: Newspaper },
@@ -123,12 +131,47 @@ const FightClub = () => {
     toast.success(`"${post.workout_name}" saved to your workouts!`);
   };
 
-  // Clubs data - Early Adopters is the only club for now
-  const myClubs: Club[] = [
-    { id: 'early-adopters', name: 'Early Adopters', icon: '🚀', type: 'public', memberCount: 0, activeNow: 0 },
-  ];
+  // Clubs data - Build from database
+  const isEarlyAdopterMember = isMemberOf(EARLY_ADOPTERS_CLUB_ID);
+  const earlyAdoptersCap = earlyAdoptersClub?.member_cap ?? 100;
+  const spotsRemaining = earlyAdoptersCap - earlyAdoptersMemberCount;
+  
+  const myClubs: Club[] = isEarlyAdopterMember && earlyAdoptersClub
+    ? [{ 
+        id: earlyAdoptersClub.id, 
+        name: earlyAdoptersClub.name, 
+        icon: earlyAdoptersClub.icon, 
+        type: earlyAdoptersClub.type as 'public' | 'private', 
+        memberCount: earlyAdoptersMemberCount, 
+        activeNow: 0 
+      }]
+    : [];
 
-  const discoverClubs: Club[] = [];
+  const discoverClubs: Club[] = !isEarlyAdopterMember && earlyAdoptersClub
+    ? [{ 
+        id: earlyAdoptersClub.id, 
+        name: earlyAdoptersClub.name, 
+        icon: earlyAdoptersClub.icon, 
+        type: earlyAdoptersClub.type as 'public' | 'private', 
+        memberCount: earlyAdoptersMemberCount, 
+        activeNow: 0 
+      }]
+    : [];
+  
+  const handleJoinClub = (clubId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!user) {
+      toast.error('Please sign in to join clubs');
+      navigate('/auth');
+      return;
+    }
+    joinClub.mutate(clubId);
+  };
+  
+  const handleLeaveClub = (clubId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    leaveClub.mutate(clubId);
+  };
 
   // Demo feed post - shows LIVE feature example
   type MockFeedPost = {
@@ -625,22 +668,75 @@ const FightClub = () => {
             </div>
           )}
 
-          {activeTab === 'clubs' && (
+{activeTab === 'clubs' && (
             <div className="space-y-4">
-              <div className="flex items-center justify-between mb-2">
-                <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
-                  My Fight Clubs
-                </h3>
-                <Button size="sm" className="bg-volt text-primary-foreground text-xs">
-                  + New
-                </Button>
-              </div>
+              {/* My Clubs Section */}
+              {myClubs.length > 0 && (
+                <>
+                  <div className="flex items-center justify-between mb-2">
+                    <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
+                      My Fight Clubs
+                    </h3>
+                  </div>
 
-              {myClubs.map((club) => (
-                <button
+                  {myClubs.map((club) => (
+                    <div
+                      key={club.id}
+                      className="card-workout w-full"
+                    >
+                      <div className="flex items-center gap-3">
+                        <button 
+                          onClick={() => setSelectedClub(club)}
+                          className="w-12 h-12 rounded-xl bg-surface-2 flex items-center justify-center text-2xl hover:ring-2 hover:ring-volt transition-all"
+                        >
+                          {club.icon}
+                        </button>
+                        <button 
+                          onClick={() => setSelectedClub(club)}
+                          className="flex-1 text-left"
+                        >
+                          <h4 className="font-semibold text-foreground hover:text-volt transition-colors">{club.name}</h4>
+                          <p className="text-sm text-muted-foreground">
+                            {club.memberCount} / {earlyAdoptersCap} members
+                          </p>
+                          <p className="text-xs text-volt mt-1">Member ✓</p>
+                        </button>
+                        <div className="flex items-center gap-2">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={(e) => handleLeaveClub(club.id, e)}
+                            disabled={leaveClub.isPending}
+                            className="text-xs border-surface-3 hover:border-destructive hover:text-destructive"
+                          >
+                            <LogOut className="w-3 h-3 mr-1" />
+                            Leave
+                          </Button>
+                          <button onClick={() => setSelectedClub(club)}>
+                            <ChevronRight className="w-5 h-5 text-muted-foreground" />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </>
+              )}
+
+              {/* Discover Section */}
+              <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mt-6 mb-2">
+                Discover
+              </h3>
+
+              {discoverClubs.length === 0 && myClubs.length > 0 && (
+                <p className="text-sm text-muted-foreground text-center py-4">
+                  You're in all available clubs! 🎉
+                </p>
+              )}
+
+              {discoverClubs.map((club) => (
+                <div
                   key={club.id}
-                  onClick={() => setSelectedClub(club)}
-                  className="card-workout w-full text-left"
+                  className="card-workout w-full"
                 >
                   <div className="flex items-center gap-3">
                     <div className="w-12 h-12 rounded-xl bg-surface-2 flex items-center justify-center text-2xl">
@@ -649,39 +745,37 @@ const FightClub = () => {
                     <div className="flex-1">
                       <h4 className="font-semibold text-foreground">{club.name}</h4>
                       <p className="text-sm text-muted-foreground">
-                        {club.type === 'private' ? 'Private' : 'Public'}
-                        {club.coach && ` · Coach: ${club.coach}`}
-                        {club.rank && ` · You're #${club.rank} 🔥`}
+                        {club.memberCount} / {earlyAdoptersCap} members
                       </p>
-                      <p className="text-xs text-volt mt-1">{club.activeNow} active now 🟢</p>
+                      {spotsRemaining > 0 ? (
+                        <p className="text-xs text-volt mt-1">
+                          {spotsRemaining} {spotsRemaining === 1 ? 'spot' : 'spots'} remaining! 🔥
+                        </p>
+                      ) : (
+                        <p className="text-xs text-destructive mt-1">
+                          Club full
+                        </p>
+                      )}
                     </div>
-                    <ChevronRight className="w-5 h-5 text-muted-foreground" />
+                    <Button
+                      size="sm"
+                      onClick={(e) => handleJoinClub(club.id, e)}
+                      disabled={joinClub.isPending || spotsRemaining <= 0}
+                      className="bg-volt text-primary-foreground text-xs"
+                    >
+                      <LogIn className="w-3 h-3 mr-1" />
+                      {joinClub.isPending ? 'Joining...' : 'Join'}
+                    </Button>
                   </div>
-                </button>
+                </div>
               ))}
 
-              <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mt-6 mb-2">
-                Discover
-              </h3>
-
-              {discoverClubs.map((club) => (
-                <button
-                  key={club.id}
-                  onClick={() => setSelectedClub(club)}
-                  className="card-workout w-full text-left"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 rounded-xl bg-surface-2 flex items-center justify-center text-2xl">
-                      {club.icon}
-                    </div>
-                    <div className="flex-1">
-                      <h4 className="font-semibold text-foreground">{club.name}</h4>
-                      <p className="text-sm text-muted-foreground">Public · Worldwide ranks</p>
-                    </div>
-                    <span className="text-sm text-muted-foreground">{club.memberCount.toLocaleString()} 👤</span>
-                  </div>
-                </button>
-              ))}
+              {/* Empty state when no clubs */}
+              {discoverClubs.length === 0 && myClubs.length === 0 && (
+                <p className="text-sm text-muted-foreground text-center py-4">
+                  Loading clubs...
+                </p>
+              )}
             </div>
           )}
 
