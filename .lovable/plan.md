@@ -1,87 +1,245 @@
 
-# Workout Session Confirmation Dialogs & XP Protection
+# Enhanced AI Workout Builder - Framework Integration
 
 ## Overview
-Add confirmation prompts before discarding workout progress, and ensure XP is always awarded even if the user quits without manually logging the workout.
+Upgrade the AI workout parser with the Clombo Framework rules while maintaining 100% backward compatibility with existing workout structures and timer engine.
 
-## Changes
+## Current State Analysis
+The existing system works but has limitations:
+- Simple regex matching for rounds, duration, difficulty
+- Hardcoded combo generation based on focus keywords
+- No support for user-specified combos (e.g., "1-2-slip-3")
+- Cannot parse specific round/rest durations (e.g., "3 min rounds, 1 min rest")
+- No superset/workout loop support
+- No exercise integration between rounds
 
-### 1. Add Confirmation Dialog Component
-Use the existing Alert Dialog from Radix UI to create confirmation prompts for destructive actions.
-
-### 2. Modify Home Button Behavior
-- Instead of immediately navigating home, show a confirmation dialog
-- Dialog asks: "Leave workout? Your progress will be saved and XP will be awarded."
-- If confirmed: Award XP, then navigate home
-- If cancelled: Stay in workout
-
-### 3. Modify Restart Button Behavior  
-- Instead of immediately resetting, show a confirmation dialog
-- Dialog asks: "Restart workout? This will reset your progress."
-- If confirmed: Award current XP (since they did work), then reset timer to beginning
-- If cancelled: Stay in current position
-
-### 4. XP Protection on Exit
-When user confirms leaving or restarting:
-- Award any accumulated XP to their profile
-- Log the partial workout to history (optional - can be a simpler "quit" entry)
+## Key Principle: Enhancement, Not Replacement
+- All existing functionality remains intact
+- New parsing runs FIRST; falls back to existing logic if parsing doesn't extract specific values
+- Timer engine requires NO changes - we output the same structure it already consumes
+- Database schema requires NO changes - phases/combos already support needed data
 
 ---
 
-## Technical Implementation
+## Files to Create
 
-### File: `src/pages/WorkoutSession.tsx`
-
-**New State Variables:**
-- `showExitConfirm` - boolean to control exit confirmation dialog
-- `showRestartConfirm` - boolean to control restart confirmation dialog
-
-**New Handler Functions:**
+### 1. `src/lib/aiWorkoutParser.ts` (NEW)
+Central parsing logic implementing framework rules:
 
 ```text
-handleConfirmExit()
-- Award accumulated XP if > 0 and not already awarded
-- Navigate to home
+EXPORTS:
+- parseWorkoutInput(prompt: string, userLevel: string) → ParsedWorkout
+- parseComboString(input: string) → string[]
+- detectTags(prompt: string) → string[]
+- inferPhaseType(description: string) → 'continuous' | 'circuit' | 'rest'
 
-handleConfirmRestart()  
-- Award accumulated XP if > 0 and not already awarded
-- Reset workout state (existing handleReset logic)
-- Reset XP tracking for new attempt
+CONSTANTS:
+- DEFAULT_DURATIONS (boxing round: 180s, rest: 60s, warmup: 300s, etc.)
+- PUNCH_MAP ({ jab: '1', cross: '2', hook: '3', ... })
+- KEYWORD_TAGS ({ boxing: [...], strength: [...], cardio: [...] })
 ```
 
-**UI Changes:**
-- Home button: Opens exit confirmation dialog instead of navigating directly
-- Restart button: Opens restart confirmation dialog instead of resetting directly
-- Add two AlertDialog components for the confirmation prompts
+### 2. `src/lib/comboParser.ts` (NEW)
+Dedicated combo string parsing:
 
-### Dialog Content
-
-**Exit Dialog:**
-- Title: "Leave Workout?"
-- Description: Shows XP earned so far that will be saved
-- Actions: "Cancel" (stay) / "Leave & Save XP" (confirm)
-
-**Restart Dialog:**
-- Title: "Restart Workout?"
-- Description: Notes that current progress will be saved before restarting
-- Actions: "Cancel" (stay) / "Restart" (confirm)
+```text
+FUNCTION parseComboString(input: string): string[]
+- Split on spaces, dashes, commas
+- Map punch names to numbers: "jab" → "1", "cross" → "2", etc.
+- Normalize defense moves: "slip" → "SLIP L" (default left)
+- Handle "double jab" → ["1", "1"]
+- Handle compound notation: "1-2-slip-3" → ["1", "2", "SLIP L", "3"]
+```
 
 ---
 
-## User Flow After Changes
+## Files to Modify
 
-1. **User clicks Home during workout:**
-   - Confirmation dialog appears
-   - Cancel → returns to workout
-   - Confirm → XP awarded, navigates home
+### 3. `src/components/AIBuilderModal.tsx`
 
-2. **User clicks Restart during workout:**
-   - Confirmation dialog appears  
-   - Cancel → returns to workout
-   - Confirm → XP awarded, workout resets to beginning
+**Keep existing functions as fallbacks:**
+- `parseWorkoutPrompt()` stays - used when advanced parser doesn't find specifics
+- `generateWorkoutFromPrompt()` enhanced to use new parser first
 
-3. **User completes workout normally:**
-   - No change - continues to work as before with journal screen
+**New parsing flow:**
+```text
+1. Try advanced parsing with new parser
+2. Extract: specific combos, round/rest durations, phase structure, superset
+3. For anything NOT specified, fall back to existing defaults
+4. Generate Workout object (same structure timer expects)
+```
 
-4. **User clicks Complete Early:**
-   - No change - works as before, awards XP and shows journal
+**New capabilities added:**
+- Parse "3 min rounds with 1 min rest" → roundDuration: 180, restDuration: 60
+- Parse "1-2-slip-3" → combo: ["1", "2", "SLIP L", "3"]
+- Parse "do it twice" → workout with supersetRepeats: 2
+- Parse "10 pushups between rounds" → adds pushup segment to circuit
+- Auto-tag based on keywords
+
+**Clarification logic:**
+If prompt is too vague (< 15 characters or missing key info), show inline hints:
+- "Tip: Try specifying number of rounds (e.g., '5 rounds')"
+- NOT a blocking modal - just helpful suggestions
+
+### 4. `src/types/index.ts`
+
+**Add optional fields (backward compatible):**
+```typescript
+interface WorkoutPhase {
+  // ... existing fields
+  phaseType?: 'continuous' | 'circuit' | 'rest';  // NEW - display hint only
+}
+
+interface WorkoutSegment {
+  // ... existing fields
+  exercise?: string;  // NEW - for custom exercises like "Burpees"
+  activityType?: 'combos' | 'shadowbox' | 'run' | 'pushups' | 'custom';  // NEW
+}
+
+interface Workout {
+  // ... existing fields
+  supersetRepeats?: number;  // NEW - default 1
+  tags?: string[];  // Already exists in DB, add to type
+}
+```
+
+---
+
+## Parsing Rules Implementation
+
+### Duration Extraction
+```text
+Pattern: "(\d+)\s*(min|minute|sec|second)s?\s*(round|work|on)"
+→ Extracts work duration
+
+Pattern: "(\d+)\s*(min|minute|sec|second)s?\s*(rest|off|break)"
+→ Extracts rest duration
+
+Default fallbacks (from framework):
+- Boxing round: 180s
+- Boxing rest: 60s
+- Warmup: 300s (if no duration specified)
+- Cooldown: 300s
+- Strength segment: 30s
+- Sprint: 30s
+```
+
+### Combo Parsing
+```text
+Input: "1-2-slip-3"
+Process:
+1. Split: ["1", "2", "slip", "3"]
+2. Normalize: ["1", "2", "SLIP L", "3"]
+Output: ["1", "2", "SLIP L", "3"]
+
+Input: "jab cross hook"
+Process:
+1. Split: ["jab", "cross", "hook"]
+2. Map: ["1", "2", "3"]
+Output: ["1", "2", "3"]
+
+Input: "double jab cross"
+Process:
+1. Detect "double" modifier
+2. Map: ["1", "1", "2"]
+Output: ["1", "1", "2"]
+```
+
+### Phase Structure Detection
+```text
+"warmup" → continuous phase, repeats: 1
+"X rounds of..." → circuit phase, repeats: X
+"then Y rounds..." → additional circuit phase
+"cooldown" → continuous phase, repeats: 1
+"rest between phases" → rest phase
+```
+
+### Superset Detection
+```text
+"do the whole thing twice" → supersetRepeats: 2
+"repeat everything" → supersetRepeats: 2
+"run it back" → supersetRepeats: 2
+"X supersets" → supersetRepeats: X
+```
+
+---
+
+## Timer Engine Compatibility
+
+The timer in `WorkoutSession.tsx` consumes this structure:
+```typescript
+{
+  sections: { warmup: Phase[], grind: Phase[], cooldown: Phase[] },
+  combos: string[][]
+}
+```
+
+**What we output (unchanged):**
+- Phases go into appropriate section based on phaseType
+- Circuit phases with repeats > 1 → timer loops segments
+- Combos array at workout level → timer cycles through
+- All existing segment fields preserved
+
+**No timer changes needed because:**
+- Timer already handles `phase.repeats` for looping
+- Timer already handles `segment.combo` for display
+- Timer already handles `segment.segmentType` for activity detection
+- New optional fields are ignored if not used
+
+---
+
+## Backward Compatibility Checklist
+
+| Feature | Current Behavior | After Enhancement |
+|---------|-----------------|-------------------|
+| Simple "5 round boxing" | Works | Works (same output) |
+| "20 min HIIT" | Works | Works (same output) |
+| Focus keywords (defense, footwork) | Works | Works (enhanced) |
+| Difficulty detection | Works | Works |
+| Generated combos | Hardcoded arrays | User-specified OR generated |
+| Preset workouts | Untouched | Untouched |
+| Timer execution | No changes | No changes |
+| Database storage | No changes | No changes |
+| Manual Build page | Untouched | Untouched |
+
+---
+
+## Implementation Order
+
+1. **Create `src/lib/comboParser.ts`**
+   - Pure utility, no side effects
+   - Fully testable in isolation
+
+2. **Create `src/lib/aiWorkoutParser.ts`**
+   - Import comboParser
+   - All parsing logic centralized
+   - Uses existing type definitions
+
+3. **Update `src/types/index.ts`**
+   - Add optional fields only
+   - No required field changes
+
+4. **Update `src/components/AIBuilderModal.tsx`**
+   - Import new parsers
+   - Enhance `generateWorkoutFromPrompt()` to use new parser
+   - Keep existing `parseWorkoutPrompt()` as fallback
+   - Same output structure to Build page / timer
+
+---
+
+## Example: Before vs After
+
+**Input:** "6 rounds of 1-2-slip-3 for 2 minutes with 30 second rest"
+
+**Before (current):**
+- Rounds: 6 ✓
+- Duration: Calculated from "2 minutes" total = ~28s each ✗
+- Combos: Auto-generated based on difficulty ✗
+- Rest: Calculated as 30% of round ✗
+
+**After (enhanced):**
+- Rounds: 6 ✓
+- Work duration: 120s (2 minutes) ✓
+- Rest duration: 30s ✓
+- Combos: [["1", "2", "SLIP L", "3"]] (parsed from input) ✓
+- Tags: ["boxing"] ✓
