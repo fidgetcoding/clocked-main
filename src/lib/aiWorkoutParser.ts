@@ -4,6 +4,7 @@
 
 import { parseComboString, extractCombosFromPrompt, containsComboNotation } from './comboParser';
 import { Workout, WorkoutPhase, WorkoutSegment } from '@/types';
+import { HistoryInsights, getAdjustedDifficulty, getAdjustedRestDuration, getAdjustedRounds } from './workoutHistoryAnalysis';
 
 // =====================================================
 // Default Durations (from Clombo Framework)
@@ -92,9 +93,24 @@ export interface ParsedWorkoutResult {
 /**
  * Parse a workout prompt using the Clombo Framework rules
  * Returns structured data that can be converted to a Workout object
+ * @param prompt - The user's text prompt
+ * @param userLevel - User's experience level from profile
+ * @param historyInsights - Optional history analysis for personalization
  */
-export function parseWorkoutInput(prompt: string, userLevel: string = 'beginner'): ParsedWorkoutResult {
+export function parseWorkoutInput(
+  prompt: string, 
+  userLevel: string = 'beginner',
+  historyInsights?: HistoryInsights
+): ParsedWorkoutResult {
   const lowerPrompt = prompt.toLowerCase();
+  
+  // Determine base difficulty from prompt or user level
+  let baseDifficulty = inferDifficulty(lowerPrompt, userLevel);
+  
+  // Apply history-based adjustments if available
+  if (historyInsights) {
+    baseDifficulty = getAdjustedDifficulty(baseDifficulty, historyInsights);
+  }
   
   // Initialize result with defaults
   const result: ParsedWorkoutResult = {
@@ -102,7 +118,7 @@ export function parseWorkoutInput(prompt: string, userLevel: string = 'beginner'
     rounds: undefined,
     roundDuration: undefined,
     restDuration: undefined,
-    difficulty: inferDifficulty(lowerPrompt, userLevel),
+    difficulty: baseDifficulty,
     combos: [],
     phases: [],
     tags: detectTags(prompt),
@@ -119,6 +135,9 @@ export function parseWorkoutInput(prompt: string, userLevel: string = 'beginner'
   if (roundsResult !== null) {
     result.rounds = roundsResult;
     result.parsedRounds = true;
+  } else if (historyInsights) {
+    // Apply history-based round adjustment for default rounds
+    result.rounds = getAdjustedRounds(3, historyInsights);
   }
   
   // Parse durations
@@ -130,6 +149,9 @@ export function parseWorkoutInput(prompt: string, userLevel: string = 'beginner'
   if (durations.restDuration !== null) {
     result.restDuration = durations.restDuration;
     result.parsedDurations = true;
+  } else if (historyInsights && !result.parsedDurations) {
+    // Apply history-based rest adjustment for default rest
+    result.restDuration = getAdjustedRestDuration(DEFAULT_DURATIONS.boxingRest, historyInsights);
   }
   
   // Parse combos

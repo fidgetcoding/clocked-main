@@ -1,5 +1,5 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
-import { X, Sparkles, Wand2, Mic, MicOff } from 'lucide-react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import { X, Sparkles, Wand2, Mic, MicOff, TrendingUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { TrendingWorkout } from '@/data/trendingWorkouts';
@@ -7,8 +7,10 @@ import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
 import { useUserStore } from '@/stores/userStore';
+import { useWorkoutHistory } from '@/hooks/useWorkoutHistory';
 import { Workout, WorkoutPhase } from '@/types';
 import { parseWorkoutInput, parsedResultToWorkout, checkPromptQuality } from '@/lib/aiWorkoutParser';
+import { analyzeWorkoutHistory, getInsightsSummary, HistoryInsights } from '@/lib/workoutHistoryAnalysis';
 
 interface AIBuilderModalProps {
   onClose: () => void;
@@ -168,9 +170,13 @@ export function parseWorkoutPrompt(prompt: string, userLevel: string = 'beginner
 
 // Generate a full workout object from parsed prompt
 // Uses new framework-based parser with fallback to legacy logic
-export function generateWorkoutFromPrompt(prompt: string, userLevel: string = 'beginner'): Workout {
+export function generateWorkoutFromPrompt(
+  prompt: string, 
+  userLevel: string = 'beginner',
+  historyInsights?: HistoryInsights | null
+): Workout {
   // Try the new framework-based parser first
-  const parsedResult = parseWorkoutInput(prompt, userLevel);
+  const parsedResult = parseWorkoutInput(prompt, userLevel, historyInsights ?? undefined);
   
   // Check if the new parser extracted meaningful data
   const hasSpecificData = parsedResult.parsedRounds || parsedResult.parsedDurations || parsedResult.parsedCombos;
@@ -266,6 +272,7 @@ export function generateWorkoutFromPrompt(prompt: string, userLevel: string = 'b
 export const AIBuilderModal = ({ onClose, onGenerate, baseWorkout, onWorkoutGenerated }: AIBuilderModalProps) => {
   const navigate = useNavigate();
   const user = useUserStore((state) => state.user);
+  const { history } = useWorkoutHistory();
   
   const [prompt, setPrompt] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
@@ -273,6 +280,17 @@ export const AIBuilderModal = ({ onClose, onGenerate, baseWorkout, onWorkoutGene
   const [interimTranscript, setInterimTranscript] = useState('');
   const [promptHints, setPromptHints] = useState<string[]>([]);
   const recognitionRef = useRef<any>(null);
+  
+  // Analyze workout history for personalization
+  const historyInsights = useMemo(() => {
+    if (!history || history.length === 0) return null;
+    return analyzeWorkoutHistory(history);
+  }, [history]);
+  
+  const insightsSummary = useMemo(() => {
+    if (!historyInsights) return null;
+    return getInsightsSummary(historyInsights);
+  }, [historyInsights]);
 
   // Check prompt quality as user types
   useEffect(() => {
@@ -379,7 +397,12 @@ export const AIBuilderModal = ({ onClose, onGenerate, baseWorkout, onWorkoutGene
     }
     
     // Parse the prompt and generate workout, then navigate to Build page
-    const workout = generateWorkoutFromPrompt(prompt, user?.experienceLevel || 'beginner');
+    // Pass history insights for personalization
+    const workout = generateWorkoutFromPrompt(
+      prompt, 
+      user?.experienceLevel || 'beginner',
+      historyInsights
+    );
     
     // If we have a callback, use that (for inline usage)
     if (onWorkoutGenerated) {
@@ -438,6 +461,17 @@ export const AIBuilderModal = ({ onClose, onGenerate, baseWorkout, onWorkoutGene
               <p className="text-sm text-foreground font-semibold">{baseWorkout.name}</p>
               <p className="text-xs text-muted-foreground mt-1">
                 Describe what you'd like to change or add to this workout
+              </p>
+            </div>
+          )}
+
+          {/* History Insights Banner */}
+          {insightsSummary && !baseWorkout && (
+            <div className="bg-surface-2 border border-volt/20 rounded-xl p-3 flex items-start gap-2">
+              <TrendingUp className="w-4 h-4 text-volt mt-0.5 flex-shrink-0" />
+              <p className="text-xs text-muted-foreground">
+                <span className="text-volt font-medium">💡 Personalized: </span>
+                {insightsSummary}
               </p>
             </div>
           )}
