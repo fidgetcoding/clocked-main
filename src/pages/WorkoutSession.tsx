@@ -10,7 +10,7 @@ import { useUserStore } from '@/stores/userStore';
 import { useProfile } from '@/hooks/useProfile';
 import { useSpeechSynthesis } from '@/hooks/useSpeechSynthesis';
 import { cn } from '@/lib/utils';
-import { ACTIVITY_XP_RATES, ActivityType, getStreakMultiplier } from '@/lib/xpSystem';
+import { ACTIVITY_XP_RATES, ActivityType, getStreakMultiplier, getActivityTypeFromName, calculateComboXP, getSparringXPRate } from '@/lib/xpSystem';
 
 interface FlatSegment {
   id: string;
@@ -184,15 +184,10 @@ const WorkoutSession = () => {
   // Get streak multiplier from profile
   const streakMultiplier = getStreakMultiplier(profile?.current_streak || 0);
   
-  // Map segment type to activity type for XP calculation
+  // Map segment type to activity type for XP calculation using the comprehensive helper
   const getActivityTypeFromSegment = (segment: FlatSegment | undefined): ActivityType => {
     if (!segment) return 'active';
-    if (segment.type === 'rest') return 'rest';
-    if (segment.segmentType === 'shadowboxing' || segment.name.toLowerCase().includes('shadow')) return 'shadowboxing';
-    if (segment.segmentType === 'combo') return 'combo';
-    if (segment.name.toLowerCase().includes('jump rope')) return 'jump_rope';
-    if (segment.name.toLowerCase().includes('running') || segment.name.toLowerCase().includes('treadmill')) return 'running';
-    return 'active';
+    return getActivityTypeFromName(segment.name, segment.type === 'rest' ? 'rest' : segment.segmentType);
   };
   
   // Use accumulated XP for display
@@ -213,7 +208,20 @@ const WorkoutSession = () => {
         // Accumulate XP based on current activity (not during preparation)
         if (!isPreparation && currentSegment) {
           const activityType = getActivityTypeFromSegment(currentSegment);
-          const xpPerSecond = ACTIVITY_XP_RATES[activityType];
+          let xpPerSecond = ACTIVITY_XP_RATES[activityType];
+          
+          // Special handling for sparring - rate depends on prestige
+          if (activityType === 'sparring' && profile?.prestige) {
+            xpPerSecond = getSparringXPRate(profile.prestige as any);
+          }
+          
+          // For combo segments, use combo XP formula for that second's contribution
+          if (activityType === 'combo' && currentSegment.combo && currentSegment.combo.length > 0) {
+            // Distribute combo XP evenly across the segment duration
+            const totalComboXP = calculateComboXP(currentSegment.combo, currentSegment.duration);
+            xpPerSecond = totalComboXP / currentSegment.duration;
+          }
+          
           const xpGained = xpPerSecond * streakMultiplier;
           setAccumulatedXP(prev => prev + xpGained);
         }
