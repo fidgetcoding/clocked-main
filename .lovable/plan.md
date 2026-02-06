@@ -1,32 +1,70 @@
 
 
-# Background-Safe Workout Timer
+# Quick Start Timer + Reorder Cleanup
 
-## The Problem
-Right now, the timer counts by incrementing +1 each second via `setInterval`. When you switch tabs or leave the app, browsers throttle or pause intervals, so the timer freezes and falls behind real time.
+## 1. Quick Start Timer
 
-## The Solution
-Switch from tick-counting to **wall-clock time tracking**. Instead of adding +1 each tick, we record *when* the timer started and calculate elapsed time from `Date.now()`. When you return to the app after 30 seconds away, it instantly catches up.
+### Placement
+A special **raised circular button** in the bottom nav bar, positioned between "MY STATS" and "FIGHT CLUB". It will pop up above the nav bar (like a floating action button) with a stopwatch/timer icon and a volt-colored glow. This keeps the home screen untouched while making Quick Start always accessible from any screen.
 
-## How It Works
+### XP Rate: 0.10 XP/sec
+Here's how it compares to other activities:
 
-1. **Track timestamps instead of ticks** -- Store a `lastTickTime` ref that records the real-world timestamp of each interval tick
-2. **On each tick, calculate the actual elapsed delta** -- Instead of assuming 1 second passed, compute `(Date.now() - lastTickTime) / 1000` to get the real seconds that passed (could be 1s, or 30s if backgrounded)
-3. **Fast-forward through segments** -- If the delta is large (e.g., 30 seconds while backgrounded), loop through segment transitions so the timer catches up to the correct position
-4. **XP accumulates correctly** -- XP is calculated based on actual elapsed seconds, not just tick count
+```text
+rest          0.01
+stretching    0.05
+QUICK START   0.10  <-- here
+walking       0.12
+planks        0.15
+jogging       0.18
+jump rope     0.20
+pushups       0.22
+running       0.25
+shadowboxing  0.33
+sparring      2.5+
+```
+
+Sitting just below walking -- fair reward for showing up without structure.
+
+### Timer UI
+The Quick Session page will mirror the existing workout timer layout but simplified:
+- Same top bar layout (home/exit button left, elapsed time center, XP bar right)
+- Main timer counts **up** instead of down (stopwatch style) in the same large volt font
+- Label says "QUICK SESSION" where the segment name usually goes
+- "FREEFORM" where segment type usually says "WORK" / "REST"
+- Controls: Play/Pause and Finish (no skip, no back, no time modification)
+- Same completion screen (notes, difficulty rating, log button)
+- Background-safe wall-clock timing (same pattern already implemented)
+
+### Logging
+- Logged to `workout_history` with `workout_name: "Quick Session"`, `workout_id: null`
+- Streak multiplier still applies
+
+## 2. Reorder Button Cleanup
+Replace the current `ArrowUpDown` icon + "Reorder" text with just a `GripVertical` icon (the classic drag-handle icon -- three pairs of dots). No text label, just the icon. It's universally recognized as "drag to reorder" and much more minimal.
 
 ## Technical Details
 
-**File: `src/pages/WorkoutSession.tsx`**
+### New File: `src/pages/QuickSession.tsx`
+- Stopwatch (count-up) timer using `Date.now()` wall-clock pattern
+- Reuses `VerticalXPBar` component for live XP display
+- XP rate constant: `0.10` per second (with streak multiplier from profile)
+- On finish: completion screen with duration, XP earned, notes, difficulty, log button
+- Logs via `useWorkoutHistory().addHistoryEntry`
+- Updates profile XP via `useProfile().addXP`
 
-- Add a `useRef` for `lastTickTimeRef` to track the last real-world timestamp
-- Modify the main timer `useEffect` (around line 237):
-  - On each interval tick, compute `delta = Math.floor((Date.now() - lastTickTimeRef) / 1000)`
-  - Process multiple seconds at once if delta > 1 (background catch-up)
-  - For each elapsed second: decrement `timeRemaining`, increment `totalElapsed`, accumulate XP
-  - Handle segment transitions if `timeRemaining` drops to/below 0 during catch-up
-  - Update `lastTickTimeRef` after processing
-- Set `lastTickTimeRef = Date.now()` when starting/resuming the timer
-- Add a `visibilitychange` listener to immediately process elapsed time when the tab becomes visible again (for instant catch-up without waiting for the next interval tick)
+### Edit: `src/components/layout/BottomNav.tsx`
+- Add a center "Quick Start" button between MY STATS and FIGHT CLUB
+- Styled as a raised circular button (larger than other nav items, volt background, slight negative top margin to float above the bar)
+- Uses `Timer` or `Play` icon from lucide-react
+- Navigates to `/quick-session`
 
-No database changes or new dependencies needed.
+### Edit: `src/App.tsx`
+- Add route: `/quick-session` pointing to `QuickSession` component
+
+### Edit: `src/pages/Index.tsx`
+- Replace `ArrowUpDown` import with `GripVertical`
+- Remove "Reorder" text label, keep icon-only button
+
+### No database changes needed
+- `workout_history` already supports `workout_id: null`
