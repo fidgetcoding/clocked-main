@@ -85,7 +85,6 @@ export function SortableWorkoutCard({ workout, onDelete, isReorderMode }: Sortab
           <div className="flex flex-wrap gap-2">
             <span className="tag">{(workout.difficulty || 'beginner').toUpperCase()}</span>
             <span className="tag">BOXING</span>
-            <span className="tag">HIIT</span>
           </div>
         </div>
 
