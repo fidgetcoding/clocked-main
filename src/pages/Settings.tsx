@@ -110,9 +110,17 @@ const Settings = () => {
           <button onClick={() => window.history.length > 1 ? navigate(-1) : navigate('/')} className="text-muted-foreground">
             <ArrowLeft className="w-6 h-6" />
           </button>
-          <h1 className="text-2xl font-black text-foreground tracking-wider">
+          <h1 className="text-2xl font-black text-foreground tracking-wider flex-1">
             SETTINGS
           </h1>
+          <button 
+            onClick={handleSignOut}
+            disabled={isSigningOut}
+            className="p-2 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors disabled:opacity-50"
+            title="Sign Out"
+          >
+            <LogOut className="w-5 h-5" />
+          </button>
         </header>
 
         <div className="px-4 space-y-6 pb-24">
@@ -131,18 +139,6 @@ const Settings = () => {
                 />
               ))}
             </div>
-          </div>
-
-          {/* Sign Out */}
-          <div className="card-workout">
-            <button 
-              onClick={handleSignOut}
-              disabled={isSigningOut}
-              className="flex items-center gap-2 w-full p-3 rounded-lg bg-surface-2 border border-destructive/30 text-destructive hover:bg-destructive/10 transition-colors disabled:opacity-50"
-            >
-              <LogOut className="w-4 h-4" />
-              <span className="font-medium">{isSigningOut ? 'Signing Out...' : 'Sign Out'}</span>
-            </button>
           </div>
 
           {/* Version */}
