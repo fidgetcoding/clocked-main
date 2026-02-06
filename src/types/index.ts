@@ -54,19 +54,11 @@ export interface UserProfile {
   preferences: {
     voiceType: 'male' | 'female' | 'system';
     soundEnabled: boolean;
-    hapticEnabled: boolean;
-    // Voice alerts
+    // Sound alerts
     voiceAnnouncements?: boolean;
     voiceCountdown?: boolean;
     voiceComboCallouts?: boolean;
-    // Sound alerts
-    roundStartBell?: boolean;
-    roundEndBell?: boolean;
     tenSecondWarning?: boolean;
-    segmentTransitionBeep?: boolean;
-    // Haptic feedback
-    hapticRoundChange?: boolean;
-    hapticWarning?: boolean;
   };
 }
 
