@@ -1,12 +1,28 @@
 import { useState } from 'react';
-import { Plus, History, Play, Pencil, Trash2, Clock, RotateCcw, Archive, Loader2 } from 'lucide-react';
+import { Plus, History, Archive, ArrowUpDown, Check } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
 import clockedTextLogo from '@/assets/clocked-text-logo.png';
 import { AppLayout } from '@/components/layout/AppLayout';
-import { useUserStore } from '@/stores/userStore';
 import { useWorkouts } from '@/hooks/useWorkouts';
 import { usePresetSeeding } from '@/hooks/usePresetSeeding';
+import { useUserStore } from '@/stores/userStore';
 import { Button } from '@/components/ui/button';
+import { SortableWorkoutCard } from '@/components/SortableWorkoutCard';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -19,29 +35,27 @@ import {
 } from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
 
-function formatDuration(seconds: number): string {
-  const mins = Math.floor(seconds / 60);
-  return `${mins} MIN`;
-}
-
-// Helper to extract workout data from phases (database format)
-function getWorkoutStats(workout: ReturnType<typeof useWorkouts>['workouts'][0]) {
-  const phases = workout.phases as any[];
-  const warmupPhases = phases?.filter((p: any) => p.section === 'warmup') || [];
-  const grindPhases = phases?.filter((p: any) => p.section === 'grind') || [];
-  const cooldownPhases = phases?.filter((p: any) => p.section === 'cooldown') || [];
-  const totalPhases = warmupPhases.length + grindPhases.length + cooldownPhases.length;
-  return { totalPhases };
-}
-
 const Index = () => {
   const navigate = useNavigate();
   const { hasCompletedOnboarding } = useUserStore();
-  const { workouts, isLoading, deleteWorkout, archiveWorkout } = useWorkouts();
+  const { workouts, isLoading, deleteWorkout, archiveWorkout, reorderWorkouts } = useWorkouts();
   const [workoutToDelete, setWorkoutToDelete] = useState<string | null>(null);
+  const [isReorderMode, setIsReorderMode] = useState(false);
+  const [localWorkouts, setLocalWorkouts] = useState<typeof workouts | null>(null);
 
   // Seed presets for new users (runs once per user)
   usePresetSeeding();
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8,
+      },
+    }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
 
   // Redirect to onboarding if not completed
   if (!hasCompletedOnboarding) {
@@ -51,6 +65,42 @@ const Index = () => {
 
   // Filter active workouts (not archived)
   const activeWorkouts = workouts.filter((w) => !w.is_archived);
+  const displayWorkouts = localWorkouts ?? activeWorkouts;
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+
+    if (over && active.id !== over.id) {
+      const oldIndex = displayWorkouts.findIndex((w) => w.id === active.id);
+      const newIndex = displayWorkouts.findIndex((w) => w.id === over.id);
+
+      const newOrder = arrayMove(displayWorkouts, oldIndex, newIndex);
+      setLocalWorkouts(newOrder);
+    }
+  };
+
+  const handleSaveOrder = async () => {
+    if (localWorkouts) {
+      const orderedIds = localWorkouts.map((w) => w.id);
+      reorderWorkouts.mutate(orderedIds, {
+        onSuccess: () => {
+          toast.success('Order saved');
+          setIsReorderMode(false);
+          setLocalWorkouts(null);
+        },
+        onError: (error) => {
+          toast.error('Failed to save order: ' + error.message);
+        },
+      });
+    } else {
+      setIsReorderMode(false);
+    }
+  };
+
+  const handleCancelReorder = () => {
+    setIsReorderMode(false);
+    setLocalWorkouts(null);
+  };
 
   const handleDelete = () => {
     if (workoutToDelete) {
@@ -121,7 +171,7 @@ const Index = () => {
             >
               <History className="w-6 h-6 text-volt mb-auto" />
               <div className="absolute right-4 top-1/2 -translate-y-1/2 opacity-20">
-                <RotateCcw className="w-20 h-20 text-muted-foreground" strokeWidth={1} />
+                <History className="w-20 h-20 text-muted-foreground" strokeWidth={1} />
               </div>
               <div className="mt-auto">
                 <h3 className="text-lg font-black text-foreground">WORKOUT</h3>
@@ -133,10 +183,40 @@ const Index = () => {
 
         {/* Your Sets */}
         <section className="px-4 pb-24">
-          <div className="flex items-center gap-2 mb-4">
+          <div className="flex items-center justify-between mb-4">
             <h2 className="text-sm font-bold text-muted-foreground uppercase tracking-wider">
               Your Sets
             </h2>
+            {activeWorkouts.length > 1 && (
+              isReorderMode ? (
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={handleCancelReorder}
+                    className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleSaveOrder}
+                    className="flex items-center gap-1 text-sm text-volt font-medium"
+                  >
+                    <Check className="w-4 h-4" />
+                    Done
+                  </button>
+                </div>
+              ) : (
+                <button
+                  onClick={() => {
+                    setIsReorderMode(true);
+                    setLocalWorkouts(activeWorkouts);
+                  }}
+                  className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  <ArrowUpDown className="w-4 h-4" />
+                  Reorder
+                </button>
+              )
+            )}
           </div>
 
           <div className="space-y-4">
@@ -151,68 +231,25 @@ const Index = () => {
                 </Button>
               </div>
             ) : (
-              activeWorkouts.map((workout) => {
-                const { totalPhases } = getWorkoutStats(workout);
-                return (
-                <div
-                  key={workout.id}
-                  className="card-workout group"
+              <DndContext
+                sensors={sensors}
+                collisionDetection={closestCenter}
+                onDragEnd={handleDragEnd}
+              >
+                <SortableContext
+                  items={displayWorkouts.map((w) => w.id)}
+                  strategy={verticalListSortingStrategy}
                 >
-                    <div className="flex items-start gap-4">
-                      {/* Content */}
-                      <div className="flex-1">
-                        <h3 className="text-xl font-black text-foreground uppercase mb-1 transition-colors group-hover:text-volt">
-                          {workout.name}
-                        </h3>
-                        <div className="flex items-center gap-4 text-sm text-muted-foreground mb-3">
-                          <span className="flex items-center gap-1">
-                            <Clock className="w-4 h-4" />
-                            {formatDuration(workout.duration)}
-                          </span>
-                          <span className="flex items-center gap-1">
-                            <RotateCcw className="w-4 h-4" />
-                            {totalPhases} PHASES
-                          </span>
-                        </div>
-
-                        {/* Tags */}
-                        <div className="flex flex-wrap gap-2">
-                          <span className="tag">{(workout.difficulty || 'beginner').toUpperCase()}</span>
-                          <span className="tag">BOXING</span>
-                          <span className="tag">HIIT</span>
-                        </div>
-                      </div>
-
-                      {/* Play button and actions column */}
-                      <div className="flex flex-col items-center gap-3 flex-shrink-0">
-                        {/* Play Button - scale only on hover, no fade */}
-                        <button
-                          onClick={() => navigate(`/workout/${workout.id}`)}
-                          className="w-12 h-12 rounded-full bg-volt flex items-center justify-center transition-transform duration-200 group-hover:scale-125 active:scale-95"
-                        >
-                          <Play className="w-5 h-5 text-primary-foreground ml-0.5" fill="currentColor" />
-                        </button>
-
-                      {/* Edit and Delete below play button */}
-                      <div className="flex items-center gap-3">
-                        <button
-                          onClick={() => navigate(`/build?edit=${workout.id}`)}
-                          className="text-muted-foreground hover:text-foreground transition-colors p-1"
-                        >
-                          <Pencil className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => setWorkoutToDelete(workout.id)}
-                          className="text-muted-foreground hover:text-destructive transition-colors p-1"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                );
-              })
+                  {displayWorkouts.map((workout) => (
+                    <SortableWorkoutCard
+                      key={workout.id}
+                      workout={workout}
+                      onDelete={setWorkoutToDelete}
+                      isReorderMode={isReorderMode}
+                    />
+                  ))}
+                </SortableContext>
+              </DndContext>
             )}
           </div>
         </section>
