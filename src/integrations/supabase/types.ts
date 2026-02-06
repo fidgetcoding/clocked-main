@@ -401,7 +401,60 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      profiles_public: {
+        Row: {
+          avatar_url: string | null
+          bio: string | null
+          created_at: string | null
+          current_level: number | null
+          current_streak: number | null
+          handle: string | null
+          id: string | null
+          name: string | null
+          prestige: string | null
+          role: string | null
+          sessions_completed_this_year: number | null
+          total_training_seconds: number | null
+          total_xp: number | null
+          user_id: string | null
+          workouts_completed: number | null
+        }
+        Insert: {
+          avatar_url?: string | null
+          bio?: string | null
+          created_at?: string | null
+          current_level?: number | null
+          current_streak?: number | null
+          handle?: string | null
+          id?: string | null
+          name?: string | null
+          prestige?: string | null
+          role?: string | null
+          sessions_completed_this_year?: number | null
+          total_training_seconds?: number | null
+          total_xp?: number | null
+          user_id?: string | null
+          workouts_completed?: number | null
+        }
+        Update: {
+          avatar_url?: string | null
+          bio?: string | null
+          created_at?: string | null
+          current_level?: number | null
+          current_streak?: number | null
+          handle?: string | null
+          id?: string | null
+          name?: string | null
+          prestige?: string | null
+          role?: string | null
+          sessions_completed_this_year?: number | null
+          total_training_seconds?: number | null
+          total_xp?: number | null
+          user_id?: string | null
+          workouts_completed?: number | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       [_ in never]: never
