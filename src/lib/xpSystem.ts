@@ -197,19 +197,200 @@ export function experienceLevelToPrestige(experienceLevel: string): Prestige {
 }
 
 // =====================================================
-// Activity XP Rates (per second)
+// Activity XP Rates (per second) - From Document
 // =====================================================
 
-export type ActivityType = 'shadowboxing' | 'combo' | 'jump_rope' | 'running' | 'rest' | 'active';
+export type ActivityType = 
+  | 'shadowboxing' 
+  | 'combo' 
+  | 'jump_rope' 
+  | 'running' 
+  | 'rest' 
+  | 'active'
+  | 'pushups'
+  | 'curlups'
+  | 'situps'
+  | 'burpees'
+  | 'squats'
+  | 'pullups'
+  | 'planks'
+  | 'walking'
+  | 'cycling'
+  | 'jogging'
+  | 'sparring'
+  | 'stretching'
+  | 'mitt_work';
 
+// XP per second for each activity type (from documentation)
 export const ACTIVITY_XP_RATES: Record<ActivityType, number> = {
+  // Boxing-specific activities
   shadowboxing: 0.33,
-  combo: 0.33, // Base rate, combos have additional formula
+  combo: 0.33,
+  mitt_work: 0.30,
+  sparring: 2.5, // Base rate - can go up to 5.0 for higher prestiges
+  
+  // Cardio activities
   jump_rope: 0.20,
   running: 0.25,
+  jogging: 0.18,
+  walking: 0.12,
+  cycling: 0.20,
+  
+  // Strength/conditioning activities
+  pushups: 0.22,
+  curlups: 0.18,
+  situps: 0.18,
+  burpees: 0.22,
+  squats: 0.22,
+  pullups: 0.30,
+  planks: 0.15,
+  
+  // Recovery
   rest: 0.01,
-  active: 0.25, // Default active rate
+  stretching: 0.05, // 5 XP flat per stretch = ~0.05/sec for 100s
+  
+  // Default active rate
+  active: 0.25,
 };
+
+/**
+ * Get sparring XP rate adjusted by prestige tier
+ * Sparring earns more XP at higher prestige levels
+ */
+export function getSparringXPRate(prestige: Prestige): number {
+  const sparringRates: Record<Prestige, number> = {
+    rookie: 2.5,
+    beginner: 3.0,
+    intermediate: 3.5,
+    advanced: 4.0,
+    pro: 5.0,
+  };
+  return sparringRates[prestige];
+}
+
+// =====================================================
+// Combo XP Calculation (From Document)
+// =====================================================
+
+// Punch XP values
+export const PUNCH_XP_VALUES: Record<string, number> = {
+  '1': 5,      // Jab
+  '2': 6.5,    // Cross
+  '3': 8,      // Lead Hook
+  '4': 8,      // Rear Hook
+  '5': 9,      // Lead Uppercut
+  '6': 9,      // Rear Uppercut
+  '7': 10,     // Lead Body Hook
+  '8': 10,     // Rear Body Hook
+};
+
+// Defense move XP values
+export const DEFENSE_XP_VALUES: Record<string, number> = {
+  'SLIP L': 7.25,
+  'SLIP R': 7.25,
+  'SLIP': 7.25,
+  'DUCK': 8.5,
+  'ROLL L': 9.5,
+  'ROLL R': 9.5,
+  'ROLL': 9.5,
+  'PULL': 6.5,
+  'BLOCK': 5.5,
+  'PARRY': 7,
+};
+
+// Movement XP values
+export const MOVEMENT_XP_VALUES: Record<string, number> = {
+  'STEP IN': 4,
+  'STEP OUT': 4,
+  'CIRCLE L': 5,
+  'CIRCLE R': 5,
+  'PIVOT': 6,
+};
+
+/**
+ * Get length multiplier based on combo length
+ */
+export function getComboLengthMultiplier(length: number): number {
+  if (length >= 6) return 1.35;
+  if (length >= 5) return 1.2;
+  if (length >= 4) return 1.1;
+  return 1.0;
+}
+
+/**
+ * Get defense bonus multiplier based on number of defense moves in combo
+ */
+export function getDefenseBonusMultiplier(defenseCount: number): number {
+  if (defenseCount >= 3) return 1.45;
+  if (defenseCount >= 2) return 1.3;
+  if (defenseCount >= 1) return 1.15;
+  return 1.0;
+}
+
+/**
+ * Check if a move is a defense move
+ */
+export function isDefenseMove(move: string): boolean {
+  const upperMove = move.toUpperCase();
+  return Object.keys(DEFENSE_XP_VALUES).some(defense => 
+    upperMove.includes(defense.split(' ')[0]) // Match base defense name
+  );
+}
+
+/**
+ * Calculate XP earned from completing a combo
+ * Formula: XP = (Base Move Sum) × (Length Bonus) × (Defense Bonus) × (Duration ÷ 30)
+ */
+export function calculateComboXP(combo: string[], durationSeconds: number = 30): number {
+  if (!combo || combo.length === 0) return 0;
+  
+  // Calculate base move sum
+  let baseMoveSum = 0;
+  let defenseCount = 0;
+  
+  combo.forEach(move => {
+    const upperMove = move.toUpperCase().trim();
+    
+    // Check punches first (1-8)
+    if (PUNCH_XP_VALUES[upperMove]) {
+      baseMoveSum += PUNCH_XP_VALUES[upperMove];
+    }
+    // Check defense moves
+    else if (DEFENSE_XP_VALUES[upperMove]) {
+      baseMoveSum += DEFENSE_XP_VALUES[upperMove];
+      defenseCount++;
+    }
+    // Check movement
+    else if (MOVEMENT_XP_VALUES[upperMove]) {
+      baseMoveSum += MOVEMENT_XP_VALUES[upperMove];
+    }
+    // Partial match for defense (e.g., "SLIP L" matches "SLIP")
+    else {
+      for (const [defense, value] of Object.entries(DEFENSE_XP_VALUES)) {
+        if (upperMove.includes(defense.split(' ')[0])) {
+          baseMoveSum += value;
+          defenseCount++;
+          break;
+        }
+      }
+      for (const [movement, value] of Object.entries(MOVEMENT_XP_VALUES)) {
+        if (upperMove.includes(movement.split(' ')[0])) {
+          baseMoveSum += value;
+          break;
+        }
+      }
+    }
+  });
+  
+  // Apply multipliers
+  const lengthMultiplier = getComboLengthMultiplier(combo.length);
+  const defenseMultiplier = getDefenseBonusMultiplier(defenseCount);
+  const durationMultiplier = durationSeconds / 30;
+  
+  const totalXP = baseMoveSum * lengthMultiplier * defenseMultiplier * durationMultiplier;
+  
+  return Math.round(totalXP);
+}
 
 /**
  * Calculate XP for an activity segment
@@ -217,13 +398,18 @@ export const ACTIVITY_XP_RATES: Record<ActivityType, number> = {
 export function calculateActivityXP(
   activityType: ActivityType,
   durationSeconds: number,
-  combosLanded?: number
+  combosLanded?: number,
+  combo?: string[]
 ): number {
   let baseXP = ACTIVITY_XP_RATES[activityType] * durationSeconds;
   
-  // Bonus XP for combos landed
+  // If it's a combo segment and we have combo data, use the combo formula
+  if (activityType === 'combo' && combo && combo.length > 0) {
+    baseXP = calculateComboXP(combo, durationSeconds);
+  }
+  
+  // Bonus XP for combos landed (legacy support)
   if (combosLanded && combosLanded > 0) {
-    // Formula from doc: 0.5 XP per combo landed
     baseXP += combosLanded * 0.5;
   }
   
@@ -231,11 +417,16 @@ export function calculateActivityXP(
 }
 
 // =====================================================
-// Streak Multipliers
+// Streak Multipliers (From Document - Exact Values)
 // =====================================================
 
 export function getStreakMultiplier(streakDays: number): number {
-  if (streakDays >= 100) return Math.min(3.0, 1.8 + (streakDays - 60) * 0.003); // Scales up to 3.0x cap
+  // Exact values from documentation
+  if (streakDays >= 365) return 3.0;
+  if (streakDays >= 300) return 2.75;
+  if (streakDays >= 200) return 2.5;
+  if (streakDays >= 150) return 2.25;
+  if (streakDays >= 100) return 2.0;
   if (streakDays >= 60) return 1.8;
   if (streakDays >= 30) return 1.6;
   if (streakDays >= 14) return 1.4;
@@ -245,20 +436,27 @@ export function getStreakMultiplier(streakDays: number): number {
 }
 
 // =====================================================
-// Streak Milestone Bonuses
+// Streak Milestone Bonuses (From Document - Exact Values)
 // =====================================================
 
 export const STREAK_MILESTONES: Record<number, number> = {
   5: 500,
   10: 1500,
   15: 3000,
-  20: 5000,
+  20: 4000,      // Fixed: was 5000
+  25: 6000,      // Added
   30: 10000,
   45: 20000,
+  50: 25000,     // Added
   60: 35000,
+  75: 50000,     // Added
   90: 60000,
+  100: 35000,    // Fixed: was 100000 - doc says 35000
   120: 100000,
+  150: 150000,   // Added
   180: 175000,
+  200: 250000,   // Added
+  250: 400000,   // Added
   365: 500000,
 };
 
@@ -388,4 +586,49 @@ export function getLevelProgress(prestige: Prestige, level: number, totalXP: num
 export function getXPProgressString(prestige: Prestige, level: number, totalXP: number): string {
   const { current, required } = getXPWithinCurrentLevel(prestige, totalXP);
   return `${Math.floor(current).toLocaleString()} / ${required.toLocaleString()} XP`;
+}
+
+// =====================================================
+// Activity Name to Type Mapping Helper
+// =====================================================
+
+/**
+ * Map segment/activity name to ActivityType for XP calculation
+ */
+export function getActivityTypeFromName(name: string, segmentType?: string): ActivityType {
+  const lowerName = name.toLowerCase();
+  
+  // Check segment type first
+  if (segmentType === 'rest') return 'rest';
+  if (segmentType === 'shadowboxing') return 'shadowboxing';
+  if (segmentType === 'combo') return 'combo';
+  
+  // Boxing activities
+  if (lowerName.includes('shadow')) return 'shadowboxing';
+  if (lowerName.includes('combo')) return 'combo';
+  if (lowerName.includes('mitt') || lowerName.includes('pad')) return 'mitt_work';
+  if (lowerName.includes('spar')) return 'sparring';
+  
+  // Cardio
+  if (lowerName.includes('jump rope') || lowerName.includes('skipping')) return 'jump_rope';
+  if (lowerName.includes('running') || lowerName.includes('treadmill') || lowerName.includes('run')) return 'running';
+  if (lowerName.includes('jog')) return 'jogging';
+  if (lowerName.includes('walk')) return 'walking';
+  if (lowerName.includes('cycl') || lowerName.includes('bike')) return 'cycling';
+  
+  // Strength/conditioning
+  if (lowerName.includes('pushup') || lowerName.includes('push-up') || lowerName.includes('push up')) return 'pushups';
+  if (lowerName.includes('curlup') || lowerName.includes('curl-up') || lowerName.includes('curl up')) return 'curlups';
+  if (lowerName.includes('situp') || lowerName.includes('sit-up') || lowerName.includes('sit up')) return 'situps';
+  if (lowerName.includes('burpee')) return 'burpees';
+  if (lowerName.includes('squat')) return 'squats';
+  if (lowerName.includes('pullup') || lowerName.includes('pull-up') || lowerName.includes('pull up') || lowerName.includes('chin')) return 'pullups';
+  if (lowerName.includes('plank')) return 'planks';
+  
+  // Recovery
+  if (lowerName.includes('rest')) return 'rest';
+  if (lowerName.includes('stretch')) return 'stretching';
+  
+  // Default
+  return 'active';
 }
