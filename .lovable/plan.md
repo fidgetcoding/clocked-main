@@ -1,245 +1,243 @@
 
-# Enhanced AI Workout Builder - Framework Integration
+
+# AI Coach History Analysis & Round Feedback Integration
 
 ## Overview
-Upgrade the AI workout parser with the Clombo Framework rules while maintaining 100% backward compatibility with existing workout structures and timer engine.
-
-## Current State Analysis
-The existing system works but has limitations:
-- Simple regex matching for rounds, duration, difficulty
-- Hardcoded combo generation based on focus keywords
-- No support for user-specified combos (e.g., "1-2-slip-3")
-- Cannot parse specific round/rest durations (e.g., "3 min rounds, 1 min rest")
-- No superset/workout loop support
-- No exercise integration between rounds
-
-## Key Principle: Enhancement, Not Replacement
-- All existing functionality remains intact
-- New parsing runs FIRST; falls back to existing logic if parsing doesn't extract specific values
-- Timer engine requires NO changes - we output the same structure it already consumes
-- Database schema requires NO changes - phases/combos already support needed data
+Two major enhancements:
+1. **Add round-by-round feedback** to the workout completion screen (currently missing)
+2. **Make AI coach analyze workout history** to personalize future workout suggestions
 
 ---
 
-## Files to Create
+## Part 1: Add Round Feedback to Workout Completion Screen
 
-### 1. `src/lib/aiWorkoutParser.ts` (NEW)
-Central parsing logic implementing framework rules:
+### Current Problem
+When you finish a timed workout, the completion screen only offers:
+- Overall difficulty rating (Too Easy / Just Right / Too Hard)
+- Notes textarea
 
-```text
-EXPORTS:
-- parseWorkoutInput(prompt: string, userLevel: string) → ParsedWorkout
-- parseComboString(input: string) → string[]
-- detectTags(prompt: string) → string[]
-- inferPhaseType(description: string) → 'continuous' | 'circuit' | 'rest'
+The "Advanced" mode with round-by-round ratings (1-5 scale) only exists in the manual "Log Past Workout" modal.
 
-CONSTANTS:
-- DEFAULT_DURATIONS (boxing round: 180s, rest: 60s, warmup: 300s, etc.)
-- PUNCH_MAP ({ jab: '1', cross: '2', hook: '3', ... })
-- KEYWORD_TAGS ({ boxing: [...], strength: [...], cardio: [...] })
-```
+### Solution
+Add a Basic/Advanced toggle to the workout completion screen that enables per-round feedback.
 
-### 2. `src/lib/comboParser.ts` (NEW)
-Dedicated combo string parsing:
+### Technical Changes
 
-```text
-FUNCTION parseComboString(input: string): string[]
-- Split on spaces, dashes, commas
-- Map punch names to numbers: "jab" → "1", "cross" → "2", etc.
-- Normalize defense moves: "slip" → "SLIP L" (default left)
-- Handle "double jab" → ["1", "1"]
-- Handle compound notation: "1-2-slip-3" → ["1", "2", "SLIP L", "3"]
-```
+**File: `src/pages/WorkoutSession.tsx`**
 
----
-
-## Files to Modify
-
-### 3. `src/components/AIBuilderModal.tsx`
-
-**Keep existing functions as fallbacks:**
-- `parseWorkoutPrompt()` stays - used when advanced parser doesn't find specifics
-- `generateWorkoutFromPrompt()` enhanced to use new parser first
-
-**New parsing flow:**
-```text
-1. Try advanced parsing with new parser
-2. Extract: specific combos, round/rest durations, phase structure, superset
-3. For anything NOT specified, fall back to existing defaults
-4. Generate Workout object (same structure timer expects)
-```
-
-**New capabilities added:**
-- Parse "3 min rounds with 1 min rest" → roundDuration: 180, restDuration: 60
-- Parse "1-2-slip-3" → combo: ["1", "2", "SLIP L", "3"]
-- Parse "do it twice" → workout with supersetRepeats: 2
-- Parse "10 pushups between rounds" → adds pushup segment to circuit
-- Auto-tag based on keywords
-
-**Clarification logic:**
-If prompt is too vague (< 15 characters or missing key info), show inline hints:
-- "Tip: Try specifying number of rounds (e.g., '5 rounds')"
-- NOT a blocking modal - just helpful suggestions
-
-### 4. `src/types/index.ts`
-
-**Add optional fields (backward compatible):**
+1. **Add state for round feedback:**
 ```typescript
-interface WorkoutPhase {
-  // ... existing fields
-  phaseType?: 'continuous' | 'circuit' | 'rest';  // NEW - display hint only
-}
-
-interface WorkoutSegment {
-  // ... existing fields
-  exercise?: string;  // NEW - for custom exercises like "Burpees"
-  activityType?: 'combos' | 'shadowbox' | 'run' | 'pushups' | 'custom';  // NEW
-}
-
-interface Workout {
-  // ... existing fields
-  supersetRepeats?: number;  // NEW - default 1
-  tags?: string[];  // Already exists in DB, add to type
-}
+const [feedbackMode, setFeedbackMode] = useState<'basic' | 'advanced'>('basic');
+const [roundFeedback, setRoundFeedback] = useState<RoundFeedback[]>([]);
 ```
 
----
+2. **Calculate round count from workout structure:**
+The workout already has `flatSegments` with `repeatIndex` - we can count unique grind rounds from this.
 
-## Parsing Rules Implementation
-
-### Duration Extraction
-```text
-Pattern: "(\d+)\s*(min|minute|sec|second)s?\s*(round|work|on)"
-→ Extracts work duration
-
-Pattern: "(\d+)\s*(min|minute|sec|second)s?\s*(rest|off|break)"
-→ Extracts rest duration
-
-Default fallbacks (from framework):
-- Boxing round: 180s
-- Boxing rest: 60s
-- Warmup: 300s (if no duration specified)
-- Cooldown: 300s
-- Strength segment: 30s
-- Sprint: 30s
-```
-
-### Combo Parsing
-```text
-Input: "1-2-slip-3"
-Process:
-1. Split: ["1", "2", "slip", "3"]
-2. Normalize: ["1", "2", "SLIP L", "3"]
-Output: ["1", "2", "SLIP L", "3"]
-
-Input: "jab cross hook"
-Process:
-1. Split: ["jab", "cross", "hook"]
-2. Map: ["1", "2", "3"]
-Output: ["1", "2", "3"]
-
-Input: "double jab cross"
-Process:
-1. Detect "double" modifier
-2. Map: ["1", "1", "2"]
-Output: ["1", "1", "2"]
-```
-
-### Phase Structure Detection
-```text
-"warmup" → continuous phase, repeats: 1
-"X rounds of..." → circuit phase, repeats: X
-"then Y rounds..." → additional circuit phase
-"cooldown" → continuous phase, repeats: 1
-"rest between phases" → rest phase
-```
-
-### Superset Detection
-```text
-"do the whole thing twice" → supersetRepeats: 2
-"repeat everything" → supersetRepeats: 2
-"run it back" → supersetRepeats: 2
-"X supersets" → supersetRepeats: X
-```
-
----
-
-## Timer Engine Compatibility
-
-The timer in `WorkoutSession.tsx` consumes this structure:
+3. **Add round rating handler:**
 ```typescript
-{
-  sections: { warmup: Phase[], grind: Phase[], cooldown: Phase[] },
-  combos: string[][]
-}
+const handleRoundRating = (roundNum: number, rating: number) => {
+  setRoundFeedback(prev => {
+    const existing = prev.find(r => r.roundNumber === roundNum);
+    if (existing) {
+      return prev.map(r => r.roundNumber === roundNum ? { ...r, rating } : r);
+    }
+    return [...prev, { roundNumber: roundNum, rating }];
+  });
+};
 ```
 
-**What we output (unchanged):**
-- Phases go into appropriate section based on phaseType
-- Circuit phases with repeats > 1 → timer loops segments
-- Combos array at workout level → timer cycles through
-- All existing segment fields preserved
+4. **Update handleLog to include round_feedback:**
+```typescript
+round_feedback: feedbackMode === 'advanced' ? roundFeedback : [],
+```
 
-**No timer changes needed because:**
-- Timer already handles `phase.repeats` for looping
-- Timer already handles `segment.combo` for display
-- Timer already handles `segment.segmentType` for activity detection
-- New optional fields are ignored if not used
+5. **Add UI to completion screen:**
+- Basic/Advanced toggle buttons (styled like AddWorkoutModal)
+- When Advanced: Show scrollable list of rounds with 1-5 rating buttons
+- Calculate rounds from workout phases (grind section repeats)
+
+### UI Layout for Completion Screen
+
+```
+┌─────────────────────────────────┐
+│           🏆                     │
+│    WORKOUT COMPLETE!            │
+│    [Workout Name]               │
+│                                 │
+│  ┌─────────┐  ┌─────────┐       │
+│  │ 32:45   │  │ +485    │       │
+│  │Duration │  │XP Earned│       │
+│  └─────────┘  └─────────┘       │
+│                                 │
+│  ┌──────────┬──────────┐        │
+│  │  Basic   │ Advanced │        │  ← NEW toggle
+│  └──────────┴──────────┘        │
+│                                 │
+│  [Notes textarea]               │
+│                                 │
+│  Difficulty:                    │
+│  [Too Easy] [Just Right] [Hard] │
+│                                 │
+│  ─── Advanced Mode Only ───     │
+│  Rate Each Round:               │
+│  R1  [1][2][3][4][5]           │  ← NEW
+│  R2  [1][2][3][4][5]           │
+│  R3  [1][2][3][4][5]           │
+│  ...                            │
+│                                 │
+│  [Log Workout]                  │
+│  [Done - Go Home]               │
+└─────────────────────────────────┘
+```
 
 ---
 
-## Backward Compatibility Checklist
+## Part 2: AI Coach Learns from History
 
-| Feature | Current Behavior | After Enhancement |
-|---------|-----------------|-------------------|
-| Simple "5 round boxing" | Works | Works (same output) |
-| "20 min HIIT" | Works | Works (same output) |
-| Focus keywords (defense, footwork) | Works | Works (enhanced) |
-| Difficulty detection | Works | Works |
-| Generated combos | Hardcoded arrays | User-specified OR generated |
-| Preset workouts | Untouched | Untouched |
-| Timer execution | No changes | No changes |
-| Database storage | No changes | No changes |
-| Manual Build page | Untouched | Untouched |
+### Current Problem
+The AI generates workouts based ONLY on:
+- The user's text/voice prompt
+- User's experience level from profile
+
+It ignores all historical data including:
+- Past difficulty ratings
+- Round feedback
+- Workout frequency
+- Which workouts were rated "too hard" or "too easy"
+
+### Solution
+Create a history analysis system that informs AI workout generation.
+
+### Technical Changes
+
+**File: `src/lib/workoutHistoryAnalysis.ts` (NEW)**
+
+Create a utility that analyzes workout history:
+
+```typescript
+interface HistoryInsights {
+  averageDifficulty: 'too_easy' | 'just_right' | 'too_hard' | null;
+  recentTrend: 'getting_easier' | 'stable' | 'getting_harder' | null;
+  weakRounds: number[]; // Rounds consistently rated low
+  strongRounds: number[]; // Rounds consistently rated high
+  preferredDuration: number; // Average workout duration in minutes
+  lastWorkoutDate: Date | null;
+  totalWorkouts: number;
+  suggestedAdjustments: string[];
+}
+
+export function analyzeWorkoutHistory(history: WorkoutHistoryEntry[]): HistoryInsights
+```
+
+**Analysis Logic:**
+1. Calculate average difficulty rating from recent 10 workouts
+2. Identify trend: Are workouts getting easier/harder over time?
+3. Aggregate round feedback: Which rounds are consistently rated 1-2 (weak) vs 4-5 (strong)?
+4. Generate suggestions:
+   - If average = "too_easy" → suggest "Try increasing intensity or adding rounds"
+   - If average = "too_hard" → suggest "Consider shorter rounds or more rest"
+   - If certain rounds are always weak → suggest "Build up to harder rounds gradually"
+
+**File: `src/lib/aiWorkoutParser.ts`**
+
+Enhance the parser to accept history insights:
+
+```typescript
+export function parseWorkoutInput(
+  prompt: string, 
+  userLevel: string = 'beginner',
+  historyInsights?: HistoryInsights  // NEW optional parameter
+): ParsedWorkoutResult
+```
+
+**Auto-adjustments based on history:**
+- If `averageDifficulty === 'too_easy'`: Default to user's level + 1 difficulty
+- If `averageDifficulty === 'too_hard'`: Reduce default rounds by 1-2, increase rest duration
+- If trend shows improvement: Gradually increase complexity
+
+**File: `src/components/AIBuilderModal.tsx`**
+
+1. Import `useWorkoutHistory` hook
+2. Call `analyzeWorkoutHistory(history)` on mount
+3. Pass insights to `generateWorkoutFromPrompt()`
+4. Show insights summary in UI (optional):
+   ```
+   💡 Based on your history: Your last 5 workouts were rated "just right" - 
+   you're ready for more challenge!
+   ```
 
 ---
 
 ## Implementation Order
 
-1. **Create `src/lib/comboParser.ts`**
-   - Pure utility, no side effects
-   - Fully testable in isolation
+1. **Round Feedback UI** (WorkoutSession.tsx)
+   - Add state variables
+   - Add Basic/Advanced toggle
+   - Add round rating UI
+   - Update handleLog function
 
-2. **Create `src/lib/aiWorkoutParser.ts`**
-   - Import comboParser
-   - All parsing logic centralized
-   - Uses existing type definitions
+2. **History Analysis Utility** (NEW file)
+   - Create analyzeWorkoutHistory function
+   - Define HistoryInsights interface
+   - Implement analysis logic
 
-3. **Update `src/types/index.ts`**
-   - Add optional fields only
-   - No required field changes
-
-4. **Update `src/components/AIBuilderModal.tsx`**
-   - Import new parsers
-   - Enhance `generateWorkoutFromPrompt()` to use new parser
-   - Keep existing `parseWorkoutPrompt()` as fallback
-   - Same output structure to Build page / timer
+3. **Integrate into AI Generator** (AIBuilderModal.tsx)
+   - Fetch workout history
+   - Run analysis
+   - Pass insights to parser
+   - (Optional) Show insights in UI
 
 ---
 
-## Example: Before vs After
+## Data Flow After Implementation
 
-**Input:** "6 rounds of 1-2-slip-3 for 2 minutes with 30 second rest"
+```
+                    ┌─────────────────┐
+                    │  Workout Done   │
+                    └────────┬────────┘
+                             │
+              ┌──────────────▼──────────────┐
+              │  Completion Screen          │
+              │  - Notes                    │
+              │  - Overall Difficulty       │
+              │  - Round-by-Round Ratings   │ ← NEW
+              └──────────────┬──────────────┘
+                             │
+                    ┌────────▼────────┐
+                    │  workout_history │
+                    │  (Supabase)      │
+                    └────────┬────────┘
+                             │
+              ┌──────────────▼──────────────┐
+              │  History Analysis           │ ← NEW
+              │  - Average difficulty       │
+              │  - Weak/strong rounds       │
+              │  - Trends over time         │
+              └──────────────┬──────────────┘
+                             │
+              ┌──────────────▼──────────────┐
+              │  AI Workout Generator       │
+              │  - Prompt parsing           │
+              │  - User level               │
+              │  - History-based tweaks     │ ← NEW
+              └──────────────┬──────────────┘
+                             │
+                    ┌────────▼────────┐
+                    │  Personalized   │
+                    │  Workout        │
+                    └─────────────────┘
+```
 
-**Before (current):**
-- Rounds: 6 ✓
-- Duration: Calculated from "2 minutes" total = ~28s each ✗
-- Combos: Auto-generated based on difficulty ✗
-- Rest: Calculated as 30% of round ✗
+---
 
-**After (enhanced):**
-- Rounds: 6 ✓
-- Work duration: 120s (2 minutes) ✓
-- Rest duration: 30s ✓
-- Combos: [["1", "2", "SLIP L", "3"]] (parsed from input) ✓
-- Tags: ["boxing"] ✓
+## Summary
+
+| Feature | Current | After |
+|---------|---------|-------|
+| Round feedback in completion screen | ❌ | ✅ |
+| AI reads workout history | ❌ | ✅ |
+| AI adjusts based on difficulty ratings | ❌ | ✅ |
+| AI identifies weak rounds | ❌ | ✅ |
+| Personalized suggestions | ❌ | ✅ |
+
