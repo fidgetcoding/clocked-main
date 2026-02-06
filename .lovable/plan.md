@@ -1,73 +1,32 @@
 
 
-# Move Sign Out Button to Header
+# Background-Safe Workout Timer
 
-## Problem
-The sign out button currently sits in its own large card section, taking up unnecessary visual space.
+## The Problem
+Right now, the timer counts by incrementing +1 each second via `setInterval`. When you switch tabs or leave the app, browsers throttle or pause intervals, so the timer freezes and falls behind real time.
 
-## Solution
-Move the sign out button to the header row, aligned to the right of "SETTINGS", as a compact icon button.
+## The Solution
+Switch from tick-counting to **wall-clock time tracking**. Instead of adding +1 each tick, we record *when* the timer started and calculate elapsed time from `Date.now()`. When you return to the app after 30 seconds away, it instantly catches up.
 
----
+## How It Works
 
-## Changes
+1. **Track timestamps instead of ticks** -- Store a `lastTickTime` ref that records the real-world timestamp of each interval tick
+2. **On each tick, calculate the actual elapsed delta** -- Instead of assuming 1 second passed, compute `(Date.now() - lastTickTime) / 1000` to get the real seconds that passed (could be 1s, or 30s if backgrounded)
+3. **Fast-forward through segments** -- If the delta is large (e.g., 30 seconds while backgrounded), loop through segment transitions so the timer catches up to the correct position
+4. **XP accumulates correctly** -- XP is calculated based on actual elapsed seconds, not just tick count
 
-### File: `src/pages/Settings.tsx`
+## Technical Details
 
-**1. Update the header** (lines 109-116)
-Move the LogOut button inline with the title:
+**File: `src/pages/WorkoutSession.tsx`**
 
-```tsx
-<header className="flex items-center gap-3 px-4 pt-8 pb-6 safe-top">
-  <button onClick={() => window.history.length > 1 ? navigate(-1) : navigate('/')} className="text-muted-foreground">
-    <ArrowLeft className="w-6 h-6" />
-  </button>
-  <h1 className="text-2xl font-black text-foreground tracking-wider flex-1">
-    SETTINGS
-  </h1>
-  <button 
-    onClick={handleSignOut}
-    disabled={isSigningOut}
-    className="p-2 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors disabled:opacity-50"
-    title="Sign Out"
-  >
-    <LogOut className="w-5 h-5" />
-  </button>
-</header>
-```
+- Add a `useRef` for `lastTickTimeRef` to track the last real-world timestamp
+- Modify the main timer `useEffect` (around line 237):
+  - On each interval tick, compute `delta = Math.floor((Date.now() - lastTickTimeRef) / 1000)`
+  - Process multiple seconds at once if delta > 1 (background catch-up)
+  - For each elapsed second: decrement `timeRemaining`, increment `totalElapsed`, accumulate XP
+  - Handle segment transitions if `timeRemaining` drops to/below 0 during catch-up
+  - Update `lastTickTimeRef` after processing
+- Set `lastTickTimeRef = Date.now()` when starting/resuming the timer
+- Add a `visibilitychange` listener to immediately process elapsed time when the tab becomes visible again (for instant catch-up without waiting for the next interval tick)
 
-**2. Remove the sign out card section** (lines 136-146)
-Delete the entire card-workout div containing the sign out button.
-
----
-
-## Visual Result
-
-**Before:**
-```
-[←] SETTINGS
-─────────────────
-[Sound Alerts Card]
-─────────────────
-[    Sign Out    ]  ← Large button in card
-─────────────────
-v1.0
-```
-
-**After:**
-```
-[←] SETTINGS           [⎋]  ← Compact icon button
-─────────────────────────
-[Sound Alerts Card]
-─────────────────────────
-v1.0
-```
-
----
-
-## Files Modified
-
-| File | Changes |
-|------|---------|
-| `src/pages/Settings.tsx` | Add LogOut button to header, remove sign out card |
-
+No database changes or new dependencies needed.
