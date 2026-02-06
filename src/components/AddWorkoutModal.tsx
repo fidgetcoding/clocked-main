@@ -52,7 +52,8 @@ export function AddWorkoutModal({ isOpen, onClose }: AddWorkoutModalProps) {
   };
 
   const handleSave = () => {
-    const xpEarned = Math.floor((duration / 60) * 10) * 60; // 10 XP per minute
+    // Use proper XP rate: ~0.25 XP per second for general active work = 15 XP per minute
+    const xpEarned = Math.floor(duration * 15);
     
     addHistoryEntry.mutate({
       workout_id: null,
