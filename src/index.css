@@ -133,7 +133,13 @@
   }
 
   .card-action {
-    @apply bg-surface-1 rounded-2xl p-6 border border-border/30 relative overflow-hidden;
+    @apply bg-surface-1 rounded-2xl p-6 border border-border/30 relative overflow-hidden transition-all duration-200;
+  }
+
+  .card-action:hover {
+    @apply border-primary/30;
+    transform: scale(1.02);
+    box-shadow: 0 0 20px hsl(var(--electric-volt) / 0.1);
   }
 
   /* Bottom Navigation */
