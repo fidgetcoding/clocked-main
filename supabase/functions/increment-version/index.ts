@@ -2,7 +2,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
 }
 
 Deno.serve(async (req) => {
@@ -11,13 +11,39 @@ Deno.serve(async (req) => {
   }
 
   try {
+    // Extract and verify JWT
+    const authHeader = req.headers.get('Authorization')
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return new Response(
+        JSON.stringify({ success: false, error: 'Missing authorization header' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     
-    const supabase = createClient(supabaseUrl, supabaseServiceKey)
+    // Create admin client for DB operations
+    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false,
+      },
+    })
+    
+    // Verify the JWT and get user
+    const jwt = authHeader.replace('Bearer ', '')
+    const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(jwt)
+    
+    if (authError || !user) {
+      return new Response(
+        JSON.stringify({ success: false, error: 'Invalid or expired token' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
 
     // Get current version
-    const { data: configData, error: fetchError } = await supabase
+    const { data: configData, error: fetchError } = await supabaseAdmin
       .from('app_config')
       .select('value')
       .eq('key', 'version')
@@ -32,7 +58,7 @@ Deno.serve(async (req) => {
     const newVersion = (currentVersion + 0.01).toFixed(2)
 
     // Update version
-    const { error: updateError } = await supabase
+    const { error: updateError } = await supabaseAdmin
       .from('app_config')
       .update({ value: newVersion, updated_at: new Date().toISOString() })
       .eq('key', 'version')
