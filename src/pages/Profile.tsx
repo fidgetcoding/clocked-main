@@ -57,7 +57,7 @@ const Profile = () => {
   const profileAvatar = isOwnProfile ? profile?.avatar_url : viewingUser?.avatar_url;
   const workoutsCompleted = isOwnProfile ? (profile?.workouts_completed || 0) : (viewingUser?.workouts_completed || 0);
   const currentStreak = isOwnProfile ? (profile?.current_streak || 0) : (viewingUser?.current_streak || 0);
-  const longestStreak = isOwnProfile ? (profile?.longest_streak || 0) : (viewingUser?.longest_streak || 0);
+  const longestStreak = isOwnProfile ? (profile?.longest_streak || 0) : currentStreak; // Public profiles don't expose longest_streak
   const totalTrainingSeconds = isOwnProfile ? (profile?.total_training_seconds || 0) : (viewingUser?.total_training_seconds || 0);
   const bio = isOwnProfile ? profile?.bio : viewingUser?.bio;
 
