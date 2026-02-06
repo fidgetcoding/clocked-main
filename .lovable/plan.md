@@ -1,102 +1,87 @@
 
-# XP System Verification & Fix Plan
+# Workout Session Confirmation Dialogs & XP Protection
 
-## Summary
-After thoroughly analyzing the uploaded PDF documentation against the current implementation, I've found **significant discrepancies** that need to be corrected for the XP system to work as documented.
+## Overview
+Add confirmation prompts before discarding workout progress, and ensure XP is always awarded even if the user quits without manually logging the workout.
 
----
+## Changes
 
-## Critical Issues Found
+### 1. Add Confirmation Dialog Component
+Use the existing Alert Dialog from Radix UI to create confirmation prompts for destructive actions.
 
-### Issue 1: Incomplete Activity XP Rates
-The current system only handles 6 activity types. The document specifies **17+ different activities** with unique XP rates.
+### 2. Modify Home Button Behavior
+- Instead of immediately navigating home, show a confirmation dialog
+- Dialog asks: "Leave workout? Your progress will be saved and XP will be awarded."
+- If confirmed: Award XP, then navigate home
+- If cancelled: Stay in workout
 
-**Missing activities include:**
-- Pushups (0.22/sec)
-- Curlups/Situps (0.18/sec)
-- Burpees (0.22/sec)
-- Squats (0.22/sec)
-- Pull-ups (0.30/sec)
-- Planks (0.15/sec)
-- Walking (0.12/sec)
-- Cycling (0.20/sec)
-- Jogging (0.18/sec)
-- Sparring (2.5-5.0/sec based on prestige)
-- Stretching (5 XP flat per stretch)
+### 3. Modify Restart Button Behavior  
+- Instead of immediately resetting, show a confirmation dialog
+- Dialog asks: "Restart workout? This will reset your progress."
+- If confirmed: Award current XP (since they did work), then reset timer to beginning
+- If cancelled: Stay in current position
 
-### Issue 2: Streak Multipliers Incomplete
-The document specifies precise multipliers for streaks up to 365+ days, but the code uses a formula-based approach after 100 days instead of the documented values.
-
-**Document values (100+ days):**
-- 100-149 days: 2.0x
-- 150-199 days: 2.25x
-- 200-299 days: 2.5x
-- 300-364 days: 2.75x
-- 365+ days: 3.0x (cap)
-
-### Issue 3: Streak Milestones Wrong
-Multiple milestone bonuses have incorrect values or are missing entirely:
-- Day 20: Code says 5,000, doc says 4,000
-- Days 25, 50, 75, 150, 200, 250: Completely missing
-- Day 100: Code says 100,000, doc says 35,000
-
-### Issue 4: Combo XP Formula Not Implemented
-The document describes a detailed combo calculation formula using:
-- Individual punch values (Jab=5, Cross=6.5, Hook=8, etc.)
-- Defense values (Slip=7.25, Duck=8.5, Roll=9.5, etc.)
-- Length multipliers (4 moves=1.1x, 5 moves=1.2x, 6+=1.35x)
-- Defense bonus multipliers (1 defense=1.15x, 2=1.3x, 3+=1.45x)
-
-Currently, combos simply earn 0.33 XP/sec + 0.5 per combo landed.
+### 4. XP Protection on Exit
+When user confirms leaving or restarting:
+- Award any accumulated XP to their profile
+- Log the partial workout to history (optional - can be a simpler "quit" entry)
 
 ---
 
-## Implementation Plan
+## Technical Implementation
 
-### Phase 1: Update Activity XP Rates
-Expand the `ACTIVITY_XP_RATES` object in `src/lib/xpSystem.ts` to include all documented activities with their precise rates.
+### File: `src/pages/WorkoutSession.tsx`
 
-### Phase 2: Fix Streak Multipliers
-Replace the formula-based calculation with the exact documented tier values for all streak ranges up to 365+.
+**New State Variables:**
+- `showExitConfirm` - boolean to control exit confirmation dialog
+- `showRestartConfirm` - boolean to control restart confirmation dialog
 
-### Phase 3: Correct Streak Milestones
-Update the `STREAK_MILESTONES` object to match the documented values exactly.
+**New Handler Functions:**
 
-### Phase 4: Implement Combo XP Formula
-Add a new function to calculate combo XP based on:
-1. Sum of move values in the combo
-2. Apply length multiplier
-3. Apply defense move multiplier
-4. Factor in duration
+```text
+handleConfirmExit()
+- Award accumulated XP if > 0 and not already awarded
+- Navigate to home
 
-### Phase 5: Update WorkoutSession
-Modify the segment activity detection to properly map segment names to the expanded activity types.
+handleConfirmRestart()  
+- Award accumulated XP if > 0 and not already awarded
+- Reset workout state (existing handleReset logic)
+- Reset XP tracking for new attempt
+```
+
+**UI Changes:**
+- Home button: Opens exit confirmation dialog instead of navigating directly
+- Restart button: Opens restart confirmation dialog instead of resetting directly
+- Add two AlertDialog components for the confirmation prompts
+
+### Dialog Content
+
+**Exit Dialog:**
+- Title: "Leave Workout?"
+- Description: Shows XP earned so far that will be saved
+- Actions: "Cancel" (stay) / "Leave & Save XP" (confirm)
+
+**Restart Dialog:**
+- Title: "Restart Workout?"
+- Description: Notes that current progress will be saved before restarting
+- Actions: "Cancel" (stay) / "Restart" (confirm)
 
 ---
 
-## Technical Details
+## User Flow After Changes
 
-### File Changes Required
+1. **User clicks Home during workout:**
+   - Confirmation dialog appears
+   - Cancel → returns to workout
+   - Confirm → XP awarded, navigates home
 
-**1. src/lib/xpSystem.ts**
-- Expand `ActivityType` to include all 17+ activity types
-- Update `ACTIVITY_XP_RATES` with all documented rates
-- Add punch/defense value constants
-- Add combo calculation function with length/defense bonuses
-- Fix `getStreakMultiplier()` to use documented tier values
-- Fix `STREAK_MILESTONES` to match documented values
+2. **User clicks Restart during workout:**
+   - Confirmation dialog appears  
+   - Cancel → returns to workout
+   - Confirm → XP awarded, workout resets to beginning
 
-**2. src/pages/WorkoutSession.tsx**
-- Update `getActivityTypeFromSegment()` to detect all activity types
-- Optionally implement combo XP formula for combo segments
+3. **User completes workout normally:**
+   - No change - continues to work as before with journal screen
 
----
-
-## Verification Testing
-After implementation, testing should verify:
-1. Shadow boxing earns ~0.33 XP/sec
-2. Rest earns ~0.01 XP/sec
-3. Pushups earn ~0.22 XP/sec
-4. 100+ day streak applies 2.0x (not formula)
-5. Day 20 milestone gives 4,000 XP (not 5,000)
-6. Day 100 milestone gives 35,000 XP (not 100,000)
+4. **User clicks Complete Early:**
+   - No change - works as before, awards XP and shows journal
