@@ -10,6 +10,7 @@ import { useUserStore } from '@/stores/userStore';
 import { useProfile } from '@/hooks/useProfile';
 import { useSpeechSynthesis } from '@/hooks/useSpeechSynthesis';
 import { cn } from '@/lib/utils';
+import { ACTIVITY_XP_RATES, ActivityType, getStreakMultiplier } from '@/lib/xpSystem';
 
 interface FlatSegment {
   id: string;
@@ -173,16 +174,32 @@ const WorkoutSession = () => {
   const [xpBubble, setXpBubble] = useState<{ amount: number; id: number } | null>(null);
   const [hasStartedOnce, setHasStartedOnce] = useState(false);
   const [hasAwardedXP, setHasAwardedXP] = useState(false);
+  const [accumulatedXP, setAccumulatedXP] = useState(0); // Track XP earned during session
 
   const currentSegment = flatSegments[currentSegmentIndex];
   const nextSegment = flatSegments[currentSegmentIndex + 1];
   const totalSegments = flatSegments.length;
   const progressPercent = totalSegments > 0 ? (currentSegmentIndex / totalSegments) * 100 : 0;
   
-  // Calculate XP earned so far (10 XP per minute of active work)
-  const currentXP = Math.floor((totalElapsed / 60) * 10);
+  // Get streak multiplier from profile
+  const streakMultiplier = getStreakMultiplier(profile?.current_streak || 0);
+  
+  // Map segment type to activity type for XP calculation
+  const getActivityTypeFromSegment = (segment: FlatSegment | undefined): ActivityType => {
+    if (!segment) return 'active';
+    if (segment.type === 'rest') return 'rest';
+    if (segment.segmentType === 'shadowboxing' || segment.name.toLowerCase().includes('shadow')) return 'shadowboxing';
+    if (segment.segmentType === 'combo') return 'combo';
+    if (segment.name.toLowerCase().includes('jump rope')) return 'jump_rope';
+    if (segment.name.toLowerCase().includes('running') || segment.name.toLowerCase().includes('treadmill')) return 'running';
+    return 'active';
+  };
+  
+  // Use accumulated XP for display
+  const currentXP = accumulatedXP;
 
   // Use a single interval for both timers to ensure they stay in sync
+  // Also accumulate XP per second based on activity type
   useEffect(() => {
     let interval: NodeJS.Timeout | null = null;
     
@@ -192,13 +209,21 @@ const WorkoutSession = () => {
         setTotalElapsed(prev => prev + 1);
         // Decrement countdown
         setTimeRemaining(prev => prev - 1);
+        
+        // Accumulate XP based on current activity (not during preparation)
+        if (!isPreparation && currentSegment) {
+          const activityType = getActivityTypeFromSegment(currentSegment);
+          const xpPerSecond = ACTIVITY_XP_RATES[activityType];
+          const xpGained = xpPerSecond * streakMultiplier;
+          setAccumulatedXP(prev => prev + xpGained);
+        }
       }, 1000);
     }
     
     return () => {
       if (interval) clearInterval(interval);
     };
-  }, [isRunning, isPaused]);
+  }, [isRunning, isPaused, isPreparation, currentSegment, streakMultiplier]);
 
   // Voice countdown at 3 seconds - respects voiceCountdown preference
   useEffect(() => {
@@ -290,8 +315,8 @@ const WorkoutSession = () => {
         setIsComplete(true);
         setIsRunning(false);
         
-        // Defer XP awarding to avoid state cascade
-        const xpEarned = Math.floor((totalElapsed / 60) * 10);
+        // Defer XP awarding to avoid state cascade - use accumulated XP
+        const xpEarned = Math.round(accumulatedXP);
         queueMicrotask(() => {
           try {
             // Award XP to both local store (for UI) and database (for persistence)
@@ -346,6 +371,7 @@ const WorkoutSession = () => {
     setCurrentSegmentIndex(0);
     setTimeRemaining(10);
     setTotalElapsed(0);
+    setAccumulatedXP(0);
     setIsRunning(false);
     setIsPaused(true);
     setIsPreparation(true);
@@ -387,11 +413,11 @@ const WorkoutSession = () => {
     setIsComplete(true);
     setIsRunning(false);
     
-    // Award XP immediately
+    // Award XP immediately - use accumulated XP
     if (!xpAwardedRef.current) {
       xpAwardedRef.current = true;
       setHasAwardedXP(true);
-      const xpEarned = Math.floor((totalElapsed / 60) * 10);
+      const xpEarned = Math.round(accumulatedXP);
       try {
         // Award XP to both local store (for UI) and database (for persistence)
         addLocalXP(xpEarned, true);
@@ -438,7 +464,7 @@ const WorkoutSession = () => {
   }
 
   const handleLog = () => {
-    const xpEarned = Math.floor((totalElapsed / 60) * 10);
+    const xpEarned = Math.round(accumulatedXP);
     addHistoryEntry.mutate({
       workout_id: workout?.id || null,
       workout_name: workout?.name || 'Workout',
@@ -457,7 +483,7 @@ const WorkoutSession = () => {
 
   // Workout complete screen
   if (isComplete) {
-    const xpEarned = Math.floor((totalElapsed / 60) * 10);
+    const xpEarned = Math.round(accumulatedXP);
     
     return (
       <AppLayout hideNav>
