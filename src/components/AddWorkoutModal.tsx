@@ -6,6 +6,7 @@ import { cn } from '@/lib/utils';
 import { RoundFeedback } from '@/types';
 import { useWorkoutHistory } from '@/hooks/useWorkoutHistory';
 import { useUserStore } from '@/stores/userStore';
+import { useProfile } from '@/hooks/useProfile';
 
 interface AddWorkoutModalProps {
   isOpen: boolean;
@@ -23,7 +24,8 @@ export function AddWorkoutModal({ isOpen, onClose }: AddWorkoutModalProps) {
   const [roundFeedback, setRoundFeedback] = useState<RoundFeedback[]>([]);
 
   const { addHistoryEntry } = useWorkoutHistory();
-  const addXP = useUserStore((state) => state.addXP);
+  const addLocalXP = useUserStore((state) => state.addXP);
+  const { addXP: addProfileXP } = useProfile();
 
   const handleRoundRating = (roundNum: number, rating: number) => {
     setRoundFeedback((prev) => {
@@ -64,7 +66,9 @@ export function AddWorkoutModal({ isOpen, onClose }: AddWorkoutModalProps) {
       is_manual_entry: true,
     }, {
       onSuccess: () => {
-        addXP(xpEarned);
+        // Award XP to both local store (for UI) and database (for persistence)
+        addLocalXP(xpEarned);
+        addProfileXP.mutate(xpEarned);
         
         // Reset and close
         setWorkoutName('');

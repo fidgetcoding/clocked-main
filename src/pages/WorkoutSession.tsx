@@ -7,6 +7,7 @@ import { VerticalXPBar } from '@/components/ui/VerticalXPBar';
 import { useWorkouts, DbWorkout } from '@/hooks/useWorkouts';
 import { useWorkoutHistory } from '@/hooks/useWorkoutHistory';
 import { useUserStore } from '@/stores/userStore';
+import { useProfile } from '@/hooks/useProfile';
 import { useSpeechSynthesis } from '@/hooks/useSpeechSynthesis';
 import { cn } from '@/lib/utils';
 
@@ -46,13 +47,17 @@ function dbWorkoutToLocal(dbWorkout: DbWorkout) {
     cooldown: phases?.filter((p: any) => p.section === 'cooldown').map(({ section, ...rest }) => rest) || [],
   };
   
-  // Extract combos from phases
-  const combos: string[][] = [];
-  phases?.forEach((phase: any) => {
-    if (phase.combos) {
-      combos.push(...phase.combos);
-    }
-  });
+  // Use top-level combos from database (the new column), fallback to extracting from phases for legacy data
+  let combos: string[][] = dbWorkout.combos || [];
+  
+  // Fallback: try to extract combos from phases if top-level is empty (legacy support)
+  if (combos.length === 0) {
+    phases?.forEach((phase: any) => {
+      if (phase.combos) {
+        combos.push(...phase.combos);
+      }
+    });
+  }
   
   return {
     id: dbWorkout.id,
@@ -70,8 +75,9 @@ const WorkoutSession = () => {
   const navigate = useNavigate();
   const { workouts, updateWorkout } = useWorkouts();
   const { addHistoryEntry } = useWorkoutHistory();
+  const { profile, addXP: addProfileXP } = useProfile();
   const user = useUserStore((state) => state.user);
-  const addXP = useUserStore((state) => state.addXP);
+  const addLocalXP = useUserStore((state) => state.addXP);
   const { initialize: initSpeech, speak, cancel: cancelSpeech } = useSpeechSynthesis();
 
   // Get user preferences for voice settings
@@ -288,7 +294,9 @@ const WorkoutSession = () => {
         const xpEarned = Math.floor((totalElapsed / 60) * 10);
         queueMicrotask(() => {
           try {
-            useUserStore.getState().addXP(xpEarned, true);
+            // Award XP to both local store (for UI) and database (for persistence)
+            addLocalXP(xpEarned, true);
+            addProfileXP.mutate(xpEarned);
           } catch (error) {
             console.error('Failed to award XP:', error);
           }
@@ -323,7 +331,8 @@ const WorkoutSession = () => {
     setIsPaused(false);
     // Add 10 XP only on first start, not on resume
     if (!hasStartedOnce) {
-      addXP(10, true);
+      addLocalXP(10, true);
+      addProfileXP.mutate(10);
       showXpBubble(10);
       setHasStartedOnce(true);
     }
@@ -384,7 +393,9 @@ const WorkoutSession = () => {
       setHasAwardedXP(true);
       const xpEarned = Math.floor((totalElapsed / 60) * 10);
       try {
-        useUserStore.getState().addXP(xpEarned, true);
+        // Award XP to both local store (for UI) and database (for persistence)
+        addLocalXP(xpEarned, true);
+        addProfileXP.mutate(xpEarned);
       } catch (error) {
         console.error('Failed to award XP:', error);
       }
