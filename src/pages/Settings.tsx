@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ArrowLeft, LogOut, Volume2, Bell, Timer, Vibrate } from 'lucide-react';
+import { ArrowLeft, LogOut, Volume2, Timer } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Switch } from '@/components/ui/switch';
@@ -44,7 +44,7 @@ const Settings = () => {
     }
   };
 
-  const voiceAlerts = [
+  const soundAlerts = [
     { 
       key: 'voiceAnnouncements', 
       label: 'Voice Announcements', 
@@ -63,59 +63,11 @@ const Settings = () => {
       description: 'Call out punch combinations during combos',
       icon: Volume2,
     },
-  ];
-
-  const soundAlerts = [
-    { 
-      key: 'soundEnabled', 
-      label: 'Sound Effects', 
-      description: 'Enable all sound effects (bells, beeps, XP sounds)',
-      icon: Bell,
-    },
-    { 
-      key: 'roundStartBell', 
-      label: 'Round Start Bell', 
-      description: 'Bell sound at start of each round',
-      icon: Bell,
-    },
-    { 
-      key: 'roundEndBell', 
-      label: 'Round End Bell', 
-      description: 'Bell sound at end of each round',
-      icon: Bell,
-    },
     { 
       key: 'tenSecondWarning', 
       label: '10-Second Warning', 
       description: 'Warning beep at 10 seconds remaining',
       icon: Timer,
-    },
-    { 
-      key: 'segmentTransitionBeep', 
-      label: 'Segment Transition Beep', 
-      description: 'Beep when transitioning between segments',
-      icon: Bell,
-    },
-  ];
-
-  const hapticAlerts = [
-    { 
-      key: 'hapticEnabled', 
-      label: 'Haptic Feedback', 
-      description: 'Vibration for important events',
-      icon: Vibrate,
-    },
-    { 
-      key: 'hapticRoundChange', 
-      label: 'Round Change Vibration', 
-      description: 'Vibrate on round start/end',
-      icon: Vibrate,
-    },
-    { 
-      key: 'hapticWarning', 
-      label: 'Warning Vibration', 
-      description: 'Vibrate for 10-second warning',
-      icon: Vibrate,
     },
   ];
 
@@ -164,46 +116,12 @@ const Settings = () => {
         </header>
 
         <div className="px-4 space-y-6 pb-24">
-          {/* Voice Alerts */}
-          <div className="card-workout">
-            <h3 className="text-lg font-bold text-foreground mb-2">Voice Alerts</h3>
-            <p className="text-xs text-muted-foreground mb-4">Control voice announcements during workouts</p>
-            <div className="divide-y divide-surface-3">
-              {voiceAlerts.map((pref) => (
-                <PreferenceToggle
-                  key={pref.key}
-                  prefKey={pref.key}
-                  label={pref.label}
-                  description={pref.description}
-                  icon={pref.icon}
-                />
-              ))}
-            </div>
-          </div>
-
           {/* Sound Alerts */}
           <div className="card-workout">
             <h3 className="text-lg font-bold text-foreground mb-2">Sound Alerts</h3>
-            <p className="text-xs text-muted-foreground mb-4">Configure audio cues for workout events</p>
+            <p className="text-xs text-muted-foreground mb-4">Voice and audio cues during workouts</p>
             <div className="divide-y divide-surface-3">
               {soundAlerts.map((pref) => (
-                <PreferenceToggle
-                  key={pref.key}
-                  prefKey={pref.key}
-                  label={pref.label}
-                  description={pref.description}
-                  icon={pref.icon}
-                />
-              ))}
-            </div>
-          </div>
-
-          {/* Haptic Alerts */}
-          <div className="card-workout">
-            <h3 className="text-lg font-bold text-foreground mb-2">Haptic Feedback</h3>
-            <p className="text-xs text-muted-foreground mb-4">Vibration alerts (device must support haptics)</p>
-            <div className="divide-y divide-surface-3">
-              {hapticAlerts.map((pref) => (
                 <PreferenceToggle
                   key={pref.key}
                   prefKey={pref.key}
