@@ -334,12 +334,12 @@ const Profile = () => {
 
       {/* Followers/Following Modal */}
       {listModal && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center">
+        <div className="fixed inset-0 z-[60] flex items-start justify-center pt-16">
           <div 
             className="absolute inset-0 bg-black/80 backdrop-blur-sm"
             onClick={() => setListModal(null)}
           />
-          <div className="relative w-full max-w-md bg-surface-1 rounded-t-2xl border-t border-surface-3 max-h-[80vh] flex flex-col animate-in slide-in-from-bottom duration-300">
+          <div className="relative w-full max-w-md mx-4 bg-surface-1 rounded-2xl border border-surface-3 max-h-[70vh] flex flex-col animate-in fade-in zoom-in-95 duration-200">
             {/* Modal Header */}
             <div className="flex items-center justify-between p-4 border-b border-surface-3">
               <h2 className="text-lg font-bold text-foreground capitalize">
