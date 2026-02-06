@@ -21,7 +21,6 @@ export interface Profile {
   preferences: {
     voiceType: string;
     soundEnabled: boolean;
-    hapticEnabled: boolean;
     voiceAnnouncements: boolean;
   };
   last_active_at: string | null;
@@ -81,10 +80,9 @@ export function useProfile() {
           ...data,
           equipment: (data.equipment || {}) as Record<string, boolean>,
           goals: data.goals || [],
-          preferences: (data.preferences || {
+        preferences: (data.preferences || {
             voiceType: 'system',
             soundEnabled: true,
-            hapticEnabled: true,
             voiceAnnouncements: true,
           }) as Profile['preferences'],
           prestige,

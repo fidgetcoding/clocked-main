@@ -18,7 +18,6 @@ interface UserStore {
 const defaultPreferences = {
   voiceType: 'system' as const,
   soundEnabled: true,
-  hapticEnabled: true,
   voiceAnnouncements: true,
 };
 
