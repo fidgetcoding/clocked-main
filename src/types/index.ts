@@ -61,6 +61,12 @@ export interface UserProfile {
 // Workout Types
 export type SegmentType = 'work' | 'rest' | 'shadowboxing' | 'combo';
 
+// Activity type for AI-generated segments
+export type ActivityType = 'combos' | 'shadowbox' | 'run' | 'pushups' | 'custom';
+
+// Phase type for AI-generated phases
+export type PhaseType = 'continuous' | 'circuit' | 'rest';
+
 export interface WorkoutSegment {
   id: string;
   name: string;
@@ -71,6 +77,9 @@ export interface WorkoutSegment {
   reps?: number;
   comboIndex?: number | 'cycle';
   combo?: string[];
+  // NEW: AI-generated workout support
+  exercise?: string;           // Custom exercise name (e.g., "Burpees")
+  activityType?: ActivityType; // Activity classification
 }
 
 export interface WorkoutPhase {
@@ -78,6 +87,8 @@ export interface WorkoutPhase {
   name: string;
   repeats: number;
   segments: WorkoutSegment[];
+  // NEW: Phase type hint for display/logic
+  phaseType?: PhaseType;
 }
 
 export interface WorkoutSection {
@@ -99,6 +110,9 @@ export interface Workout {
   timesCompleted: number;
   sections: WorkoutSection;
   combos?: string[][];
+  // NEW: AI-generated workout support
+  supersetRepeats?: number;  // Repeat entire workout X times (default 1)
+  tags?: string[];           // Auto-generated tags (boxing, hiit, strength, etc.)
 }
 
 // Workout Log Types

@@ -8,6 +8,7 @@ import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
 import { useUserStore } from '@/stores/userStore';
 import { Workout, WorkoutPhase } from '@/types';
+import { parseWorkoutInput, parsedResultToWorkout, checkPromptQuality } from '@/lib/aiWorkoutParser';
 
 interface AIBuilderModalProps {
   onClose: () => void;
@@ -166,7 +167,33 @@ export function parseWorkoutPrompt(prompt: string, userLevel: string = 'beginner
 }
 
 // Generate a full workout object from parsed prompt
+// Uses new framework-based parser with fallback to legacy logic
 export function generateWorkoutFromPrompt(prompt: string, userLevel: string = 'beginner'): Workout {
+  // Try the new framework-based parser first
+  const parsedResult = parseWorkoutInput(prompt, userLevel);
+  
+  // Check if the new parser extracted meaningful data
+  const hasSpecificData = parsedResult.parsedRounds || parsedResult.parsedDurations || parsedResult.parsedCombos;
+  
+  if (hasSpecificData) {
+    // Use the new parser's output
+    const workout = parsedResultToWorkout(parsedResult);
+    
+    // If no combos were parsed, generate them using legacy logic
+    if (!parsedResult.parsedCombos || parsedResult.combos.length === 0) {
+      const legacyParsed = parseWorkoutPrompt(prompt, userLevel);
+      workout.combos = legacyParsed.combos;
+    }
+    
+    // Add tags if detected
+    if (parsedResult.tags.length > 0) {
+      workout.tags = parsedResult.tags;
+    }
+    
+    return workout;
+  }
+  
+  // Fallback to legacy parsing for simple/vague prompts
   const parsed = parseWorkoutPrompt(prompt, userLevel);
   const generateId = () => crypto.randomUUID();
   
@@ -244,7 +271,18 @@ export const AIBuilderModal = ({ onClose, onGenerate, baseWorkout, onWorkoutGene
   const [isGenerating, setIsGenerating] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const [interimTranscript, setInterimTranscript] = useState('');
+  const [promptHints, setPromptHints] = useState<string[]>([]);
   const recognitionRef = useRef<any>(null);
+
+  // Check prompt quality as user types
+  useEffect(() => {
+    if (prompt.trim().length > 5) {
+      const quality = checkPromptQuality(prompt);
+      setPromptHints(quality.suggestions);
+    } else {
+      setPromptHints([]);
+    }
+  }, [prompt]);
 
   // Initialize speech recognition
   useEffect(() => {
@@ -454,6 +492,17 @@ export const AIBuilderModal = ({ onClose, onGenerate, baseWorkout, onWorkoutGene
                 <span className="w-2 h-2 rounded-full bg-volt" />
                 Listening... tap mic to stop
               </p>
+            )}
+            
+            {/* Prompt Quality Hints */}
+            {promptHints.length > 0 && prompt.trim().length > 10 && (
+              <div className="space-y-1">
+                {promptHints.slice(0, 2).map((hint, i) => (
+                  <p key={i} className="text-xs text-muted-foreground/70">
+                    💡 {hint}
+                  </p>
+                ))}
+              </div>
             )}
           </div>
 
