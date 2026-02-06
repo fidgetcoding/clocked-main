@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { Prestige, experienceLevelToPrestige, getLevelFromXP } from '@/lib/xpSystem';
+import { Prestige, getLevelFromXP } from '@/lib/xpSystem';
 
 export interface PublicProfile {
   id: string;
@@ -11,7 +11,6 @@ export interface PublicProfile {
   avatar_url: string | null;
   total_xp: number;
   current_streak: number;
-  longest_streak: number;
   workouts_completed: number;
   prestige: Prestige;
   current_level: number;
@@ -21,6 +20,7 @@ export interface PublicProfile {
 
 /**
  * Fetches a public profile by user_id for viewing other users' profiles
+ * Only selects public-safe columns to protect sensitive user data
  */
 export function usePublicProfile(userId: string | undefined) {
   return useQuery({
@@ -28,9 +28,10 @@ export function usePublicProfile(userId: string | undefined) {
     queryFn: async (): Promise<PublicProfile | null> => {
       if (!userId) return null;
 
+      // Only select public-safe columns (no preferences, equipment, goals, etc.)
       const { data, error } = await supabase
         .from('profiles')
-        .select('id, user_id, name, handle, bio, avatar_url, total_xp, current_streak, longest_streak, workouts_completed, prestige, current_level, total_training_seconds, experience_level, created_at')
+        .select('id, user_id, name, handle, bio, avatar_url, total_xp, current_streak, workouts_completed, prestige, current_level, total_training_seconds, created_at')
         .eq('user_id', userId)
         .maybeSingle();
 
@@ -41,8 +42,8 @@ export function usePublicProfile(userId: string | undefined) {
 
       if (!data) return null;
 
-      // Calculate prestige and level from data
-      const prestige = (data.prestige || experienceLevelToPrestige(data.experience_level || 'beginner')) as Prestige;
+      // Calculate level from XP
+      const prestige = (data.prestige || 'rookie') as Prestige;
       const totalXP = data.total_xp || 0;
       const calculatedLevel = getLevelFromXP(prestige, totalXP);
 
@@ -55,7 +56,6 @@ export function usePublicProfile(userId: string | undefined) {
         avatar_url: data.avatar_url,
         total_xp: totalXP,
         current_streak: data.current_streak || 0,
-        longest_streak: data.longest_streak || 0,
         workouts_completed: data.workouts_completed || 0,
         prestige,
         current_level: calculatedLevel,
