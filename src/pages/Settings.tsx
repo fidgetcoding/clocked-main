@@ -54,7 +54,7 @@ const Settings = () => {
     { 
       key: 'voiceCountdown', 
       label: 'Countdown Voice', 
-      description: '10-second countdown before segment ends',
+      description: '3-second countdown before segment ends',
       icon: Timer,
     },
     { 
@@ -69,7 +69,7 @@ const Settings = () => {
     { 
       key: 'soundEnabled', 
       label: 'Sound Effects', 
-      description: 'Boxing bell and timer sounds',
+      description: 'Enable all sound effects (bells, beeps, XP sounds)',
       icon: Bell,
     },
     { 
