@@ -1,100 +1,46 @@
 
-# Consolidate Sound Settings - Remove Unused Toggles
+# Remove Unused Haptic Feedback Code
 
 ## Summary
-Merge Voice Alerts into a single "Sound Alerts" section, keep only working/wanted features, and remove all haptic toggles.
+Clean up all haptic-related code since it's not being used anywhere in the app.
 
 ---
 
-## Final Structure
+## Files to Modify
 
-**Sound Alerts** (single card)
-| Toggle | Description | Status |
-|--------|-------------|--------|
-| Voice Announcements | Announce segment changes and instructions | Keep |
-| Countdown Voice | 3-second countdown before segment ends | Keep |
-| Combo Callouts | Call out punch combinations during combos | Keep |
-| 10-Second Warning | Warning beep at 10 seconds remaining | Keep |
+### 1. Delete File
+**`src/hooks/useHaptics.ts`** - Remove entirely (unused hook)
 
-**Removed:**
-- ❌ Sound Effects master toggle (not needed, individual toggles control)
-- ❌ Round Start Bell (not implemented/wanted)
-- ❌ Round End Bell (not implemented/wanted)
-- ❌ Segment Transition Beep (not implemented/wanted)
-- ❌ Entire Haptic Feedback section (not implemented/wanted)
+### 2. Clean Up Type Definitions
+**`src/types/index.ts`**
+Remove from `preferences`:
+- `hapticEnabled: boolean`
+- `hapticRoundChange?: boolean`
+- `hapticWarning?: boolean`
 
----
+### 3. Clean Up Default Values
+**`src/stores/userStore.ts`**
+Remove from default preferences:
+- `hapticEnabled: true`
 
-## Changes
-
-### File: `src/pages/Settings.tsx`
-
-1. **Combine `voiceAlerts` and `soundAlerts` arrays** into a single `soundAlerts` array with only the 4 desired toggles
-
-2. **Remove the Voice Alerts card** (lines 167-182)
-
-3. **Update the Sound Alerts card** to show the merged toggles with updated header description
-
-4. **Remove the Haptic Feedback card** (lines 201-216)
-
-5. **Remove unused imports** (Vibrate icon no longer needed)
+**`src/hooks/useProfile.ts`**
+Remove from default preferences:
+- `hapticEnabled: true`
 
 ---
 
-## Code Changes Preview
-
-```typescript
-// New combined soundAlerts array:
-const soundAlerts = [
-  { 
-    key: 'voiceAnnouncements', 
-    label: 'Voice Announcements', 
-    description: 'Announce segment changes and instructions',
-    icon: Volume2,
-  },
-  { 
-    key: 'voiceCountdown', 
-    label: 'Countdown Voice', 
-    description: '3-second countdown before segment ends',
-    icon: Timer,
-  },
-  { 
-    key: 'voiceComboCallouts', 
-    label: 'Combo Callouts', 
-    description: 'Call out punch combinations during combos',
-    icon: Volume2,
-  },
-  { 
-    key: 'tenSecondWarning', 
-    label: '10-Second Warning', 
-    description: 'Warning beep at 10 seconds remaining',
-    icon: Timer,
-  },
-];
-```
-
----
-
-## Cleanup
-
-### File: `src/hooks/useSoundEffects.ts`
-- Keep `playWarningBeep` (used for 10-second warning)
-- Remove `playBellSound` and `playTransitionBeep` (no longer needed)
-
-### File: `src/hooks/useHaptics.ts`
-- Can be removed entirely or kept for future use (no harm keeping it)
-
-### File: `src/pages/WorkoutSession.tsx`
-- Remove calls to `playBellSound` and `playTransitionBeep`
-- Remove haptic feedback calls
-- Keep `playWarningBeep` for the 10-second warning
-
----
-
-## Files Modified
+## Summary Table
 
 | File | Action |
 |------|--------|
-| `src/pages/Settings.tsx` | Merge sections, remove haptics, remove unused toggles |
-| `src/hooks/useSoundEffects.ts` | Remove unused bell/transition functions |
-| `src/pages/WorkoutSession.tsx` | Remove unused sound/haptic calls |
+| `src/hooks/useHaptics.ts` | Delete file |
+| `src/types/index.ts` | Remove haptic preference fields |
+| `src/stores/userStore.ts` | Remove `hapticEnabled` default |
+| `src/hooks/useProfile.ts` | Remove `hapticEnabled` default |
+
+---
+
+## Result
+- No more dead haptic code
+- Cleaner codebase
+- Can always re-add haptics later when/if needed
