@@ -1,153 +1,100 @@
 
-# Fix Settings Sound/Haptic Toggles - Accuracy & Implementation
+# Consolidate Sound Settings - Remove Unused Toggles
 
-## Problem Summary
-The Settings page shows toggles for sound and haptic features that either:
-1. Have **incorrect descriptions** (e.g., "10-second countdown" when it's actually 3 seconds)
-2. **Don't do anything** (bells, beeps, haptics are not implemented)
+## Summary
+Merge Voice Alerts into a single "Sound Alerts" section, keep only working/wanted features, and remove all haptic toggles.
 
 ---
 
-## Part 1: Fix Inaccurate Labels
+## Final Structure
 
-### Voice Alerts Section
+**Sound Alerts** (single card)
+| Toggle | Description | Status |
+|--------|-------------|--------|
+| Voice Announcements | Announce segment changes and instructions | Keep |
+| Countdown Voice | 3-second countdown before segment ends | Keep |
+| Combo Callouts | Call out punch combinations during combos | Keep |
+| 10-Second Warning | Warning beep at 10 seconds remaining | Keep |
 
-**File: `src/pages/Settings.tsx`**
-
-| Current | Should Be |
-|---------|-----------|
-| `Countdown Voice` - "10-second countdown before segment ends" | `Countdown Voice` - "3-second countdown before segment ends" |
-
-### Sound Alerts Section
-
-| Current | Should Be |
-|---------|-----------|
-| `Sound Effects` - "Boxing bell and timer sounds" | `Sound Effects` - "XP and level-up sounds" |
-| `10-Second Warning` - "Warning beep at 10 seconds remaining" | Keep this but implement the beep |
+**Removed:**
+- ❌ Sound Effects master toggle (not needed, individual toggles control)
+- ❌ Round Start Bell (not implemented/wanted)
+- ❌ Round End Bell (not implemented/wanted)
+- ❌ Segment Transition Beep (not implemented/wanted)
+- ❌ Entire Haptic Feedback section (not implemented/wanted)
 
 ---
 
-## Part 2: Implement Missing Sound Effects
+## Changes
 
-**File: `src/hooks/useSoundEffects.ts`**
+### File: `src/pages/Settings.tsx`
 
-Add new sound functions:
+1. **Combine `voiceAlerts` and `soundAlerts` arrays** into a single `soundAlerts` array with only the 4 desired toggles
+
+2. **Remove the Voice Alerts card** (lines 167-182)
+
+3. **Update the Sound Alerts card** to show the merged toggles with updated header description
+
+4. **Remove the Haptic Feedback card** (lines 201-216)
+
+5. **Remove unused imports** (Vibrate icon no longer needed)
+
+---
+
+## Code Changes Preview
 
 ```typescript
-// Boxing bell (traditional ring bell)
-playBellSound: () => {
-  // Synthesize a bell-like tone with harmonics
-  // Frequency ~800Hz with overtones, quick attack, medium decay
-}
-
-// Warning beep (distinct alert)
-playWarningBeep: () => {
-  // Two short beeps at ~1000Hz
-}
-
-// Transition beep (subtle click/blip)
-playTransitionBeep: () => {
-  // Single short blip, softer than warning
-}
+// New combined soundAlerts array:
+const soundAlerts = [
+  { 
+    key: 'voiceAnnouncements', 
+    label: 'Voice Announcements', 
+    description: 'Announce segment changes and instructions',
+    icon: Volume2,
+  },
+  { 
+    key: 'voiceCountdown', 
+    label: 'Countdown Voice', 
+    description: '3-second countdown before segment ends',
+    icon: Timer,
+  },
+  { 
+    key: 'voiceComboCallouts', 
+    label: 'Combo Callouts', 
+    description: 'Call out punch combinations during combos',
+    icon: Volume2,
+  },
+  { 
+    key: 'tenSecondWarning', 
+    label: '10-Second Warning', 
+    description: 'Warning beep at 10 seconds remaining',
+    icon: Timer,
+  },
+];
 ```
 
-**File: `src/pages/WorkoutSession.tsx`**
+---
 
-Wire up the sounds to the correct events:
+## Cleanup
 
-1. **Round Start Bell**: Play when entering a "grind" phase work segment
-2. **Round End Bell**: Play when a work segment ends (before rest)
-3. **10-Second Warning Beep**: At `timeRemaining === 10` for active segments
-4. **Segment Transition Beep**: On segment index change
+### File: `src/hooks/useSoundEffects.ts`
+- Keep `playWarningBeep` (used for 10-second warning)
+- Remove `playBellSound` and `playTransitionBeep` (no longer needed)
 
-Each sound check respects the individual toggle AND the master `soundEnabled` toggle.
+### File: `src/hooks/useHaptics.ts`
+- Can be removed entirely or kept for future use (no harm keeping it)
+
+### File: `src/pages/WorkoutSession.tsx`
+- Remove calls to `playBellSound` and `playTransitionBeep`
+- Remove haptic feedback calls
+- Keep `playWarningBeep` for the 10-second warning
 
 ---
 
-## Part 3: Implement Haptic Feedback
+## Files Modified
 
-**File: `src/hooks/useHaptics.ts`** (NEW)
-
-```typescript
-export const useHaptics = () => {
-  const hapticEnabled = user?.preferences?.hapticEnabled ?? true;
-
-  const vibrateShort = () => {
-    if (hapticEnabled && navigator.vibrate) {
-      navigator.vibrate(50);
-    }
-  };
-
-  const vibrateMedium = () => {
-    if (hapticEnabled && navigator.vibrate) {
-      navigator.vibrate([50, 50, 100]);
-    }
-  };
-
-  const vibrateWarning = () => {
-    if (hapticEnabled && navigator.vibrate) {
-      navigator.vibrate([100, 50, 100]);
-    }
-  };
-
-  return { vibrateShort, vibrateMedium, vibrateWarning };
-};
-```
-
-**File: `src/pages/WorkoutSession.tsx`**
-
-Wire haptics:
-- `hapticRoundChange`: Vibrate on segment transition (rest ↔ work)
-- `hapticWarning`: Vibrate at 10 seconds remaining
-
----
-
-## Part 4: Clean Up or Remove Dead Toggles
-
-**Option A (Recommended)**: Implement all the features as described above.
-
-**Option B**: Remove toggles that aren't implemented and add them back when ready:
-- Remove `roundStartBell`, `roundEndBell`, `tenSecondWarning`, `segmentTransitionBeep`
-- Remove all haptic toggles
-- Keep only working voice toggles and the XP sound toggle
-
----
-
-## Implementation Priority
-
-1. **Quick win - Fix labels** (5 min)
-   - Change "10-second countdown" → "3-second countdown"
-   - Change "Boxing bell and timer sounds" → "XP and level-up sounds"
-
-2. **Implement bells and beeps** (30 min)
-   - Add bell, beep functions to `useSoundEffects.ts`
-   - Wire them in `WorkoutSession.tsx`
-
-3. **Implement haptics** (15 min)
-   - Create `useHaptics.ts` hook
-   - Wire in `WorkoutSession.tsx`
-
----
-
-## Files to Modify
-
-| File | Changes |
-|------|---------|
-| `src/pages/Settings.tsx` | Fix descriptions for countdown voice and sound effects |
-| `src/hooks/useSoundEffects.ts` | Add `playBellSound`, `playWarningBeep`, `playTransitionBeep` |
-| `src/hooks/useHaptics.ts` | New file - haptic feedback utilities |
-| `src/pages/WorkoutSession.tsx` | Wire up all sounds and haptics to correct events |
-
----
-
-## Summary Table
-
-| Feature | Current State | After Fix |
-|---------|--------------|-----------|
-| Voice countdown label | "10-second" (wrong) | "3-second" (accurate) |
-| Sound Effects description | "bells and timer" (wrong) | "XP and level-up" (accurate) |
-| Round Start Bell | Not implemented | ✅ Bell sound plays |
-| Round End Bell | Not implemented | ✅ Bell sound plays |
-| 10-Second Warning Beep | Not implemented | ✅ Beep plays |
-| Segment Transition Beep | Not implemented | ✅ Beep plays |
-| All Haptic toggles | Not implemented | ✅ Vibration works |
+| File | Action |
+|------|--------|
+| `src/pages/Settings.tsx` | Merge sections, remove haptics, remove unused toggles |
+| `src/hooks/useSoundEffects.ts` | Remove unused bell/transition functions |
+| `src/pages/WorkoutSession.tsx` | Remove unused sound/haptic calls |
