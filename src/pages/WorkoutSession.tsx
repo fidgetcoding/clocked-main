@@ -1,6 +1,8 @@
-import { useState, useEffect, useMemo, useRef } from 'react';
+import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Home, Play, Pause, RotateCcw, SkipForward, SkipBack, ChevronRight, MoreVertical, CheckCircle } from 'lucide-react';
+import { RoundFeedbackPanel } from '@/components/workout/RoundFeedbackPanel';
+import { RoundFeedback } from '@/types';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
 import { VerticalXPBar } from '@/components/ui/VerticalXPBar';
@@ -181,12 +183,35 @@ const WorkoutSession = () => {
   const [notes, setNotes] = useState('');
   const [logged, setLogged] = useState(false);
   const [difficultyRating, setDifficultyRating] = useState<'too_easy' | 'just_right' | 'too_hard' | null>(null);
+  const [feedbackMode, setFeedbackMode] = useState<'basic' | 'advanced'>('basic');
+  const [roundFeedback, setRoundFeedback] = useState<RoundFeedback[]>([]);
   const [xpBubble, setXpBubble] = useState<{ amount: number; id: number } | null>(null);
   const [hasStartedOnce, setHasStartedOnce] = useState(false);
   const [hasAwardedXP, setHasAwardedXP] = useState(false);
   const [accumulatedXP, setAccumulatedXP] = useState(0); // Track XP earned during session
   const [showExitConfirm, setShowExitConfirm] = useState(false);
   const [showRestartConfirm, setShowRestartConfirm] = useState(false);
+  
+  // Calculate round count from grind phases
+  const roundCount = useMemo(() => {
+    if (!workout) return 0;
+    let count = 0;
+    for (const phase of workout.sections.grind) {
+      count += phase.repeats;
+    }
+    return count;
+  }, [workout]);
+  
+  // Handler for round ratings
+  const handleRoundRating = useCallback((roundNum: number, rating: number) => {
+    setRoundFeedback(prev => {
+      const existing = prev.find(r => r.roundNumber === roundNum);
+      if (existing) {
+        return prev.map(r => r.roundNumber === roundNum ? { ...r, rating } : r);
+      }
+      return [...prev, { roundNumber: roundNum, rating }];
+    });
+  }, []);
 
   const currentSegment = flatSegments[currentSegmentIndex];
   const nextSegment = flatSegments[currentSegmentIndex + 1];
@@ -538,7 +563,7 @@ const WorkoutSession = () => {
       difficulty: difficultyRating || null,
       notes: notes || null,
       is_manual_entry: false,
-      round_feedback: [],
+      round_feedback: feedbackMode === 'advanced' ? roundFeedback : [],
     }, {
       onSuccess: () => setLogged(true),
       onError: (error) => console.error('Failed to log workout:', error),
@@ -570,6 +595,34 @@ const WorkoutSession = () => {
           {/* Workout Log */}
           {!logged ? (
             <div className="w-full max-w-xs space-y-4 mb-6">
+              {/* Basic/Advanced Toggle */}
+              {roundCount > 0 && (
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setFeedbackMode('basic')}
+                    className={cn(
+                      'flex-1 py-2 rounded-lg text-sm font-medium transition-colors',
+                      feedbackMode === 'basic'
+                        ? 'bg-volt text-primary-foreground'
+                        : 'bg-surface-1 text-muted-foreground'
+                    )}
+                  >
+                    Basic
+                  </button>
+                  <button
+                    onClick={() => setFeedbackMode('advanced')}
+                    className={cn(
+                      'flex-1 py-2 rounded-lg text-sm font-medium transition-colors',
+                      feedbackMode === 'advanced'
+                        ? 'bg-volt text-primary-foreground'
+                        : 'bg-surface-1 text-muted-foreground'
+                    )}
+                  >
+                    Advanced
+                  </button>
+                </div>
+              )}
+              
               <div>
                 <label className="text-sm text-muted-foreground mb-2 block">How did it go?</label>
                 <textarea
@@ -604,6 +657,15 @@ const WorkoutSession = () => {
                   ))}
                 </div>
               </div>
+              
+              {/* Round-by-Round Feedback (Advanced Mode Only) */}
+              {feedbackMode === 'advanced' && roundCount > 0 && (
+                <RoundFeedbackPanel
+                  roundCount={roundCount}
+                  roundFeedback={roundFeedback}
+                  onRoundRating={handleRoundRating}
+                />
+              )}
               
               <Button onClick={handleLog} className="btn-primary-glow w-full">
                 Log Workout
