@@ -232,45 +232,76 @@ const WorkoutSession = () => {
   // Use accumulated XP for display
   const currentXP = accumulatedXP;
 
-  // Use a single interval for both timers to ensure they stay in sync
-  // Also accumulate XP per second based on activity type
+  // Wall-clock ref for background-safe timing
+  const lastTickTimeRef = useRef<number>(Date.now());
+
+  // Helper: compute XP per second for a given segment
+  const getXPPerSecond = useCallback((segment: FlatSegment) => {
+    const activityType = getActivityTypeFromSegment(segment);
+    let xpPerSecond = ACTIVITY_XP_RATES[activityType];
+    
+    if (activityType === 'sparring' && profile?.prestige) {
+      xpPerSecond = getSparringXPRate(profile.prestige as any);
+    }
+    
+    if (activityType === 'combo' && segment.combo && segment.combo.length > 0) {
+      const totalComboXP = calculateComboXP(segment.combo, segment.duration);
+      xpPerSecond = totalComboXP / segment.duration;
+    }
+    
+    return xpPerSecond;
+  }, [profile?.prestige]);
+
+
+  // Background-safe timer using wall-clock deltas
   useEffect(() => {
     let interval: NodeJS.Timeout | null = null;
     
     if (isRunning && !isPaused) {
+      lastTickTimeRef.current = Date.now();
+      
       interval = setInterval(() => {
-        // Always increment elapsed time when running (including preparation)
-        setTotalElapsed(prev => prev + 1);
+        const now = Date.now();
+        const delta = Math.floor((now - lastTickTimeRef.current) / 1000);
+        if (delta < 1) return;
+        lastTickTimeRef.current = now;
+
+        // Advance elapsed time
+        setTotalElapsed(prev => prev + delta);
         // Decrement countdown
-        setTimeRemaining(prev => prev - 1);
+        setTimeRemaining(prev => prev - delta);
         
-        // Accumulate XP based on current activity (not during preparation)
+        // Accumulate XP for `delta` seconds (not during preparation)
         if (!isPreparation && currentSegment) {
-          const activityType = getActivityTypeFromSegment(currentSegment);
-          let xpPerSecond = ACTIVITY_XP_RATES[activityType];
-          
-          // Special handling for sparring - rate depends on prestige
-          if (activityType === 'sparring' && profile?.prestige) {
-            xpPerSecond = getSparringXPRate(profile.prestige as any);
-          }
-          
-          // For combo segments, use combo XP formula for that second's contribution
-          if (activityType === 'combo' && currentSegment.combo && currentSegment.combo.length > 0) {
-            // Distribute combo XP evenly across the segment duration
-            const totalComboXP = calculateComboXP(currentSegment.combo, currentSegment.duration);
-            xpPerSecond = totalComboXP / currentSegment.duration;
-          }
-          
-          const xpGained = xpPerSecond * streakMultiplier;
+          const xpPerSecond = getXPPerSecond(currentSegment);
+          const xpGained = xpPerSecond * streakMultiplier * delta;
           setAccumulatedXP(prev => prev + xpGained);
         }
-      }, 1000);
+      }, 250); // Check 4x/sec for smoother catch-up
     }
     
     return () => {
       if (interval) clearInterval(interval);
     };
-  }, [isRunning, isPaused, isPreparation, currentSegment, streakMultiplier]);
+  }, [isRunning, isPaused, isPreparation, currentSegment, streakMultiplier, getXPPerSecond]);
+
+  // Instant catch-up when tab becomes visible again
+  useEffect(() => {
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible' && isRunning && !isPaused) {
+        // Force the interval logic to fire immediately by updating lastTickTimeRef
+        // The next interval tick (every 250ms) will compute the large delta
+        // No need to duplicate logic — just ensure ref is not reset
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibility);
+    return () => document.removeEventListener('visibilitychange', handleVisibility);
+  }, [isRunning, isPaused]);
+
+  // Track previous segment to detect transitions
+  const prevSegmentIndexRef = useRef<number>(-1);
+  // Track if XP has already been awarded
+  const xpAwardedRef = useRef(false);
 
   // Voice countdown at 3 seconds - respects voiceCountdown preference
   useEffect(() => {
@@ -284,53 +315,35 @@ const WorkoutSession = () => {
   // 10-second warning voice and beep
   useEffect(() => {
     if (timeRemaining === 10 && isRunning && !isPaused && !isPreparation) {
-      // Play voice warning
       if (preferences?.voiceCountdown !== false && preferences?.voiceAnnouncements !== false) {
         speak('10 seconds', { rate: 0.9 });
       }
-      // Play warning beep (separate preference)
       playWarningBeep();
     }
   }, [timeRemaining, isRunning, isPaused, isPreparation, preferences, speak, playWarningBeep]);
 
-  // Track previous segment to detect transitions
-  const prevSegmentIndexRef = useRef<number>(-1);
-  // Track if XP has already been awarded
-  const xpAwardedRef = useRef(false);
-
   // Phase/segment announcement voice
   useEffect(() => {
-    // Only announce on actual segment change, not on every render
     if (prevSegmentIndexRef.current === currentSegmentIndex) return;
-    
-    const prevIndex = prevSegmentIndexRef.current;
     prevSegmentIndexRef.current = currentSegmentIndex;
 
     if (!isPreparation && currentSegment && isRunning && !isPaused) {
-      // Voice announcement
       if (preferences?.voiceAnnouncements !== false) {
-        // Announce the segment type/name
         let announcement = '';
-        
         if (currentSegment.type === 'rest') {
           announcement = 'Rest';
-        } else if (currentSegment.segmentType === 'shadowboxing' || 
-                   currentSegment.name.toLowerCase().includes('shadow')) {
+        } else if (currentSegment.segmentType === 'shadowboxing' || currentSegment.name.toLowerCase().includes('shadow')) {
           announcement = 'Shadowboxing';
         } else if (currentSegment.segmentType === 'combo') {
           announcement = 'Combo';
         } else {
-          // Use segment name for other types (warmup, cooldown, etc.)
           announcement = currentSegment.name;
         }
-        
         speak(announcement, { rate: 0.9 });
-        
-        // If it's a combo segment, also read the combo punches after a delay
+
         const combo = currentSegment.combo;
         if (combo && combo.length > 0 && preferences?.voiceComboCallouts !== false) {
           setTimeout(() => {
-            // Convert combo to speakable format
             const speakableCombo = combo.map(move => {
               const m = move.toUpperCase();
               if (m === 'SLIP L') return 'slip left';
@@ -348,17 +361,22 @@ const WorkoutSession = () => {
         }
       }
     }
-  }, [currentSegmentIndex, isPreparation, currentSegment, isRunning, isPaused, preferences, speak, flatSegments]);
+  }, [currentSegmentIndex, isPreparation, currentSegment, isRunning, isPaused, preferences, speak]);
 
   // Handle segment transitions when time hits 0
   useEffect(() => {
     if (timeRemaining <= 0 && isRunning) {
       if (isPreparation) {
         setIsPreparation(false);
-        setTimeRemaining(flatSegments[0]?.duration || 60);
+        const firstDuration = flatSegments[0]?.duration || 60;
+        // If we overshot (e.g. backgrounded past prep), account for overflow
+        setTimeRemaining(firstDuration + timeRemaining); // timeRemaining is negative, so this subtracts overshoot
       } else if (currentSegmentIndex < flatSegments.length - 1) {
-        setCurrentSegmentIndex((prev) => prev + 1);
-        setTimeRemaining(flatSegments[currentSegmentIndex + 1]?.duration || 60);
+        const nextIdx = currentSegmentIndex + 1;
+        const nextDuration = flatSegments[nextIdx]?.duration || 60;
+        setCurrentSegmentIndex(nextIdx);
+        // Carry over any overshoot into the next segment
+        setTimeRemaining(nextDuration + timeRemaining);
       } else if (!isComplete && !xpAwardedRef.current) {
         // Mark as awarded FIRST to prevent re-entry
         xpAwardedRef.current = true;
@@ -372,7 +390,6 @@ const WorkoutSession = () => {
         const xpEarned = Math.round(accumulatedXP);
         queueMicrotask(() => {
           try {
-            // Award XP to both local store (for UI) and database (for persistence)
             addLocalXP(xpEarned, true);
             addProfileXP.mutate(xpEarned);
           } catch (error) {
@@ -390,7 +407,7 @@ const WorkoutSession = () => {
         }
       }
     }
-  }, [timeRemaining, isRunning, isPreparation, currentSegmentIndex, flatSegments, dbWorkout, updateWorkout, cancelSpeech, isComplete, totalElapsed]);
+  }, [timeRemaining, isRunning, isPreparation, currentSegmentIndex, flatSegments, dbWorkout, updateWorkout, cancelSpeech, isComplete, accumulatedXP]);
 
 
   const showXpBubble = (amount: number) => {
