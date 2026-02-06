@@ -33,6 +33,20 @@ const Auth = () => {
 
   const handleEmailAuth = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Validate name on signup
+    if (mode === 'signup') {
+      const trimmedName = name.trim();
+      if (!trimmedName || trimmedName.length < 1) {
+        toast.error('Name is required');
+        return;
+      }
+      if (trimmedName.length > 100) {
+        toast.error('Name must be 100 characters or less');
+        return;
+      }
+    }
+    
     setLoading(true);
 
     try {
@@ -42,7 +56,7 @@ const Auth = () => {
           password,
           options: {
             emailRedirectTo: `${window.location.origin}/onboarding?continue=true`,
-            data: { name: name || 'Fighter' },
+            data: { name: name.trim() || 'Fighter' },
           },
         });
         if (error) throw error;
