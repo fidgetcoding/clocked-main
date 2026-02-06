@@ -21,6 +21,8 @@ import { useWorkoutHistory } from '@/hooks/useWorkoutHistory';
 import { useUserStore } from '@/stores/userStore';
 import { useProfile } from '@/hooks/useProfile';
 import { useSpeechSynthesis } from '@/hooks/useSpeechSynthesis';
+import { useSoundEffects } from '@/hooks/useSoundEffects';
+import { useHaptics } from '@/hooks/useHaptics';
 import { cn } from '@/lib/utils';
 import { ACTIVITY_XP_RATES, ActivityType, getStreakMultiplier, getActivityTypeFromName, calculateComboXP, getSparringXPRate } from '@/lib/xpSystem';
 
@@ -92,6 +94,8 @@ const WorkoutSession = () => {
   const user = useUserStore((state) => state.user);
   const addLocalXP = useUserStore((state) => state.addXP);
   const { initialize: initSpeech, speak, cancel: cancelSpeech } = useSpeechSynthesis();
+  const { playBellSound, playWarningBeep, playTransitionBeep } = useSoundEffects();
+  const { vibrateRoundChange, vibrateWarning } = useHaptics();
 
   // Get user preferences for voice settings
   const preferences = user?.preferences as {
@@ -279,27 +283,54 @@ const WorkoutSession = () => {
     }
   }, [timeRemaining, isRunning, isPaused, preferences, speak]);
 
-  // 10-second warning voice
+  // 10-second warning voice and beep
   useEffect(() => {
     if (timeRemaining === 10 && isRunning && !isPaused && !isPreparation) {
+      // Play voice warning
       if (preferences?.voiceCountdown !== false && preferences?.voiceAnnouncements !== false) {
         speak('10 seconds', { rate: 0.9 });
       }
+      // Play warning beep (separate preference)
+      playWarningBeep();
+      // Haptic warning
+      vibrateWarning();
     }
-  }, [timeRemaining, isRunning, isPaused, isPreparation, preferences, speak]);
+  }, [timeRemaining, isRunning, isPaused, isPreparation, preferences, speak, playWarningBeep, vibrateWarning]);
 
   // Track previous segment to detect transitions
   const prevSegmentIndexRef = useRef<number>(-1);
   // Track if XP has already been awarded
   const xpAwardedRef = useRef(false);
 
-  // Phase/segment announcement voice
+  // Phase/segment announcement voice + sounds + haptics
   useEffect(() => {
     // Only announce on actual segment change, not on every render
     if (prevSegmentIndexRef.current === currentSegmentIndex) return;
+    
+    const prevIndex = prevSegmentIndexRef.current;
     prevSegmentIndexRef.current = currentSegmentIndex;
 
     if (!isPreparation && currentSegment && isRunning && !isPaused) {
+      const prevSegment = prevIndex >= 0 ? flatSegments[prevIndex] : null;
+      const isWorkSegment = currentSegment.type !== 'rest' && currentSegment.section === 'grind';
+      const wasWorkSegment = prevSegment && prevSegment.type !== 'rest' && prevSegment.section === 'grind';
+      
+      // Bell logic:
+      // - Round Start Bell: when entering a work segment in grind
+      // - Round End Bell: when leaving a work segment (entering rest or next phase)
+      if (isWorkSegment) {
+        playBellSound(true); // Round start bell
+      } else if (wasWorkSegment && currentSegment.type === 'rest') {
+        playBellSound(false); // Round end bell
+      } else {
+        // Transition beep for other segment changes
+        playTransitionBeep();
+      }
+      
+      // Haptic on segment change
+      vibrateRoundChange();
+      
+      // Voice announcement
       if (preferences?.voiceAnnouncements !== false) {
         // Announce the segment type/name
         let announcement = '';
@@ -340,7 +371,7 @@ const WorkoutSession = () => {
         }
       }
     }
-  }, [currentSegmentIndex, isPreparation, currentSegment, isRunning, isPaused, preferences, speak]);
+  }, [currentSegmentIndex, isPreparation, currentSegment, isRunning, isPaused, preferences, speak, flatSegments, playBellSound, playTransitionBeep, vibrateRoundChange]);
 
   // Handle segment transitions when time hits 0
   useEffect(() => {

@@ -55,6 +55,18 @@ export interface UserProfile {
     voiceType: 'male' | 'female' | 'system';
     soundEnabled: boolean;
     hapticEnabled: boolean;
+    // Voice alerts
+    voiceAnnouncements?: boolean;
+    voiceCountdown?: boolean;
+    voiceComboCallouts?: boolean;
+    // Sound alerts
+    roundStartBell?: boolean;
+    roundEndBell?: boolean;
+    tenSecondWarning?: boolean;
+    segmentTransitionBeep?: boolean;
+    // Haptic feedback
+    hapticRoundChange?: boolean;
+    hapticWarning?: boolean;
   };
 }
 
