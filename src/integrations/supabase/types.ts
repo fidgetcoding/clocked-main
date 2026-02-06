@@ -457,7 +457,26 @@ export type Database = {
       }
     }
     Functions: {
-      [_ in never]: never
+      get_public_profile: {
+        Args: { target_user_id: string }
+        Returns: {
+          avatar_url: string
+          bio: string
+          created_at: string
+          current_level: number
+          current_streak: number
+          handle: string
+          id: string
+          name: string
+          prestige: string
+          role: string
+          sessions_completed_this_year: number
+          total_training_seconds: number
+          total_xp: number
+          user_id: string
+          workouts_completed: number
+        }[]
+      }
     }
     Enums: {
       [_ in never]: never

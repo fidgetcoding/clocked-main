@@ -20,7 +20,7 @@ export interface PublicProfile {
 
 /**
  * Fetches a public profile by user_id for viewing other users' profiles
- * Only selects public-safe columns to protect sensitive user data
+ * Uses a SECURITY DEFINER function that only exposes safe public fields
  */
 export function usePublicProfile(userId: string | undefined) {
   return useQuery({
@@ -28,39 +28,39 @@ export function usePublicProfile(userId: string | undefined) {
     queryFn: async (): Promise<PublicProfile | null> => {
       if (!userId) return null;
 
-      // Only select public-safe columns (no preferences, equipment, goals, etc.)
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('id, user_id, name, handle, bio, avatar_url, total_xp, current_streak, workouts_completed, prestige, current_level, total_training_seconds, created_at')
-        .eq('user_id', userId)
-        .maybeSingle();
+      // Use the secure function that only returns public fields
+      const { data, error } = await supabase.rpc('get_public_profile', {
+        target_user_id: userId
+      });
 
       if (error) {
         console.error('Error fetching public profile:', error);
         return null;
       }
 
-      if (!data) return null;
+      if (!data || data.length === 0) return null;
+
+      const profile = data[0];
 
       // Calculate level from XP
-      const prestige = (data.prestige || 'rookie') as Prestige;
-      const totalXP = data.total_xp || 0;
+      const prestige = (profile.prestige || 'rookie') as Prestige;
+      const totalXP = profile.total_xp || 0;
       const calculatedLevel = getLevelFromXP(prestige, totalXP);
 
       return {
-        id: data.id,
-        user_id: data.user_id,
-        name: data.name || 'Fighter',
-        handle: data.handle,
-        bio: data.bio,
-        avatar_url: data.avatar_url,
+        id: profile.id,
+        user_id: profile.user_id,
+        name: profile.name || 'Fighter',
+        handle: profile.handle,
+        bio: profile.bio,
+        avatar_url: profile.avatar_url,
         total_xp: totalXP,
-        current_streak: data.current_streak || 0,
-        workouts_completed: data.workouts_completed || 0,
+        current_streak: profile.current_streak || 0,
+        workouts_completed: profile.workouts_completed || 0,
         prestige,
         current_level: calculatedLevel,
-        total_training_seconds: data.total_training_seconds || 0,
-        created_at: data.created_at,
+        total_training_seconds: profile.total_training_seconds || 0,
+        created_at: profile.created_at,
       };
     },
     enabled: !!userId,
