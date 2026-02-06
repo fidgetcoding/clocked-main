@@ -94,9 +94,22 @@ const EditProfile = () => {
   };
 
   const handleSaveName = async () => {
-    if (editedName.trim() && editedName !== user?.name) {
-      updateUser({ name: editedName.trim() });
-      await updateProfile.mutateAsync({ name: editedName.trim() });
+    const trimmed = editedName.trim();
+    
+    if (!trimmed || trimmed.length < 1) {
+      toast.error('Name cannot be empty');
+      setIsEditingName(false);
+      return;
+    }
+    
+    if (trimmed.length > 100) {
+      toast.error('Name must be 100 characters or less');
+      return;
+    }
+    
+    if (trimmed !== user?.name) {
+      updateUser({ name: trimmed });
+      await updateProfile.mutateAsync({ name: trimmed });
       toast.success('Name updated!');
     }
     setIsEditingName(false);
@@ -104,6 +117,17 @@ const EditProfile = () => {
 
   const handleSaveHandle = async () => {
     const cleanHandle = editedHandle.trim().toLowerCase().replace(/[^a-z0-9_]/g, '');
+    
+    if (cleanHandle.length > 0 && cleanHandle.length < 3) {
+      toast.error('Handle must be at least 3 characters');
+      return;
+    }
+    
+    if (cleanHandle.length > 30) {
+      toast.error('Handle must be 30 characters or less');
+      return;
+    }
+    
     if (cleanHandle && cleanHandle !== currentHandle) {
       try {
         await updateProfile.mutateAsync({ handle: cleanHandle });
@@ -111,6 +135,10 @@ const EditProfile = () => {
       } catch (error: any) {
         if (error?.message?.includes('unique') || error?.code === '23505') {
           toast.error('This handle is already taken');
+          return;
+        }
+        if (error?.message?.includes('check') || error?.code === '23514') {
+          toast.error('Handle format is invalid');
           return;
         }
         toast.error('Failed to update handle');
