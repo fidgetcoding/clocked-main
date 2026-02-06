@@ -18,6 +18,7 @@ export interface DbWorkout {
   last_used_at: string | null;
   created_at: string;
   updated_at: string;
+  sort_order: number;
 }
 
 export function useWorkouts() {
@@ -34,7 +35,7 @@ export function useWorkouts() {
         .select('*')
         .eq('user_id', user.id)
         .eq('is_archived', false)
-        .order('updated_at', { ascending: false });
+        .order('sort_order', { ascending: true });
       
       if (error) throw error;
       return data as DbWorkout[];
@@ -43,12 +44,23 @@ export function useWorkouts() {
   });
 
   const addWorkout = useMutation({
-    mutationFn: async (workout: Omit<DbWorkout, 'id' | 'user_id' | 'created_at' | 'updated_at'>) => {
+    mutationFn: async (workout: Omit<DbWorkout, 'id' | 'user_id' | 'created_at' | 'updated_at' | 'sort_order'>) => {
       if (!user?.id) throw new Error('Not authenticated');
+      
+      // Get max sort_order for this user
+      const { data: maxOrder } = await supabase
+        .from('workouts')
+        .select('sort_order')
+        .eq('user_id', user.id)
+        .order('sort_order', { ascending: false })
+        .limit(1)
+        .single();
+      
+      const newSortOrder = (maxOrder?.sort_order ?? 0) + 1;
       
       const { data, error } = await supabase
         .from('workouts')
-        .insert({ ...workout, user_id: user.id })
+        .insert({ ...workout, user_id: user.id, sort_order: newSortOrder })
         .select()
         .single();
       
@@ -117,6 +129,26 @@ export function useWorkouts() {
     },
   });
 
+  const reorderWorkouts = useMutation({
+    mutationFn: async (orderedIds: string[]) => {
+      if (!user?.id) throw new Error('Not authenticated');
+      
+      // Update each workout's sort_order
+      const updates = orderedIds.map((id, index) => 
+        supabase
+          .from('workouts')
+          .update({ sort_order: index })
+          .eq('id', id)
+          .eq('user_id', user.id)
+      );
+      
+      await Promise.all(updates);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['workouts', user?.id] });
+    },
+  });
+
   return {
     workouts,
     isLoading,
@@ -125,5 +157,6 @@ export function useWorkouts() {
     updateWorkout,
     deleteWorkout,
     archiveWorkout,
+    reorderWorkouts,
   };
 }

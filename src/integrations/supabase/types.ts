@@ -290,6 +290,7 @@ export type Database = {
           last_used_at: string | null
           name: string
           phases: Json
+          sort_order: number | null
           tags: string[] | null
           times_completed: number | null
           updated_at: string
@@ -307,6 +308,7 @@ export type Database = {
           last_used_at?: string | null
           name: string
           phases?: Json
+          sort_order?: number | null
           tags?: string[] | null
           times_completed?: number | null
           updated_at?: string
@@ -324,6 +326,7 @@ export type Database = {
           last_used_at?: string | null
           name?: string
           phases?: Json
+          sort_order?: number | null
           tags?: string[] | null
           times_completed?: number | null
           updated_at?: string
