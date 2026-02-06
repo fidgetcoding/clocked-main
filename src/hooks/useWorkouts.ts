@@ -10,6 +10,7 @@ export interface DbWorkout {
   duration: number;
   difficulty: string | null;
   phases: any[];
+  combos: string[][];
   tags: string[];
   is_preset: boolean;
   is_archived: boolean;

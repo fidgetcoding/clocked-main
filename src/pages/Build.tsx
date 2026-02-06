@@ -59,13 +59,17 @@ function dbPhasesToLocal(dbWorkout: DbWorkout): { warmup: WorkoutPhase[], grind:
   const grind = phases?.filter((p: any) => p.section === 'grind').map(({ section, ...rest }) => rest) || [];
   const cooldown = phases?.filter((p: any) => p.section === 'cooldown').map(({ section, ...rest }) => rest) || [];
   
-  // Extract combos from any phase that has them, or from the workout's combos field
-  const combos: string[][] = [];
-  phases?.forEach((phase: any) => {
-    if (phase.combos) {
-      combos.push(...phase.combos);
-    }
-  });
+  // Use top-level combos from database (the new column), fallback to extracting from phases for legacy data
+  let combos: string[][] = dbWorkout.combos || [];
+  
+  // Fallback: try to extract combos from phases if top-level is empty (legacy support)
+  if (combos.length === 0) {
+    phases?.forEach((phase: any) => {
+      if (phase.combos) {
+        combos.push(...phase.combos);
+      }
+    });
+  }
   
   return { warmup, grind, cooldown, combos };
 }
@@ -308,6 +312,7 @@ const Build = () => {
       duration: calculateTotalDuration(),
       difficulty,
       phases: phasesForDb,
+      combos: combos,
       tags: ['boxing', difficulty],
       is_preset: existingWorkout?.is_preset || isPreset || false,
       is_archived: false,

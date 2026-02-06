@@ -279,6 +279,7 @@ export type Database = {
       }
       workouts: {
         Row: {
+          combos: Json | null
           created_at: string
           description: string | null
           difficulty: string | null
@@ -295,6 +296,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          combos?: Json | null
           created_at?: string
           description?: string | null
           difficulty?: string | null
@@ -311,6 +313,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          combos?: Json | null
           created_at?: string
           description?: string | null
           difficulty?: string | null
