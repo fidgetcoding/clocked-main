@@ -18,7 +18,9 @@ import { useWorkoutHistory } from '@/hooks/useWorkoutHistory';
 import { useUserStore } from '@/stores/userStore';
 import { useProfile } from '@/hooks/useProfile';
 import { cn } from '@/lib/utils';
-import { getStreakMultiplier } from '@/lib/xpSystem';
+import { getStreakMultiplier, getLevelFromXP } from '@/lib/xpSystem';
+import { LevelUpOverlay } from '@/components/ui/LevelUpOverlay';
+import { useSoundEffects } from '@/hooks/useSoundEffects';
 
 const QUICK_SESSION_XP_RATE = 0.10; // XP per second
 
@@ -54,11 +56,29 @@ const QuickSession = () => {
   const [logged, setLogged] = useState(false);
   const [difficultyRating, setDifficultyRating] = useState<'too_easy' | 'just_right' | 'too_hard' | null>(null);
   const [showExitConfirm, setShowExitConfirm] = useState(false);
+  const [levelUpLevel, setLevelUpLevel] = useState<number | null>(null);
 
   const lastTickTimeRef = useRef<number>(Date.now());
   const xpAwardedRef = useRef(false);
+  const prevLevelRef = useRef<number>(user?.currentLevel || 1);
 
+  const { playLevelUpSound } = useSoundEffects();
   const streakMultiplier = getStreakMultiplier(profile?.current_streak || 0);
+
+  // Compute live level from accumulated XP
+  const liveLevel = getLevelFromXP(
+    (user?.prestige || 'beginner') as any,
+    (user?.totalXP || 0) + accumulatedXP
+  );
+
+  // Detect level-up
+  useEffect(() => {
+    if (liveLevel > prevLevelRef.current) {
+      setLevelUpLevel(liveLevel);
+      playLevelUpSound();
+      prevLevelRef.current = liveLevel;
+    }
+  }, [liveLevel, playLevelUpSound]);
 
   // Wall-clock timer
   useEffect(() => {
@@ -252,11 +272,16 @@ const QuickSession = () => {
           <div className="flex items-center">
             <VerticalXPBar
               prestige={user?.prestige || 'beginner'}
-              level={user?.currentLevel || 1}
+              level={liveLevel}
               totalXP={(user?.totalXP || 0) + accumulatedXP}
             />
           </div>
         </header>
+
+        {/* Level Up Overlay */}
+        {levelUpLevel !== null && (
+          <LevelUpOverlay level={levelUpLevel} onComplete={() => setLevelUpLevel(null)} />
+        )}
 
         {/* Main Timer */}
         <div className="flex-1 flex flex-col items-center justify-center px-4">

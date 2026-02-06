@@ -259,6 +259,23 @@
     background-color: hsl(var(--alert-red));
   }
 
+  /* Level Up Animation */
+  @keyframes level-up-flash {
+    0% { opacity: 0; }
+    8% { opacity: 0.75; }
+    40% { opacity: 0.6; }
+    70% { opacity: 0.3; }
+    100% { opacity: 0; }
+  }
+
+  @keyframes level-up-text {
+    0% { opacity: 0; transform: scale(0.3); }
+    10% { opacity: 1; transform: scale(1.15); }
+    20% { opacity: 1; transform: scale(1); }
+    65% { opacity: 1; transform: scale(1); }
+    100% { opacity: 0; transform: scale(0.8); }
+  }
+
   /* Hide scrollbar but keep functionality */
   .scrollbar-hide {
     -ms-overflow-style: none;

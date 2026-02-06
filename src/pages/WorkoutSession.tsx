@@ -23,7 +23,8 @@ import { useProfile } from '@/hooks/useProfile';
 import { useSpeechSynthesis } from '@/hooks/useSpeechSynthesis';
 import { useSoundEffects } from '@/hooks/useSoundEffects';
 import { cn } from '@/lib/utils';
-import { ACTIVITY_XP_RATES, ActivityType, getStreakMultiplier, getActivityTypeFromName, calculateComboXP, getSparringXPRate } from '@/lib/xpSystem';
+import { ACTIVITY_XP_RATES, ActivityType, getStreakMultiplier, getActivityTypeFromName, calculateComboXP, getSparringXPRate, getLevelFromXP } from '@/lib/xpSystem';
+import { LevelUpOverlay } from '@/components/ui/LevelUpOverlay';
 
 interface FlatSegment {
   id: string;
@@ -193,6 +194,7 @@ const WorkoutSession = () => {
   const [accumulatedXP, setAccumulatedXP] = useState(0); // Track XP earned during session
   const [showExitConfirm, setShowExitConfirm] = useState(false);
   const [showRestartConfirm, setShowRestartConfirm] = useState(false);
+  const [levelUpLevel, setLevelUpLevel] = useState<number | null>(null);
   
   // Calculate round count from grind phases
   const roundCount = useMemo(() => {
@@ -234,6 +236,24 @@ const WorkoutSession = () => {
 
   // Wall-clock ref for background-safe timing
   const lastTickTimeRef = useRef<number>(Date.now());
+  const prevLevelRef = useRef<number>(user?.currentLevel || 1);
+
+  const { playLevelUpSound } = useSoundEffects();
+
+  // Compute live level from accumulated XP
+  const liveLevel = getLevelFromXP(
+    (user?.prestige || 'beginner') as any,
+    (user?.totalXP || 0) + accumulatedXP
+  );
+
+  // Detect level-up during session
+  useEffect(() => {
+    if (liveLevel > prevLevelRef.current) {
+      setLevelUpLevel(liveLevel);
+      playLevelUpSound();
+      prevLevelRef.current = liveLevel;
+    }
+  }, [liveLevel, playLevelUpSound]);
 
   // Helper: compute XP per second for a given segment
   const getXPPerSecond = useCallback((segment: FlatSegment) => {
@@ -806,9 +826,14 @@ const WorkoutSession = () => {
                 +{xpBubble.amount} XP
               </div>
             )}
-            <VerticalXPBar prestige={user?.prestige || 'beginner'} level={user?.currentLevel || 1} totalXP={(user?.totalXP || 0) + currentXP} />
+            <VerticalXPBar prestige={user?.prestige || 'beginner'} level={liveLevel} totalXP={(user?.totalXP || 0) + currentXP} />
           </div>
         </header>
+
+        {/* Level Up Overlay */}
+        {levelUpLevel !== null && (
+          <LevelUpOverlay level={levelUpLevel} onComplete={() => setLevelUpLevel(null)} />
+        )}
 
         {/* Main Timer */}
         <div className="flex-1 flex flex-col items-center justify-center px-4">
