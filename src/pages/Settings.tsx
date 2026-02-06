@@ -116,10 +116,10 @@ const Settings = () => {
           <button 
             onClick={handleSignOut}
             disabled={isSigningOut}
-            className="p-2 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors disabled:opacity-50"
-            title="Sign Out"
+            className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors disabled:opacity-50 text-sm font-medium"
           >
-            <LogOut className="w-5 h-5" />
+            <LogOut className="w-4 h-4" />
+            <span>{isSigningOut ? 'Signing Out...' : 'Sign Out'}</span>
           </button>
         </header>
 
