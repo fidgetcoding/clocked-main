@@ -4,6 +4,16 @@ import { ArrowLeft, Home, Play, Pause, RotateCcw, SkipForward, SkipBack, Chevron
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
 import { VerticalXPBar } from '@/components/ui/VerticalXPBar';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { useWorkouts, DbWorkout } from '@/hooks/useWorkouts';
 import { useWorkoutHistory } from '@/hooks/useWorkoutHistory';
 import { useUserStore } from '@/stores/userStore';
@@ -175,6 +185,8 @@ const WorkoutSession = () => {
   const [hasStartedOnce, setHasStartedOnce] = useState(false);
   const [hasAwardedXP, setHasAwardedXP] = useState(false);
   const [accumulatedXP, setAccumulatedXP] = useState(0); // Track XP earned during session
+  const [showExitConfirm, setShowExitConfirm] = useState(false);
+  const [showRestartConfirm, setShowRestartConfirm] = useState(false);
 
   const currentSegment = flatSegments[currentSegmentIndex];
   const nextSegment = flatSegments[currentSegmentIndex + 1];
@@ -376,6 +388,50 @@ const WorkoutSession = () => {
   };
 
   const handleReset = () => {
+    setCurrentSegmentIndex(0);
+    setTimeRemaining(10);
+    setTotalElapsed(0);
+    setAccumulatedXP(0);
+    setIsRunning(false);
+    setIsPaused(true);
+    setIsPreparation(true);
+    setIsComplete(false);
+    setHasAwardedXP(false);
+    xpAwardedRef.current = false;
+  };
+
+  // Confirmation handlers for exit and restart
+  const handleConfirmExit = () => {
+    // Award accumulated XP if any
+    if (accumulatedXP > 0 && !xpAwardedRef.current) {
+      xpAwardedRef.current = true;
+      const xpEarned = Math.round(accumulatedXP);
+      try {
+        addLocalXP(xpEarned, true);
+        addProfileXP.mutate(xpEarned);
+      } catch (error) {
+        console.error('Failed to award XP on exit:', error);
+      }
+    }
+    cancelSpeech();
+    setShowExitConfirm(false);
+    navigate('/');
+  };
+
+  const handleConfirmRestart = () => {
+    // Award accumulated XP before restarting (they did the work)
+    if (accumulatedXP > 0 && !xpAwardedRef.current) {
+      const xpEarned = Math.round(accumulatedXP);
+      try {
+        addLocalXP(xpEarned, true);
+        addProfileXP.mutate(xpEarned);
+      } catch (error) {
+        console.error('Failed to award XP on restart:', error);
+      }
+    }
+    cancelSpeech();
+    setShowRestartConfirm(false);
+    // Reset workout state (don't mark xpAwardedRef as true since we're starting fresh)
     setCurrentSegmentIndex(0);
     setTimeRemaining(10);
     setTotalElapsed(0);
@@ -625,14 +681,14 @@ const WorkoutSession = () => {
           {/* Left side - home and restart buttons */}
           <div className="flex items-center gap-2">
             <button 
-              onClick={() => navigate('/')}
+              onClick={() => setShowExitConfirm(true)}
               className="flex items-center gap-2 px-3 py-2 rounded-full bg-surface-1 border border-surface-3"
             >
               <ArrowLeft className="w-4 h-4" />
               <Home className="w-4 h-4" />
             </button>
             <button
-              onClick={handleReset}
+              onClick={() => setShowRestartConfirm(true)}
               className="px-3 py-2 rounded-full bg-surface-1 border border-surface-3 text-muted-foreground hover:text-foreground transition-colors"
               title="Restart from beginning"
             >
@@ -961,6 +1017,49 @@ const WorkoutSession = () => {
             </button>
           </div>
         </div>
+        {/* Exit Confirmation Dialog */}
+        <AlertDialog open={showExitConfirm} onOpenChange={setShowExitConfirm}>
+          <AlertDialogContent className="bg-surface-1 border-surface-3">
+            <AlertDialogHeader>
+              <AlertDialogTitle>Leave Workout?</AlertDialogTitle>
+              <AlertDialogDescription>
+                {accumulatedXP > 0 
+                  ? `Your progress will be saved and you'll receive +${Math.round(accumulatedXP)} XP.`
+                  : "Are you sure you want to leave this workout?"}
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel className="bg-surface-2 border-surface-3 hover:bg-surface-3">
+                Cancel
+              </AlertDialogCancel>
+              <AlertDialogAction onClick={handleConfirmExit} className="bg-volt text-primary-foreground hover:bg-volt/90">
+                {accumulatedXP > 0 ? 'Leave & Save XP' : 'Leave'}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
+        {/* Restart Confirmation Dialog */}
+        <AlertDialog open={showRestartConfirm} onOpenChange={setShowRestartConfirm}>
+          <AlertDialogContent className="bg-surface-1 border-surface-3">
+            <AlertDialogHeader>
+              <AlertDialogTitle>Restart Workout?</AlertDialogTitle>
+              <AlertDialogDescription>
+                {accumulatedXP > 0 
+                  ? `Your current progress (+${Math.round(accumulatedXP)} XP) will be saved before restarting.`
+                  : "This will reset the workout to the beginning."}
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel className="bg-surface-2 border-surface-3 hover:bg-surface-3">
+                Cancel
+              </AlertDialogCancel>
+              <AlertDialogAction onClick={handleConfirmRestart} className="bg-volt text-primary-foreground hover:bg-volt/90">
+                Restart
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </AppLayout>
   );
