@@ -130,8 +130,8 @@ const QuickSession = () => {
     });
   }, [accumulatedXP, addLocalXP, addProfileXP]);
 
-  const handleConfirmExit = () => {
-    if (accumulatedXP > 0 && !xpAwardedRef.current) {
+  const handleConfirmExit = (saveXP: boolean = true) => {
+    if (saveXP && accumulatedXP > 0 && !xpAwardedRef.current) {
       xpAwardedRef.current = true;
       const xpEarned = Math.round(accumulatedXP);
       try {
@@ -345,11 +345,14 @@ const QuickSession = () => {
               You've trained for {formatTimeCompact(totalElapsed)}. Your XP will be saved.
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter>
+          <AlertDialogFooter className="flex-col sm:flex-row gap-2">
             <AlertDialogCancel className="bg-surface-2 border-surface-3 text-foreground">
               Keep Going
             </AlertDialogCancel>
-            <AlertDialogAction onClick={handleConfirmExit} className="bg-volt text-primary-foreground">
+            <AlertDialogAction onClick={() => handleConfirmExit(false)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Leave Without Saving
+            </AlertDialogAction>
+            <AlertDialogAction onClick={() => handleConfirmExit(true)} className="bg-volt text-primary-foreground">
               End & Save
             </AlertDialogAction>
           </AlertDialogFooter>

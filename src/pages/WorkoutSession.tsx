@@ -471,9 +471,9 @@ const WorkoutSession = () => {
   };
 
   // Confirmation handlers for exit and restart
-  const handleConfirmExit = () => {
-    // Award accumulated XP if any
-    if (accumulatedXP > 0 && !xpAwardedRef.current) {
+  const handleConfirmExit = (saveXP: boolean = true) => {
+    // Award accumulated XP if any and saving is requested
+    if (saveXP && accumulatedXP > 0 && !xpAwardedRef.current) {
       xpAwardedRef.current = true;
       const xpEarned = Math.round(accumulatedXP);
       try {
@@ -1140,11 +1140,16 @@ const WorkoutSession = () => {
                   : "Are you sure you want to leave this workout?"}
               </AlertDialogDescription>
             </AlertDialogHeader>
-            <AlertDialogFooter>
+            <AlertDialogFooter className="flex-col sm:flex-row gap-2">
               <AlertDialogCancel className="bg-surface-2 border-surface-3 hover:bg-surface-3">
                 Cancel
               </AlertDialogCancel>
-              <AlertDialogAction onClick={handleConfirmExit} className="bg-volt text-primary-foreground hover:bg-volt/90">
+              {accumulatedXP > 0 && (
+                <AlertDialogAction onClick={() => handleConfirmExit(false)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                  Leave Without Saving
+                </AlertDialogAction>
+              )}
+              <AlertDialogAction onClick={() => handleConfirmExit(true)} className="bg-volt text-primary-foreground hover:bg-volt/90">
                 {accumulatedXP > 0 ? 'Leave & Save XP' : 'Leave'}
               </AlertDialogAction>
             </AlertDialogFooter>
