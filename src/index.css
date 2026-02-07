@@ -262,9 +262,9 @@
   /* Level Up Animation */
   @keyframes level-up-flash {
     0% { opacity: 0; }
-    8% { opacity: 0.75; }
-    40% { opacity: 0.6; }
-    70% { opacity: 0.3; }
+    8% { opacity: 0.95; }
+    40% { opacity: 0.95; }
+    70% { opacity: 0.9; }
     100% { opacity: 0; }
   }
 
