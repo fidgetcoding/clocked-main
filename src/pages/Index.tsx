@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, History, Archive, GripVertical, Check } from 'lucide-react';
+import { Plus, History, Archive, GripVertical, Check, Timer } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import {
   DndContext,
@@ -148,34 +148,40 @@ const Index = () => {
 
         {/* Action Cards */}
         <section className="px-4 pb-6">
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-3 gap-3">
             {/* Create Set */}
             <button
               onClick={() => navigate('/build')}
-              className="card-action h-40 text-left group"
+              className="card-action h-36 text-left group"
             >
-              <Plus className="w-6 h-6 text-volt mb-auto" />
-              <div className="absolute right-4 top-1/2 -translate-y-1/2 opacity-20">
-                <Plus className="w-20 h-20 text-muted-foreground" strokeWidth={1} />
-              </div>
+              <Plus className="w-5 h-5 text-volt mb-auto" />
               <div className="mt-auto">
-                <h3 className="text-lg font-black text-foreground">CREATE</h3>
-                <p className="text-sm text-muted-foreground">SET</p>
+                <h3 className="text-base font-black text-foreground">CREATE</h3>
+                <p className="text-xs text-muted-foreground">SET</p>
               </div>
             </button>
 
             {/* Workout Log */}
             <button
               onClick={() => navigate('/history')}
-              className="card-action h-40 text-left group"
+              className="card-action h-36 text-left group"
             >
-              <History className="w-6 h-6 text-volt mb-auto" />
-              <div className="absolute right-4 top-1/2 -translate-y-1/2 opacity-20">
-                <History className="w-20 h-20 text-muted-foreground" strokeWidth={1} />
-              </div>
+              <History className="w-5 h-5 text-volt mb-auto" />
               <div className="mt-auto">
-                <h3 className="text-lg font-black text-foreground">WORKOUT</h3>
-                <p className="text-sm text-muted-foreground">LOG</p>
+                <h3 className="text-base font-black text-foreground">WORKOUT</h3>
+                <p className="text-xs text-muted-foreground">LOG</p>
+              </div>
+            </button>
+
+            {/* Quick Start */}
+            <button
+              onClick={() => navigate('/quick-session')}
+              className="card-action h-36 text-left group"
+            >
+              <Timer className="w-5 h-5 text-volt mb-auto" />
+              <div className="mt-auto">
+                <h3 className="text-base font-black text-foreground">QUICK</h3>
+                <p className="text-xs text-muted-foreground">START</p>
               </div>
             </button>
           </div>
