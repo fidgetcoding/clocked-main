@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Home, Play, Pause, RotateCcw, SkipForward, SkipBack, ChevronRight, MoreVertical, CheckCircle } from 'lucide-react';
+import { ArrowLeft, Home, Play, Pause, RotateCcw, SkipForward, SkipBack, ChevronRight, MoreVertical, CheckCircle, Zap } from 'lucide-react';
 import { RoundFeedbackPanel } from '@/components/workout/RoundFeedbackPanel';
 import { RoundFeedback } from '@/types';
 import { AppLayout } from '@/components/layout/AppLayout';
@@ -810,10 +810,22 @@ const WorkoutSession = () => {
             </button>
           </div>
           
-          {/* Elapsed time in center-ish area - desaturated volt */}
-          <span className="timer-display text-2xl font-black text-volt/60">
-            {formatTimeCompact(totalElapsed)}
-          </span>
+          {/* Elapsed time + dev button */}
+          <div className="flex items-center gap-2">
+            <span className="timer-display text-2xl font-black text-volt/60">
+              {formatTimeCompact(totalElapsed)}
+            </span>
+            <button
+              onClick={() => {
+                playLevelUpSound();
+                setLevelUpLevel(2);
+              }}
+              className="p-1.5 rounded-full border border-dashed border-volt/30 text-volt/40 hover:text-volt hover:border-volt transition-colors"
+              title="DEV: Test Level Up"
+            >
+              <Zap className="w-3 h-3" />
+            </button>
+          </div>
           
           {/* Right side - XP bar with bubble */}
           <div className="flex items-center relative">
