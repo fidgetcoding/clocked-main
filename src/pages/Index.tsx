@@ -1,5 +1,7 @@
 import { useState } from 'react';
-import { Plus, History, Archive, GripVertical, Check } from 'lucide-react';
+import { Plus, History, Archive, GripVertical, Check, Zap } from 'lucide-react';
+import { LevelUpOverlay } from '@/components/ui/LevelUpOverlay';
+import { useSoundEffects } from '@/hooks/useSoundEffects';
 import { useNavigate } from 'react-router-dom';
 import {
   DndContext,
@@ -42,6 +44,8 @@ const Index = () => {
   const [workoutToDelete, setWorkoutToDelete] = useState<string | null>(null);
   const [isReorderMode, setIsReorderMode] = useState(false);
   const [localWorkouts, setLocalWorkouts] = useState<typeof workouts | null>(null);
+  const [showLevelUpDemo, setShowLevelUpDemo] = useState(false);
+  const { playLevelUpSound } = useSoundEffects();
 
   // Seed presets for new users (runs once per user)
   usePresetSeeding();
@@ -132,6 +136,12 @@ const Index = () => {
 
   return (
     <AppLayout>
+      {showLevelUpDemo && (
+        <LevelUpOverlay 
+          level={2} 
+          onComplete={() => setShowLevelUpDemo(false)} 
+        />
+      )}
       <div className="min-h-screen bg-background">
         {/* Header */}
         <header className="px-4 pt-8 pb-6 text-center safe-top">
@@ -145,6 +155,20 @@ const Index = () => {
             <div className="h-px flex-1 bg-volt/40" />
           </div>
         </header>
+
+        {/* DEV: Level Up Demo Button */}
+        <div className="px-4 pb-3">
+          <button
+            onClick={() => {
+              playLevelUpSound();
+              setShowLevelUpDemo(true);
+            }}
+            className="w-full py-2 rounded-lg bg-surface-1 border border-dashed border-volt/30 text-volt text-xs font-semibold flex items-center justify-center gap-2 opacity-60 hover:opacity-100 transition-opacity"
+          >
+            <Zap className="w-3 h-3" />
+            DEV: Test Level Up Celebration
+          </button>
+        </div>
 
         {/* Action Cards */}
         <section className="px-4 pb-6">
