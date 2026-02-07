@@ -134,6 +134,17 @@ const Index = () => {
     <AppLayout>
       <div className="min-h-screen bg-background">
         {/* Header */}
+        <header className="px-4 pt-8 pb-6 text-center safe-top">
+          <div className="flex items-center justify-center gap-3">
+            <div className="h-px flex-1 bg-volt/40" />
+            <img 
+              src={clockedTextLogo} 
+              alt="CLOCKED" 
+              className="h-8 object-contain"
+            />
+            <div className="h-px flex-1 bg-volt/40" />
+          </div>
+        </header>
 
         {/* Action Cards */}
         <section className="px-4 pb-6">
