@@ -62,10 +62,10 @@ export function BottomNav() {
         <div className="flex-1 flex items-center justify-center">
           <button
             onClick={() => navigate('/quick-session')}
-            className="-mt-7 w-14 h-14 rounded-full bg-volt flex items-center justify-center shadow-lg shadow-volt/40 active:scale-95 transition-transform border-4 border-tech-black"
+            className="-mt-10 w-[4.5rem] h-[4.5rem] rounded-full bg-volt flex items-center justify-center shadow-lg shadow-volt/40 active:scale-95 transition-transform border-4 border-tech-black"
             aria-label="Quick Start Timer"
           >
-            <Timer className="w-6 h-6 text-primary-foreground" />
+            <Timer className="w-7 h-7 text-primary-foreground" />
           </button>
         </div>
 
