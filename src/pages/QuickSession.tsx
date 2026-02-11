@@ -21,6 +21,7 @@ import { cn } from '@/lib/utils';
 import { getStreakMultiplier, getLevelFromXP } from '@/lib/xpSystem';
 import { LevelUpOverlay } from '@/components/ui/LevelUpOverlay';
 import { useSoundEffects } from '@/hooks/useSoundEffects';
+import { computePostLogStats } from '@/lib/workoutTracking';
 
 const QUICK_SESSION_XP_RATE = 0.10; // XP per second
 
@@ -158,11 +159,14 @@ const QuickSession = () => {
       is_manual_entry: false,
       round_feedback: [],
     }, {
-      onSuccess: () => {
+      onSuccess: async () => {
         setLogged(true);
-        updateProfile.mutate({
-          workouts_completed: (profile?.workouts_completed || 0) + 1,
-        });
+        if (user?.id && profile) {
+          const stats = await computePostLogStats(user.id, profile);
+          if (stats) {
+            updateProfile.mutate(stats);
+          }
+        }
       },
       onError: (error) => console.error('Failed to log session:', error),
     });
