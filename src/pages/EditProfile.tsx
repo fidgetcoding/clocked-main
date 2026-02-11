@@ -38,9 +38,11 @@ const EditProfile = () => {
   const [editedName, setEditedName] = useState(user?.name || '');
   const [editedHandle, setEditedHandle] = useState(profile?.handle || '');
   const [editedBio, setEditedBio] = useState(profile?.bio || '');
-  const [useImperial, setUseImperial] = useState(false);
+  const [useImperial, setUseImperial] = useState(true);
   const [weightInput, setWeightInput] = useState('');
-  const [heightInput, setHeightInput] = useState('');
+  const [heightFt, setHeightFt] = useState('');
+  const [heightIn, setHeightIn] = useState('');
+  const [heightCm, setHeightCm] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Initialize weight/height from profile
@@ -50,7 +52,13 @@ const EditProfile = () => {
         setWeightInput(useImperial ? Math.round(profile.weight_kg * 2.20462).toString() : profile.weight_kg.toString());
       }
       if (profile.height_cm) {
-        setHeightInput(useImperial ? Math.round(profile.height_cm / 2.54).toString() : profile.height_cm.toString());
+        if (useImperial) {
+          const totalInches = profile.height_cm / 2.54;
+          setHeightFt(Math.floor(totalInches / 12).toString());
+          setHeightIn(Math.round(totalInches % 12).toString());
+        } else {
+          setHeightCm(profile.height_cm.toString());
+        }
       }
     }
   }, [profile?.weight_kg, profile?.height_cm]);
@@ -320,20 +328,32 @@ const EditProfile = () => {
               <h3 className="text-lg font-bold text-foreground">Body Metrics</h3>
               <button
                 onClick={() => {
-                  setUseImperial(!useImperial);
+                  const switching = !useImperial;
                   // Convert displayed values
                   if (weightInput) {
                     const w = parseFloat(weightInput);
-                    if (!isNaN(w)) setWeightInput(Math.round(!useImperial ? w * 2.20462 : w / 2.20462).toString());
+                    if (!isNaN(w)) setWeightInput(Math.round(switching ? w * 2.20462 : w / 2.20462).toString());
                   }
-                  if (heightInput) {
-                    const h = parseFloat(heightInput);
-                    if (!isNaN(h)) setHeightInput(Math.round(!useImperial ? h / 2.54 : h * 2.54).toString());
+                  if (switching) {
+                    // metric -> imperial: convert cm to ft/in
+                    const cm = parseFloat(heightCm);
+                    if (!isNaN(cm) && cm > 0) {
+                      const totalInches = cm / 2.54;
+                      setHeightFt(Math.floor(totalInches / 12).toString());
+                      setHeightIn(Math.round(totalInches % 12).toString());
+                    }
+                  } else {
+                    // imperial -> metric: convert ft/in to cm
+                    const ft = parseFloat(heightFt) || 0;
+                    const inches = parseFloat(heightIn) || 0;
+                    const cm = Math.round((ft * 12 + inches) * 2.54);
+                    if (cm > 0) setHeightCm(cm.toString());
                   }
+                  setUseImperial(switching);
                 }}
                 className="text-xs text-volt font-medium"
               >
-                {useImperial ? 'Switch to kg/cm' : 'Switch to lbs/in'}
+                {useImperial ? 'Switch to kg/cm' : 'Switch to lbs/ft'}
               </button>
             </div>
             <p className="text-xs text-muted-foreground mb-3">Used for more accurate calorie estimates</p>
@@ -357,25 +377,59 @@ const EditProfile = () => {
                   className="bg-surface-2 border-surface-3 text-foreground"
                 />
               </div>
-              <div>
-                <label className="text-xs text-muted-foreground mb-1 block">
-                  Height ({useImperial ? 'in' : 'cm'})
-                </label>
-                <Input
-                  type="number"
-                  value={heightInput}
-                  onChange={(e) => setHeightInput(e.target.value)}
-                  onBlur={async () => {
-                    const val = parseFloat(heightInput);
-                    if (!isNaN(val) && val > 0) {
-                      const cm = useImperial ? Math.round(val * 2.54 * 10) / 10 : val;
-                      await updateProfile.mutateAsync({ height_cm: cm } as any);
-                    }
-                  }}
-                  placeholder={useImperial ? '68' : '175'}
-                  className="bg-surface-2 border-surface-3 text-foreground"
-                />
-              </div>
+              {useImperial ? (
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className="text-xs text-muted-foreground mb-1 block">Height (ft)</label>
+                    <Input
+                      type="number"
+                      value={heightFt}
+                      onChange={(e) => setHeightFt(e.target.value)}
+                      onBlur={async () => {
+                        const ft = parseFloat(heightFt) || 0;
+                        const inches = parseFloat(heightIn) || 0;
+                        const cm = Math.round((ft * 12 + inches) * 2.54 * 10) / 10;
+                        if (cm > 0) await updateProfile.mutateAsync({ height_cm: cm } as any);
+                      }}
+                      placeholder="5"
+                      className="bg-surface-2 border-surface-3 text-foreground"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs text-muted-foreground mb-1 block">Height (in)</label>
+                    <Input
+                      type="number"
+                      value={heightIn}
+                      onChange={(e) => setHeightIn(e.target.value)}
+                      onBlur={async () => {
+                        const ft = parseFloat(heightFt) || 0;
+                        const inches = parseFloat(heightIn) || 0;
+                        const cm = Math.round((ft * 12 + inches) * 2.54 * 10) / 10;
+                        if (cm > 0) await updateProfile.mutateAsync({ height_cm: cm } as any);
+                      }}
+                      placeholder="10"
+                      className="bg-surface-2 border-surface-3 text-foreground"
+                    />
+                  </div>
+                </div>
+              ) : (
+                <div>
+                  <label className="text-xs text-muted-foreground mb-1 block">Height (cm)</label>
+                  <Input
+                    type="number"
+                    value={heightCm}
+                    onChange={(e) => setHeightCm(e.target.value)}
+                    onBlur={async () => {
+                      const val = parseFloat(heightCm);
+                      if (!isNaN(val) && val > 0) {
+                        await updateProfile.mutateAsync({ height_cm: val } as any);
+                      }
+                    }}
+                    placeholder="175"
+                    className="bg-surface-2 border-surface-3 text-foreground"
+                  />
+                </div>
+              )}
             </div>
           </div>
 
