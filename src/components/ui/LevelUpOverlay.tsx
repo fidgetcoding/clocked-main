@@ -12,7 +12,13 @@ export function LevelUpOverlay({ level, onComplete }: LevelUpOverlayProps) {
   }, [onComplete]);
 
   return (
-    <div className="fixed inset-0 z-[100] pointer-events-none flex items-center justify-center">
+    <div 
+      className="fixed inset-0 z-[100] pointer-events-none flex items-center justify-center overflow-hidden"
+      style={{
+        animation: 'level-up-flash 2.5s ease-out forwards',
+        background: 'transparent',
+      }}
+    >
       {/* Volt flash overlay */}
       <div 
         className="absolute inset-0"
