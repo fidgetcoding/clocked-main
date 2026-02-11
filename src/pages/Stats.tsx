@@ -44,14 +44,15 @@ function StatCard({ icon: Icon, label, value, color, change }: StatCardProps) {
 
 const Stats = () => {
   const { profile } = useProfile();
-  const { stats: workoutStats } = useWorkoutStats();
+  const { stats: workoutStats, history } = useWorkoutStats();
 
   // Get prestige data from profile
   const prestige: Prestige = profile?.prestige || 'beginner';
   const currentLevel = profile?.current_level || 1;
   const ranking = getRankingFromLevel(currentLevel);
   const totalXP = profile?.total_xp || 0;
-  const workoutsCompleted = profile?.workouts_completed || 0;
+  const historyCount = history?.length || 0;
+  const workoutsCompleted = Math.max(profile?.workouts_completed || 0, historyCount);
   const currentStreak = profile?.current_streak || 0;
   const longestStreak = profile?.longest_streak || 0;
 
