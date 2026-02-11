@@ -20,6 +20,7 @@ import { useWorkouts, DbWorkout } from '@/hooks/useWorkouts';
 import { useWorkoutHistory } from '@/hooks/useWorkoutHistory';
 import { useUserStore } from '@/stores/userStore';
 import { useProfile } from '@/hooks/useProfile';
+import { useUserRole } from '@/hooks/useUserRole';
 import { useSpeechSynthesis } from '@/hooks/useSpeechSynthesis';
 import { useSoundEffects } from '@/hooks/useSoundEffects';
 import { cn } from '@/lib/utils';
@@ -90,7 +91,8 @@ const WorkoutSession = () => {
   const navigate = useNavigate();
   const { workouts, updateWorkout } = useWorkouts();
   const { addHistoryEntry } = useWorkoutHistory();
-  const { profile, addXP: addProfileXP } = useProfile();
+  const { profile, addXP: addProfileXP, updateProfile } = useProfile();
+  const { isAdmin } = useUserRole();
   const user = useUserStore((state) => state.user);
   const addLocalXP = useUserStore((state) => state.addXP);
   const { initialize: initSpeech, speak, cancel: cancelSpeech } = useSpeechSynthesis();
@@ -236,14 +238,14 @@ const WorkoutSession = () => {
 
   // Wall-clock ref for background-safe timing
   const lastTickTimeRef = useRef<number>(Date.now());
-  const prevLevelRef = useRef<number>(user?.currentLevel || 1);
+  const prevLevelRef = useRef<number>(profile?.current_level || 1);
 
   const { playLevelUpSound } = useSoundEffects();
 
-  // Compute live level from accumulated XP
+  // Compute live level from accumulated XP - use profile (database) as source of truth
   const liveLevel = getLevelFromXP(
-    (user?.prestige || 'beginner') as any,
-    (user?.totalXP || 0) + accumulatedXP
+    (profile?.prestige || 'beginner') as any,
+    (profile?.total_xp || 0) + accumulatedXP
   );
 
   // Detect level-up during session
@@ -610,7 +612,13 @@ const WorkoutSession = () => {
       is_manual_entry: false,
       round_feedback: feedbackMode === 'advanced' ? roundFeedback : [],
     }, {
-      onSuccess: () => setLogged(true),
+      onSuccess: () => {
+        setLogged(true);
+        // Increment workouts_completed in profile
+        updateProfile.mutate({
+          workouts_completed: (profile?.workouts_completed || 0) + 1,
+        });
+      },
       onError: (error) => console.error('Failed to log workout:', error),
     });
   };
@@ -815,16 +823,18 @@ const WorkoutSession = () => {
             <span className="timer-display text-2xl font-black text-volt/60">
               {formatTimeCompact(totalElapsed)}
             </span>
-            <button
-              onClick={() => {
-                playLevelUpSound();
-                setLevelUpLevel(2);
-              }}
-              className="p-1.5 rounded-full border border-dashed border-volt/30 text-volt/40 hover:text-volt hover:border-volt transition-colors"
-              title="DEV: Test Level Up"
-            >
-              <Zap className="w-3 h-3" />
-            </button>
+            {isAdmin && (
+              <button
+                onClick={() => {
+                  playLevelUpSound();
+                  setLevelUpLevel(2);
+                }}
+                className="p-1.5 rounded-full border border-dashed border-volt/30 text-volt/40 hover:text-volt hover:border-volt transition-colors"
+                title="DEV: Test Level Up"
+              >
+                <Zap className="w-3 h-3" />
+              </button>
+            )}
           </div>
           
           {/* Right side - XP bar with bubble */}
@@ -838,7 +848,7 @@ const WorkoutSession = () => {
                 +{xpBubble.amount} XP
               </div>
             )}
-            <VerticalXPBar prestige={user?.prestige || 'beginner'} level={liveLevel} totalXP={(user?.totalXP || 0) + currentXP} />
+            <VerticalXPBar prestige={profile?.prestige || 'beginner'} level={liveLevel} totalXP={(profile?.total_xp || 0) + currentXP} />
           </div>
         </header>
 
