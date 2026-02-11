@@ -43,7 +43,7 @@ function formatTimeCompact(seconds: number): string {
 const QuickSession = () => {
   const navigate = useNavigate();
   const { addHistoryEntry } = useWorkoutHistory();
-  const { profile, addXP: addProfileXP } = useProfile();
+  const { profile, addXP: addProfileXP, updateProfile } = useProfile();
   const user = useUserStore((state) => state.user);
   const addLocalXP = useUserStore((state) => state.addXP);
 
@@ -60,15 +60,15 @@ const QuickSession = () => {
 
   const lastTickTimeRef = useRef<number>(Date.now());
   const xpAwardedRef = useRef(false);
-  const prevLevelRef = useRef<number>(user?.currentLevel || 1);
+  const prevLevelRef = useRef<number>(profile?.current_level || 1);
 
   const { playLevelUpSound } = useSoundEffects();
   const streakMultiplier = getStreakMultiplier(profile?.current_streak || 0);
 
-  // Compute live level from accumulated XP
+  // Compute live level from accumulated XP - use profile (database) as source of truth
   const liveLevel = getLevelFromXP(
-    (user?.prestige || 'beginner') as any,
-    (user?.totalXP || 0) + accumulatedXP
+    (profile?.prestige || 'beginner') as any,
+    (profile?.total_xp || 0) + accumulatedXP
   );
 
   // Detect level-up
@@ -158,7 +158,12 @@ const QuickSession = () => {
       is_manual_entry: false,
       round_feedback: [],
     }, {
-      onSuccess: () => setLogged(true),
+      onSuccess: () => {
+        setLogged(true);
+        updateProfile.mutate({
+          workouts_completed: (profile?.workouts_completed || 0) + 1,
+        });
+      },
       onError: (error) => console.error('Failed to log session:', error),
     });
   };
@@ -271,9 +276,9 @@ const QuickSession = () => {
           {/* XP Bar */}
           <div className="flex items-center">
             <VerticalXPBar
-              prestige={user?.prestige || 'beginner'}
+              prestige={profile?.prestige || 'beginner'}
               level={liveLevel}
-              totalXP={(user?.totalXP || 0) + accumulatedXP}
+              totalXP={(profile?.total_xp || 0) + accumulatedXP}
             />
           </div>
         </header>
