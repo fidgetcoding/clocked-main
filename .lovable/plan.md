@@ -1,61 +1,53 @@
 
 
-# Fix Workout Count and Day Streak Tracking
+# Switch Body Metrics to American Defaults with ft/in Height
 
-## Problem
+## Current State
+- Default unit is metric (kg/cm), with a toggle to switch to imperial (lbs/in)
+- Height in imperial mode shows inches only (e.g., "68 in") instead of feet + inches
 
-1. **Workouts count shows 0** -- the increment code was added after the first workout was logged, so it was never counted. Also, there's no reconciliation between `workout_history` (the actual log) and `profiles.workouts_completed`.
-2. **Streak always shows 0** -- the `incrementStreak` mutation exists in `useProfile` but is never called from either session page. There is also no logic to check whether workouts were done on consecutive days, and `last_workout_date` is never set.
+## Changes
 
-## Solution
+### File: `src/pages/EditProfile.tsx`
 
-### 1. Make workouts_completed derive from actual history count
+**1. Default to imperial (American units)**
+- Change `useState(false)` to `useState(true)` for `useImperial`
+- Update the `useEffect` that initializes values so it converts from stored metric to imperial by default
 
-Instead of manually incrementing a counter (which drifts), update `handleLog` in both session pages to set `workouts_completed` based on the actual count from `workout_history` after a successful insert. This self-corrects any past discrepancies.
+**2. Split height into feet + inches in imperial mode**
+- Replace the single height input with two inputs (ft and in) when imperial is selected
+- Show a single cm input when metric is selected
+- Store internally in cm (no database changes needed)
+- Conversion: `totalInches = (feet * 12) + inches`, then `cm = totalInches * 2.54`
 
-### 2. Add streak logic to handleLog
+**3. Update toggle label**
+- Default (imperial) shows: "Switch to kg/cm"
+- Toggled (metric) shows: "Switch to lbs/ft"
 
-After logging a workout, calculate whether the streak should increment or reset based on `last_workout_date`:
-- If `last_workout_date` is yesterday or today: increment streak
-- If `last_workout_date` is null or older than yesterday: reset streak to 1
-- Always update `last_workout_date` to today
+**4. Update the unit conversion on toggle**
+- When toggling from imperial to metric: convert lbs to kg, ft/in to cm
+- When toggling from metric to imperial: convert kg to lbs, cm to ft/in
 
-### 3. Files to change
+### State changes
+- Replace single `heightInput` string with `heightFt` and `heightIn` strings for imperial mode, keeping `heightInput` for cm mode
+- Add a conversion helper that handles ft/in to cm and back
 
-**`src/pages/WorkoutSession.tsx`** -- Update `handleLog` onSuccess:
-- Query workout_history count and set `workouts_completed` to that count
-- Add streak calculation logic using `profile.last_workout_date`
-- Update `last_workout_date`, `current_streak`, and `longest_streak` in one `updateProfile` call
+### No database or backend changes needed
+Weight and height remain stored in kg and cm internally.
 
-**`src/pages/QuickSession.tsx`** -- Same changes as WorkoutSession
+## Technical Details
 
-**`src/hooks/useWorkoutHistory.ts`** -- No changes needed (already invalidates queries on success)
+### New state variables
+- `heightFt` (string) -- feet portion in imperial mode
+- `heightIn` (string) -- inches portion in imperial mode
+- `useImperial` default changes from `false` to `true`
 
-### 4. Streak logic detail
+### Conversion logic
+- lbs to kg: `val / 2.20462`
+- kg to lbs: `val * 2.20462`
+- ft/in to cm: `((ft * 12) + in) * 2.54`
+- cm to ft/in: `totalInches = cm / 2.54`, `ft = floor(totalInches / 12)`, `in = round(totalInches % 12)`
 
-```text
-today = current date (date only, no time)
-lastDate = profile.last_workout_date (date only)
+### onBlur save for height (imperial)
+When either ft or in field blurs, compute total cm from both fields and save to profile.
 
-if lastDate == today:
-  // Already worked out today, don't double-count streak
-  newStreak = current_streak (unchanged)
-else if lastDate == yesterday:
-  // Consecutive day, increment
-  newStreak = current_streak + 1
-else:
-  // Gap in training or first workout ever
-  newStreak = 1
-
-longestStreak = max(newStreak, longest_streak)
-last_workout_date = today
-```
-
-### 5. Self-healing workout count
-
-On each log, after the history entry is inserted:
-```text
-workouts_completed = (current workout_history count for this user)
-```
-
-This is done by refetching the history query and using its length, which ensures the count is always accurate regardless of past bugs.
