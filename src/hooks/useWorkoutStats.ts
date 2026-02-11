@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import { useWorkoutHistory } from './useWorkoutHistory';
+import { useProfile } from './useProfile';
 import { startOfWeek, subWeeks, isAfter, isBefore, parseISO } from 'date-fns';
 
 // Difficulty feedback to intensity score mapping (1-5 scale)
@@ -9,13 +10,26 @@ const DIFFICULTY_TO_INTENSITY: Record<string, number> = {
   'too_hard': 5,
 };
 
-// Calorie estimation rates (calories per minute)
+// Calorie estimation rates (calories per minute) - fallback when no weight
 const CALORIE_RATES: Record<string, number> = {
   'too_easy': 8,
   'just_right': 10,
   'too_hard': 12,
   'default': 10,
 };
+
+// MET values from the Compendium of Physical Activities (boxing)
+const DIFFICULTY_TO_MET: Record<string, number> = {
+  'too_easy': 5.5,   // Light/shadowboxing
+  'just_right': 7.8, // Moderate bag work
+  'too_hard': 12.8,  // Intense sparring-level
+  'default': 7.8,
+};
+
+// MET-based calorie calculation: cal/min = MET × weight(kg) × 3.5 / 200
+function metCaloriesPerMinute(met: number, weightKg: number): number {
+  return (met * weightKg * 3.5) / 200;
+}
 
 export interface PeriodStats {
   xp: number;
@@ -50,7 +64,7 @@ export interface WorkoutStats {
   };
 }
 
-function calculatePeriodStats(entries: any[]): PeriodStats {
+function calculatePeriodStats(entries: any[], weightKg?: number | null): PeriodStats {
   let xp = 0;
   let trainingSeconds = 0;
   let rounds = 0;
@@ -71,10 +85,17 @@ function calculatePeriodStats(entries: any[]): PeriodStats {
 
     // Calculate calories
     const durationMinutes = (entry.duration || 0) / 60;
-    const calorieRate = entry.difficulty && CALORIE_RATES[entry.difficulty] 
-      ? CALORIE_RATES[entry.difficulty] 
-      : CALORIE_RATES.default;
-    calories += Math.round(durationMinutes * calorieRate);
+    if (weightKg && weightKg > 0) {
+      const met = entry.difficulty && DIFFICULTY_TO_MET[entry.difficulty]
+        ? DIFFICULTY_TO_MET[entry.difficulty]
+        : DIFFICULTY_TO_MET.default;
+      calories += Math.round(durationMinutes * metCaloriesPerMinute(met, weightKg));
+    } else {
+      const calorieRate = entry.difficulty && CALORIE_RATES[entry.difficulty] 
+        ? CALORIE_RATES[entry.difficulty] 
+        : CALORIE_RATES.default;
+      calories += Math.round(durationMinutes * calorieRate);
+    }
 
     // Intensity
     if (entry.difficulty && DIFFICULTY_TO_INTENSITY[entry.difficulty]) {
@@ -112,6 +133,8 @@ function calculateChange(current: number, previous: number): WeeklyChange | null
 
 export function useWorkoutStats() {
   const { history, isLoading, error } = useWorkoutHistory();
+  const { profile } = useProfile();
+  const weightKg = profile?.weight_kg;
 
   const stats = useMemo<WorkoutStats>(() => {
     const emptyChanges = {
@@ -157,10 +180,17 @@ export function useWorkoutStats() {
       }
 
       const durationMinutes = (entry.duration || 0) / 60;
-      const calorieRate = entry.difficulty && CALORIE_RATES[entry.difficulty] 
-        ? CALORIE_RATES[entry.difficulty] 
-        : CALORIE_RATES.default;
-      totalCalories += Math.round(durationMinutes * calorieRate);
+      if (weightKg && weightKg > 0) {
+        const met = entry.difficulty && DIFFICULTY_TO_MET[entry.difficulty]
+          ? DIFFICULTY_TO_MET[entry.difficulty]
+          : DIFFICULTY_TO_MET.default;
+        totalCalories += Math.round(durationMinutes * metCaloriesPerMinute(met, weightKg));
+      } else {
+        const calorieRate = entry.difficulty && CALORIE_RATES[entry.difficulty] 
+          ? CALORIE_RATES[entry.difficulty] 
+          : CALORIE_RATES.default;
+        totalCalories += Math.round(durationMinutes * calorieRate);
+      }
     }
 
     const totalMinutes = Math.floor(totalDurationSeconds / 60);
@@ -182,8 +212,8 @@ export function useWorkoutStats() {
       return (isAfter(date, lastWeekStart) || date.getTime() === lastWeekStart.getTime()) && isBefore(date, lastWeekEnd);
     });
 
-    const thisWeekStats = calculatePeriodStats(thisWeekEntries);
-    const lastWeekStats = calculatePeriodStats(lastWeekEntries);
+    const thisWeekStats = calculatePeriodStats(thisWeekEntries, weightKg);
+    const lastWeekStats = calculatePeriodStats(lastWeekEntries, weightKg);
 
     // Calculate changes
     const changes = {
@@ -209,7 +239,7 @@ export function useWorkoutStats() {
       workoutsWithFeedback: intensityCount,
       changes,
     };
-  }, [history]);
+  }, [history, weightKg]);
 
   return {
     stats,
