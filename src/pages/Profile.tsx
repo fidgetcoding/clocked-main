@@ -113,8 +113,12 @@ const Profile = () => {
           <div className="flex items-start gap-4 mb-4">
             {/* Avatar */}
             <div className="w-20 h-20 rounded-full bg-volt/20 flex items-center justify-center">
-              {profileAvatar ? (
-                <span className="text-4xl">{profileAvatar}</span>
+            {profileAvatar ? (
+                profileAvatar.startsWith('http') ? (
+                  <img src={profileAvatar} alt={profileName} className="w-20 h-20 rounded-full object-cover" />
+                ) : (
+                  <span className="text-4xl">{profileAvatar}</span>
+                )
               ) : (
                 <User className="w-10 h-10 text-volt" />
               )}
