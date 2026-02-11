@@ -25,6 +25,7 @@ import { useSpeechSynthesis } from '@/hooks/useSpeechSynthesis';
 import { useSoundEffects } from '@/hooks/useSoundEffects';
 import { cn } from '@/lib/utils';
 import { ACTIVITY_XP_RATES, ActivityType, getStreakMultiplier, getActivityTypeFromName, calculateComboXP, getSparringXPRate, getLevelFromXP } from '@/lib/xpSystem';
+import { computePostLogStats } from '@/lib/workoutTracking';
 import { LevelUpOverlay } from '@/components/ui/LevelUpOverlay';
 
 interface FlatSegment {
@@ -612,12 +613,14 @@ const WorkoutSession = () => {
       is_manual_entry: false,
       round_feedback: feedbackMode === 'advanced' ? roundFeedback : [],
     }, {
-      onSuccess: () => {
+      onSuccess: async () => {
         setLogged(true);
-        // Increment workouts_completed in profile
-        updateProfile.mutate({
-          workouts_completed: (profile?.workouts_completed || 0) + 1,
-        });
+        if (user?.id && profile) {
+          const stats = await computePostLogStats(user.id, profile);
+          if (stats) {
+            updateProfile.mutate(stats);
+          }
+        }
       },
       onError: (error) => console.error('Failed to log workout:', error),
     });
