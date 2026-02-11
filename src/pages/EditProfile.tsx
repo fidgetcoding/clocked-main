@@ -38,7 +38,22 @@ const EditProfile = () => {
   const [editedName, setEditedName] = useState(user?.name || '');
   const [editedHandle, setEditedHandle] = useState(profile?.handle || '');
   const [editedBio, setEditedBio] = useState(profile?.bio || '');
+  const [useImperial, setUseImperial] = useState(false);
+  const [weightInput, setWeightInput] = useState('');
+  const [heightInput, setHeightInput] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Initialize weight/height from profile
+  useEffect(() => {
+    if (profile) {
+      if (profile.weight_kg) {
+        setWeightInput(useImperial ? Math.round(profile.weight_kg * 2.20462).toString() : profile.weight_kg.toString());
+      }
+      if (profile.height_cm) {
+        setHeightInput(useImperial ? Math.round(profile.height_cm / 2.54).toString() : profile.height_cm.toString());
+      }
+    }
+  }, [profile?.weight_kg, profile?.height_cm]);
 
   // Update editedHandle and editedBio when profile loads
   const currentHandle = profile?.handle || profile?.name?.toLowerCase().replace(/\s+/g, '') || 'fighter';
@@ -295,6 +310,71 @@ const EditProfile = () => {
               <div className="bg-surface-2 rounded-lg p-3">
                 <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Status</p>
                 <p className="font-semibold text-volt">ACTIVE</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Body Metrics */}
+          <div className="card-workout">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-lg font-bold text-foreground">Body Metrics</h3>
+              <button
+                onClick={() => {
+                  setUseImperial(!useImperial);
+                  // Convert displayed values
+                  if (weightInput) {
+                    const w = parseFloat(weightInput);
+                    if (!isNaN(w)) setWeightInput(Math.round(!useImperial ? w * 2.20462 : w / 2.20462).toString());
+                  }
+                  if (heightInput) {
+                    const h = parseFloat(heightInput);
+                    if (!isNaN(h)) setHeightInput(Math.round(!useImperial ? h / 2.54 : h * 2.54).toString());
+                  }
+                }}
+                className="text-xs text-volt font-medium"
+              >
+                {useImperial ? 'Switch to kg/cm' : 'Switch to lbs/in'}
+              </button>
+            </div>
+            <p className="text-xs text-muted-foreground mb-3">Used for more accurate calorie estimates</p>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-xs text-muted-foreground mb-1 block">
+                  Weight ({useImperial ? 'lbs' : 'kg'})
+                </label>
+                <Input
+                  type="number"
+                  value={weightInput}
+                  onChange={(e) => setWeightInput(e.target.value)}
+                  onBlur={async () => {
+                    const val = parseFloat(weightInput);
+                    if (!isNaN(val) && val > 0) {
+                      const kg = useImperial ? Math.round(val / 2.20462 * 10) / 10 : val;
+                      await updateProfile.mutateAsync({ weight_kg: kg } as any);
+                    }
+                  }}
+                  placeholder={useImperial ? '165' : '75'}
+                  className="bg-surface-2 border-surface-3 text-foreground"
+                />
+              </div>
+              <div>
+                <label className="text-xs text-muted-foreground mb-1 block">
+                  Height ({useImperial ? 'in' : 'cm'})
+                </label>
+                <Input
+                  type="number"
+                  value={heightInput}
+                  onChange={(e) => setHeightInput(e.target.value)}
+                  onBlur={async () => {
+                    const val = parseFloat(heightInput);
+                    if (!isNaN(val) && val > 0) {
+                      const cm = useImperial ? Math.round(val * 2.54 * 10) / 10 : val;
+                      await updateProfile.mutateAsync({ height_cm: cm } as any);
+                    }
+                  }}
+                  placeholder={useImperial ? '68' : '175'}
+                  className="bg-surface-2 border-surface-3 text-foreground"
+                />
               </div>
             </div>
           </div>

@@ -73,7 +73,7 @@ const Stats = () => {
   const trainingStats = [
     { id: 'hours', icon: Clock, label: 'Training Hours', value: `${totalHours}h`, color: 'text-muted-foreground', change: changes.hours },
     { id: 'rounds', icon: Target, label: 'Total Rounds', value: totalRounds.toLocaleString(), color: 'text-muted-foreground', change: changes.rounds },
-    { id: 'calories', icon: Activity, label: 'Calories Burned', value: caloriesBurned.toLocaleString(), color: 'text-muted-foreground', change: changes.calories },
+    { id: 'calories', icon: Activity, label: 'Calories (est.)', value: caloriesBurned.toLocaleString(), color: 'text-muted-foreground', change: changes.calories },
     { id: 'intensity', icon: Dumbbell, label: 'Avg Intensity', value: avgIntensity !== null ? `${avgIntensity}/5` : '--', color: 'text-muted-foreground', change: changes.intensity },
   ];
 

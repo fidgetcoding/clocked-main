@@ -34,6 +34,8 @@ export interface Profile {
   sessions_completed_this_year: number;
   last_workout_date: string | null;
   streak_multiplier: number;
+  weight_kg: number | null;
+  height_cm: number | null;
 }
 
 // Helper to generate handle from name
@@ -91,6 +93,8 @@ export function useProfile() {
           total_training_seconds: data.total_training_seconds || 0,
           sessions_completed_this_year: data.sessions_completed_this_year || 0,
           streak_multiplier: Number(data.streak_multiplier) || 1.0,
+          weight_kg: data.weight_kg ? Number(data.weight_kg) : null,
+          height_cm: data.height_cm ? Number(data.height_cm) : null,
         } as Profile;
       }
       return null;

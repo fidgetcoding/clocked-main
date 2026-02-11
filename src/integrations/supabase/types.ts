@@ -217,6 +217,7 @@ export type Database = {
           experience_level: string | null
           goals: string[] | null
           handle: string | null
+          height_cm: number | null
           id: string
           last_active_at: string | null
           last_workout_date: string | null
@@ -231,6 +232,7 @@ export type Database = {
           total_xp: number
           updated_at: string
           user_id: string
+          weight_kg: number | null
           workouts_completed: number
         }
         Insert: {
@@ -244,6 +246,7 @@ export type Database = {
           experience_level?: string | null
           goals?: string[] | null
           handle?: string | null
+          height_cm?: number | null
           id?: string
           last_active_at?: string | null
           last_workout_date?: string | null
@@ -258,6 +261,7 @@ export type Database = {
           total_xp?: number
           updated_at?: string
           user_id: string
+          weight_kg?: number | null
           workouts_completed?: number
         }
         Update: {
@@ -271,6 +275,7 @@ export type Database = {
           experience_level?: string | null
           goals?: string[] | null
           handle?: string | null
+          height_cm?: number | null
           id?: string
           last_active_at?: string | null
           last_workout_date?: string | null
@@ -285,6 +290,7 @@ export type Database = {
           total_xp?: number
           updated_at?: string
           user_id?: string
+          weight_kg?: number | null
           workouts_completed?: number
         }
         Relationships: []
