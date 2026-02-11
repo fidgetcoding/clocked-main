@@ -1,54 +1,61 @@
 
 
-# Add Weight/Height to Profile for Better Calorie Estimates + Add Estimate Label
+# Fix Workout Count and Day Streak Tracking
 
-## Calorie Methodology Context
+## Problem
 
-The current 8/10/12 cal/min rates are based on published exercise science data (ACE, ACSM studies cite boxing at ~7-13 cal/min depending on intensity). They're validated as a general range but not personalized. Adding body weight allows using the **MET (Metabolic Equivalent) formula**, which is the standard approach in fitness apps:
+1. **Workouts count shows 0** -- the increment code was added after the first workout was logged, so it was never counted. Also, there's no reconciliation between `workout_history` (the actual log) and `profiles.workouts_completed`.
+2. **Streak always shows 0** -- the `incrementStreak` mutation exists in `useProfile` but is never called from either session page. There is also no logic to check whether workouts were done on consecutive days, and `last_workout_date` is never set.
+
+## Solution
+
+### 1. Make workouts_completed derive from actual history count
+
+Instead of manually incrementing a counter (which drifts), update `handleLog` in both session pages to set `workouts_completed` based on the actual count from `workout_history` after a successful insert. This self-corrects any past discrepancies.
+
+### 2. Add streak logic to handleLog
+
+After logging a workout, calculate whether the streak should increment or reset based on `last_workout_date`:
+- If `last_workout_date` is yesterday or today: increment streak
+- If `last_workout_date` is null or older than yesterday: reset streak to 1
+- Always update `last_workout_date` to today
+
+### 3. Files to change
+
+**`src/pages/WorkoutSession.tsx`** -- Update `handleLog` onSuccess:
+- Query workout_history count and set `workouts_completed` to that count
+- Add streak calculation logic using `profile.last_workout_date`
+- Update `last_workout_date`, `current_streak`, and `longest_streak` in one `updateProfile` call
+
+**`src/pages/QuickSession.tsx`** -- Same changes as WorkoutSession
+
+**`src/hooks/useWorkoutHistory.ts`** -- No changes needed (already invalidates queries on success)
+
+### 4. Streak logic detail
 
 ```text
-Calories/min = MET x weight(kg) x 3.5 / 200
+today = current date (date only, no time)
+lastDate = profile.last_workout_date (date only)
+
+if lastDate == today:
+  // Already worked out today, don't double-count streak
+  newStreak = current_streak (unchanged)
+else if lastDate == yesterday:
+  // Consecutive day, increment
+  newStreak = current_streak + 1
+else:
+  // Gap in training or first workout ever
+  newStreak = 1
+
+longestStreak = max(newStreak, longest_streak)
+last_workout_date = today
 ```
 
-Boxing MET values (from the Compendium of Physical Activities):
-- Light/shadowboxing: ~5.5 MET
-- Moderate (bag work): ~7.8 MET  
-- Intense (sparring-level): ~12.8 MET
+### 5. Self-healing workout count
 
-This gives meaningfully more accurate estimates when body weight is known.
+On each log, after the history entry is inserted:
+```text
+workouts_completed = (current workout_history count for this user)
+```
 
-## Changes
-
-### 1. Add weight and height fields to profiles table
-
-- Add `weight_kg` (numeric, nullable) and `height_cm` (numeric, nullable) columns to the `profiles` table
-- These remain optional -- if not set, fall back to current flat-rate estimates
-
-### 2. Add weight/height inputs to Edit Profile page
-
-- Add two new fields to `src/pages/EditProfile.tsx` for weight and height
-- Support both metric and imperial with a toggle (store in metric internally)
-- Keep it simple: two number inputs with unit labels
-
-### 3. Improve calorie calculation in useWorkoutStats
-
-- When `profile.weight_kg` is available, use the MET-based formula instead of the flat rate
-- Map difficulty feedback to MET values: too_easy = 5.5, just_right = 7.8, too_hard = 12.8
-- Fall back to current flat rates if weight is not set
-
-### 4. Add "Estimate" label to calories on Stats page
-
-- Append a small "(est.)" or info icon tooltip next to the calories value on the Stats page so users know it's an approximation
-
-### 5. XP Bar confirmation
-
-No changes needed -- the XP bar is already correctly synced. It reads `profile.total_xp` from the database and adds the in-session `accumulatedXP` on top. When you enter a new workout, it pulls your current progress from the database, so the bar fill reflects your actual position between levels.
-
-## Files to Change
-
-- **New migration**: Add `weight_kg` and `height_cm` columns to `profiles`
-- **`src/pages/EditProfile.tsx`**: Add weight/height input fields
-- **`src/hooks/useWorkoutStats.ts`**: Use MET formula when weight is available
-- **`src/pages/Stats.tsx`**: Add "(est.)" label to calories stat
-- **`src/hooks/useProfile.ts`**: Ensure weight/height fields are included in profile queries (should auto-include with `select('*')`)
-
+This is done by refetching the history query and using its length, which ensures the count is always accurate regardless of past bugs.
