@@ -1,4 +1,5 @@
 import { Flame, Trophy, Clock, Zap, TrendingUp, TrendingDown, Target, Dumbbell, Activity } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { XPBar } from '@/components/ui/XPBar';
 import { PrestigeDisplay } from '@/components/ui/PrestigeDisplay';
@@ -19,11 +20,12 @@ interface StatCardProps {
   value: string;
   color: string;
   change?: WeeklyChange | null;
+  onClick?: () => void;
 }
 
-function StatCard({ icon: Icon, label, value, color, change }: StatCardProps) {
+function StatCard({ icon: Icon, label, value, color, change, onClick }: StatCardProps) {
   return (
-    <div className="card-workout text-left w-full">
+    <div className={cn("card-workout text-left w-full", onClick && "cursor-pointer active:scale-[0.98] transition-transform")} onClick={onClick}>
       <div className="flex items-start justify-between">
         <Icon className={`w-5 h-5 ${color} mb-2`} />
       </div>
@@ -45,7 +47,7 @@ function StatCard({ icon: Icon, label, value, color, change }: StatCardProps) {
 const Stats = () => {
   const { profile } = useProfile();
   const { stats: workoutStats, history } = useWorkoutStats();
-
+  const navigate = useNavigate();
   // Get prestige data from profile
   const prestige: Prestige = profile?.prestige || 'beginner';
   const currentLevel = profile?.current_level || 1;
@@ -66,7 +68,7 @@ const Stats = () => {
   // Gamification stats (XP, achievements, streaks)
   const progressStats = [
     { id: 'xp', icon: Zap, label: 'Total XP', value: totalXP.toLocaleString(), color: 'text-muted-foreground', change: changes.xp },
-    { id: 'workouts', icon: Trophy, label: 'Workouts', value: workoutsCompleted.toString(), color: 'text-muted-foreground', change: changes.workouts },
+    { id: 'workouts', icon: Trophy, label: 'Workouts', value: workoutsCompleted.toString(), color: 'text-muted-foreground', change: changes.workouts, onClick: () => navigate('/history') },
     { id: 'streak', icon: Flame, label: 'Current Streak', value: `${currentStreak} days`, color: 'text-muted-foreground', change: null },
   ];
 
@@ -127,6 +129,7 @@ const Stats = () => {
                   value={stat.value}
                   color={stat.color}
                   change={stat.change}
+                  onClick={stat.onClick}
                 />
               ))}
             </div>
