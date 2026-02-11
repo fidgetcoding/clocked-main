@@ -1,37 +1,30 @@
 
 
-# Move Quick Start from Bottom Nav to Home Screen
+# Level-Up Overlay: 100% Opacity
 
-## What Changes
+## Change
 
-The raised Quick Start timer button will be removed from the bottom navigation bar and added as a third action card on the home screen, alongside "Create Set" and "Workout Log."
+One small CSS update in `src/index.css` -- change the `level-up-flash` keyframe opacity values from `0.95`/`0.9` to `1.0`:
 
-## Layout
-
-The home screen action cards section will change from a 2-column grid to a 3-column grid:
-
-```text
-+-------------+-------------+-------------+
-|   CREATE    |  WORKOUT    |   QUICK     |
-|    SET      |    LOG      |   START     |
-+-------------+-------------+-------------+
+```css
+@keyframes level-up-flash {
+  0% { opacity: 0; }
+  8% { opacity: 1; }
+  40% { opacity: 1; }
+  70% { opacity: 1; }
+  100% { opacity: 0; }
+}
 ```
 
-The Quick Start card will follow the same `card-action` styling as the other two cards, with a Timer icon and the same typography pattern (bold label + muted subtitle).
+## Level-Up Logic Verification
 
-## Bottom Nav
+The celebration **does work correctly** during real gameplay. Here's how:
 
-The bottom nav simplifies to 4 equal items in a row:
+1. As the timer runs, XP accumulates each tick based on the activity type and streak multiplier
+2. A "live level" is recalculated every tick using `getLevelFromXP(prestige, totalXP + accumulatedXP)`
+3. When the live level exceeds the previous level, the overlay fires showing the **correct new level number**
+4. The level-up sound plays simultaneously
+5. After 2.5 seconds the overlay auto-dismisses
 
-```text
-  HOME    MY STATS    FIGHT CLUB    PROFILE
-```
-
-No more raised center button, no gap in the middle -- just a clean, evenly spaced navigation bar.
-
-## Technical Details
-
-1. **`src/components/layout/BottomNav.tsx`** -- Remove the center Quick Start button and its container. Merge `leftNavItems` and `rightNavItems` into a single array rendered evenly.
-
-2. **`src/pages/Index.tsx`** -- Change the action cards grid from `grid-cols-2` to `grid-cols-3` and add a third card for Quick Start (Timer icon, "QUICK" / "START" labels, navigates to `/quick-session`).
+This works identically in both the structured Workout Session timer and the Quick Session timer. The level displayed in the celebration is always the level you just reached.
 
