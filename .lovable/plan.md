@@ -1,34 +1,60 @@
 
 
-# Fix Level-Up Overlay Color Bleed + Louder Sound Effect
+# Fix Level Sync, Workout Count, and Admin-Only Test Button
 
-## Problem 1: Browser UI color bleed
+## Issues Found
 
-The overlay uses `fixed inset-0` which covers the viewport, but the volt-colored background is bleeding into the browser's theme color area (status bar / address bar). The animation ends at `opacity: 0`, but the div itself stays in the DOM until `onComplete` fires at 2500ms -- the animation also takes 2500ms, so there's a tight race. If the animation finishes a hair early, the full-opacity volt div briefly shows unmasked.
+1. **Level shows "1" in workout session despite being level 2**: The WorkoutSession page reads from the local Zustand store (`useUserStore`), which has stale data. The Profile and Stats pages correctly read from the database via `useProfile()`. When you load a workout, it grabs `user?.totalXP` and `user?.prestige` from localStorage -- which may still hold old values from before your last session was saved to the database.
 
-**Fix:** Force the overlay container to hide itself with `opacity: 0` at animation end by adding an inline style that applies `animation-fill-mode: forwards` on the *parent* div as well, and also set `background: transparent` on the parent. Additionally, add `overflow: hidden` to the overlay container to prevent any color from extending into browser chrome regions. The meta theme-color tag (if present) could also cause this -- will check `index.html`.
+2. **Workouts count is 0 despite having logged workouts**: The `handleLog` function in WorkoutSession saves the workout to `workout_history` but never increments `profiles.workouts_completed`. Same issue exists in QuickSession. The counter in the database is stuck at 0.
 
-## Problem 2: Level-up sound is too quiet/short
+3. **Calories**: These are calculated correctly from your workout history entries (duration x rate based on difficulty feedback). They will correlate properly once workout history entries are being logged.
 
-The current sound uses `triangle` wave oscillators at gain `0.15` with very short note lengths (0.12s each, overlapping). The final sustained chord is at gain `0.08`. This is barely audible, especially on phone speakers.
+4. **Admin test button visible to everyone**: The Zap button needs to be restricted to your account only.
 
-**Fix:** Make the sound significantly more impactful:
-- Increase gain from `0.15` to `0.35` for the arpeggio notes
-- Increase final chord gain from `0.08` to `0.25`
-- Slow down the arpeggio (longer notes, less overlap) so it feels more dramatic
-- Add a low sub-bass hit at the start for impact
-- Use `sawtooth` wave type blended with `sine` for a richer tone
-- Make the sustained chord ring longer (1 second instead of 0.5s)
+## Plan
 
-These changes apply to both the hook version (`playLevelUpSound`) and the standalone `playSoundEffect.levelUp()`.
+### 1. Fix Level Sync in WorkoutSession (and QuickSession)
 
-## Files to Change
+Replace the Zustand-based level/XP/prestige reads with database-backed data from `useProfile()`. Specifically:
 
-1. **`src/components/ui/LevelUpOverlay.tsx`** -- Add `overflow: hidden` and ensure the parent div also fades out properly so no color leaks beyond the viewport into browser chrome.
+- Use `profile?.total_xp` instead of `user?.totalXP` for the base XP in `liveLevel` calculation
+- Use `profile?.prestige` instead of `user?.prestige` for prestige tier
+- Initialize `prevLevelRef` from the profile's calculated level, not the local store's `currentLevel`
+- Keep using `accumulatedXP` for the real-time in-session accumulation (this part is correct)
 
-2. **`src/index.css`** -- No changes needed (animation is correct at 100% opacity).
+This ensures when you open any workout, the starting level matches what the database says (level 2), and XP accumulates from there.
 
-3. **`src/hooks/useSoundEffects.ts`** -- Rewrite both the hook `playLevelUpSound` callback and the standalone `playSoundEffect.levelUp()` with louder, more dramatic sound synthesis (higher gain, sub-bass hit, longer sustain, richer waveforms).
+### 2. Increment workouts_completed on Log
 
-4. **`index.html`** -- Check for `theme-color` meta tag that might be getting tinted by the overlay.
+In the `handleLog` function (both WorkoutSession and QuickSession), after successfully saving to `workout_history`, also call `updateProfile` to increment `workouts_completed`:
 
+```text
+updateProfile.mutate({ 
+  workouts_completed: (profile?.workouts_completed || 0) + 1 
+})
+```
+
+This keeps the counter in sync with actual logged workouts.
+
+### 3. Admin-Only Test Button
+
+Create a `user_roles` table with proper RLS and a `has_role` security definer function (following the established security pattern). Assign your account (`nate@lorecraft.io`) the `admin` role. Then conditionally render the Zap test button only when the authenticated user has the admin role.
+
+**Database changes:**
+- Create `app_role` enum: `admin`, `moderator`, `user`
+- Create `user_roles` table with RLS
+- Create `has_role()` security definer function
+- Insert admin role for your user ID (`8a3fdf60-f42f-42d1-8ebc-f0b6a3a43693`)
+
+**Frontend:**
+- Create a `useUserRole()` hook that queries `user_roles` for the current user
+- Wrap the Zap button in `{isAdmin && (...)}` conditional
+
+### 4. Files to Change
+
+- **New migration**: Create `user_roles` table, enum, `has_role` function, seed admin role
+- **New hook**: `src/hooks/useUserRole.ts` -- queries user_roles for current user
+- **`src/pages/WorkoutSession.tsx`** -- Use profile data for level/XP, increment workouts_completed on log, admin-gate the test button
+- **`src/pages/QuickSession.tsx`** -- Same level/XP fix and workouts_completed increment
+- **`src/hooks/useProfile.ts`** -- Add `updateProfile` to the return if not already exposed (it is already returned)
