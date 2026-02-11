@@ -1,60 +1,54 @@
 
 
-# Fix Level Sync, Workout Count, and Admin-Only Test Button
+# Add Weight/Height to Profile for Better Calorie Estimates + Add Estimate Label
 
-## Issues Found
+## Calorie Methodology Context
 
-1. **Level shows "1" in workout session despite being level 2**: The WorkoutSession page reads from the local Zustand store (`useUserStore`), which has stale data. The Profile and Stats pages correctly read from the database via `useProfile()`. When you load a workout, it grabs `user?.totalXP` and `user?.prestige` from localStorage -- which may still hold old values from before your last session was saved to the database.
-
-2. **Workouts count is 0 despite having logged workouts**: The `handleLog` function in WorkoutSession saves the workout to `workout_history` but never increments `profiles.workouts_completed`. Same issue exists in QuickSession. The counter in the database is stuck at 0.
-
-3. **Calories**: These are calculated correctly from your workout history entries (duration x rate based on difficulty feedback). They will correlate properly once workout history entries are being logged.
-
-4. **Admin test button visible to everyone**: The Zap button needs to be restricted to your account only.
-
-## Plan
-
-### 1. Fix Level Sync in WorkoutSession (and QuickSession)
-
-Replace the Zustand-based level/XP/prestige reads with database-backed data from `useProfile()`. Specifically:
-
-- Use `profile?.total_xp` instead of `user?.totalXP` for the base XP in `liveLevel` calculation
-- Use `profile?.prestige` instead of `user?.prestige` for prestige tier
-- Initialize `prevLevelRef` from the profile's calculated level, not the local store's `currentLevel`
-- Keep using `accumulatedXP` for the real-time in-session accumulation (this part is correct)
-
-This ensures when you open any workout, the starting level matches what the database says (level 2), and XP accumulates from there.
-
-### 2. Increment workouts_completed on Log
-
-In the `handleLog` function (both WorkoutSession and QuickSession), after successfully saving to `workout_history`, also call `updateProfile` to increment `workouts_completed`:
+The current 8/10/12 cal/min rates are based on published exercise science data (ACE, ACSM studies cite boxing at ~7-13 cal/min depending on intensity). They're validated as a general range but not personalized. Adding body weight allows using the **MET (Metabolic Equivalent) formula**, which is the standard approach in fitness apps:
 
 ```text
-updateProfile.mutate({ 
-  workouts_completed: (profile?.workouts_completed || 0) + 1 
-})
+Calories/min = MET x weight(kg) x 3.5 / 200
 ```
 
-This keeps the counter in sync with actual logged workouts.
+Boxing MET values (from the Compendium of Physical Activities):
+- Light/shadowboxing: ~5.5 MET
+- Moderate (bag work): ~7.8 MET  
+- Intense (sparring-level): ~12.8 MET
 
-### 3. Admin-Only Test Button
+This gives meaningfully more accurate estimates when body weight is known.
 
-Create a `user_roles` table with proper RLS and a `has_role` security definer function (following the established security pattern). Assign your account (`nate@lorecraft.io`) the `admin` role. Then conditionally render the Zap test button only when the authenticated user has the admin role.
+## Changes
 
-**Database changes:**
-- Create `app_role` enum: `admin`, `moderator`, `user`
-- Create `user_roles` table with RLS
-- Create `has_role()` security definer function
-- Insert admin role for your user ID (`8a3fdf60-f42f-42d1-8ebc-f0b6a3a43693`)
+### 1. Add weight and height fields to profiles table
 
-**Frontend:**
-- Create a `useUserRole()` hook that queries `user_roles` for the current user
-- Wrap the Zap button in `{isAdmin && (...)}` conditional
+- Add `weight_kg` (numeric, nullable) and `height_cm` (numeric, nullable) columns to the `profiles` table
+- These remain optional -- if not set, fall back to current flat-rate estimates
 
-### 4. Files to Change
+### 2. Add weight/height inputs to Edit Profile page
 
-- **New migration**: Create `user_roles` table, enum, `has_role` function, seed admin role
-- **New hook**: `src/hooks/useUserRole.ts` -- queries user_roles for current user
-- **`src/pages/WorkoutSession.tsx`** -- Use profile data for level/XP, increment workouts_completed on log, admin-gate the test button
-- **`src/pages/QuickSession.tsx`** -- Same level/XP fix and workouts_completed increment
-- **`src/hooks/useProfile.ts`** -- Add `updateProfile` to the return if not already exposed (it is already returned)
+- Add two new fields to `src/pages/EditProfile.tsx` for weight and height
+- Support both metric and imperial with a toggle (store in metric internally)
+- Keep it simple: two number inputs with unit labels
+
+### 3. Improve calorie calculation in useWorkoutStats
+
+- When `profile.weight_kg` is available, use the MET-based formula instead of the flat rate
+- Map difficulty feedback to MET values: too_easy = 5.5, just_right = 7.8, too_hard = 12.8
+- Fall back to current flat rates if weight is not set
+
+### 4. Add "Estimate" label to calories on Stats page
+
+- Append a small "(est.)" or info icon tooltip next to the calories value on the Stats page so users know it's an approximation
+
+### 5. XP Bar confirmation
+
+No changes needed -- the XP bar is already correctly synced. It reads `profile.total_xp` from the database and adds the in-session `accumulatedXP` on top. When you enter a new workout, it pulls your current progress from the database, so the bar fill reflects your actual position between levels.
+
+## Files to Change
+
+- **New migration**: Add `weight_kg` and `height_cm` columns to `profiles`
+- **`src/pages/EditProfile.tsx`**: Add weight/height input fields
+- **`src/hooks/useWorkoutStats.ts`**: Use MET formula when weight is available
+- **`src/pages/Stats.tsx`**: Add "(est.)" label to calories stat
+- **`src/hooks/useProfile.ts`**: Ensure weight/height fields are included in profile queries (should auto-include with `select('*')`)
+
