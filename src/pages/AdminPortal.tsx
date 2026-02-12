@@ -232,7 +232,7 @@ const AdminPortal = () => {
                         </p>
                         <p className="text-xs text-muted-foreground truncate">{user.email}</p>
                         <div className="flex gap-3 mt-1">
-                          <span className="text-[10px] text-volt uppercase font-bold">{user.profile_role?.toUpperCase() || 'FIGHTER'}</span>
+                          <span className="text-[10px] text-muted-foreground uppercase font-bold">{user.profile_role?.toUpperCase() || 'FIGHTER'}</span>
                           <span className="text-[10px] text-muted-foreground">{user.total_xp} XP</span>
                           <span className="text-[10px] text-muted-foreground">{user.workouts_completed} sessions</span>
                         </div>
