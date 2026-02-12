@@ -761,8 +761,8 @@ function blockToPhase(block: ParsedBlock): ParsedPhase {
       section: block.section,
       repeats: block.rounds,
       segments,
-      // Don't set combos for superset — each segment manages its own type
-      // But if there are exercise segments, auto-populate their names
+      combos: exerciseEntries.length > 0 ? exerciseEntries : undefined,
+      comboOrder: exerciseEntries.length > 0 ? 'sequential' : undefined,
     };
   }
   
