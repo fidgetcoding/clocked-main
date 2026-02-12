@@ -91,6 +91,7 @@ export interface WorkoutPhase {
   id: string;
   name: string;
   repeats: number;
+  section?: 'warmup' | 'grind' | 'cooldown';
   segments: WorkoutSegment[];
   // NEW: Phase type hint for display/logic
   phaseType?: PhaseType;
