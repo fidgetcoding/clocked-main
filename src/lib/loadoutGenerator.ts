@@ -73,6 +73,7 @@ export function generateLoadoutWorkout(
     id: generateId(),
     name: 'Warmup',
     repeats: 1,
+    section: 'warmup',
     segments: [warmupSegment],
   };
 
@@ -124,6 +125,7 @@ export function generateLoadoutWorkout(
       id: generateId(),
       name: `Round ${index + 1}`,
       repeats: 1,
+      section: 'grind' as const,
       segments,
       combos: [combo],
     };
@@ -134,6 +136,7 @@ export function generateLoadoutWorkout(
     id: generateId(),
     name: 'Conditioning',
     repeats: 1,
+    section: 'grind',
     segments: [
       {
         id: generateId(),
@@ -165,6 +168,7 @@ export function generateLoadoutWorkout(
     id: generateId(),
     name: 'Cooldown',
     repeats: 1,
+    section: 'cooldown',
     segments: [cooldownSegment],
   };
 
