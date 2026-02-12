@@ -178,6 +178,7 @@ const Build = () => {
   const [shareDestination, setShareDestination] = useState<'feed' | 'club'>('feed');
   const [shareTags, setShareTags] = useState<string[]>([]);
   const [shareClubId, setShareClubId] = useState<string | null>(null);
+  const [expandedLibraries, setExpandedLibraries] = useState<Set<string>>(new Set());
   
   const shareWorkout = useShareWorkout();
   const { myMemberships, clubs } = useClubs();
@@ -818,12 +819,27 @@ const Build = () => {
                           
                           const libraryEntries = segmentLibrary || [];
                           
+                          const libraryKey = `${phase.id}-${segIdx}`;
+                          const isLibraryExpanded = expandedLibraries.has(libraryKey);
+                          const toggleLibrary = () => {
+                            setExpandedLibraries(prev => {
+                              const next = new Set(prev);
+                              if (next.has(libraryKey)) next.delete(libraryKey);
+                              else next.add(libraryKey);
+                              return next;
+                            });
+                          };
+                          
                           return (
                           <div className="px-3 pb-3 pt-1">
                             <div className="flex items-center justify-between mb-2">
-                              <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                              <button
+                                onClick={toggleLibrary}
+                                className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1 hover:text-foreground transition-colors"
+                              >
+                                <ChevronDown className={cn("w-3 h-3 transition-transform", !isLibraryExpanded && "-rotate-90")} />
                                 {labelWord} ({libraryEntries.length})
-                              </span>
+                              </button>
                               <button
                                 onClick={() => {
                                   setEditingPhaseId(phase.id);
@@ -836,6 +852,8 @@ const Build = () => {
                                     setComboMode('presets');
                                     setShowComboBuilder(true);
                                   }
+                                  // Auto-expand when adding
+                                  setExpandedLibraries(prev => new Set(prev).add(libraryKey));
                                 }}
                                 className="text-xs font-medium text-volt hover:text-volt/80 flex items-center gap-1"
                               >
@@ -843,54 +861,58 @@ const Build = () => {
                                 Add
                               </button>
                             </div>
-                            {libraryEntries.length === 0 ? (
-                              <p className="text-xs text-muted-foreground text-center py-2">
-                                {emptyText}
-                              </p>
-                            ) : (
-                              <DndContext
-                                sensors={comboSensors}
-                                collisionDetection={closestCenter}
-                                onDragEnd={(event) => {
-                                  const { active, over } = event;
-                                  if (!over || active.id === over.id) return;
-                                  const ids = libraryEntries.map((_, i) => `combo-${phase.id}-${segIdx}-${i}`);
-                                  const oldIndex = ids.indexOf(active.id as string);
-                                  const newIndex = ids.indexOf(over.id as string);
-                                  if (!isSuperset) {
-                                    setPhaseCombos(phase.id, arrayMove(phase.combos || [], oldIndex, newIndex));
-                                  }
-                                }}
-                              >
-                                <SortableContext 
-                                  items={libraryEntries.map((_, i) => `combo-${phase.id}-${segIdx}-${i}`)} 
-                                  strategy={verticalListSortingStrategy}
-                                >
-                                  <div className="space-y-1.5">
-                                    {libraryEntries.map((combo, idx) => (
-                                      <SortableComboItem
-                                        key={`combo-${phase.id}-${segIdx}-${idx}`}
-                                        id={`combo-${phase.id}-${segIdx}-${idx}`}
-                                        combo={combo}
-                                        index={idx}
-                                        onEdit={(i) => {
-                                          if (isSuperset) return; // Superset synthetic entries aren't editable via combo builder
-                                          setEditingPhaseId(phase.id);
-                                          setEditingSegmentContext(ctx);
-                                          setCurrentCombo((phase.combos || [])[i]);
-                                          setEditingComboIndex(i);
-                                          setComboMode(ctx === 'speedbag' ? 'presets' : 'custom');
-                                          setShowComboBuilder(true);
-                                        }}
-                                        onDelete={(i) => {
-                                          if (isSuperset) return; // Superset synthetic entries aren't deletable
-                                          setPhaseCombos(phase.id, (phase.combos || []).filter((_, ci) => ci !== i));
-                                        }}
-                                      />
-                                    ))}
-                                  </div>
-                                </SortableContext>
-                              </DndContext>
+                            {isLibraryExpanded && (
+                              <>
+                                {libraryEntries.length === 0 ? (
+                                  <p className="text-xs text-muted-foreground text-center py-2">
+                                    {emptyText}
+                                  </p>
+                                ) : (
+                                  <DndContext
+                                    sensors={comboSensors}
+                                    collisionDetection={closestCenter}
+                                    onDragEnd={(event) => {
+                                      const { active, over } = event;
+                                      if (!over || active.id === over.id) return;
+                                      const ids = libraryEntries.map((_, i) => `combo-${phase.id}-${segIdx}-${i}`);
+                                      const oldIndex = ids.indexOf(active.id as string);
+                                      const newIndex = ids.indexOf(over.id as string);
+                                      if (!isSuperset) {
+                                        setPhaseCombos(phase.id, arrayMove(phase.combos || [], oldIndex, newIndex));
+                                      }
+                                    }}
+                                  >
+                                    <SortableContext 
+                                      items={libraryEntries.map((_, i) => `combo-${phase.id}-${segIdx}-${i}`)} 
+                                      strategy={verticalListSortingStrategy}
+                                    >
+                                      <div className="space-y-1.5">
+                                        {libraryEntries.map((combo, idx) => (
+                                          <SortableComboItem
+                                            key={`combo-${phase.id}-${segIdx}-${idx}`}
+                                            id={`combo-${phase.id}-${segIdx}-${idx}`}
+                                            combo={combo}
+                                            index={idx}
+                                            onEdit={(i) => {
+                                              if (isSuperset) return;
+                                              setEditingPhaseId(phase.id);
+                                              setEditingSegmentContext(ctx);
+                                              setCurrentCombo((phase.combos || [])[i]);
+                                              setEditingComboIndex(i);
+                                              setComboMode(ctx === 'speedbag' ? 'presets' : 'custom');
+                                              setShowComboBuilder(true);
+                                            }}
+                                            onDelete={(i) => {
+                                              if (isSuperset) return;
+                                              setPhaseCombos(phase.id, (phase.combos || []).filter((_, ci) => ci !== i));
+                                            }}
+                                          />
+                                        ))}
+                                      </div>
+                                    </SortableContext>
+                                  </DndContext>
+                                )}
+                              </>
                             )}
                           </div>
                           );
