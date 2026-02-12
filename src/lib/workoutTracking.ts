@@ -27,7 +27,7 @@ export async function computePostLogStats(
 
   // 2. Self-healing total training seconds: sum all durations from workout_history
   const { data: durationData, error: durationError } = await supabase
-    .rpc('get_total_training_seconds', { target_user_id: userId });
+    .rpc('get_total_training_seconds' as any, { target_user_id: userId });
 
   if (durationError) {
     console.error('Failed to sum training seconds:', durationError);

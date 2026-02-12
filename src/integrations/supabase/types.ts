@@ -501,6 +501,10 @@ export type Database = {
           workouts_completed: number
         }[]
       }
+      get_total_training_seconds: {
+        Args: { target_user_id: string }
+        Returns: number
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
