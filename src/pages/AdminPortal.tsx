@@ -27,6 +27,7 @@ interface AdminUser {
   name: string;
   handle: string | null;
   role: string;
+  profile_role: string;
   experience_level: string | null;
   total_xp: number;
   workouts_completed: number;
@@ -231,7 +232,7 @@ const AdminPortal = () => {
                         </p>
                         <p className="text-xs text-muted-foreground truncate">{user.email}</p>
                         <div className="flex gap-3 mt-1">
-                          <span className="text-[10px] text-volt uppercase font-bold">ADMIN</span>
+                          <span className="text-[10px] text-volt uppercase font-bold">{user.profile_role?.toUpperCase() || 'FIGHTER'}</span>
                           <span className="text-[10px] text-muted-foreground">{user.total_xp} XP</span>
                           <span className="text-[10px] text-muted-foreground">{user.workouts_completed} sessions</span>
                         </div>
@@ -259,7 +260,7 @@ const AdminPortal = () => {
                       </p>
                       <p className="text-xs text-muted-foreground truncate">{user.email}</p>
                       <div className="flex gap-3 mt-1">
-                        <span className="text-[10px] text-muted-foreground uppercase">{user.role}</span>
+                        <span className="text-[10px] text-muted-foreground uppercase">{user.profile_role || 'fighter'}</span>
                         <span className="text-[10px] text-muted-foreground">{user.total_xp} XP</span>
                         <span className="text-[10px] text-muted-foreground">{user.workouts_completed} sessions</span>
                       </div>
