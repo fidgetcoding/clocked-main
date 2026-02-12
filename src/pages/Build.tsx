@@ -30,6 +30,7 @@ const SEGMENT_TYPES: { key: SegmentType; label: string; color: string }[] = [
   { key: 'shadowboxing', label: 'S', color: 'bg-volt/10 text-volt' },
   { key: 'combo', label: 'C', color: 'bg-volt/30 text-volt' },
   { key: 'speedbag', label: 'SB', color: 'bg-orange-500/20 text-orange-400' },
+  { key: 'doubleend', label: 'D', color: 'bg-sky-500/20 text-sky-400' },
 ];
 
 const DEFAULT_SEGMENT: Omit<WorkoutSegment, 'id'> = {
@@ -302,11 +303,11 @@ const Build = () => {
   };
 
   const cycleSegmentType = (phaseId: string, segmentId: string, currentType?: SegmentType) => {
-    const types: SegmentType[] = ['work', 'rest', 'shadowboxing', 'combo', 'speedbag'];
+    const types: SegmentType[] = ['work', 'rest', 'shadowboxing', 'combo', 'speedbag', 'doubleend'];
     const currentIndex = types.indexOf(currentType || 'work');
     const nextType = types[(currentIndex + 1) % types.length];
     const isActive = nextType !== 'rest';
-    const nameMap: Record<string, string> = { work: 'Work', rest: 'Rest', shadowboxing: 'Shadowboxing', combo: 'Combo', speedbag: 'Speed Bag' };
+    const nameMap: Record<string, string> = { work: 'Work', rest: 'Rest', shadowboxing: 'Shadowboxing', combo: 'Combo', speedbag: 'Speed Bag', doubleend: 'Double End Bag' };
     updateSegment(phaseId, segmentId, { 
       segmentType: nextType, 
       type: isActive ? 'active' : 'rest',
@@ -648,7 +649,7 @@ const Build = () => {
                 </button>
 
                 {/* Inline Per-Phase Combos - show if phase has combo, shadowboxing, or speedbag segments */}
-                {phase.segments.some(s => s.segmentType === 'combo' || s.segmentType === 'shadowboxing' || s.segmentType === 'speedbag') && (
+                {phase.segments.some(s => s.segmentType === 'combo' || s.segmentType === 'shadowboxing' || s.segmentType === 'speedbag' || s.segmentType === 'doubleend') && (
                   <div className="px-3 py-3 border-t border-surface-3">
                     <div className="flex items-center justify-between mb-2">
                       <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">

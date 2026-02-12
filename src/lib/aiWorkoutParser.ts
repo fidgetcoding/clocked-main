@@ -52,7 +52,7 @@ export interface ParsedPhase {
 export interface ParsedSegment {
   name: string;
   type: 'active' | 'rest';
-  segmentType?: 'work' | 'rest' | 'shadowboxing' | 'combo' | 'speedbag';
+  segmentType?: 'work' | 'rest' | 'shadowboxing' | 'combo' | 'speedbag' | 'doubleend';
   duration: number;
   exercise?: string;
   activityType?: 'combos' | 'shadowbox' | 'run' | 'pushups' | 'custom';
@@ -441,9 +441,10 @@ function blockToPhase(block: ParsedBlock): ParsedPhase {
   };
 }
 
-function inferSegmentType(name: string): 'work' | 'rest' | 'shadowboxing' | 'combo' | 'speedbag' {
+function inferSegmentType(name: string): 'work' | 'rest' | 'shadowboxing' | 'combo' | 'speedbag' | 'doubleend' {
   const lower = name.toLowerCase();
   if (/shadow/i.test(lower)) return 'shadowboxing';
+  if (/double\s*end/i.test(lower)) return 'doubleend';
   if (/speed\s*bag/i.test(lower)) return 'speedbag';
   if (/combo|heavy\s*bag|bag\s*work|mitt|pad/i.test(lower)) return 'combo';
   return 'work';

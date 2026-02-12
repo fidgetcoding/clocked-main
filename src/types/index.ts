@@ -63,7 +63,7 @@ export interface UserProfile {
 }
 
 // Workout Types
-export type SegmentType = 'work' | 'rest' | 'shadowboxing' | 'combo' | 'speedbag';
+export type SegmentType = 'work' | 'rest' | 'shadowboxing' | 'combo' | 'speedbag' | 'doubleend';
 
 // Activity type for AI-generated segments
 export type ActivityType = 'combos' | 'shadowbox' | 'run' | 'pushups' | 'custom';
