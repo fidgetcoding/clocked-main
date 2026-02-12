@@ -40,7 +40,7 @@ export function useUserSearch(searchQuery: string) {
       // Search for profiles by name using simple ilike filter
       // Note: The .or() filter with ilike patterns has issues in Supabase JS client
       const { data, error } = await supabase
-        .from('profiles')
+        .from('profiles_public')
         .select('id, user_id, name, handle, avatar_url')
         .ilike('name', `%${cleanQuery}%`)
         .neq('user_id', user?.id || '')
