@@ -4,18 +4,19 @@
  * 
  * Structure:
  * WARMUP: Jump Rope OR High Knees (3:00)
- * ROUNDS: 10 Boxing Cycles (Shadow 0:30 + Bag/Shadow 0:30 + Pushups 0:30 + Rest 0:30) = 20:00
- *         + Curlups 1:00 + Rest 1:00 = 22:00
+ * ROUNDS: Segment group phases with megasetRepeats (each group = 1 phase)
+ *         + Conditioning (Curlups 1:00 + Rest 1:00)
  * COOLDOWN: Treadmill OR Jog in Place (10:00)
- * Total: ~35:00
  * 
  * Output: DB-compatible format with flat phases array, each phase tagged with section.
  */
 
 import { WorkoutPhase, WorkoutSegment } from '@/types';
-import { selectCombosForWorkout, TierName } from '@/data/comboPools';
+import { COMBO_POOLS, TierName } from '@/data/comboPools';
 
 export interface UserEquipmentConfig {
+  gloves: boolean;
+  wraps: boolean;
   jumpRope: boolean;
   heavyBag: boolean;
   doubleEndBag: boolean;
@@ -65,16 +66,19 @@ function determinePrimaryBag(equipment: UserEquipmentConfig): 'heavy' | 'double_
 export function generateLoadoutWorkout(
   experienceLevel: string,
   equipment: UserEquipmentConfig,
-  sequential: boolean = false
 ): GeneratedLoadout {
   const tier = mapExperienceToTier(experienceLevel);
-  const combos = selectCombosForWorkout(tier, sequential);
   const primaryBag = determinePrimaryBag(equipment);
-  const hasBag = primaryBag !== 'none';
+  const canUseBag = equipment.gloves && equipment.wraps && (equipment.heavyBag || equipment.doubleEndBag);
 
+  const tierPools = COMBO_POOLS[tier];
   const phases: WorkoutPhase[] = [];
 
+  // Collect all combos across all segments for the top-level combos field
+  const allCombos: string[][] = [];
+
   // ─── WARMUP ────────────────────────────────────────
+  const warmupExercise = equipment.jumpRope ? 'Jump Rope' : 'High Knees';
   phases.push({
     id: generateId(),
     name: 'Warmup',
@@ -82,49 +86,64 @@ export function generateLoadoutWorkout(
     section: 'warmup',
     segments: [{
       id: generateId(),
-      name: equipment.jumpRope ? 'Jump Rope' : 'High Knees',
+      name: warmupExercise,
       type: 'active',
       segmentType: 'exercise',
       duration: 180,
+      exercise: warmupExercise,
     }],
   });
 
-  // ─── ROUNDS (10 boxing cycles) ─────────────────────
-  combos.forEach((combo, index) => {
+  // ─── ROUNDS — Segment Group Phases ─────────────────
+  for (const segment of tierPools.segments) {
+    const roundCount = segment.rounds[1] - segment.rounds[0] + 1;
+    const pool = segment.pool;
+
+    // Add all combos from this pool to the allCombos collection
+    pool.forEach(combo => allCombos.push(combo));
+
     const segments: WorkoutSegment[] = [];
 
-    // Shadowboxing
-    segments.push({
-      id: generateId(),
-      name: 'Shadowboxing',
-      type: 'active',
-      segmentType: 'shadowboxing',
-      duration: hasBag ? 30 : 60,
-      combo,
-    });
+    if (canUseBag) {
+      // Shadowboxing segment (30s) — all combos loaded, random
+      segments.push({
+        id: generateId(),
+        name: 'Shadowboxing',
+        type: 'active',
+        segmentType: 'shadowboxing',
+        duration: 30,
+      });
 
-    // Bag Work (only if user has a bag)
-    if (hasBag) {
+      // Bag Work segment (30s) — same combos, random
       segments.push({
         id: generateId(),
         name: primaryBag === 'heavy' ? 'Heavy Bag' : 'Double End Bag',
         type: 'active',
         segmentType: primaryBag === 'heavy' ? 'combo' : 'doubleend',
         duration: 30,
-        combo,
+      });
+    } else {
+      // No bag: 60s shadowboxing
+      segments.push({
+        id: generateId(),
+        name: 'Shadowboxing',
+        type: 'active',
+        segmentType: 'shadowboxing',
+        duration: 60,
       });
     }
 
-    // Pushups
+    // Pushups segment (30s)
     segments.push({
       id: generateId(),
       name: 'Pushups',
       type: 'active',
       segmentType: 'exercise',
       duration: 30,
+      exercise: 'Pushups',
     });
 
-    // Rest
+    // Rest segment (30s)
     segments.push({
       id: generateId(),
       name: 'Rest',
@@ -135,27 +154,42 @@ export function generateLoadoutWorkout(
 
     phases.push({
       id: generateId(),
-      name: `Round ${index + 1}`,
-      repeats: 1,
+      name: `${segment.name} Rounds`,
+      repeats: roundCount,
       section: 'grind',
       segments,
-      combos: [combo],
+      combos: pool,
+      comboOrder: 'random',
     });
-  });
+  }
 
-  // Conditioning
+  // ─── Conditioning ──────────────────────────────────
   phases.push({
     id: generateId(),
     name: 'Conditioning',
     repeats: 1,
     section: 'grind',
     segments: [
-      { id: generateId(), name: 'Curlups', type: 'active', segmentType: 'exercise', duration: 60 },
-      { id: generateId(), name: 'Rest', type: 'rest', segmentType: 'rest', duration: 60 },
+      {
+        id: generateId(),
+        name: 'Curlups',
+        type: 'active',
+        segmentType: 'exercise',
+        duration: 60,
+        exercise: 'Curlups',
+      },
+      {
+        id: generateId(),
+        name: 'Rest',
+        type: 'rest',
+        segmentType: 'rest',
+        duration: 60,
+      },
     ],
   });
 
   // ─── COOLDOWN ──────────────────────────────────────
+  const cooldownExercise = equipment.treadmill ? 'Treadmill' : 'Jog in Place';
   phases.push({
     id: generateId(),
     name: 'Cooldown',
@@ -163,16 +197,17 @@ export function generateLoadoutWorkout(
     section: 'cooldown',
     segments: [{
       id: generateId(),
-      name: equipment.treadmill ? 'Treadmill' : 'Jog in Place',
+      name: cooldownExercise,
       type: 'active',
       segmentType: 'exercise',
       duration: 600,
+      exercise: cooldownExercise,
     }],
   });
 
   // Calculate total duration
   const warmupDuration = 180;
-  const roundsDuration = combos.length * (hasBag ? 120 : 90) + 120;
+  const roundsDuration = 10 * (canUseBag ? 120 : 120) + 120; // 10 rounds + conditioning
   const cooldownDuration = 600;
   const totalDuration = warmupDuration + roundsDuration + cooldownDuration;
 
@@ -180,11 +215,11 @@ export function generateLoadoutWorkout(
 
   return {
     name: `${tierLabel} Loadout`,
-    description: `Auto-generated ${tierLabel} loadout with ${hasBag ? (primaryBag === 'heavy' ? 'Heavy Bag' : 'Double End Bag') : 'Shadowboxing'} focus`,
+    description: `Auto-generated ${tierLabel} loadout with ${canUseBag ? (primaryBag === 'heavy' ? 'Heavy Bag' : 'Double End Bag') : 'Shadowboxing'} focus`,
     duration: totalDuration,
     difficulty: tier,
     phases,
-    combos,
+    combos: allCombos,
     tags: ['loadout', 'boxing', tier],
     is_preset: true,
     is_archived: false,

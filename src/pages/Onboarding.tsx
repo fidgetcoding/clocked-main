@@ -23,15 +23,15 @@ const experienceLevels = [
   { id: 'pro', label: 'Pro', desc: 'Professional fighter' },
 ] as const;
 
+// Equipment groups: essentials first, then bags, then cardio
 const equipmentOptions = [
-  { id: 'gloves', label: 'Boxing Gloves', icon: '🧤' },
-  { id: 'wraps', label: 'Hand Wraps', icon: '🩹' },
-  { id: 'heavyBag', label: 'Heavy Bag', icon: '🎯' },
-  { id: 'speedBag', label: 'Speed Bag', icon: '💨' },
-  { id: 'doubleEndBag', label: 'Double End Bag', icon: '🔴' },
-  { id: 'jumpRope', label: 'Jump Rope', icon: '🪢' },
-  { id: 'weights', label: 'Weights', icon: '🏋️' },
-  { id: 'treadmill', label: 'Treadmill', icon: '🏃' },
+  { id: 'gloves', label: 'Boxing Gloves', icon: '🧤', group: 'essentials' },
+  { id: 'wraps', label: 'Hand Wraps', icon: '🩹', group: 'essentials' },
+  { id: 'heavyBag', label: 'Heavy Bag', icon: '🎯', group: 'bags' },
+  { id: 'doubleEndBag', label: 'Double End Bag', icon: '🔴', group: 'bags' },
+  { id: 'speedBag', label: 'Speed Bag', icon: '💨', group: 'bags' },
+  { id: 'jumpRope', label: 'Jump Rope', icon: '🪢', group: 'cardio' },
+  { id: 'treadmill', label: 'Treadmill', icon: '🏃', group: 'cardio' },
 ];
 
 // Fighter goals
@@ -133,6 +133,8 @@ const Onboarding = () => {
     
     // Generate loadout workout based on tier + equipment
     const loadoutEquipment = {
+      gloves: !!finalEquipmentBools.gloves,
+      wraps: !!finalEquipmentBools.wraps,
       jumpRope: !!finalEquipmentBools.jumpRope,
       heavyBag: !!finalEquipmentBools.heavyBag,
       doubleEndBag: !!finalEquipmentBools.doubleEndBag,
@@ -393,7 +395,8 @@ const Onboarding = () => {
                 const isSelected = equipment[item.id];
                 const isPrimary = (item.id === 'heavyBag' && primaryBag === 'heavy') ||
                                   (item.id === 'doubleEndBag' && primaryBag === 'double_end');
-                const showStar = isBag && isSelected && equipment.heavyBag && equipment.doubleEndBag;
+                const hasGlovesAndWraps = equipment.gloves && equipment.wraps;
+                const showStar = isBag && isSelected && equipment.heavyBag && equipment.doubleEndBag && hasGlovesAndWraps;
                 return (
                   <button
                     key={item.id}
