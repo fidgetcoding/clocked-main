@@ -264,9 +264,7 @@ const Profile = () => {
           <div className="card-workout text-center py-3">
             <Clock className="w-5 h-5 text-muted-foreground mx-auto mb-1" />
             <p className="text-xl font-bold text-volt">
-              {totalTrainingSeconds >= 3600 
-                ? `${Math.floor(totalTrainingSeconds / 3600)}h` 
-                : `${Math.floor(totalTrainingSeconds / 60)}m`}
+              {formatDuration(totalTrainingSeconds)}
             </p>
             <p className="text-[10px] text-muted-foreground">Total Time</p>
           </div>
