@@ -77,7 +77,13 @@ Deno.serve(async (req) => {
         .from("profiles")
         .select("user_id, name, handle, role, experience_level, total_xp, workouts_completed, current_streak, created_at");
 
+      // Get admin roles
+      const { data: adminRoles } = await supabaseAdmin
+        .from("user_roles")
+        .select("user_id, role");
+
       const profileMap = new Map(profiles?.map((p) => [p.user_id, p]) || []);
+      const adminSet = new Set(adminRoles?.filter((r) => r.role === "admin").map((r) => r.user_id) || []);
 
       const users = authUsers.users.map((u) => {
         const profile = profileMap.get(u.id);
@@ -88,7 +94,7 @@ Deno.serve(async (req) => {
           last_sign_in_at: u.last_sign_in_at,
           name: profile?.name || "Unknown",
           handle: profile?.handle || null,
-          role: profile?.role || "fighter",
+          role: adminSet.has(u.id) ? "admin" : (profile?.role || "fighter"),
           experience_level: profile?.experience_level || null,
           total_xp: profile?.total_xp || 0,
           workouts_completed: profile?.workouts_completed || 0,
