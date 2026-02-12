@@ -401,24 +401,14 @@ const WorkoutSession = () => {
         // Carry over any overshoot into the next segment
         setTimeRemaining(nextDuration + timeRemaining);
       } else if (!isComplete && !xpAwardedRef.current) {
-        // Mark as awarded FIRST to prevent re-entry
+        // Mark as complete FIRST to prevent re-entry
         xpAwardedRef.current = true;
         
-        // Workout complete
+        // Workout complete - stop timer, show journal
+        // XP is NOT persisted here — only when user logs the workout
         cancelSpeech();
         setIsComplete(true);
         setIsRunning(false);
-        
-        // Defer XP awarding to avoid state cascade - use accumulated XP
-        const xpEarned = Math.round(accumulatedXP);
-        queueMicrotask(() => {
-          try {
-            addLocalXP(xpEarned, true);
-            addProfileXP.mutate(xpEarned);
-          } catch (error) {
-            console.error('Failed to award XP:', error);
-          }
-        });
         
         // Mark workout as used
         if (dbWorkout) {
@@ -447,10 +437,9 @@ const WorkoutSession = () => {
     
     setIsRunning(true);
     setIsPaused(false);
-    // Add 10 XP only on first start, not on resume
     if (!hasStartedOnce) {
-      addLocalXP(10, true);
-      addProfileXP.mutate(10);
+      // Track start XP locally only — will be persisted on log
+      setAccumulatedXP(prev => prev + 10);
       showXpBubble(10);
       setHasStartedOnce(true);
     }
@@ -474,37 +463,18 @@ const WorkoutSession = () => {
   };
 
   // Confirmation handlers for exit and restart
-  const handleConfirmExit = (saveXP: boolean = true) => {
-    // Award accumulated XP if any and saving is requested
-    if (saveXP && accumulatedXP > 0 && !xpAwardedRef.current) {
-      xpAwardedRef.current = true;
-      const xpEarned = Math.round(accumulatedXP);
-      try {
-        addLocalXP(xpEarned, true);
-        addProfileXP.mutate(xpEarned);
-      } catch (error) {
-        console.error('Failed to award XP on exit:', error);
-      }
-    }
+  const handleConfirmExit = (saveXP: boolean = false) => {
+    // XP is only persisted when the workout is logged via handleLog
+    // Exiting always discards accumulated XP
     cancelSpeech();
     setShowExitConfirm(false);
     navigate('/');
   };
 
   const handleConfirmRestart = () => {
-    // Award accumulated XP before restarting (they did the work)
-    if (accumulatedXP > 0 && !xpAwardedRef.current) {
-      const xpEarned = Math.round(accumulatedXP);
-      try {
-        addLocalXP(xpEarned, true);
-        addProfileXP.mutate(xpEarned);
-      } catch (error) {
-        console.error('Failed to award XP on restart:', error);
-      }
-    }
+    // Discard accumulated XP on restart
     cancelSpeech();
     setShowRestartConfirm(false);
-    // Reset workout state (don't mark xpAwardedRef as true since we're starting fresh)
     setCurrentSegmentIndex(0);
     setTimeRemaining(10);
     setTotalElapsed(0);
@@ -546,23 +516,11 @@ const WorkoutSession = () => {
   const handleCompleteEarly = () => {
     // Cancel any ongoing speech
     cancelSpeech();
-    // Mark workout as complete
+    // Mark workout as complete — XP will only persist when user logs
     setIsComplete(true);
     setIsRunning(false);
-    
-    // Award XP immediately - use accumulated XP
-    if (!xpAwardedRef.current) {
-      xpAwardedRef.current = true;
-      setHasAwardedXP(true);
-      const xpEarned = Math.round(accumulatedXP);
-      try {
-        // Award XP to both local store (for UI) and database (for persistence)
-        addLocalXP(xpEarned, true);
-        addProfileXP.mutate(xpEarned);
-      } catch (error) {
-        console.error('Failed to award XP:', error);
-      }
-    }
+    xpAwardedRef.current = true;
+    setHasAwardedXP(true);
     
     // Mark workout as used
     if (dbWorkout) {
@@ -602,6 +560,17 @@ const WorkoutSession = () => {
 
   const handleLog = () => {
     const xpEarned = Math.round(accumulatedXP);
+    
+    // Persist XP to database ONLY when user logs the workout
+    if (xpEarned > 0) {
+      try {
+        addLocalXP(xpEarned, true);
+        addProfileXP.mutate(xpEarned);
+      } catch (error) {
+        console.error('Failed to award XP:', error);
+      }
+    }
+    
     addHistoryEntry.mutate({
       workout_id: workout?.id || null,
       workout_name: workout?.name || 'Workout',
@@ -1161,7 +1130,7 @@ const WorkoutSession = () => {
               <AlertDialogTitle>Leave Workout?</AlertDialogTitle>
               <AlertDialogDescription>
                 {accumulatedXP > 0 
-                  ? `Your progress will be saved and you'll receive +${Math.round(accumulatedXP)} XP.`
+                  ? `You have +${Math.round(accumulatedXP)} XP accumulated. Leaving without logging will discard your XP.`
                   : "Are you sure you want to leave this workout?"}
               </AlertDialogDescription>
             </AlertDialogHeader>
@@ -1169,13 +1138,8 @@ const WorkoutSession = () => {
               <AlertDialogCancel className="bg-surface-2 border-surface-3 hover:bg-surface-3">
                 Cancel
               </AlertDialogCancel>
-              {accumulatedXP > 0 && (
-                <AlertDialogAction onClick={() => handleConfirmExit(false)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-                  Leave Without Saving
-                </AlertDialogAction>
-              )}
-              <AlertDialogAction onClick={() => handleConfirmExit(true)} className="bg-volt text-primary-foreground hover:bg-volt/90">
-                {accumulatedXP > 0 ? 'Leave & Save XP' : 'Leave'}
+              <AlertDialogAction onClick={() => handleConfirmExit()} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                Leave
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>
