@@ -559,22 +559,6 @@ const Build = () => {
               placeholder="Workout Name"
               className="text-xl font-bold bg-transparent border-none text-foreground placeholder:text-muted-foreground p-0 h-auto focus-visible:ring-0"
             />
-            <div className="flex gap-2 mt-3">
-              {(['beginner', 'intermediate', 'advanced'] as const).map((d) => (
-                <button
-                  key={d}
-                  onClick={() => setDifficulty(d)}
-                  className={cn(
-                    'px-3 py-1.5 rounded-full text-xs font-medium uppercase transition-colors',
-                    difficulty === d 
-                      ? 'bg-volt text-primary-foreground' 
-                      : 'bg-surface-1 text-muted-foreground'
-                  )}
-                >
-                  {d}
-                </button>
-              ))}
-            </div>
             <p className="text-sm text-muted-foreground mt-2">
               Total: {formatDuration(calculateTotalDuration())}
             </p>
@@ -891,9 +875,28 @@ const Build = () => {
               )}
             </header>
 
-            {/* Mode Toggle - hide for speed bag and exercises (both are single-mode) */}
-            {editingSegmentContext !== 'speedbag' && editingSegmentContext !== 'exercises' && (
-            <div className="px-4 py-3 border-b border-surface-3">
+            {/* Difficulty + Mode Toggle */}
+            {editingSegmentContext !== 'exercises' && (
+            <div className="px-4 py-3 border-b border-surface-3 space-y-3">
+              {/* Difficulty Tabs */}
+              <div className="flex gap-2">
+                {(['beginner', 'intermediate', 'advanced'] as const).map((d) => (
+                  <button
+                    key={d}
+                    onClick={() => setDifficulty(d)}
+                    className={cn(
+                      'flex-1 py-1.5 rounded-full text-xs font-medium uppercase transition-colors',
+                      difficulty === d 
+                        ? 'bg-volt text-primary-foreground' 
+                        : 'bg-surface-1 text-muted-foreground'
+                    )}
+                  >
+                    {d}
+                  </button>
+                ))}
+              </div>
+              {/* Mode Toggle - only for combos */}
+              {editingSegmentContext !== 'speedbag' && (
               <div className="flex gap-2">
                 <button
                   onClick={() => setComboMode('presets')}
@@ -918,6 +921,7 @@ const Build = () => {
                   Custom
                 </button>
               </div>
+              )}
             </div>
             )}
 
@@ -968,25 +972,39 @@ const Build = () => {
                 {editingSegmentContext === 'speedbag' ? (
                   <>
                     <p className="text-xs text-muted-foreground uppercase tracking-wider mb-3">
-                      SPEED BAG DRILLS
+                      {difficulty.toUpperCase()} DRILLS
                     </p>
                     <div className="space-y-2">
-                      {SPEED_BAG_DRILLS.filter(d => d.id !== 'freestyle').map((drill) => (
-                        <button
-                          key={drill.id}
-                          onClick={() => {
-                            addSpeedBagDrill(drill.name);
-                            setShowComboBuilder(false);
-                          }}
-                          className="w-full flex items-center gap-3 bg-surface-1 rounded-lg p-3 border border-surface-3 hover:border-orange-500 transition-colors text-left"
-                        >
-                          <div className="flex-1">
-                            <p className="font-medium text-foreground text-sm">{drill.name}</p>
-                            <p className="text-xs text-muted-foreground mt-1">{drill.description}</p>
-                          </div>
-                          <Plus className="w-5 h-5 text-orange-400" />
-                        </button>
-                      ))}
+                      {(() => {
+                        const DRILL_CATEGORIES: Record<string, string[]> = {
+                          beginner: ['single-alternating', 'doubles', 'double-right-lead', 'double-left-lead', 'side-to-side'],
+                          intermediate: ['triples', 'triple-right-lead', 'triple-left-lead', 'fist-rolls-forward', 'backfists', 'elbow-strikes'],
+                          advanced: ['fist-rolls-reverse', 'one-two-rhythm'],
+                        };
+                        const availableIds = difficulty === 'advanced'
+                          ? [...DRILL_CATEGORIES.beginner, ...DRILL_CATEGORIES.intermediate, ...DRILL_CATEGORIES.advanced]
+                          : difficulty === 'intermediate'
+                          ? [...DRILL_CATEGORIES.beginner, ...DRILL_CATEGORIES.intermediate]
+                          : DRILL_CATEGORIES.beginner;
+                        return SPEED_BAG_DRILLS
+                          .filter(d => d.id !== 'freestyle' && availableIds.includes(d.id))
+                          .map((drill) => (
+                          <button
+                            key={drill.id}
+                            onClick={() => {
+                              addSpeedBagDrill(drill.name);
+                              setShowComboBuilder(false);
+                            }}
+                            className="w-full flex items-center gap-3 bg-surface-1 rounded-lg p-3 border border-surface-3 hover:border-volt/50 transition-colors text-left"
+                          >
+                            <div className="flex-1">
+                              <p className="font-medium text-foreground text-sm">{drill.name}</p>
+                              <p className="text-xs text-muted-foreground mt-1">{drill.description}</p>
+                            </div>
+                            <Plus className="w-5 h-5 text-volt/60" />
+                          </button>
+                        ));
+                      })()}
                     </div>
                   </>
                 ) : (
