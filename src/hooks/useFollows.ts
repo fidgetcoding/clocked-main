@@ -66,17 +66,17 @@ export function useFollows(userId?: string) {
       // Get profiles for those followers
       const followerIds = follows.map(f => f.follower_id);
       const { data: profiles, error: profilesError } = await supabase
-        .from('profiles')
-        .select('user_id, name, avatar_url')
+        .from('profiles_public')
+        .select('user_id, name, avatar_url, handle')
         .in('user_id', followerIds);
       
       if (profilesError) throw profilesError;
       
       return (profiles || []).map(p => ({
-        id: p.user_id,
+        id: p.user_id!,
         name: p.name || 'Fighter',
         avatar: p.avatar_url,
-        handle: '@' + (p.name?.toLowerCase().replace(/\s+/g, '') || 'fighter'),
+        handle: '@' + (p.handle || p.name?.toLowerCase().replace(/\s+/g, '') || 'fighter'),
       })) as FollowUser[];
     },
     enabled: !!targetUserId,
@@ -100,17 +100,17 @@ export function useFollows(userId?: string) {
       // Get profiles for those being followed
       const followingIds = follows.map(f => f.following_id);
       const { data: profiles, error: profilesError } = await supabase
-        .from('profiles')
-        .select('user_id, name, avatar_url')
+        .from('profiles_public')
+        .select('user_id, name, avatar_url, handle')
         .in('user_id', followingIds);
       
       if (profilesError) throw profilesError;
       
       return (profiles || []).map(p => ({
-        id: p.user_id,
+        id: p.user_id!,
         name: p.name || 'Fighter',
         avatar: p.avatar_url,
-        handle: '@' + (p.name?.toLowerCase().replace(/\s+/g, '') || 'fighter'),
+        handle: '@' + (p.handle || p.name?.toLowerCase().replace(/\s+/g, '') || 'fighter'),
       })) as FollowUser[];
     },
     enabled: !!targetUserId,
