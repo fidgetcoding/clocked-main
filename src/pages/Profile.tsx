@@ -161,14 +161,6 @@ const Profile = () => {
                     Edit Profile
                   </Button>
                   <Button 
-                    onClick={handleOpenSearch}
-                    variant="outline" 
-                    size="sm"
-                    className="bg-surface-1 border-surface-3"
-                  >
-                    <Search className="w-4 h-4" />
-                  </Button>
-                  <Button 
                     onClick={() => {
                       navigator.clipboard.writeText(window.location.href);
                       toast.success('Profile link copied!');
@@ -178,6 +170,14 @@ const Profile = () => {
                     className="bg-surface-1 border-surface-3"
                   >
                     <LinkIcon className="w-4 h-4" />
+                  </Button>
+                  <Button 
+                    onClick={handleOpenSearch}
+                    variant="outline" 
+                    size="sm"
+                    className="bg-surface-1 border-surface-3"
+                  >
+                    <Search className="w-4 h-4" />
                   </Button>
                 </div>
               ) : (
