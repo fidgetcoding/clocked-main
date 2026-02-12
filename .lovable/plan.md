@@ -1,79 +1,74 @@
 
 
-## AI Builder: Smart Difficulty Classification and Prestige-Aware Combo Selection
+## Speed Bag Drill Presets in Combo Builder + Dynamic Labels
 
 ### Problem
-When the AI builder generates a workout:
-- It doesn't analyze the actual combo content to determine the correct difficulty tier
-- If a user provides combos with punches 5-8, STEP IN/OUT, CIRCLE, etc., the workout still drops in as "Beginner"
-- When no difficulty is specified in the prompt, it falls back to `experienceLevel` (a string like `'complete_beginner'`) instead of the user's actual prestige from their profile
-- Combos generated when none are specified don't pull from the combo preset library (`comboPresets.ts`)
+1. When you click "Add" under the combos section for a **speed bag** segment, the modal shows punch combo presets (Jab Cross, Triple Jab, etc.) instead of the speed bag drill library (Singles, Doubles, Fist Rolls, etc.)
+2. The label "Combos (N)" and the empty state text "No combos -- segments will be freestyle" don't change based on the segment type. Speed bag segments should say "Drills" instead of "Combos"
 
 ### Solution
 
-#### 1. Add combo content analysis function (`aiWorkoutParser.ts`)
+#### 1. Track which segment type triggered the combo builder
 
-Create a new function `classifyDifficultyFromCombos(combos: string[][])` that inspects the actual punch numbers, defense moves, and footwork in the combos:
-- If any combo contains punches 7-8, or movements like STEP IN/STEP OUT: classify as **advanced**
-- If any combo contains punches 5-6, or PULL/BLOCK/CIRCLE: classify as **intermediate**
-- Otherwise: **beginner**
+When the "Add" button is clicked, we already track `editingPhaseId`. We need to also determine the **dominant combo-capable segment type** in that phase (speed bag vs punch combo bags). Add a piece of state like `editingSegmentContext` that gets set to `'speedbag'` or `'combo'` when the modal opens.
 
-This function will be called after combos are parsed from the prompt. If the user-specified combos imply a higher difficulty than what `inferDifficulty` returned, the difficulty gets upgraded to match.
+The logic: look at the combo-capable segments in the phase. If any segment is `speedbag`, set context to `'speedbag'`. Otherwise, it's standard combo mode.
 
-#### 2. Update `inferDifficulty` to handle prestige strings
+#### 2. Show speed bag drills in the Presets tab
 
-The `userLevel` parameter currently receives values like `'complete_beginner'`, `'beginner'`, `'intermediate'`, `'advanced'`, `'pro'`. The function already handles most of these, but `'complete_beginner'` and `'rookie'` (prestige value) are not mapped. Add those mappings so the fallback works correctly regardless of whether `experienceLevel` or `prestige` is passed.
+When `editingSegmentContext === 'speedbag'`:
+- The modal title changes from "Add Combo" to "Add Drill"
+- The "Presets" tab shows the `SPEED_BAG_DRILLS` array from `speedBagDrills.ts` instead of `comboPresets`
+- Each drill card shows the drill name and description
+- Clicking a drill adds its `id` (or a formatted drill token like the drill name) to the phase combos array
+- The "Custom" tab hides or shows speed-bag-appropriate input (or is hidden entirely since speed bag drills are predefined patterns, not buildable sequences)
 
-#### 3. Pass user prestige as fallback in `AIBuilderModal.tsx`
+#### 3. Dynamic labels in the phase combo section
 
-Update the `handleGenerate` call to prefer the database profile's `prestige` field over the local store's `experienceLevel`. The modal already has access to the user store; we'll also check if a profile hook value is available, or map `experienceLevel` through `experienceLevelToPrestige` for consistency.
+The inline section under each phase needs context-aware labels:
+- **Speed bag segments**: "Drills (N)" instead of "Combos (N)", empty state says "No drills -- segments will be freestyle"
+- **Heavy bag / Double end / Shadowboxing**: Keep current "Combos (N)" and "No combos -- segments will be freestyle"
 
-#### 4. Pull combos from preset library when none specified
+#### Files to modify
 
-When no combos are parsed from the prompt AND the bag type supports combos (heavy bag, double end, shadowboxing), instead of using hardcoded combo arrays:
-- Import `getAllPresets` from `comboPresets.ts`
-- Use the resolved difficulty tier to call `getAllPresets(difficulty)`
-- Select combos from the appropriate preset pool, cycling through them for each round
-
-This ensures the Freestyle Rule is still respected (no combos = Freestyle), but when the system does generate combos (because the context calls for combo work), they come from the proper difficulty-appropriate preset library.
-
-#### 5. Auto-upgrade difficulty when combo content exceeds tier
-
-In `parseWorkoutInput` (the main parser), after all combos are collected and difficulty is inferred:
-- Run `classifyDifficultyFromCombos` on the parsed combos
-- If the combo-derived difficulty is higher than the inferred difficulty, upgrade
-- This ensures "5 rounds heavy bag with 1-2-5-6-3-2" correctly drops as intermediate, not beginner
-
-### Files to modify
-
-- **`src/lib/aiWorkoutParser.ts`** -- Add `classifyDifficultyFromCombos`, update `inferDifficulty` mappings, integrate combo-based difficulty upgrade in `parseWorkoutInput`
-- **`src/components/AIBuilderModal.tsx`** -- Update `generateWorkoutFromPrompt` legacy path to use preset combos instead of hardcoded arrays; map `experienceLevel` through prestige mapping for consistent fallback
+- **`src/pages/Build.tsx`** -- All changes are here:
+  - Add state for segment context tracking
+  - Set context when "Add" / "Edit" buttons are clicked
+  - Conditionally render speed bag drills vs punch combo presets in the modal
+  - Update the "Combos" label and empty state text based on segment types in the phase
 
 ### Technical Details
 
 ```text
-Difficulty classification from combo content:
+State addition:
+  editingSegmentContext: 'speedbag' | 'combo' (default: 'combo')
 
-ADVANCED indicators:
-  Punches: 7, 8
-  Movement: STEP IN, STEP OUT
+Detection logic (when "Add" clicked):
+  Look at phase.segments for any with segmentType === 'speedbag'
+  If found -> set context to 'speedbag'
+  Otherwise -> 'combo'
 
-INTERMEDIATE indicators:
-  Punches: 5, 6
-  Defense: PULL, BLOCK
-  Movement: CIRCLE L, CIRCLE R
+Speed bag preset items:
+  Import SPEED_BAG_DRILLS from '@/data/speedBagDrills'
+  Each drill becomes a selectable preset
+  When selected, add [drill.name] as a single-element combo array
+  e.g., clicking "Doubles" adds ["Doubles"] to phase.combos
 
-BEGINNER (default):
-  Punches: 1, 2, 3, 4
-  Defense: SLIP L/R, ROLL L/R
+Label mapping:
+  speedbag context:
+    - Section header: "Drills (N)"
+    - Add button: "Add"
+    - Empty state: "No drills -- segments will be freestyle"
+    - Modal title: "Add Drill" / "Edit Drill"
+    - Preset header: "SPEED BAG DRILLS"
+  
+  combo context:
+    - Section header: "Combos (N)"  (unchanged)
+    - Modal title: "Add Combo" / "Edit Combo"  (unchanged)
+    - Preset header: "{DIFFICULTY} PRESETS"  (unchanged)
+
+Custom tab for speed bag:
+  Hide the punch/defense/movement key grids
+  Show a simple text input or hide Custom entirely
+  (speed bag drills are named patterns, not buildable number sequences)
 ```
-
-```text
-Resolution order:
-1. Check prompt for explicit difficulty keywords (advanced, beginner, etc.)
-2. Parse combos from prompt -> classify difficulty from combo content
-3. Take the HIGHER of steps 1 and 2
-4. If neither found, fall back to user's prestige tier
-5. Apply history-based adjustments if available
-```
-
