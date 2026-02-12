@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, History, Archive, GripVertical, Check, Timer } from 'lucide-react';
+import { Plus, History, Archive, GripVertical, Check, Timer, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import {
   DndContext,
@@ -186,16 +186,17 @@ const Index = () => {
                 <div className="flex items-center gap-2">
                   <button
                     onClick={handleCancelReorder}
-                    className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+                    className="w-8 h-8 rounded-full bg-surface-2 flex items-center justify-center hover:bg-surface-3 transition-colors"
+                    aria-label="Cancel reorder"
                   >
-                    Cancel
+                    <X className="w-4 h-4 text-muted-foreground" />
                   </button>
                   <button
                     onClick={handleSaveOrder}
-                    className="flex items-center gap-1 text-sm text-volt font-medium"
+                    className="w-8 h-8 rounded-full bg-volt/20 flex items-center justify-center hover:bg-volt/30 transition-colors"
+                    aria-label="Save order"
                   >
-                    <Check className="w-4 h-4" />
-                    Done
+                    <Check className="w-4 h-4 text-volt" />
                   </button>
                 </div>
               ) : (
