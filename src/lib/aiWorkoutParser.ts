@@ -5,6 +5,7 @@
 import { parseComboString, extractCombosFromPrompt, containsComboNotation } from './comboParser';
 import { Workout, WorkoutPhase, WorkoutSegment } from '@/types';
 import { HistoryInsights, getAdjustedDifficulty, getAdjustedRestDuration, getAdjustedRounds } from './workoutHistoryAnalysis';
+import { detectBagType, detectAllSpeedBagDrills, containsSpeedBagVocabulary, DetectedBagType } from '@/data/speedBagDrills';
 
 // =====================================================
 // Default Durations
@@ -29,7 +30,7 @@ export const DEFAULT_DURATIONS = {
 // =====================================================
 
 export const KEYWORD_TAGS: Record<string, string[]> = {
-  boxing: ['box', 'punch', 'jab', 'cross', 'hook', 'uppercut', 'combo', 'heavy bag', 'shadowbox', 'sparring', 'mitt'],
+  boxing: ['box', 'punch', 'jab', 'cross', 'hook', 'uppercut', 'combo', 'heavy bag', 'shadowbox', 'sparring', 'mitt', 'double end bag', 'double-end bag'],
   cardio: ['cardio', 'jump rope', 'run', 'sprint', 'jog', 'treadmill', 'conditioning'],
   hiit: ['hiit', 'interval', 'tabata', 'circuit', 'amrap', 'emom'],
   strength: ['pushup', 'pullup', 'squat', 'burpee', 'plank', 'situp', 'curlup', 'strength'],
@@ -444,10 +445,28 @@ function blockToPhase(block: ParsedBlock): ParsedPhase {
 function inferSegmentType(name: string): 'work' | 'rest' | 'shadowboxing' | 'combo' | 'speedbag' | 'doubleend' {
   const lower = name.toLowerCase();
   if (/shadow/i.test(lower)) return 'shadowboxing';
-  if (/double\s*end/i.test(lower)) return 'doubleend';
-  if (/speed\s*bag/i.test(lower)) return 'speedbag';
-  if (/combo|heavy\s*bag|bag\s*work|mitt|pad/i.test(lower)) return 'combo';
+  if (/double[\s-]*end|de\s*bag|reflex\s*bag|floor\s*to\s*ceiling|spring\s*bag/i.test(lower)) return 'doubleend';
+  if (/speed[\s-]*bag|small\s*bag|platform\s*bag|swivel\s*bag/i.test(lower)) return 'speedbag';
+  if (/combo|heavy[\s-]*bag|bag\s*work|mitt|pad|power\s*bag|big\s*bag/i.test(lower)) return 'combo';
   return 'work';
+}
+
+/**
+ * Determine the correct segment name based on bag type and whether drills/combos are specified.
+ * Enforces the freestyle rule: no specification = Freestyle.
+ */
+function getBagSegmentName(bagType: DetectedBagType, hasDrillsOrCombos: boolean, drillName?: string): string {
+  switch (bagType) {
+    case 'speedbag':
+      if (drillName) return `Speed Bag ${drillName}`;
+      return hasDrillsOrCombos ? 'Speed Bag Drill' : 'Speed Bag Freestyle';
+    case 'doubleend':
+      return hasDrillsOrCombos ? 'Double End Bag Combo Work' : 'Double End Bag Freestyle';
+    case 'heavybag':
+      return hasDrillsOrCombos ? 'Heavy Bag Combo Work' : 'Heavy Bag Freestyle';
+    default:
+      return hasDrillsOrCombos ? 'Combo Work' : 'Freestyle';
+  }
 }
 
 function inferActivityType(name: string): 'combos' | 'shadowbox' | 'run' | 'pushups' | 'custom' {
@@ -560,6 +579,35 @@ function buildLegacyPhases(
   const hasWarmup = !prompt.includes('no warmup') && !prompt.includes('skip warmup');
   const hasCooldown = !prompt.includes('no cooldown') && !prompt.includes('skip cooldown');
   
+  // Detect bag type from prompt
+  const bagType = detectBagType(prompt);
+  const isSpeedBag = bagType === 'speedbag';
+  const isDoubleEnd = bagType === 'doubleend';
+  const speedBagDrills = isSpeedBag ? detectAllSpeedBagDrills(prompt) : [];
+  const hasSpeedBagDrills = speedBagDrills.length > 0;
+  
+  // Determine segment type and name based on bag type
+  let segmentType: 'combo' | 'speedbag' | 'doubleend' | 'shadowboxing' = 'combo';
+  let segmentName = 'Heavy Bag Freestyle';
+  
+  if (isSpeedBag) {
+    segmentType = 'speedbag';
+    segmentName = hasSpeedBagDrills 
+      ? `Speed Bag ${speedBagDrills[0].name}` 
+      : 'Speed Bag Freestyle';
+  } else if (isDoubleEnd) {
+    segmentType = 'doubleend';
+    segmentName = hasCombos ? 'Double End Bag Combo Work' : 'Double End Bag Freestyle';
+  } else if (hasCombos) {
+    segmentName = 'Heavy Bag Combo Work';
+  } else if (prompt.includes('shadow')) {
+    segmentType = 'shadowboxing';
+    segmentName = 'Shadowboxing';
+  } else {
+    // No bag specified, no combos = Heavy Bag Freestyle (most common default)
+    segmentName = 'Heavy Bag Freestyle';
+  }
+  
   if (hasWarmup) {
     phases.push({
       name: 'Dynamic Warmup',
@@ -576,11 +624,11 @@ function buildLegacyPhases(
   
   const grindSegments: ParsedSegment[] = [];
   grindSegments.push({
-    name: hasCombos ? 'Combo Work' : 'Boxing',
+    name: segmentName,
     type: 'active',
-    segmentType: hasCombos ? 'combo' : 'shadowboxing',
+    segmentType: segmentType,
     duration: block.workDuration,
-    activityType: hasCombos ? 'combos' : 'shadowbox',
+    activityType: isSpeedBag ? 'custom' : (hasCombos ? 'combos' : 'shadowbox'),
   });
   
   for (const exercise of exercises) {
@@ -714,6 +762,14 @@ function generateWorkoutName(
   }
   
   const tags = result.tags;
+  const bagType = detectBagType(prompt);
+  
+  // Speed bag and double end bag get specific names
+  if (bagType === 'speedbag') {
+    const drills = detectAllSpeedBagDrills(prompt);
+    return drills.length > 0 ? 'Speed Bag Drill' : 'Speed Bag Session';
+  }
+  if (bagType === 'doubleend') return 'Double End Bag Session';
   
   if (result.parsedCombos && result.combos.length > 0) {
     if (result.combos.length >= 4) return 'Combo Blitz';
