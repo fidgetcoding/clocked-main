@@ -221,12 +221,6 @@ const Profile = () => {
               </span>
               <span className="text-muted-foreground/50">•</span>
               <p className="text-sm text-muted-foreground">{profileHandle}</p>
-              {isOwnProfile && authUser?.email && (
-                <>
-                  <span className="text-muted-foreground/50">•</span>
-                  <p className="text-sm text-muted-foreground">{authUser.email}</p>
-                </>
-              )}
             </div>
           </div>
 
