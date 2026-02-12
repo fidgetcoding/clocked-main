@@ -201,11 +201,6 @@ const AdminPortal = () => {
             </div>
           )}
 
-          {/* User Count */}
-          <div className="flex items-center gap-2 text-muted-foreground">
-            <Users className="w-4 h-4" />
-            <span className="text-sm font-medium">{users.length} users</span>
-          </div>
 
           {/* User List */}
           {isLoading ? (
