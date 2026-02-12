@@ -20,6 +20,7 @@ import {
 import { SPEED_BAG_DRILLS } from '@/data/speedBagDrills';
 import { AIBuilderModal } from '@/components/AIBuilderModal';
 import { useShareWorkout } from '@/hooks/useCommunityPosts';
+import { useClubs } from '@/hooks/useClubs';
 import { toast } from 'sonner';
 import { DndContext, closestCenter, PointerSensor, TouchSensor, useSensor, useSensors } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy, useSortable, arrayMove } from '@dnd-kit/sortable';
@@ -168,8 +169,11 @@ const Build = () => {
   const [shareName, setShareName] = useState('');
   const [shareDestination, setShareDestination] = useState<'feed' | 'club'>('feed');
   const [shareTags, setShareTags] = useState<string[]>([]);
+  const [shareClubId, setShareClubId] = useState<string | null>(null);
   
   const shareWorkout = useShareWorkout();
+  const { myMemberships, clubs } = useClubs();
+  const myClubs = clubs.filter(c => myMemberships.some(m => m.club_id === c.id));
 
   // Combo drag-and-drop
   const comboSensors = useSensors(
@@ -1037,6 +1041,7 @@ const Build = () => {
           if (open) {
             setShareName(name);
             setShareDestination('feed');
+            setShareClubId(null);
             setShareTags([]);
             setShareMessage('');
           }
@@ -1065,7 +1070,7 @@ const Build = () => {
                 <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Share to</label>
                 <div className="flex gap-2 p-1 bg-surface-1 rounded-lg">
                   <button
-                    onClick={() => setShareDestination('feed')}
+                    onClick={() => { setShareDestination('feed'); setShareClubId(null); }}
                     className={cn(
                       'flex-1 py-2 px-3 rounded-md text-sm font-medium transition-all',
                       shareDestination === 'feed'
@@ -1073,7 +1078,7 @@ const Build = () => {
                         : 'text-muted-foreground hover:text-foreground'
                     )}
                   >
-                    Community Feed
+                    Public
                   </button>
                   <button
                     onClick={() => setShareDestination('club')}
@@ -1084,9 +1089,34 @@ const Build = () => {
                         : 'text-muted-foreground hover:text-foreground'
                     )}
                   >
-                    Early Adopters
+                    Private
                   </button>
                 </div>
+
+                {/* Club selector submenu */}
+                {shareDestination === 'club' && (
+                  <div className="space-y-2 mt-2">
+                    {myClubs.length === 0 ? (
+                      <p className="text-sm text-muted-foreground">You haven't joined any clubs yet.</p>
+                    ) : (
+                      myClubs.map((club) => (
+                        <button
+                          key={club.id}
+                          onClick={() => setShareClubId(club.id)}
+                          className={cn(
+                            'w-full flex items-center gap-3 p-3 rounded-lg border transition-all text-left',
+                            shareClubId === club.id
+                              ? 'border-volt bg-volt/10'
+                              : 'border-surface-3 bg-surface-1 hover:border-muted-foreground'
+                          )}
+                        >
+                          <span className="text-xl">{club.icon}</span>
+                          <span className="text-sm font-medium text-foreground">{club.name}</span>
+                        </button>
+                      ))
+                    )}
+                  </div>
+                )}
               </div>
 
               {/* Tags */}
@@ -1162,6 +1192,7 @@ const Build = () => {
                       customName: shareName !== name ? shareName : undefined,
                       tags: shareTags.length > 0 ? shareTags : undefined,
                       destination: shareDestination,
+                      clubId: shareDestination === 'club' ? (shareClubId || undefined) : undefined,
                     },
                     {
                       onSuccess: () => {
@@ -1176,7 +1207,7 @@ const Build = () => {
                   );
                 }}
                 className="bg-volt text-primary-foreground hover:bg-volt/90"
-                disabled={shareWorkout.isPending}
+                disabled={shareWorkout.isPending || (shareDestination === 'club' && !shareClubId)}
               >
                 {shareWorkout.isPending ? 'Sharing...' : 'Share'}
               </Button>

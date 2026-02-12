@@ -16,16 +16,17 @@ export interface CommunityPost {
   tags: string[] | null;
   custom_name: string | null;
   destination: string | null;
+  club_id: string | null;
   // Joined from profiles
   user_name?: string;
   user_avatar?: string;
 }
 
-export function useCommunityPosts(filter: 'all' | 'following' = 'all', destination: 'feed' | 'club' = 'feed') {
+export function useCommunityPosts(filter: 'all' | 'following' = 'all', destination: 'feed' | 'club' = 'feed', clubId?: string) {
   const { user } = useAuth();
 
   return useQuery({
-    queryKey: ['community-posts', filter, destination, user?.id],
+    queryKey: ['community-posts', filter, destination, clubId, user?.id],
     queryFn: async () => {
       // If filtering by following, first get the list of users we follow
       let followingIds: string[] = [];
@@ -37,7 +38,6 @@ export function useCommunityPosts(filter: 'all' | 'following' = 'all', destinati
         
         followingIds = follows?.map(f => f.following_id) || [];
         
-        // If not following anyone, return empty
         if (followingIds.length === 0) {
           return [];
         }
@@ -51,7 +51,9 @@ export function useCommunityPosts(filter: 'all' | 'following' = 'all', destinati
         .limit(50);
 
       // Filter by destination
-      if (destination === 'club') {
+      if (destination === 'club' && clubId) {
+        query = query.eq('destination', 'club').eq('club_id', clubId);
+      } else if (destination === 'club') {
         query = query.eq('destination', 'club');
       } else {
         // Main feed shows 'feed' destination and legacy posts (null)
@@ -100,16 +102,17 @@ export function useShareWorkout() {
       customName,
       tags,
       destination,
+      clubId,
     }: { 
       workout: Workout; 
       message?: string;
       customName?: string;
       tags?: string[];
       destination?: string;
+      clubId?: string;
     }) => {
       if (!user) throw new Error('Must be logged in to share');
 
-      // Sanitize workout data - remove any user-specific info
       const sanitizedWorkout = {
         ...workout,
         id: workout.id,
@@ -137,6 +140,7 @@ export function useShareWorkout() {
           tags: tags || [],
           custom_name: customName || null,
           destination: destination || 'feed',
+          club_id: clubId || null,
         } as any)
         .select()
         .single();
@@ -147,5 +151,106 @@ export function useShareWorkout() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['community-posts'] });
     },
+  });
+}
+
+export function usePostWorkoutComplete() {
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      workoutName,
+      xpEarned,
+      duration,
+    }: {
+      workoutName: string;
+      xpEarned: number;
+      duration: number;
+    }) => {
+      if (!user) throw new Error('Must be logged in');
+
+      const mins = Math.floor(duration / 60);
+      const message = `Completed "${workoutName}" — ${mins}m, +${xpEarned} XP 🔥`;
+
+      const { data, error } = await supabase
+        .from('community_posts')
+        .insert({
+          user_id: user.id,
+          type: 'workout_complete',
+          workout_name: workoutName,
+          message,
+          destination: 'feed',
+        } as any)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['community-posts'] });
+    },
+  });
+}
+
+export function useDeleteCommunityPost() {
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (postId: string) => {
+      if (!user) throw new Error('Must be logged in');
+
+      const { error } = await supabase
+        .from('community_posts')
+        .delete()
+        .eq('id', postId)
+        .eq('user_id', user.id);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['community-posts'] });
+      queryClient.invalidateQueries({ queryKey: ['my-shared-workouts'] });
+    },
+  });
+}
+
+export function useMySharedWorkouts() {
+  const { user } = useAuth();
+
+  return useQuery({
+    queryKey: ['my-shared-workouts', user?.id],
+    queryFn: async () => {
+      if (!user) return [];
+
+      const { data, error } = await supabase
+        .from('community_posts')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('type', 'preset_shared')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      // Fetch club names for private posts
+      const clubIds = [...new Set((data || []).filter(p => p.club_id).map(p => p.club_id!))];
+      let clubMap = new Map<string, string>();
+      if (clubIds.length > 0) {
+        const { data: clubs } = await supabase
+          .from('clubs')
+          .select('id, name')
+          .in('id', clubIds);
+        clubMap = new Map(clubs?.map(c => [c.id, c.name]) || []);
+      }
+
+      return (data || []).map(post => ({
+        ...post,
+        workout_data: post.workout_data as unknown as Workout | null,
+        club_name: post.club_id ? clubMap.get(post.club_id) || 'Unknown Club' : null,
+      }));
+    },
+    enabled: !!user,
   });
 }

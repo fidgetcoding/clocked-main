@@ -27,6 +27,7 @@ import { cn } from '@/lib/utils';
 import { ACTIVITY_XP_RATES, ActivityType, getStreakMultiplier, getActivityTypeFromName, calculateComboXP, getSparringXPRate, getLevelFromXP } from '@/lib/xpSystem';
 import { computePostLogStats } from '@/lib/workoutTracking';
 import { LevelUpOverlay } from '@/components/ui/LevelUpOverlay';
+import { usePostWorkoutComplete } from '@/hooks/useCommunityPosts';
 
 interface FlatSegment {
   id: string;
@@ -99,6 +100,7 @@ const WorkoutSession = () => {
   const navigate = useNavigate();
   const { workouts, updateWorkout } = useWorkouts();
   const { addHistoryEntry } = useWorkoutHistory();
+  const postWorkoutComplete = usePostWorkoutComplete();
   const { profile, addXP: addProfileXP, updateProfile } = useProfile();
   const { isAdmin } = useUserRole();
   const user = useUserStore((state) => state.user);
@@ -684,6 +686,12 @@ const WorkoutSession = () => {
     }, {
       onSuccess: async () => {
         setLogged(true);
+        // Auto-post workout completion to feed
+        postWorkoutComplete.mutate({
+          workoutName: workout?.name || 'Workout',
+          xpEarned: xpEarned,
+          duration: totalElapsed,
+        });
         if (user?.id && profile) {
           const stats = await computePostLogStats(user.id, profile);
           if (stats) {
