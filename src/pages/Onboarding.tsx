@@ -29,6 +29,7 @@ const equipmentOptions = [
   { id: 'doubleEndBag', label: 'Double End Bag', icon: '🔴' },
   { id: 'jumpRope', label: 'Jump Rope', icon: '🪢' },
   { id: 'weights', label: 'Weights', icon: '🏋️' },
+  { id: 'treadmill', label: 'Treadmill', icon: '🏃' },
 ];
 
 // Fighter goals
