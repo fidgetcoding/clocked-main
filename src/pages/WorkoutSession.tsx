@@ -32,7 +32,7 @@ interface FlatSegment {
   id: string;
   name: string;
   type: 'active' | 'rest';
-  segmentType?: 'work' | 'rest' | 'shadowboxing' | 'combo' | 'speedbag';
+  segmentType?: 'work' | 'rest' | 'shadowboxing' | 'combo' | 'speedbag' | 'doubleend';
   duration: number;
   phaseName: string;
   section: 'warmup' | 'grind' | 'cooldown';
@@ -141,8 +141,9 @@ const WorkoutSession = () => {
     tempSegments.forEach((item, idx) => {
       const { segment } = item;
       const isSpeedbag = segment.segmentType === 'speedbag';
-      // Speedbag segments are always freestyle — skip combo assignment
-      if (isSpeedbag) return;
+      const isDoubleend = segment.segmentType === 'doubleend';
+      // Speedbag and double end bag segments are always freestyle — skip combo assignment
+      if (isSpeedbag || isDoubleend) return;
       const isComboSegment = segment.segmentType === 'combo' || segment.comboIndex === 'cycle';
       const isShadowboxing = segment.segmentType === 'shadowboxing' || 
                              segment.name.toLowerCase().includes('shadow') || 
@@ -429,9 +430,11 @@ const WorkoutSession = () => {
           announcement = 'Rest';
         } else if (currentSegment.segmentType === 'shadowboxing' || currentSegment.name.toLowerCase().includes('shadow')) {
           announcement = 'Shadowboxing';
-        } else if (currentSegment.segmentType === 'speedbag') {
-          announcement = 'Speed Bag';
-        } else if (currentSegment.segmentType === 'combo') {
+         } else if (currentSegment.segmentType === 'speedbag') {
+           announcement = 'Speed Bag';
+         } else if (currentSegment.segmentType === 'doubleend') {
+           announcement = 'Double End Bag';
+         } else if (currentSegment.segmentType === 'combo') {
           announcement = 'Combo';
         } else {
           announcement = currentSegment.name;
@@ -791,11 +794,12 @@ const WorkoutSession = () => {
                          currentSegment?.name.toLowerCase().includes('shadow') || 
                          currentSegment?.name.toLowerCase().includes('technique');
   const isSpeedbag = currentSegment?.segmentType === 'speedbag';
+  const isDoubleend = currentSegment?.segmentType === 'doubleend';
   // For shadowboxing, show the nextCombo (the upcoming combo to practice)
   // For combo segments, show the current combo
   // Treat ['FREESTYLE'] as no combo — it means freestyle round
-  // Speedbag is always freestyle (no combo display)
-  const rawCombo = isSpeedbag ? undefined : (isShadowboxing ? currentSegment?.nextCombo : currentSegment?.combo);
+  // Speedbag and double end bag are always freestyle (no combo display)
+  const rawCombo = (isSpeedbag || isDoubleend) ? undefined : (isShadowboxing ? currentSegment?.nextCombo : currentSegment?.combo);
   const isFreestyleCombo = rawCombo?.length === 1 && rawCombo[0] === 'FREESTYLE';
   const displayCombo = isFreestyleCombo ? undefined : rawCombo;
 
@@ -1131,7 +1135,7 @@ const WorkoutSession = () => {
 
           {/* Freestyle Display - for combo-type or speedbag segments with no combos assigned */}
           {!isShadowboxing && !isPreparation && currentSegment?.type === 'active' && 
-           (currentSegment?.segmentType === 'combo' || currentSegment?.segmentType === 'speedbag') &&
+           (currentSegment?.segmentType === 'combo' || currentSegment?.segmentType === 'speedbag' || currentSegment?.segmentType === 'doubleend') &&
            (!displayCombo || displayCombo.length === 0) && (
             <div className="w-full max-w-sm bg-surface-1 rounded-xl p-4 border border-surface-3">
               <p className="text-2xl font-black text-volt text-center">FREESTYLE</p>
