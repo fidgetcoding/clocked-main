@@ -190,37 +190,40 @@ const Profile = () => {
 
           {/* Action Buttons */}
           {isOwnProfile ? (
-            <div className="flex gap-2">
-              <Button 
-                onClick={() => navigate('/edit-profile')}
-                variant="outline" 
-                className="flex-1 bg-surface-1 border-surface-3"
-              >
-                Edit Profile
-              </Button>
+            <div className="space-y-2">
+              <div className="flex gap-2">
+                <Button 
+                  onClick={() => navigate('/edit-profile')}
+                  variant="outline" 
+                  className="flex-1 bg-surface-1 border-surface-3"
+                >
+                  Edit Profile
+                </Button>
+                <Button 
+                  onClick={handleOpenSearch}
+                  variant="outline" 
+                  className="bg-surface-1 border-surface-3"
+                >
+                  <Search className="w-4 h-4" />
+                </Button>
+                <Button 
+                  onClick={() => {
+                    navigator.clipboard.writeText(window.location.href);
+                    toast.success('Profile link copied!');
+                  }}
+                  variant="outline" 
+                  className="bg-surface-1 border-surface-3"
+                >
+                  <LinkIcon className="w-4 h-4" />
+                </Button>
+              </div>
               <Button 
                 onClick={() => setShowSharedWorkouts(true)}
                 variant="outline" 
-                className="bg-surface-1 border-surface-3"
+                className="w-full bg-surface-1 border-surface-3"
               >
-                <Share2 className="w-4 h-4" />
-              </Button>
-              <Button 
-                onClick={handleOpenSearch}
-                variant="outline" 
-                className="bg-surface-1 border-surface-3"
-              >
-                <Search className="w-4 h-4" />
-              </Button>
-              <Button 
-                onClick={() => {
-                  navigator.clipboard.writeText(window.location.href);
-                  toast.success('Profile link copied!');
-                }}
-                variant="outline" 
-                className="bg-surface-1 border-surface-3"
-              >
-                <LinkIcon className="w-4 h-4" />
+                <Share2 className="w-4 h-4 mr-2" />
+                Shared Workouts
               </Button>
             </div>
           ) : (
