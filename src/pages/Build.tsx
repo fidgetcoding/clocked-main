@@ -30,7 +30,7 @@ const SEGMENT_TYPES: { key: SegmentType; label: string; color: string }[] = [
   { key: 'shadowboxing', label: 'S', color: 'bg-volt/10 text-volt' },
   { key: 'combo', label: 'H', color: 'bg-volt/30 text-volt' },
   { key: 'speedbag', label: 'SB', color: 'bg-orange-500/20 text-orange-400' },
-  { key: 'doubleend', label: 'D', color: 'bg-sky-500/20 text-sky-400' },
+  { key: 'doubleend', label: 'DB', color: 'bg-sky-500/20 text-sky-400' },
 ];
 
 const DEFAULT_SEGMENT: Omit<WorkoutSegment, 'id'> = {
