@@ -1,74 +1,57 @@
 
 
-## Speed Bag Drill Presets in Combo Builder + Dynamic Labels
+## Refined "Share to Fight Club" Dialog
 
-### Problem
-1. When you click "Add" under the combos section for a **speed bag** segment, the modal shows punch combo presets (Jab Cross, Triple Jab, etc.) instead of the speed bag drill library (Singles, Doubles, Fist Rolls, etc.)
-2. The label "Combos (N)" and the empty state text "No combos -- segments will be freestyle" don't change based on the segment type. Speed bag segments should say "Drills" instead of "Combos"
+### What changes
 
-### Solution
+The current share modal only has a note textarea. We'll upgrade it to a polished, full-featured share form with three additions:
 
-#### 1. Track which segment type triggered the combo builder
+### 1. Custom Workout Name
+- Add an editable text input pre-filled with the current workout name
+- Users can rename the shared version without affecting their local copy
+- Placed at the top of the form with a "Workout Name" label
 
-When the "Add" button is clicked, we already track `editingPhaseId`. We need to also determine the **dominant combo-capable segment type** in that phase (speed bag vs punch combo bags). Add a piece of state like `editingSegmentContext` that gets set to `'speedbag'` or `'combo'` when the modal opens.
+### 2. Share Destination Selector
+- A segmented toggle or radio group letting users pick where the post goes:
+  - **Community Feed** (default) -- posts to the global feed visible to all
+  - **Early Adopters Club** -- posts to the club feed (if user is a member)
+- Future clubs can be added to this list as they're created
 
-The logic: look at the combo-capable segments in the phase. If any segment is `speedbag`, set context to `'speedbag'`. Otherwise, it's standard combo mode.
+### 3. Tags
+- A row of toggleable tag chips the user can tap to tag their shared workout
+- Tags match the existing category system from the community feed: **Boxing**, **HIIT**, **Conditioning**, **Beginner**, **Intermediate**, **Advanced**, **Cardio**, **Speed Bag**
+- Multiple tags can be selected
+- Tags are stored in the database and displayed on feed posts
 
-#### 2. Show speed bag drills in the Presets tab
+### Database Migration
+- Add a `tags` column (`text[]`, nullable, default `'{}'`) to the `community_posts` table
+- Add a `custom_name` column (`text`, nullable) for the display name override
+- Add a `destination` column (`text`, nullable, default `'feed'`) for share target
 
-When `editingSegmentContext === 'speedbag'`:
-- The modal title changes from "Add Combo" to "Add Drill"
-- The "Presets" tab shows the `SPEED_BAG_DRILLS` array from `speedBagDrills.ts` instead of `comboPresets`
-- Each drill card shows the drill name and description
-- Clicking a drill adds its `id` (or a formatted drill token like the drill name) to the phase combos array
-- The "Custom" tab hides or shows speed-bag-appropriate input (or is hidden entirely since speed bag drills are predefined patterns, not buildable sequences)
+### Files to modify
 
-#### 3. Dynamic labels in the phase combo section
-
-The inline section under each phase needs context-aware labels:
-- **Speed bag segments**: "Drills (N)" instead of "Combos (N)", empty state says "No drills -- segments will be freestyle"
-- **Heavy bag / Double end / Shadowboxing**: Keep current "Combos (N)" and "No combos -- segments will be freestyle"
-
-#### Files to modify
-
-- **`src/pages/Build.tsx`** -- All changes are here:
-  - Add state for segment context tracking
-  - Set context when "Add" / "Edit" buttons are clicked
-  - Conditionally render speed bag drills vs punch combo presets in the modal
-  - Update the "Combos" label and empty state text based on segment types in the phase
+- **`src/pages/Build.tsx`** -- Rebuild the share dialog with name input, destination selector, and tag toggles. Pass `tags`, `custom_name`, and `destination` to the mutation.
+- **`src/hooks/useCommunityPosts.ts`** -- Update `useShareWorkout` mutation to accept and insert `tags`, `custom_name`, and `destination`. Update the `CommunityPost` interface to include `tags`.
+- **`src/pages/FightClub.tsx`** -- Display tags on feed post cards (small colored chips).
+- **Database migration** -- Add `tags`, `custom_name`, and `destination` columns to `community_posts`.
 
 ### Technical Details
 
 ```text
-State addition:
-  editingSegmentContext: 'speedbag' | 'combo' (default: 'combo')
+New community_posts columns:
+  tags        text[]    DEFAULT '{}'    NULLABLE
+  custom_name text                      NULLABLE
+  destination text      DEFAULT 'feed'  NULLABLE
 
-Detection logic (when "Add" clicked):
-  Look at phase.segments for any with segmentType === 'speedbag'
-  If found -> set context to 'speedbag'
-  Otherwise -> 'combo'
+Share dialog layout (top to bottom):
+  1. Title: "Share to Fight Club"
+  2. Input: "Workout Name" (pre-filled with current name)
+  3. Toggle group: "Share to" -> [Community Feed] [Early Adopters]
+  4. Tag chips row: [Boxing] [HIIT] [Conditioning] [Beginner] [Intermediate] [Advanced] [Cardio] [Speed Bag]
+     - Each chip toggles on/off (volt highlight when active)
+  5. Textarea: "Add a note..." (existing)
+  6. Buttons: [Cancel] [Share]
 
-Speed bag preset items:
-  Import SPEED_BAG_DRILLS from '@/data/speedBagDrills'
-  Each drill becomes a selectable preset
-  When selected, add [drill.name] as a single-element combo array
-  e.g., clicking "Doubles" adds ["Doubles"] to phase.combos
-
-Label mapping:
-  speedbag context:
-    - Section header: "Drills (N)"
-    - Add button: "Add"
-    - Empty state: "No drills -- segments will be freestyle"
-    - Modal title: "Add Drill" / "Edit Drill"
-    - Preset header: "SPEED BAG DRILLS"
-  
-  combo context:
-    - Section header: "Combos (N)"  (unchanged)
-    - Modal title: "Add Combo" / "Edit Combo"  (unchanged)
-    - Preset header: "{DIFFICULTY} PRESETS"  (unchanged)
-
-Custom tab for speed bag:
-  Hide the punch/defense/movement key grids
-  Show a simple text input or hide Custom entirely
-  (speed bag drills are named patterns, not buildable number sequences)
+Tag constants:
+  SHARE_TAGS = ['Boxing', 'HIIT', 'Conditioning', 'Beginner', 'Intermediate', 'Advanced', 'Cardio', 'Speed Bag']
 ```
