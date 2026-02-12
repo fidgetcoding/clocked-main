@@ -603,9 +603,13 @@ const Build = () => {
 
                 {/* Segments */}
                 <div className="divide-y divide-surface-3">
-                  {phase.segments.map((segment) => {
+                  {phase.segments.map((segment, segIdx) => {
                     const segInfo = getSegmentTypeInfo(segment.segmentType);
                     const hasComboSupport = segment.segmentType === 'combo' || segment.segmentType === 'shadowboxing' || segment.segmentType === 'speedbag' || segment.segmentType === 'doubleend';
+                    // Only show combos after the LAST combo-capable segment in the phase
+                    const isLastComboSegment = hasComboSupport && !phase.segments.slice(segIdx + 1).some(
+                      s => s.segmentType === 'combo' || s.segmentType === 'shadowboxing' || s.segmentType === 'speedbag' || s.segmentType === 'doubleend'
+                    );
                     return (
                       <div key={segment.id}>
                         <div className="flex items-center gap-3 p-3">
@@ -638,8 +642,8 @@ const Build = () => {
                           </button>
                         </div>
 
-                        {/* Inline Combos - rendered directly below combo-capable segments */}
-                        {hasComboSupport && (
+                        {/* Inline Combos - rendered after last combo-capable segment */}
+                        {isLastComboSegment && (
                           <div className="px-3 pb-3 pt-1">
                             <div className="flex items-center justify-between mb-2">
                               <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
