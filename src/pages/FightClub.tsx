@@ -544,8 +544,17 @@ const FightClub = () => {
                       {post.type === 'preset_shared' && (
                         <>
                           <p className="text-sm text-foreground mt-1">
-                            Shared a workout: <span className="text-volt font-medium">{post.workout_name}</span> 🥊
+                            Shared a workout: <span className="text-volt font-medium">{post.custom_name || post.workout_name}</span> 🥊
                           </p>
+                          {post.tags && post.tags.length > 0 && (
+                            <div className="flex flex-wrap gap-1 mt-2">
+                              {post.tags.map((tag) => (
+                                <span key={tag} className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-volt/15 text-volt border border-volt/20">
+                                  {tag}
+                                </span>
+                              ))}
+                            </div>
+                          )}
                           {post.message && (
                             <p className="text-sm text-muted-foreground mt-2 italic">"{post.message}"</p>
                           )}

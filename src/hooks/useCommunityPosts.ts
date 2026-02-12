@@ -13,6 +13,9 @@ export interface CommunityPost {
   message: string | null;
   likes: number;
   created_at: string;
+  tags: string[] | null;
+  custom_name: string | null;
+  destination: string | null;
   // Joined from profiles
   user_name?: string;
   user_avatar?: string;
@@ -85,10 +88,16 @@ export function useShareWorkout() {
   return useMutation({
     mutationFn: async ({ 
       workout, 
-      message 
+      message,
+      customName,
+      tags,
+      destination,
     }: { 
       workout: Workout; 
       message?: string;
+      customName?: string;
+      tags?: string[];
+      destination?: string;
     }) => {
       if (!user) throw new Error('Must be logged in to share');
 
@@ -96,7 +105,7 @@ export function useShareWorkout() {
       const sanitizedWorkout = {
         ...workout,
         id: workout.id,
-        name: workout.name,
+        name: customName || workout.name,
         icon: workout.icon,
         difficulty: workout.difficulty,
         totalDuration: workout.totalDuration,
@@ -114,10 +123,13 @@ export function useShareWorkout() {
           user_id: user.id,
           type: 'preset_shared',
           workout_id: workout.id,
-          workout_name: workout.name,
+          workout_name: customName || workout.name,
           workout_data: sanitizedWorkout as any,
           message: message || null,
-        })
+          tags: tags || [],
+          custom_name: customName || null,
+          destination: destination || 'feed',
+        } as any)
         .select()
         .single();
 

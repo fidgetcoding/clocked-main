@@ -165,6 +165,9 @@ const Build = () => {
   const [editingSegmentContext, setEditingSegmentContext] = useState<'speedbag' | 'combo'>('combo');
   const [showShareDialog, setShowShareDialog] = useState(false);
   const [shareMessage, setShareMessage] = useState('');
+  const [shareName, setShareName] = useState('');
+  const [shareDestination, setShareDestination] = useState<'feed' | 'club'>('feed');
+  const [shareTags, setShareTags] = useState<string[]>([]);
   
   const shareWorkout = useShareWorkout();
 
@@ -1029,22 +1032,97 @@ const Build = () => {
         )}
 
         {/* Share to Fight Club Dialog */}
-        <Dialog open={showShareDialog} onOpenChange={setShowShareDialog}>
-          <DialogContent className="bg-background border-surface-3">
+        <Dialog open={showShareDialog} onOpenChange={(open) => {
+          setShowShareDialog(open);
+          if (open) {
+            setShareName(name);
+            setShareDestination('feed');
+            setShareTags([]);
+            setShareMessage('');
+          }
+        }}>
+          <DialogContent className="bg-background border-surface-3 max-h-[85vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle className="text-foreground">Share to Fight Club</DialogTitle>
               <DialogDescription className="text-muted-foreground">
-                Share "{name}" with the community. Others will be able to save this workout to their library.
+                Share your workout with the community.
               </DialogDescription>
             </DialogHeader>
-            <div className="py-4">
-              <Textarea
-                value={shareMessage}
-                onChange={(e) => setShareMessage(e.target.value)}
-                placeholder="Add a note about this workout... (optional)"
-                className="bg-surface-1 border-surface-3 text-foreground placeholder:text-muted-foreground resize-none"
-                rows={3}
-              />
+            <div className="space-y-5 py-2">
+              {/* Workout Name */}
+              <div className="space-y-2">
+                <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Workout Name</label>
+                <Input
+                  value={shareName}
+                  onChange={(e) => setShareName(e.target.value)}
+                  placeholder="Workout name"
+                  className="bg-surface-1 border-surface-3 text-foreground"
+                />
+              </div>
+
+              {/* Destination Selector */}
+              <div className="space-y-2">
+                <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Share to</label>
+                <div className="flex gap-2 p-1 bg-surface-1 rounded-lg">
+                  <button
+                    onClick={() => setShareDestination('feed')}
+                    className={cn(
+                      'flex-1 py-2 px-3 rounded-md text-sm font-medium transition-all',
+                      shareDestination === 'feed'
+                        ? 'bg-volt text-primary-foreground'
+                        : 'text-muted-foreground hover:text-foreground'
+                    )}
+                  >
+                    Community Feed
+                  </button>
+                  <button
+                    onClick={() => setShareDestination('club')}
+                    className={cn(
+                      'flex-1 py-2 px-3 rounded-md text-sm font-medium transition-all',
+                      shareDestination === 'club'
+                        ? 'bg-volt text-primary-foreground'
+                        : 'text-muted-foreground hover:text-foreground'
+                    )}
+                  >
+                    Early Adopters
+                  </button>
+                </div>
+              </div>
+
+              {/* Tags */}
+              <div className="space-y-2">
+                <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Tags</label>
+                <div className="flex flex-wrap gap-2">
+                  {['Boxing', 'HIIT', 'Conditioning', 'Beginner', 'Intermediate', 'Advanced', 'Cardio', 'Speed Bag'].map((tag) => (
+                    <button
+                      key={tag}
+                      onClick={() => setShareTags(prev => 
+                        prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag]
+                      )}
+                      className={cn(
+                        'px-3 py-1.5 rounded-full text-xs font-medium transition-all border',
+                        shareTags.includes(tag)
+                          ? 'bg-volt text-primary-foreground border-volt'
+                          : 'bg-surface-1 text-muted-foreground border-surface-3 hover:border-muted-foreground'
+                      )}
+                    >
+                      {tag}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Note */}
+              <div className="space-y-2">
+                <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Note</label>
+                <Textarea
+                  value={shareMessage}
+                  onChange={(e) => setShareMessage(e.target.value)}
+                  placeholder="Add a note about this workout... (optional)"
+                  className="bg-surface-1 border-surface-3 text-foreground placeholder:text-muted-foreground resize-none"
+                  rows={3}
+                />
+              </div>
             </div>
             <DialogFooter className="gap-2">
               <Button 
@@ -1061,7 +1139,7 @@ const Build = () => {
                 onClick={() => {
                   const workout: Workout = {
                     id: workoutId || editId || generateId(),
-                    name,
+                    name: shareName || name,
                     icon: '🥊',
                     difficulty,
                     totalDuration: calculateTotalDuration(),
@@ -1074,11 +1152,17 @@ const Build = () => {
                       grind: grindPhases,
                       cooldown: cooldownPhases,
                     },
-                    combos: undefined, // combos are per-phase now
+                    combos: undefined,
                   };
                   
                   shareWorkout.mutate(
-                    { workout, message: shareMessage || undefined },
+                    { 
+                      workout, 
+                      message: shareMessage || undefined,
+                      customName: shareName !== name ? shareName : undefined,
+                      tags: shareTags.length > 0 ? shareTags : undefined,
+                      destination: shareDestination,
+                    },
                     {
                       onSuccess: () => {
                         toast.success('Shared to Fight Club!');
