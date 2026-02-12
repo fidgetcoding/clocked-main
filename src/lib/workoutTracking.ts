@@ -25,7 +25,17 @@ export async function computePostLogStats(
 
   const workoutsCompleted = count || 0;
 
-  // 2. Streak logic
+  // 2. Self-healing total training seconds: sum all durations from workout_history
+  const { data: durationData, error: durationError } = await supabase
+    .rpc('get_total_training_seconds', { target_user_id: userId });
+
+  if (durationError) {
+    console.error('Failed to sum training seconds:', durationError);
+  }
+
+  const totalTrainingSeconds = durationError ? undefined : (durationData || 0);
+
+  // 3. Streak logic
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   const todayStr = today.toISOString().split('T')[0]; // YYYY-MM-DD
@@ -50,10 +60,16 @@ export async function computePostLogStats(
 
   const longestStreak = Math.max(newStreak, profile.longest_streak);
 
-  return {
+  const result: Record<string, any> = {
     workouts_completed: workoutsCompleted,
     current_streak: newStreak,
     longest_streak: longestStreak,
     last_workout_date: todayStr,
   };
+
+  if (totalTrainingSeconds !== undefined) {
+    result.total_training_seconds = totalTrainingSeconds;
+  }
+
+  return result;
 }
