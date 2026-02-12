@@ -784,11 +784,41 @@ const Build = () => {
                             : ctx === 'exercises'
                             ? 'No exercises selected - segments will be freestyle'
                             : 'No combos selected - segments will be freestyle';
+                          
+                          // Determine if this is a superset (multiple active segment types)
+                          const activeSegments = phase.segments.filter(s => s.type === 'active');
+                          const isSuperset = activeSegments.length >= 2 && 
+                            new Set(activeSegments.map(s => s.segmentType)).size > 1;
+                          
+                          // For superset phases, derive per-segment libraries independently
+                          let segmentLibrary: string[][] | undefined;
+                          if (isSuperset) {
+                            if (ctx === 'exercises') {
+                              // E segment in superset: show the segment name as its exercise entry
+                              const generic = ['exercise', 'exercise a', 'exercise b'];
+                              if (segment.name && !generic.includes(segment.name.toLowerCase())) {
+                                segmentLibrary = [[segment.name]];
+                              } else {
+                                segmentLibrary = [];
+                              }
+                            } else {
+                              // Non-E segment in superset (DB, H, etc.): show phase.combos only
+                              // if they contain actual combo notation, not leaked exercise names
+                              segmentLibrary = (phase.combos || []).filter(combo => 
+                                combo.some(token => /^\d/.test(token) || /^[A-Z]-/.test(token))
+                              );
+                            }
+                          } else {
+                            segmentLibrary = phase.combos;
+                          }
+                          
+                          const libraryEntries = segmentLibrary || [];
+                          
                           return (
                           <div className="px-3 pb-3 pt-1">
                             <div className="flex items-center justify-between mb-2">
                               <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                                {labelWord} ({phase.combos?.length || 0})
+                                {labelWord} ({libraryEntries.length})
                               </span>
                               <button
                                 onClick={() => {
@@ -809,7 +839,7 @@ const Build = () => {
                                 Add
                               </button>
                             </div>
-                            {(phase.combos?.length || 0) === 0 ? (
+                            {libraryEntries.length === 0 ? (
                               <p className="text-xs text-muted-foreground text-center py-2">
                                 {emptyText}
                               </p>
@@ -820,24 +850,27 @@ const Build = () => {
                                 onDragEnd={(event) => {
                                   const { active, over } = event;
                                   if (!over || active.id === over.id) return;
-                                  const ids = (phase.combos || []).map((_, i) => `combo-${phase.id}-${i}`);
+                                  const ids = libraryEntries.map((_, i) => `combo-${phase.id}-${segIdx}-${i}`);
                                   const oldIndex = ids.indexOf(active.id as string);
                                   const newIndex = ids.indexOf(over.id as string);
-                                  setPhaseCombos(phase.id, arrayMove(phase.combos || [], oldIndex, newIndex));
+                                  if (!isSuperset) {
+                                    setPhaseCombos(phase.id, arrayMove(phase.combos || [], oldIndex, newIndex));
+                                  }
                                 }}
                               >
                                 <SortableContext 
-                                  items={(phase.combos || []).map((_, i) => `combo-${phase.id}-${i}`)} 
+                                  items={libraryEntries.map((_, i) => `combo-${phase.id}-${segIdx}-${i}`)} 
                                   strategy={verticalListSortingStrategy}
                                 >
                                   <div className="space-y-1.5">
-                                    {(phase.combos || []).map((combo, idx) => (
+                                    {libraryEntries.map((combo, idx) => (
                                       <SortableComboItem
-                                        key={`combo-${phase.id}-${idx}`}
-                                        id={`combo-${phase.id}-${idx}`}
+                                        key={`combo-${phase.id}-${segIdx}-${idx}`}
+                                        id={`combo-${phase.id}-${segIdx}-${idx}`}
                                         combo={combo}
                                         index={idx}
                                         onEdit={(i) => {
+                                          if (isSuperset) return; // Superset synthetic entries aren't editable via combo builder
                                           setEditingPhaseId(phase.id);
                                           setEditingSegmentContext(ctx);
                                           setCurrentCombo((phase.combos || [])[i]);
@@ -846,6 +879,7 @@ const Build = () => {
                                           setShowComboBuilder(true);
                                         }}
                                         onDelete={(i) => {
+                                          if (isSuperset) return; // Superset synthetic entries aren't deletable
                                           setPhaseCombos(phase.id, (phase.combos || []).filter((_, ci) => ci !== i));
                                         }}
                                       />

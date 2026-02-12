@@ -747,22 +747,14 @@ function blockToPhase(block: ParsedBlock): ParsedPhase {
       });
     }
     
-    // Auto-populate exercise library for E-badge segments in the superset
-    const exerciseEntries: string[][] = [];
-    for (const seg of segments) {
-      if (seg.type === 'active' && seg.segmentType === 'exercise') {
-        exerciseEntries.push([seg.name]);
-      }
-    }
-    
     return {
       name: block.activityName,
       phaseType: 'circuit',
       section: block.section,
       repeats: block.rounds,
       segments,
-      combos: exerciseEntries.length > 0 ? exerciseEntries : undefined,
-      comboOrder: exerciseEntries.length > 0 ? 'sequential' : undefined,
+      // Superset phases do NOT set phase-level combos — each segment's library
+      // is derived independently by the UI based on segment type
     };
   }
   
