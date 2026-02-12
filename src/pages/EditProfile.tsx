@@ -309,7 +309,7 @@ const EditProfile = () => {
               </div>
             </div>
 
-            {/* Stats Row */}
+            {/* Info Row */}
             <div className="grid grid-cols-2 gap-3">
               <div className="bg-surface-2 rounded-lg p-3">
                 <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Joined</p>
@@ -320,6 +320,12 @@ const EditProfile = () => {
                 <p className="font-semibold text-volt">ACTIVE</p>
               </div>
             </div>
+            {authUser?.email && (
+              <div className="bg-surface-2 rounded-lg p-3 mt-3">
+                <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Email</p>
+                <p className="font-semibold text-foreground text-sm truncate">{authUser.email}</p>
+              </div>
+            )}
           </div>
 
           {/* Body Metrics */}
