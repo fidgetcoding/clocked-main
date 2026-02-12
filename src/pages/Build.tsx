@@ -29,6 +29,7 @@ const SEGMENT_TYPES: { key: SegmentType; label: string; color: string }[] = [
   { key: 'rest', label: 'R', color: 'bg-surface-2 text-muted-foreground' },
   { key: 'shadowboxing', label: 'S', color: 'bg-volt/10 text-volt' },
   { key: 'combo', label: 'C', color: 'bg-volt/30 text-volt' },
+  { key: 'speedbag', label: 'SB', color: 'bg-orange-500/20 text-orange-400' },
 ];
 
 const DEFAULT_SEGMENT: Omit<WorkoutSegment, 'id'> = {
@@ -93,25 +94,30 @@ function formatDuration(seconds: number): string {
 }
 
 // Helper to convert DB workout phases to local format
-function dbPhasesToLocal(dbWorkout: DbWorkout): { warmup: WorkoutPhase[], grind: WorkoutPhase[], cooldown: WorkoutPhase[], combos: string[][] } {
+function dbPhasesToLocal(dbWorkout: DbWorkout): { warmup: WorkoutPhase[], grind: WorkoutPhase[], cooldown: WorkoutPhase[] } {
   const phases = dbWorkout.phases as any[];
   const warmup = phases?.filter((p: any) => p.section === 'warmup').map(({ section, ...rest }) => rest) || [];
   const grind = phases?.filter((p: any) => p.section === 'grind').map(({ section, ...rest }) => rest) || [];
   const cooldown = phases?.filter((p: any) => p.section === 'cooldown').map(({ section, ...rest }) => rest) || [];
   
-  // Use top-level combos from database (the new column), fallback to extracting from phases for legacy data
-  let combos: string[][] = dbWorkout.combos || [];
+  // Migrate: if top-level combos exist but no phase has combos, attach to first grind phase with combo segments
+  const topLevelCombos: string[][] = dbWorkout.combos || [];
+  const anyPhaseHasCombos = [...warmup, ...grind, ...cooldown].some((p: any) => p.combos && p.combos.length > 0);
   
-  // Fallback: try to extract combos from phases if top-level is empty (legacy support)
-  if (combos.length === 0) {
-    phases?.forEach((phase: any) => {
-      if (phase.combos) {
-        combos.push(...phase.combos);
-      }
-    });
+  if (topLevelCombos.length > 0 && !anyPhaseHasCombos) {
+    // Find first grind phase with combo/shadowboxing segments
+    const targetPhase = grind.find((p: any) => 
+      p.segments?.some((s: any) => s.segmentType === 'combo' || s.segmentType === 'shadowboxing')
+    );
+    if (targetPhase) {
+      targetPhase.combos = topLevelCombos;
+    } else if (grind.length > 0) {
+      // Fallback: attach to first grind phase
+      grind[0].combos = topLevelCombos;
+    }
   }
   
-  return { warmup, grind, cooldown, combos };
+  return { warmup, grind, cooldown };
 }
 
 const Build = () => {
@@ -138,7 +144,8 @@ const Build = () => {
   const [warmupPhases, setWarmupPhases] = useState<WorkoutPhase[]>([]);
   const [grindPhases, setGrindPhases] = useState<WorkoutPhase[]>([]);
   const [cooldownPhases, setCooldownPhases] = useState<WorkoutPhase[]>([]);
-  const [combos, setCombos] = useState<string[][]>([]);
+  // Per-phase combo editing state
+  const [editingPhaseId, setEditingPhaseId] = useState<string | null>(null);
   const [workoutId, setWorkoutId] = useState<string | null>(null);
   const [isPreset, setIsPreset] = useState(false);
   
@@ -159,13 +166,31 @@ const Build = () => {
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
     useSensor(TouchSensor, { activationConstraint: { delay: 150, tolerance: 5 } })
   );
-  const comboIds = useMemo(() => combos.map((_, i) => `combo-${i}`), [combos]);
+  
+  // Helper to get/set combos for the currently editing phase
+  const getPhaseCombos = (phaseId: string): string[][] => {
+    const allPhases = [...warmupPhases, ...grindPhases, ...cooldownPhases];
+    const phase = allPhases.find(p => p.id === phaseId);
+    return phase?.combos || [];
+  };
+  
+  const setPhaseCombos = (phaseId: string, newCombos: string[][]) => {
+    const updateFn = (phases: WorkoutPhase[]) => 
+      phases.map(p => p.id === phaseId ? { ...p, combos: newCombos } : p);
+    setWarmupPhases(prev => updateFn(prev));
+    setGrindPhases(prev => updateFn(prev));
+    setCooldownPhases(prev => updateFn(prev));
+  };
+  
+  const editingPhaseCombos = editingPhaseId ? getPhaseCombos(editingPhaseId) : [];
+  const comboIds = useMemo(() => editingPhaseCombos.map((_, i) => `combo-${i}`), [editingPhaseCombos]);
+  
   const handleComboDragEnd = (event: any) => {
     const { active, over } = event;
-    if (!over || active.id === over.id) return;
+    if (!over || active.id === over.id || !editingPhaseId) return;
     const oldIndex = comboIds.indexOf(active.id);
     const newIndex = comboIds.indexOf(over.id);
-    setCombos(arrayMove(combos, oldIndex, newIndex));
+    setPhaseCombos(editingPhaseId, arrayMove(editingPhaseCombos, oldIndex, newIndex));
   };
 
   // Load AI-generated workout from URL params
@@ -176,10 +201,16 @@ const Build = () => {
         setWorkoutId(workout.id);
         setName(workout.name);
         setDifficulty(workout.difficulty);
+        // Migrate AI workout combos to first grind phase
+        const grind = workout.sections.grind.map((phase, idx) => {
+          if (idx === 0 && workout.combos && workout.combos.length > 0 && !phase.combos) {
+            return { ...phase, combos: workout.combos };
+          }
+          return phase;
+        });
         setWarmupPhases(workout.sections.warmup);
-        setGrindPhases(workout.sections.grind);
+        setGrindPhases(grind);
         setCooldownPhases(workout.sections.cooldown);
-        setCombos(workout.combos || []);
         setIsPreset(false);
         toast.success(`Loaded "${workout.name}" - customize and save or start!`);
       } catch (e) {
@@ -193,14 +224,13 @@ const Build = () => {
     if (editId && workouts.length > 0) {
       const dbWorkout = workouts.find(w => w.id === editId);
       if (dbWorkout) {
-        const { warmup, grind, cooldown, combos: extractedCombos } = dbPhasesToLocal(dbWorkout);
+        const { warmup, grind, cooldown } = dbPhasesToLocal(dbWorkout);
         setWorkoutId(dbWorkout.id);
         setName(dbWorkout.name);
         setDifficulty((dbWorkout.difficulty as 'beginner' | 'intermediate' | 'advanced') || 'beginner');
         setWarmupPhases(warmup);
         setGrindPhases(grind);
         setCooldownPhases(cooldown);
-        setCombos(extractedCombos);
         setIsPreset(dbWorkout.is_preset || false);
       }
     }
@@ -272,14 +302,15 @@ const Build = () => {
   };
 
   const cycleSegmentType = (phaseId: string, segmentId: string, currentType?: SegmentType) => {
-    const types: SegmentType[] = ['work', 'rest', 'shadowboxing', 'combo'];
+    const types: SegmentType[] = ['work', 'rest', 'shadowboxing', 'combo', 'speedbag'];
     const currentIndex = types.indexOf(currentType || 'work');
     const nextType = types[(currentIndex + 1) % types.length];
     const isActive = nextType !== 'rest';
+    const nameMap: Record<string, string> = { work: 'Work', rest: 'Rest', shadowboxing: 'Shadowboxing', combo: 'Combo', speedbag: 'Speed Bag' };
     updateSegment(phaseId, segmentId, { 
       segmentType: nextType, 
       type: isActive ? 'active' : 'rest',
-      name: nextType.charAt(0).toUpperCase() + nextType.slice(1),
+      name: nameMap[nextType] || nextType,
     });
   };
 
@@ -293,33 +324,40 @@ const Build = () => {
   };
 
   const saveCombo = () => {
-    if (currentCombo.length === 0) return;
+    if (currentCombo.length === 0 || !editingPhaseId) return;
+    const phaseCombos = getPhaseCombos(editingPhaseId);
     
     if (editingComboIndex !== null) {
-      const newCombos = [...combos];
+      const newCombos = [...phaseCombos];
       newCombos[editingComboIndex] = currentCombo;
-      setCombos(newCombos);
+      setPhaseCombos(editingPhaseId, newCombos);
       setEditingComboIndex(null);
     } else {
-      setCombos([...combos, currentCombo]);
+      setPhaseCombos(editingPhaseId, [...phaseCombos, currentCombo]);
     }
     setCurrentCombo([]);
     setShowComboBuilder(false);
   };
 
   const addPresetCombo = (preset: ComboPreset) => {
-    setCombos([...combos, preset.combo]);
+    if (!editingPhaseId) return;
+    const phaseCombos = getPhaseCombos(editingPhaseId);
+    setPhaseCombos(editingPhaseId, [...phaseCombos, preset.combo]);
   };
 
   const editCombo = (index: number) => {
-    setCurrentCombo(combos[index]);
+    if (!editingPhaseId) return;
+    const phaseCombos = getPhaseCombos(editingPhaseId);
+    setCurrentCombo(phaseCombos[index]);
     setEditingComboIndex(index);
     setComboMode('custom');
     setShowComboBuilder(true);
   };
 
   const deleteCombo = (index: number) => {
-    setCombos(combos.filter((_, i) => i !== index));
+    if (!editingPhaseId) return;
+    const phaseCombos = getPhaseCombos(editingPhaseId);
+    setPhaseCombos(editingPhaseId, phaseCombos.filter((_, i) => i !== index));
   };
 
   // Calculate total duration
@@ -349,7 +387,7 @@ const Build = () => {
       duration: calculateTotalDuration(),
       difficulty,
       phases: phasesForDb,
-      combos: combos,
+      combos: null, // combos are now stored per-phase inside phasesForDb
       tags: ['boxing', difficulty],
       is_preset: existingWorkout?.is_preset || isPreset || false,
       is_archived: false,
@@ -608,6 +646,73 @@ const Build = () => {
                   <Plus className="w-4 h-4" />
                   Add Segment
                 </button>
+
+                {/* Inline Per-Phase Combos - show if phase has combo, shadowboxing, or speedbag segments */}
+                {phase.segments.some(s => s.segmentType === 'combo' || s.segmentType === 'shadowboxing' || s.segmentType === 'speedbag') && (
+                  <div className="px-3 py-3 border-t border-surface-3">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                        Combos ({phase.combos?.length || 0})
+                      </span>
+                      <button
+                        onClick={() => {
+                          setEditingPhaseId(phase.id);
+                          setCurrentCombo([]);
+                          setEditingComboIndex(null);
+                          setShowComboBuilder(true);
+                        }}
+                        className="text-xs font-medium text-volt hover:text-volt/80 flex items-center gap-1"
+                      >
+                        <Plus className="w-3 h-3" />
+                        Add
+                      </button>
+                    </div>
+                    {(phase.combos?.length || 0) === 0 ? (
+                      <p className="text-xs text-muted-foreground text-center py-2">
+                        No combos — segments will be freestyle
+                      </p>
+                    ) : (
+                      <DndContext
+                        sensors={comboSensors}
+                        collisionDetection={closestCenter}
+                        onDragEnd={(event) => {
+                          const { active, over } = event;
+                          if (!over || active.id === over.id) return;
+                          const ids = (phase.combos || []).map((_, i) => `combo-${phase.id}-${i}`);
+                          const oldIndex = ids.indexOf(active.id as string);
+                          const newIndex = ids.indexOf(over.id as string);
+                          setPhaseCombos(phase.id, arrayMove(phase.combos || [], oldIndex, newIndex));
+                        }}
+                      >
+                        <SortableContext 
+                          items={(phase.combos || []).map((_, i) => `combo-${phase.id}-${i}`)} 
+                          strategy={verticalListSortingStrategy}
+                        >
+                          <div className="space-y-1.5">
+                            {(phase.combos || []).map((combo, idx) => (
+                              <SortableComboItem
+                                key={`combo-${phase.id}-${idx}`}
+                                id={`combo-${phase.id}-${idx}`}
+                                combo={combo}
+                                index={idx}
+                                onEdit={(i) => {
+                                  setEditingPhaseId(phase.id);
+                                  setCurrentCombo((phase.combos || [])[i]);
+                                  setEditingComboIndex(i);
+                                  setComboMode('custom');
+                                  setShowComboBuilder(true);
+                                }}
+                                onDelete={(i) => {
+                                  setPhaseCombos(phase.id, (phase.combos || []).filter((_, ci) => ci !== i));
+                                }}
+                              />
+                            ))}
+                          </div>
+                        </SortableContext>
+                      </DndContext>
+                    )}
+                  </div>
+                )}
               </div>
             ))}
 
@@ -621,51 +726,6 @@ const Build = () => {
             </button>
           </div>
 
-          {/* Combos Section - Only show on Rounds tab */}
-          {activeSection === 'grind' && (
-            <div className="px-4 py-4 border-t border-surface-3">
-              <div className="flex items-center justify-between mb-4">
-                <div>
-                  <h3 className="font-semibold text-foreground">Combos ({combos.length})</h3>
-                </div>
-                <Button 
-                  onClick={() => { setShowComboBuilder(true); setCurrentCombo([]); setEditingComboIndex(null); }}
-                  size="sm" 
-                  className="bg-volt text-primary-foreground"
-                >
-                  <Plus className="w-4 h-4 mr-1" />
-                  Add
-                </Button>
-              </div>
-
-              {combos.length === 0 ? (
-                <p className="text-sm text-muted-foreground text-center py-4">
-                  No combos yet. Add combos for shadowboxing and bag work.
-                </p>
-              ) : (
-                <DndContext
-                  sensors={comboSensors}
-                  collisionDetection={closestCenter}
-                  onDragEnd={handleComboDragEnd}
-                >
-                  <SortableContext items={comboIds} strategy={verticalListSortingStrategy}>
-                    <div className="space-y-2">
-                      {combos.map((combo, idx) => (
-                        <SortableComboItem
-                          key={`combo-${idx}`}
-                          id={`combo-${idx}`}
-                          combo={combo}
-                          index={idx}
-                          onEdit={editCombo}
-                          onDelete={deleteCombo}
-                        />
-                      ))}
-                    </div>
-                  </SortableContext>
-                </DndContext>
-              )}
-            </div>
-          )}
         </div>
 
         {/* Combo Builder Modal */}
@@ -909,7 +969,7 @@ const Build = () => {
                       grind: grindPhases,
                       cooldown: cooldownPhases,
                     },
-                    combos: combos.length > 0 ? combos : undefined,
+                    combos: undefined, // combos are per-phase now
                   };
                   
                   shareWorkout.mutate(
