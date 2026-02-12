@@ -113,6 +113,9 @@ export function usePresetSeeding() {
 
         hasSeededRef.current = true;
         console.log(`Seeded ${workoutsToInsert.length} preset workouts for user`);
+        
+        // Invalidate workouts query so the UI refreshes with seeded workouts
+        queryClient.invalidateQueries({ queryKey: ['workouts', user.id] });
       } catch (error) {
         console.error('Error in preset seeding:', error);
       }
