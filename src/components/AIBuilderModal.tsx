@@ -179,7 +179,7 @@ export function generateWorkoutFromPrompt(
   const parsedResult = parseWorkoutInput(prompt, userLevel, historyInsights ?? undefined);
   
   // Check if the new parser extracted meaningful data
-  const hasSpecificData = parsedResult.parsedRounds || parsedResult.parsedDurations || parsedResult.parsedCombos;
+  const hasSpecificData = parsedResult.parsedRounds || parsedResult.parsedDurations || parsedResult.parsedCombos || parsedResult.hasMultipleBlocks;
   
   if (hasSpecificData) {
     // Use the new parser's output
