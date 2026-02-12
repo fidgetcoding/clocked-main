@@ -41,6 +41,7 @@ interface FlatSegment {
   intensity?: string;
   reps?: number;
   repeatIndex?: number;
+  supersetIndex?: number;
 }
 
 function formatTime(seconds: number): string {
@@ -130,14 +131,17 @@ const WorkoutSession = () => {
     ];
     
     // First pass: collect all segments to know what's next
-    const tempSegments: { segment: any; sectionName: 'warmup' | 'grind' | 'cooldown'; phase: any; repeatIndex: number }[] = [];
+    const tempSegments: { segment: any; sectionName: 'warmup' | 'grind' | 'cooldown'; phase: any; repeatIndex: number; supersetIndex?: number }[] = [];
     
+    let grindIterationIndex = 0;
     sectionOrder.forEach(({ sectionName }) => {
+      const currentSupersetIndex = sectionName === 'grind' ? grindIterationIndex : undefined;
+      if (sectionName === 'grind') grindIterationIndex++;
       const phases = workout.sections[sectionName];
       phases.forEach((phase) => {
         for (let r = 0; r < phase.repeats; r++) {
           phase.segments.forEach((segment) => {
-            tempSegments.push({ segment, sectionName, phase, repeatIndex: r });
+            tempSegments.push({ segment, sectionName, phase, repeatIndex: r, supersetIndex: currentSupersetIndex });
           });
         }
       });
@@ -229,11 +233,10 @@ const WorkoutSession = () => {
     
     // Second pass: build flat segments with proper next-segment awareness
     tempSegments.forEach((item, idx) => {
-      const { segment, sectionName, phase, repeatIndex } = item;
+      const { segment, sectionName, phase, repeatIndex, supersetIndex } = item;
       
       const combo = comboAssignments.get(idx);
       
-      // For shadowboxing, check if the NEXT segment has a combo assigned (incoming combo preview)
       const isShadowboxing = segment.segmentType === 'shadowboxing' || 
                              segment.name.toLowerCase().includes('shadow') || 
                              segment.name.toLowerCase().includes('technique');
@@ -259,6 +262,7 @@ const WorkoutSession = () => {
         intensity: segment.intensity,
         reps: segment.reps,
         repeatIndex: phase.repeats > 1 ? repeatIndex + 1 : undefined,
+        supersetIndex,
       });
     });
     
@@ -930,11 +934,18 @@ const WorkoutSession = () => {
         <div className="flex-1 flex flex-col items-center justify-center px-4">
           {/* Section Indicator */}
           {!isPreparation && currentSegment?.section && (
-            <p className="text-xs text-muted-foreground uppercase tracking-widest mb-1">
-              {currentSegment.section === 'warmup' ? 'WARM-UP' : 
-               currentSegment.section === 'grind' ? 'ROUNDS' : 
-               'COOL DOWN'}
-            </p>
+            <div className="flex flex-col items-center mb-1">
+              <p className="text-xs text-muted-foreground uppercase tracking-widest">
+                {currentSegment.section === 'warmup' ? 'WARM-UP' : 
+                 currentSegment.section === 'grind' ? 'ROUNDS' : 
+                 'COOL DOWN'}
+              </p>
+              {(workout?.supersetRepeats || 1) > 1 && currentSegment.supersetIndex !== undefined && (
+                <p className="text-[10px] text-volt/70 font-bold uppercase tracking-widest mt-0.5">
+                  SET {currentSegment.supersetIndex + 1} / {workout?.supersetRepeats}
+                </p>
+              )}
+            </div>
           )}
           
           {/* Phase Title */}
