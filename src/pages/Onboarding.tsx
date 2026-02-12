@@ -26,6 +26,7 @@ const equipmentOptions = [
   { id: 'wraps', label: 'Hand Wraps', icon: '🩹' },
   { id: 'heavyBag', label: 'Heavy Bag', icon: '🎯' },
   { id: 'speedBag', label: 'Speed Bag', icon: '💨' },
+  { id: 'doubleEndBag', label: 'Double End Bag', icon: '🔴' },
   { id: 'jumpRope', label: 'Jump Rope', icon: '🪢' },
   { id: 'weights', label: 'Weights', icon: '🏋️' },
 ];
@@ -94,7 +95,7 @@ const Onboarding = () => {
     // Coaches are automatically pro level and have all equipment
     const finalExperience = role === 'coach' ? 'pro' : experience;
     const finalEquipment = role === 'coach' 
-      ? { gloves: true, wraps: true, heavyBag: true, speedBag: true, jumpRope: true, weights: true }
+      ? { gloves: true, wraps: true, heavyBag: true, speedBag: true, doubleEndBag: true, jumpRope: true, weights: true }
       : equipment;
     
     // Get prestige from experience level
