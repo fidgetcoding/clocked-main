@@ -986,14 +986,14 @@ const Build = () => {
               </div>
               {/* Mode Toggle - only for combos */}
               {editingSegmentContext !== 'speedbag' && (
-              <div className="flex gap-2">
+              <div className="flex bg-surface-1 rounded-full p-1">
                 <button
                   onClick={() => setComboMode('presets')}
                   className={cn(
-                    'flex-1 py-2 rounded-lg text-sm font-medium transition-colors',
+                    'flex-1 py-1.5 rounded-full text-sm font-medium transition-colors',
                     comboMode === 'presets'
                       ? 'bg-volt text-primary-foreground'
-                      : 'bg-surface-1 text-muted-foreground'
+                      : 'text-muted-foreground'
                   )}
                 >
                   Presets
@@ -1001,10 +1001,10 @@ const Build = () => {
                 <button
                   onClick={() => setComboMode('custom')}
                   className={cn(
-                    'flex-1 py-2 rounded-lg text-sm font-medium transition-colors',
+                    'flex-1 py-1.5 rounded-full text-sm font-medium transition-colors',
                     comboMode === 'custom'
                       ? 'bg-volt text-primary-foreground'
-                      : 'bg-surface-1 text-muted-foreground'
+                      : 'text-muted-foreground'
                   )}
                 >
                   Custom
