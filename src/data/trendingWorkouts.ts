@@ -33,7 +33,7 @@ export const TRENDING_WORKOUTS: TrendingWorkout[] = [
           name: 'Quick Warmup',
           repeats: 1,
           segments: [
-            { id: 'w1s1', name: 'Jumping Jacks', type: 'active', segmentType: 'work', duration: 60 },
+            { id: 'w1s1', name: 'Jumping Jacks', type: 'active', segmentType: 'exercise', duration: 60 },
             { id: 'w1s2', name: 'Shadow Box', type: 'active', segmentType: 'shadowboxing', duration: 90 },
           ],
         },
@@ -55,7 +55,7 @@ export const TRENDING_WORKOUTS: TrendingWorkout[] = [
           name: 'Stretch',
           repeats: 1,
           segments: [
-            { id: 'c1s1', name: 'Cool Down', type: 'active', segmentType: 'work', duration: 90 },
+            { id: 'c1s1', name: 'Cool Down', type: 'active', segmentType: 'exercise', duration: 90 },
           ],
         },
       ],

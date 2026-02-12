@@ -27,19 +27,18 @@ import { SortableContext, verticalListSortingStrategy, useSortable, arrayMove } 
 import { CSS } from '@dnd-kit/utilities';
 
 const SEGMENT_TYPES: { key: SegmentType; label: string; color: string }[] = [
-  { key: 'work', label: 'W', color: 'bg-volt/20 text-volt' },
+  { key: 'exercise', label: 'E', color: 'bg-emerald-500/20 text-emerald-400' },
   { key: 'rest', label: 'R', color: 'bg-zinc-500/20 text-zinc-400' },
   { key: 'shadowboxing', label: 'S', color: 'bg-purple-500/20 text-purple-400' },
   { key: 'combo', label: 'H', color: 'bg-red-500/20 text-red-400' },
   { key: 'speedbag', label: 'SB', color: 'bg-orange-500/20 text-orange-400' },
   { key: 'doubleend', label: 'DB', color: 'bg-sky-500/20 text-sky-400' },
-  { key: 'exercise', label: 'E', color: 'bg-emerald-500/20 text-emerald-400' },
 ];
 
 const DEFAULT_SEGMENT: Omit<WorkoutSegment, 'id'> = {
-  name: 'Work',
+  name: 'Exercise',
   type: 'active',
-  segmentType: 'work',
+  segmentType: 'exercise',
   duration: 60,
 };
 
@@ -294,14 +293,14 @@ const Build = () => {
           id: generateId(),
           name: 'Exercise A',
           type: 'active',
-          segmentType: 'work',
+          segmentType: 'exercise',
           duration: 45,
         },
         {
           id: generateId(),
           name: 'Exercise B',
           type: 'active',
-          segmentType: 'work',
+          segmentType: 'exercise',
           duration: 45,
         },
         {
@@ -351,11 +350,11 @@ const Build = () => {
   };
 
   const cycleSegmentType = (phaseId: string, segmentId: string, currentType?: SegmentType) => {
-    const types: SegmentType[] = ['work', 'rest', 'shadowboxing', 'combo', 'speedbag', 'doubleend', 'exercise'];
-    const currentIndex = types.indexOf(currentType || 'work');
+    const types: SegmentType[] = ['exercise', 'rest', 'shadowboxing', 'combo', 'speedbag', 'doubleend'];
+    const currentIndex = types.indexOf(currentType || 'exercise');
     const nextType = types[(currentIndex + 1) % types.length];
     const isActive = nextType !== 'rest';
-    const nameMap: Record<string, string> = { work: 'Work', rest: 'Rest', shadowboxing: 'Shadowboxing', combo: 'Heavy Bag', speedbag: 'Speed Bag', doubleend: 'Double End Bag', exercise: 'Exercise' };
+    const nameMap: Record<string, string> = { exercise: 'Exercise', rest: 'Rest', shadowboxing: 'Shadowboxing', combo: 'Heavy Bag', speedbag: 'Speed Bag', doubleend: 'Double End Bag' };
     updateSegment(phaseId, segmentId, { 
       segmentType: nextType, 
       type: isActive ? 'active' : 'rest',
@@ -497,7 +496,9 @@ const Build = () => {
   const presets = getAllPresets(difficulty);
 
   const getSegmentTypeInfo = (segType?: SegmentType) => {
-    return SEGMENT_TYPES.find(t => t.key === (segType || 'work')) || SEGMENT_TYPES[0];
+    // Map legacy 'work' to 'exercise'
+    const key = (segType === 'work' || !segType) ? 'exercise' : segType;
+    return SEGMENT_TYPES.find(t => t.key === key) || SEGMENT_TYPES[0];
   };
 
   return (
