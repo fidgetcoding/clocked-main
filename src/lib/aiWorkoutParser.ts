@@ -104,6 +104,7 @@ interface ParsedBlock {
   supersetRestBetween: number | null;
   speedBagDrills: string[][];
   exerciseSets: string[][];
+  comboOrder: 'sequential' | 'random';
 }
 
 // =====================================================
@@ -704,6 +705,7 @@ function parseBlock(blockText: string): ParsedBlock {
     supersetRestBetween: supersetResult?.restBetween ?? null,
     speedBagDrills,
     exerciseSets,
+    comboOrder: /\brandom\b/i.test(blockText) ? 'random' : 'sequential',
   };
 }
 
@@ -785,7 +787,7 @@ function blockToPhase(block: ParsedBlock): ParsedPhase {
       repeats: block.speedBagDrills.length,
       segments,
       combos: block.speedBagDrills,
-      comboOrder: 'sequential',
+      comboOrder: block.comboOrder,
     };
   }
   
@@ -816,7 +818,7 @@ function blockToPhase(block: ParsedBlock): ParsedPhase {
       repeats: block.exerciseSets.length,
       segments,
       combos: block.exerciseSets,
-      comboOrder: 'sequential',
+      comboOrder: block.comboOrder,
     };
   }
   
@@ -870,14 +872,14 @@ function blockToPhase(block: ParsedBlock): ParsedPhase {
   // Auto-populate exercise library: if the segment is an E-badge type and
   // there are no combos already, add the activity name as a single exercise entry
   let phaseCombos: string[][] | undefined = block.combos.length > 0 ? block.combos : undefined;
-  let phaseComboOrder: 'sequential' | 'random' | undefined = block.combos.length > 0 ? 'sequential' : undefined;
+  let phaseComboOrder: 'sequential' | 'random' | undefined = block.combos.length > 0 ? block.comboOrder : undefined;
   
   if (!phaseCombos) {
     // Check if the active segments are exercise type — auto-add names
     const exerciseSegments = segments.filter(s => s.type === 'active' && s.segmentType === 'exercise');
     if (exerciseSegments.length > 0) {
       phaseCombos = exerciseSegments.map(s => [s.name]);
-      phaseComboOrder = 'sequential';
+      phaseComboOrder = block.comboOrder;
     }
   }
   
