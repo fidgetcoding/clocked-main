@@ -78,7 +78,7 @@ describe('Conditioning/Bodyweight Exercise Library Parsing', () => {
 4 rounds conditioning, 1 min each, 30 sec rest. Round 1: burpees. Round 2: squat jumps. Round 3: push-ups. Round 4: mountain climbers.`;
     const result = parseWorkoutInput(prompt);
     
-    const condPhase = result.phases.find(p => p.combos && p.combos.length > 0 &&
+    const condPhase = result.phases.find(p => p.section === 'grind' && p.combos && p.combos.length > 0 &&
       !p.segments.some(s => s.segmentType === 'combo' || s.segmentType === 'speedbag'));
     expect(condPhase).toBeDefined();
     expect(condPhase!.repeats).toBe(4);

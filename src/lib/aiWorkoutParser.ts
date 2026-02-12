@@ -396,33 +396,27 @@ function parseCombosFromBlock(text: string): string[][] {
 // =====================================================
 
 const EXERCISE_NAMES: Array<{ pattern: RegExp; name: string }> = [
+  // Boxing-specific (order matters — more specific patterns first)
   { pattern: /heavy\s*bag\s*(?:freestyle|combo\s*work|work)?/i, name: 'Heavy Bag' },
   { pattern: /speed\s*bag/i, name: 'Speed Bag' },
   { pattern: /double[\s-]*end\s*bag/i, name: 'Double End Bag' },
   { pattern: /shadow\s*box(?:ing)?/i, name: 'Shadowboxing' },
-  { pattern: /jump\s*rope/i, name: 'Jump Rope' },
-  { pattern: /burpees?/i, name: 'Burpees' },
-  { pattern: /push[\s-]*ups?/i, name: 'Pushups' },
-  { pattern: /pull[\s-]*ups?/i, name: 'Pullups' },
-  { pattern: /squats?/i, name: 'Squats' },
-  { pattern: /sit[\s-]*ups?/i, name: 'Situps' },
-  { pattern: /planks?/i, name: 'Plank' },
-  { pattern: /mountain\s*climbers?/i, name: 'Mountain Climbers' },
   { pattern: /mitt\s*work/i, name: 'Mitt Work' },
   { pattern: /sparring/i, name: 'Sparring' },
   { pattern: /footwork(?:\s*drills?)?/i, name: 'Footwork' },
-  { pattern: /stretch(?:ing)?/i, name: 'Stretching' },
+  { pattern: /bob(?:bing)?\s*(?:and|&)\s*weav(?:ing|e)/i, name: 'Bob & Weave' },
+  { pattern: /defense\s*drills?/i, name: 'Defense Drills' },
+  // General categories
   { pattern: /cardio/i, name: 'Cardio' },
   { pattern: /conditioning/i, name: 'Conditioning' },
   { pattern: /hiit/i, name: 'HIIT' },
   { pattern: /body\s*weight\s*(?:burnout)?/i, name: 'Bodyweight' },
-  { pattern: /bob(?:bing)?\s*(?:and|&)\s*weav(?:ing|e)/i, name: 'Bob & Weave' },
-  { pattern: /defense\s*drills?/i, name: 'Defense Drills' },
 ];
 
 function extractExerciseWithDuration(text: string): { name: string; duration: number | null; raw: string } | null {
   const lower = text.trim().toLowerCase();
   
+  // First check the known exercise patterns (boxing-specific and categories only)
   for (const { pattern, name } of EXERCISE_NAMES) {
     if (pattern.test(lower)) {
       // Check for "freestyle" modifier
@@ -435,7 +429,8 @@ function extractExerciseWithDuration(text: string): { name: string; duration: nu
     }
   }
   
-  // Fallback: if text has meaningful words, use it as a custom exercise
+  // Fallback: preserve the FULL exercise name as the user wrote it (title-cased)
+  // Strip only duration text, keep everything else intact
   const cleaned = text.replace(/\d+\s*(?:min(?:ute)?s?|sec(?:ond)?s?)\s*/gi, '').trim();
   if (cleaned.length > 2 && !/^\s*$/.test(cleaned)) {
     const dur = parseDurationFromText(text);
@@ -659,12 +654,22 @@ function blockToPhase(block: ParsedBlock): ParsedPhase {
       });
     }
     
+    // Auto-populate exercise library for E-badge segments in the superset
+    const exerciseEntries: string[][] = [];
+    for (const seg of segments) {
+      if (seg.type === 'active' && seg.segmentType === 'exercise') {
+        exerciseEntries.push([seg.name]);
+      }
+    }
+    
     return {
       name: block.activityName,
       phaseType: 'circuit',
       section: block.section,
       repeats: block.rounds,
       segments,
+      // Don't set combos for superset — each segment manages its own type
+      // But if there are exercise segments, auto-populate their names
     };
   }
   
@@ -777,14 +782,28 @@ function blockToPhase(block: ParsedBlock): ParsedPhase {
     });
   }
   
+  // Auto-populate exercise library: if the segment is an E-badge type and
+  // there are no combos already, add the activity name as a single exercise entry
+  let phaseCombos: string[][] | undefined = block.combos.length > 0 ? block.combos : undefined;
+  let phaseComboOrder: 'sequential' | 'random' | undefined = block.combos.length > 0 ? 'sequential' : undefined;
+  
+  if (!phaseCombos) {
+    // Check if the active segments are exercise type — auto-add names
+    const exerciseSegments = segments.filter(s => s.type === 'active' && s.segmentType === 'exercise');
+    if (exerciseSegments.length > 0) {
+      phaseCombos = exerciseSegments.map(s => [s.name]);
+      phaseComboOrder = 'sequential';
+    }
+  }
+  
   return {
     name: block.activityName,
     phaseType: block.perRoundActivities.length > 0 ? 'continuous' : 'circuit',
     section: block.section,
     repeats: block.perRoundActivities.length > 0 ? 1 : block.rounds,
     segments,
-    combos: block.combos.length > 0 ? block.combos : undefined,
-    comboOrder: block.combos.length > 0 ? 'sequential' : undefined,
+    combos: phaseCombos,
+    comboOrder: phaseComboOrder,
   };
 }
 
