@@ -63,7 +63,7 @@ export interface UserProfile {
 }
 
 // Workout Types
-export type SegmentType = 'work' | 'rest' | 'shadowboxing' | 'combo';
+export type SegmentType = 'work' | 'rest' | 'shadowboxing' | 'combo' | 'speedbag';
 
 // Activity type for AI-generated segments
 export type ActivityType = 'combos' | 'shadowbox' | 'run' | 'pushups' | 'custom';
@@ -95,6 +95,8 @@ export interface WorkoutPhase {
   phaseType?: PhaseType;
   // Combo order: 'sequential' plays combos in list order, 'random' shuffles them
   comboOrder?: 'sequential' | 'random';
+  // Per-phase combos (takes priority over workout-level combos)
+  combos?: string[][];
 }
 
 export interface WorkoutSection {

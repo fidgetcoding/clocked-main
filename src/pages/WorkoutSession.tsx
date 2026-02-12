@@ -32,7 +32,7 @@ interface FlatSegment {
   id: string;
   name: string;
   type: 'active' | 'rest';
-  segmentType?: 'work' | 'rest' | 'shadowboxing' | 'combo';
+  segmentType?: 'work' | 'rest' | 'shadowboxing' | 'combo' | 'speedbag';
   duration: number;
   phaseName: string;
   section: 'warmup' | 'grind' | 'cooldown';
@@ -140,6 +140,9 @@ const WorkoutSession = () => {
     
     tempSegments.forEach((item, idx) => {
       const { segment } = item;
+      const isSpeedbag = segment.segmentType === 'speedbag';
+      // Speedbag segments are always freestyle — skip combo assignment
+      if (isSpeedbag) return;
       const isComboSegment = segment.segmentType === 'combo' || segment.comboIndex === 'cycle';
       const isShadowboxing = segment.segmentType === 'shadowboxing' || 
                              segment.name.toLowerCase().includes('shadow') || 
@@ -152,11 +155,24 @@ const WorkoutSession = () => {
     const comboAssignments: Map<number, string[]> = new Map();
     let assigned = 0;
     
-    // Helper: get combo list (possibly shuffled) for a phase
+    // Helper: get combo list (possibly shuffled) for a phase — phase.combos takes priority
     const getComboListForPhase = (phase: any): string[][] => {
+      // Phase-level combos take priority
+      const phaseCombos = phase.combos as string[][] | undefined;
+      if (phaseCombos && phaseCombos.length > 0) {
+        if (phase.comboOrder === 'random') {
+          const shuffled = [...phaseCombos];
+          for (let i = shuffled.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+          }
+          return shuffled;
+        }
+        return phaseCombos;
+      }
+      // Fallback to workout-level combos for backward compatibility
       if (!workout.combos || workout.combos.length === 0) return [];
       if (phase.comboOrder === 'random') {
-        // Fisher-Yates shuffle a copy
         const shuffled = [...workout.combos];
         for (let i = shuffled.length - 1; i > 0; i--) {
           const j = Math.floor(Math.random() * (i + 1));
@@ -413,6 +429,8 @@ const WorkoutSession = () => {
           announcement = 'Rest';
         } else if (currentSegment.segmentType === 'shadowboxing' || currentSegment.name.toLowerCase().includes('shadow')) {
           announcement = 'Shadowboxing';
+        } else if (currentSegment.segmentType === 'speedbag') {
+          announcement = 'Speed Bag';
         } else if (currentSegment.segmentType === 'combo') {
           announcement = 'Combo';
         } else {
@@ -772,10 +790,12 @@ const WorkoutSession = () => {
   const isShadowboxing = currentSegment?.segmentType === 'shadowboxing' || 
                          currentSegment?.name.toLowerCase().includes('shadow') || 
                          currentSegment?.name.toLowerCase().includes('technique');
+  const isSpeedbag = currentSegment?.segmentType === 'speedbag';
   // For shadowboxing, show the nextCombo (the upcoming combo to practice)
   // For combo segments, show the current combo
   // Treat ['FREESTYLE'] as no combo — it means freestyle round
-  const rawCombo = isShadowboxing ? currentSegment?.nextCombo : currentSegment?.combo;
+  // Speedbag is always freestyle (no combo display)
+  const rawCombo = isSpeedbag ? undefined : (isShadowboxing ? currentSegment?.nextCombo : currentSegment?.combo);
   const isFreestyleCombo = rawCombo?.length === 1 && rawCombo[0] === 'FREESTYLE';
   const displayCombo = isFreestyleCombo ? undefined : rawCombo;
 
@@ -1109,9 +1129,9 @@ const WorkoutSession = () => {
             </div>
           )}
 
-          {/* Freestyle Display - only for combo-type segments with no combos assigned */}
+          {/* Freestyle Display - for combo-type or speedbag segments with no combos assigned */}
           {!isShadowboxing && !isPreparation && currentSegment?.type === 'active' && 
-           currentSegment?.segmentType === 'combo' &&
+           (currentSegment?.segmentType === 'combo' || currentSegment?.segmentType === 'speedbag') &&
            (!displayCombo || displayCombo.length === 0) && (
             <div className="w-full max-w-sm bg-surface-1 rounded-xl p-4 border border-surface-3">
               <p className="text-2xl font-black text-volt text-center">FREESTYLE</p>
