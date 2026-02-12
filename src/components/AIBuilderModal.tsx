@@ -445,21 +445,27 @@ export const AIBuilderModal = ({ onClose, onGenerate, baseWorkout, onWorkoutGene
     }, 200);
   };
 
-  const finishGeneration = useCallback(() => {
+  const finishGeneration = () => {
     const workout = generatedWorkoutRef.current;
     if (!workout) return;
     
+    // Reset states first
+    setIsGenerating(false);
+    setGenerationProgress(0);
+    setGenerationDone(false);
+    generatedWorkoutRef.current = null;
+    
     if (onWorkoutGenerated) {
       onWorkoutGenerated(workout);
-      setIsGenerating(false);
-      onClose();
     } else {
       toast.success(`Generated "${workout.name}" - now customize it!`);
-      onClose();
       const workoutData = encodeURIComponent(JSON.stringify(workout));
       navigate(`/build?ai=${workoutData}`, { replace: true });
     }
-  }, [onWorkoutGenerated, onClose, navigate]);
+    
+    // Close last to ensure cleanup happens
+    onClose();
+  };
 
   const handleSuggestionClick = (suggestion: string) => {
     setPrompt(suggestion);
