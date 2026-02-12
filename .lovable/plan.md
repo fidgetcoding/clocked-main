@@ -1,46 +1,78 @@
 
 
-# Contextual Segment Labels + Freestyle Indicator
+# Speed Bag Category + Per-Phase Combos
 
-## Two Changes
+## Overview
 
-### 1. Parser: Use activity name instead of "Combo Work" (aiWorkoutParser.ts)
+Three interconnected changes to improve the workout builder's segment classification and combo organization.
 
-In `blockToPhase()`, line 417, change the segment name from the generic "Combo Work" to the block's activity name. The activity name comes from what the user typed (e.g., "Heavy Bag Work", "Speed Bag").
+---
 
-```
-// Line 417, change:
-name: hasCombos ? 'Combo Work' : block.activityName,
-// To:
-name: block.activityName,
-```
+## 1. New "Speed Bag" Segment Type
 
-The segment type (`segmentType: 'combo'`) and badge ("C") remain unchanged -- those still correctly indicate combo behavior internally. Only the display name changes.
+Add a new `speedbag` segment type with its own badge and color, distinct from both Shadowboxing (S) and Combo (C).
 
-### 2. Timer: Show FREESTYLE for work segments without combos (WorkoutSession.tsx)
+- **Badge**: "SB" (to avoid collision with Shadowboxing's "S")
+- **Color**: A unique accent -- orange/amber (`bg-orange-500/20 text-orange-400`) to differentiate from volt-green combo and shadowboxing badges
+- Speed bag segments default to freestyle (no combo assignment) unless combos are explicitly added to its phase
+- The AI parser will detect "speed bag" in prompts and assign `segmentType: 'speedbag'` instead of `'combo'`
 
-Currently, the combo display area for non-shadowboxing segments (line 1001-1051) only renders when `displayCombo` has content. Speed Bag segments have no combo assigned, so nothing shows -- the user has no indication of what to do.
+### Files changed:
+- **`src/types/index.ts`**: Add `'speedbag'` to the `SegmentType` union
+- **`src/pages/Build.tsx`**: Add `speedbag` entry to `SEGMENT_TYPES` array and include it in the segment type cycle
+- **`src/lib/aiWorkoutParser.ts`**: Update `inferSegmentType` to detect "speed bag" and return `'speedbag'`
+- **`src/pages/WorkoutSession.tsx`**: 
+  - Exclude `speedbag` segments from combo assignment (they default to freestyle)
+  - Show FREESTYLE label for `speedbag` segments (same as combo segments without combos)
 
-Add a FREESTYLE display for active non-shadowboxing, non-rest segments that have no combo assigned. This goes right after the existing combo display block (after line 1051):
+---
 
-```typescript
-{/* Freestyle Display - for work segments with no combos */}
-{!isShadowboxing && !isPreparation && currentSegment?.type === 'active' && 
- (!displayCombo || displayCombo.length === 0) && (
-  <div className="w-full max-w-sm bg-surface-1 rounded-xl p-4 border border-surface-3">
-    <p className="text-2xl font-black text-volt text-center">FREESTYLE</p>
-  </div>
-)}
-```
+## 2. Move Combos from Global List to Per-Phase
 
-This means:
-- Heavy Bag rounds with combos assigned: shows the specific combo (1-2, 1-1-2-3, etc.)
-- Speed Bag rounds with NO combos: shows FREESTYLE
-- Shadowboxing with no incoming combo: already shows FREESTYLE (existing behavior, unchanged)
-- Rest segments: no combo display (unchanged)
+Currently, combos live at the workout level (`workout.combos: string[][]`) and are shared across all phases. The new model stores combos on each phase (`phase.combos: string[][]`), so different phases (Heavy Bag vs Speed Bag) can have independent combo lists.
 
-### Files Changed
+### Data model change:
+- **`src/types/index.ts`**: Add `combos?: string[][]` to the `WorkoutPhase` interface
+- The top-level `workout.combos` stays for backward compatibility but phases with their own combos take priority
 
-1. **`src/lib/aiWorkoutParser.ts`** (line 417) -- one-line change to segment naming
-2. **`src/pages/WorkoutSession.tsx`** (after line 1051) -- add FREESTYLE block for non-shadowboxing work segments without combos
+### Builder UI change (`src/pages/Build.tsx`):
+- **Remove** the global "Combos" section at the bottom of the Rounds tab (lines 624-668)
+- **Add** an inline combo list below each combo-type segment within a phase:
+  - Shows the phase's combo list (add, edit, delete, reorder)
+  - The "+ Add" button opens the same combo builder modal, but saves to the phase's combos
+  - Each phase manages its own independent combo list
+  - Only visible for phases containing combo or shadowboxing segments
+
+### Timer/session change (`src/pages/WorkoutSession.tsx`):
+- Update `getComboListForPhase` to read from `phase.combos` first, falling back to `workout.combos` for backward compatibility
+- Speed bag phases are excluded from combo assignment entirely (always freestyle)
+
+### Save/Load changes:
+- **`dbPhasesToLocal`** in Build.tsx already preserves phase data -- combos on each phase will serialize naturally since phases are stored as JSONB
+- No database migration needed -- the `phases` JSONB column already stores arbitrary phase properties
+
+### AI Builder changes (`src/lib/aiWorkoutParser.ts` + `src/components/AIBuilderModal.tsx`):
+- When generating combos, attach them to the relevant phase's `combos` array instead of the workout-level array
+- Legacy `generateWorkoutFromPrompt` fallback also attaches combos per-phase
+
+---
+
+## 3. Migration / Backward Compatibility
+
+- Existing workouts with top-level `combos` will continue to work: the timer reads `phase.combos` first, then falls back to `workout.combos`
+- When a user edits an old workout, the builder will migrate top-level combos into the first grind phase that has combo segments, so they appear inline
+- New workouts always store combos per-phase
+
+---
+
+## Technical Summary
+
+| File | Change |
+|------|--------|
+| `src/types/index.ts` | Add `'speedbag'` to SegmentType; add `combos?: string[][]` to WorkoutPhase |
+| `src/pages/Build.tsx` | Add SB segment type; remove global combos section; add inline per-phase combo list below combo segments |
+| `src/pages/WorkoutSession.tsx` | Read phase-level combos; exclude speedbag from combo assignment; show FREESTYLE for speedbag |
+| `src/lib/aiWorkoutParser.ts` | Detect speed bag; assign combos per-phase; return `'speedbag'` segment type |
+| `src/components/AIBuilderModal.tsx` | Attach generated combos to phases instead of workout-level |
+| `src/data/comboPresets.ts` | No changes needed |
 
