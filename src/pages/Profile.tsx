@@ -98,7 +98,7 @@ const Profile = () => {
       <div className="min-h-screen pb-20">
         {/* Header */}
         <header className="flex items-center justify-between px-4 py-4 safe-top border-b border-surface-3">
-          <h1 className="text-xl font-bold text-foreground">{profileName}</h1>
+          <h1 className="text-xl font-bold text-foreground">Profile</h1>
           {isOwnProfile && (
             <button 
               onClick={() => navigate('/settings')}
