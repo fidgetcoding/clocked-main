@@ -146,51 +146,9 @@ const Profile = () => {
             </div>
           </div>
 
-          {/* Name and Handle */}
-          <div className="mb-3">
-            <h2 className="text-lg font-bold text-foreground">{profileName}</h2>
-            <div className="flex items-center gap-2 flex-wrap">
-              <span className="text-xs font-bold uppercase text-volt">
-                {profileRole === 'coach' ? 'Coach' : 'Fighter'}
-              </span>
-              <span className="text-muted-foreground/50">•</span>
-              <p className="text-sm text-muted-foreground">{profileHandle}</p>
-              {isOwnProfile && authUser?.email && (
-                <>
-                  <span className="text-muted-foreground/50">•</span>
-                  <p className="text-sm text-muted-foreground">{authUser.email}</p>
-                </>
-              )}
-            </div>
-          </div>
-
-          {/* Prestige/Ranking/Level Display */}
-          <div className="mb-3">
-            <PrestigeBadge 
-              prestige={prestige} 
-              ranking={ranking} 
-              level={currentLevel} 
-            />
-            <span className="text-sm text-muted-foreground ml-2">{totalXP.toLocaleString()} XP</span>
-          </div>
-
-          {/* Total Workout Time */}
-          <div className="flex items-center gap-2 text-sm text-muted-foreground mb-3">
-            <Clock className="w-4 h-4" />
-            <span>
-              {formatDuration(totalTrainingSeconds)} total training
-            </span>
-          </div>
-
-
-          {/* Bio */}
-          {bio && (
-            <p className="text-sm text-foreground mb-3">{bio}</p>
-          )}
-
-          {/* Action Buttons */}
+          {/* Action Buttons - right below stats */}
           {isOwnProfile ? (
-            <div className="space-y-2">
+            <div className="space-y-2 mb-4">
               <div className="flex gap-2">
                 <Button 
                   onClick={() => navigate('/edit-profile')}
@@ -227,7 +185,7 @@ const Profile = () => {
               </Button>
             </div>
           ) : (
-            <div className="flex gap-2">
+            <div className="flex gap-2 mb-4">
               <Button 
                 onClick={() => handleFollow(userId!)}
                 disabled={follow.isPending || unfollow.isPending}
@@ -254,6 +212,47 @@ const Profile = () => {
                 Message
               </Button>
             </div>
+          )}
+
+          {/* Name and Handle */}
+          <div className="mb-3">
+            <h2 className="text-lg font-bold text-foreground">{profileName}</h2>
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-xs font-bold uppercase text-volt">
+                {profileRole === 'coach' ? 'Coach' : 'Fighter'}
+              </span>
+              <span className="text-muted-foreground/50">•</span>
+              <p className="text-sm text-muted-foreground">{profileHandle}</p>
+              {isOwnProfile && authUser?.email && (
+                <>
+                  <span className="text-muted-foreground/50">•</span>
+                  <p className="text-sm text-muted-foreground">{authUser.email}</p>
+                </>
+              )}
+            </div>
+          </div>
+
+          {/* Prestige/Ranking/Level Display */}
+          <div className="mb-3">
+            <PrestigeBadge 
+              prestige={prestige} 
+              ranking={ranking} 
+              level={currentLevel} 
+            />
+            <span className="text-sm text-muted-foreground ml-2">{totalXP.toLocaleString()} XP</span>
+          </div>
+
+          {/* Total Workout Time */}
+          <div className="flex items-center gap-2 text-sm text-muted-foreground mb-3">
+            <Clock className="w-4 h-4" />
+            <span>
+              {formatDuration(totalTrainingSeconds)} total training
+            </span>
+          </div>
+
+          {/* Bio */}
+          {bio && (
+            <p className="text-sm text-foreground mb-3">{bio}</p>
           )}
         </div>
 
