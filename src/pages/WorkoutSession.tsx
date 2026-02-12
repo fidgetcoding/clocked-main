@@ -1109,9 +1109,9 @@ const WorkoutSession = () => {
             </div>
           )}
 
-          {/* Freestyle Display - for work/combo segments with no combos assigned */}
+          {/* Freestyle Display - only for combo-type segments with no combos assigned */}
           {!isShadowboxing && !isPreparation && currentSegment?.type === 'active' && 
-           currentSegment?.segmentType !== 'rest' &&
+           currentSegment?.segmentType === 'combo' &&
            (!displayCombo || displayCombo.length === 0) && (
             <div className="w-full max-w-sm bg-surface-1 rounded-xl p-4 border border-surface-3">
               <p className="text-2xl font-black text-volt text-center">FREESTYLE</p>
