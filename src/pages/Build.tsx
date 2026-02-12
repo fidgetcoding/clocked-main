@@ -813,6 +813,14 @@ const Build = () => {
                                 combo.some(token => /^\d/.test(token) || /^[A-Z]-/.test(token))
                               );
                             }
+                          } else if (ctx === 'exercises') {
+                            // Non-superset exercise segment: synthesize library from segment name
+                            const generic = ['exercise', 'exercise a', 'exercise b'];
+                            if (segment.name && !generic.includes(segment.name.toLowerCase())) {
+                              segmentLibrary = [[segment.name]];
+                            } else {
+                              segmentLibrary = [];
+                            }
                           } else {
                             segmentLibrary = phase.combos;
                           }
