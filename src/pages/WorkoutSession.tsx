@@ -934,14 +934,20 @@ const WorkoutSession = () => {
         <div className="flex-1 flex flex-col items-center justify-center px-4">
           {/* Section Indicator */}
           {!isPreparation && currentSegment?.section && (
-            <p className="text-xs text-muted-foreground uppercase tracking-widest mb-1">
-              {currentSegment.section === 'warmup' ? 'WARM-UP' : 
-               currentSegment.section === 'grind' 
-                 ? ((workout?.supersetRepeats || 1) > 1 && currentSegment.supersetIndex !== undefined
-                   ? `ROUNDS ${currentSegment.supersetIndex + 1}/${workout?.supersetRepeats}`
-                   : 'ROUNDS')
-                 : 'COOL DOWN'}
-            </p>
+            <div className="flex items-center gap-2 mb-1">
+              <p className="text-xs text-muted-foreground uppercase tracking-widest">
+                {currentSegment.section === 'warmup' ? 'WARM-UP' : 
+                 currentSegment.section === 'grind' ? 'ROUNDS' : 
+                 'COOL DOWN'}
+              </p>
+              {(workout?.supersetRepeats || 1) > 1 && currentSegment.supersetIndex !== undefined && (
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-volt/15 border border-volt/30 text-volt text-[10px] font-black uppercase tracking-wider shadow-[0_0_8px_hsl(var(--volt)/0.2)]">
+                  <span className="text-volt">{currentSegment.supersetIndex + 1}</span>
+                  <span className="text-volt/50">/</span>
+                  <span className="text-volt/70">{workout?.supersetRepeats}</span>
+                </span>
+              )}
+            </div>
           )}
           
           {/* Phase Title */}
