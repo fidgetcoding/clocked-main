@@ -109,7 +109,7 @@ export interface Workout {
   id: string;
   name: string;
   icon: string;
-  difficulty: 'beginner' | 'intermediate' | 'advanced';
+  difficulty: 'rookie' | 'beginner' | 'intermediate' | 'advanced' | 'pro';
   totalDuration: number; // in seconds
   isPreset: boolean;
   isArchived: boolean;
@@ -255,7 +255,7 @@ export interface SharedPreset {
   name: string;
   description: string;
   tags: string[];
-  difficulty: 'beginner' | 'intermediate' | 'advanced';
+  difficulty: 'rookie' | 'beginner' | 'intermediate' | 'advanced' | 'pro';
   duration: number;
   downloads: number;
   rating: number;
