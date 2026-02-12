@@ -93,6 +93,8 @@ export interface WorkoutPhase {
   segments: WorkoutSegment[];
   // NEW: Phase type hint for display/logic
   phaseType?: PhaseType;
+  // Combo order: 'sequential' plays combos in list order, 'random' shuffles them
+  comboOrder?: 'sequential' | 'random';
 }
 
 export interface WorkoutSection {

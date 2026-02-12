@@ -131,8 +131,8 @@ const WorkoutSession = () => {
     });
     
     // Two-pass combo assignment:
-    // 1) Assign combos to combo segments first (in order)
-    // 2) Leftover combos overflow to shadowboxing segments (in order)
+    // 1) Assign combos to combo segments first (in order or random per phase setting)
+    // 2) Leftover combos overflow to shadowboxing segments
     // 3) When combos run out, remaining segments are freestyle (no combo)
     
     const comboSegmentIndices: number[] = [];
@@ -150,23 +150,51 @@ const WorkoutSession = () => {
     
     const totalCombos = workout.combos?.length || 0;
     const comboAssignments: Map<number, string[]> = new Map();
-    const nextComboAssignments: Map<number, string[]> = new Map();
     let assigned = 0;
+    
+    // Helper: get combo list (possibly shuffled) for a phase
+    const getComboListForPhase = (phase: any): string[][] => {
+      if (!workout.combos || workout.combos.length === 0) return [];
+      if (phase.comboOrder === 'random') {
+        // Fisher-Yates shuffle a copy
+        const shuffled = [...workout.combos];
+        for (let i = shuffled.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+        }
+        return shuffled;
+      }
+      return workout.combos;
+    };
+    
+    // Group combo segments by phase and assign combos respecting phase order setting
+    // We need per-phase combo pools for random mode
+    const phaseComboLists: Map<string, { list: string[][]; cursor: number }> = new Map();
+    
+    const getPhaseCombo = (phase: any, phaseKey: string): string[] | undefined => {
+      if (totalCombos === 0) return undefined;
+      if (!phaseComboLists.has(phaseKey)) {
+        phaseComboLists.set(phaseKey, { list: getComboListForPhase(phase), cursor: 0 });
+      }
+      const entry = phaseComboLists.get(phaseKey)!;
+      if (entry.cursor >= entry.list.length) return undefined; // ran out
+      return entry.list[entry.cursor++];
+    };
     
     // Assign to combo segments first
     for (const idx of comboSegmentIndices) {
-      if (assigned < totalCombos) {
-        comboAssignments.set(idx, workout.combos[assigned]);
-        assigned++;
-      }
+      const { phase, repeatIndex } = tempSegments[idx];
+      const phaseKey = `${phase.id}`;
+      const combo = getPhaseCombo(phase, phaseKey);
+      if (combo) comboAssignments.set(idx, combo);
     }
     
-    // Overflow to shadowboxing segments
+    // Overflow to shadowboxing segments (these use sequential from remaining)
     for (const idx of shadowboxIndices) {
-      if (assigned < totalCombos) {
-        comboAssignments.set(idx, workout.combos[assigned]);
-        assigned++;
-      }
+      const { phase } = tempSegments[idx];
+      const phaseKey = `${phase.id}`;
+      const combo = getPhaseCombo(phase, phaseKey);
+      if (combo) comboAssignments.set(idx, combo);
     }
     
     // Second pass: build flat segments with proper next-segment awareness
