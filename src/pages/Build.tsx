@@ -40,9 +40,9 @@ const SEGMENT_TYPES: { key: SegmentType; label: string; color: string }[] = [
 ];
 
 const DEFAULT_SEGMENT: Omit<WorkoutSegment, 'id'> = {
-  name: 'Exercise',
+  name: 'Shadowboxing',
   type: 'active',
-  segmentType: 'exercise',
+  segmentType: 'shadowboxing',
   duration: 60,
 };
 
