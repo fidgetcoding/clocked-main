@@ -721,9 +721,17 @@ const Build = () => {
                   {phase.segments.map((segment, segIdx) => {
                     const segInfo = getSegmentTypeInfo(segment.segmentType);
                     const hasComboSupport = segment.segmentType === 'combo' || segment.segmentType === 'shadowboxing' || segment.segmentType === 'speedbag' || segment.segmentType === 'doubleend' || segment.segmentType === 'exercise';
-                    // Show the library after the LAST combo-capable segment in the phase
-                    const isLastComboSegment = hasComboSupport && !phase.segments.slice(segIdx + 1).some(
-                      s => s.segmentType === 'combo' || s.segmentType === 'shadowboxing' || s.segmentType === 'speedbag' || s.segmentType === 'doubleend' || s.segmentType === 'exercise'
+                    // Each combo-capable segment shows its own library
+                    // Exercise segments show EXERCISES library, boxing segments show COMBOS/DRILLS
+                    const isExerciseType = segment.segmentType === 'exercise';
+                    const isBoxingType = segment.segmentType === 'combo' || segment.segmentType === 'shadowboxing' || segment.segmentType === 'speedbag' || segment.segmentType === 'doubleend';
+                    // Show library after last consecutive segment of the same category
+                    const showLibrary = hasComboSupport && (
+                      isExerciseType
+                        ? !phase.segments.slice(segIdx + 1).some(s => s.segmentType === 'exercise')
+                        : isBoxingType
+                          ? !phase.segments.slice(segIdx + 1).some(s => s.segmentType === 'combo' || s.segmentType === 'shadowboxing' || s.segmentType === 'speedbag' || s.segmentType === 'doubleend')
+                          : false
                     );
                     return (
                       <div key={segment.id}>
@@ -758,8 +766,8 @@ const Build = () => {
                         </div>
 
                         {/* Inline Combos - rendered after last combo-capable segment */}
-                        {isLastComboSegment && (() => {
-                          const ctx = getPhaseSegmentContext(phase);
+                        {showLibrary && (() => {
+                          const ctx = isExerciseType ? 'exercises' as const : getPhaseSegmentContext(phase);
                           const labelWord = ctx === 'speedbag' ? 'Drills' : ctx === 'exercises' ? 'Exercises' : 'Combos';
                           const emptyText = ctx === 'speedbag' 
                             ? 'No drills — segments will be freestyle' 
