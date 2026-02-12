@@ -728,7 +728,7 @@ const Build = () => {
                     // Show library after last consecutive segment of the same category
                     const showLibrary = hasComboSupport && (
                       isExerciseType
-                        ? !phase.segments.slice(segIdx + 1).some(s => s.segmentType === 'exercise')
+                        ? true
                         : isBoxingType
                           ? !phase.segments.slice(segIdx + 1).some(s => s.segmentType === 'combo' || s.segmentType === 'shadowboxing' || s.segmentType === 'speedbag' || s.segmentType === 'doubleend')
                           : false
