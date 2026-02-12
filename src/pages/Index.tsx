@@ -152,10 +152,10 @@ const Index = () => {
             {/* Create Set */}
             <button
               onClick={() => navigate('/build')}
-              className="card-action h-36 group flex flex-col items-center justify-between"
+              className="card-action h-36 group flex flex-col items-start justify-between"
             >
               <Plus className="w-5 h-5 text-volt" />
-              <div className="text-center">
+              <div>
                 <h3 className="text-base font-black text-foreground">CREATE</h3>
                 <p className="text-xs text-muted-foreground">SET</p>
               </div>
@@ -164,10 +164,10 @@ const Index = () => {
             {/* Workout Log */}
             <button
               onClick={() => navigate('/history')}
-              className="card-action h-36 group flex flex-col items-center justify-between"
+              className="card-action h-36 group flex flex-col items-start justify-between"
             >
               <History className="w-5 h-5 text-volt" />
-              <div className="text-center">
+              <div>
                 <h3 className="text-base font-black text-foreground">WORKOUT</h3>
                 <p className="text-xs text-muted-foreground">LOG</p>
               </div>
