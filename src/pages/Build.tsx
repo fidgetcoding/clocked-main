@@ -26,9 +26,9 @@ import { CSS } from '@dnd-kit/utilities';
 
 const SEGMENT_TYPES: { key: SegmentType; label: string; color: string }[] = [
   { key: 'work', label: 'W', color: 'bg-volt/20 text-volt' },
-  { key: 'rest', label: 'R', color: 'bg-surface-2 text-muted-foreground' },
-  { key: 'shadowboxing', label: 'S', color: 'bg-volt/10 text-volt' },
-  { key: 'combo', label: 'H', color: 'bg-volt/30 text-volt' },
+  { key: 'rest', label: 'R', color: 'bg-zinc-500/20 text-zinc-400' },
+  { key: 'shadowboxing', label: 'S', color: 'bg-purple-500/20 text-purple-400' },
+  { key: 'combo', label: 'H', color: 'bg-red-500/20 text-red-400' },
   { key: 'speedbag', label: 'SB', color: 'bg-orange-500/20 text-orange-400' },
   { key: 'doubleend', label: 'DB', color: 'bg-sky-500/20 text-sky-400' },
 ];
