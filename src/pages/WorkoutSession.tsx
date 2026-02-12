@@ -946,10 +946,10 @@ const WorkoutSession = () => {
                  'COOL DOWN'}
               </p>
               {(workout?.supersetRepeats || 1) > 1 && currentSegment.supersetIndex !== undefined && (
-                <span className="inline-flex items-center gap-0.5 text-xs font-black uppercase tracking-wider">
-                  <span className="text-volt">{currentSegment.supersetIndex + 1}</span>
-                  <span className="text-muted-foreground">/</span>
-                  <span className="text-muted-foreground">{workout?.supersetRepeats}</span>
+                <span className="inline-flex items-center gap-0.5 text-xs font-black uppercase tracking-wider text-volt/60">
+                  <span>{currentSegment.supersetIndex + 1}</span>
+                  <span>/</span>
+                  <span>{workout?.supersetRepeats}</span>
                 </span>
               )}
             </div>
