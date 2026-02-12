@@ -144,7 +144,7 @@ const AdminPortal = () => {
             <ArrowLeft className="w-6 h-6" />
           </button>
           <h1 className="text-2xl font-black text-foreground tracking-wider flex-1">
-            ADMIN
+            ADMIN PANEL
           </h1>
           <button
             onClick={() => setShowAddForm(!showAddForm)}
