@@ -362,13 +362,7 @@ const Build = () => {
         {/* Header */}
         <header className="flex items-center justify-between px-4 py-4 safe-top border-b border-surface-3">
           <button 
-            onClick={() => {
-              if (window.history.length > 1) {
-                navigate(-1);
-              } else {
-                navigate('/');
-              }
-            }} 
+            onClick={() => navigate(-1)}
             className="text-muted-foreground"
           >
             <ArrowLeft className="w-6 h-6" />
