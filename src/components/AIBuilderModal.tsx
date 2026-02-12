@@ -431,12 +431,18 @@ export const AIBuilderModal = ({ onClose, onGenerate, baseWorkout, onWorkoutGene
     
     // If we have a callback, use that (for inline usage)
     if (onWorkoutGenerated) {
-      let progress = 0;
-      const interval = setInterval(() => {
-        progress += Math.random() * 25 + 10;
-        if (progress >= 100) {
-          progress = 100;
-          clearInterval(interval);
+      const duration = 1800; // total animation time in ms
+      const start = performance.now();
+      const animate = (now: number) => {
+        const elapsed = now - start;
+        const t = Math.min(elapsed / duration, 1);
+        // Ease-out cubic for smooth deceleration
+        const eased = 1 - Math.pow(1 - t, 3);
+        const progress = eased * 100;
+        setGenerationProgress(progress);
+        if (t < 1) {
+          requestAnimationFrame(animate);
+        } else {
           setGenerationProgress(100);
           setGenerationDone(true);
           setTimeout(() => {
@@ -446,20 +452,24 @@ export const AIBuilderModal = ({ onClose, onGenerate, baseWorkout, onWorkoutGene
             setGenerationDone(false);
             onClose();
           }, 800);
-        } else {
-          setGenerationProgress(Math.min(progress, 95));
         }
-      }, 200);
+      };
+      requestAnimationFrame(animate);
       return;
     }
     
     // Animate progress bar then navigate
-    let progress = 0;
-    const interval = setInterval(() => {
-      progress += Math.random() * 25 + 10;
-      if (progress >= 100) {
-        progress = 100;
-        clearInterval(interval);
+    const duration = 1800;
+    const start = performance.now();
+    const animate = (now: number) => {
+      const elapsed = now - start;
+      const t = Math.min(elapsed / duration, 1);
+      const eased = 1 - Math.pow(1 - t, 3);
+      const progress = eased * 100;
+      setGenerationProgress(progress);
+      if (t < 1) {
+        requestAnimationFrame(animate);
+      } else {
         setGenerationProgress(100);
         setGenerationDone(true);
         setTimeout(() => {
@@ -471,10 +481,9 @@ export const AIBuilderModal = ({ onClose, onGenerate, baseWorkout, onWorkoutGene
           onClose();
           navigate(`/build?ai=${workoutData}`, { replace: true });
         }, 800);
-      } else {
-        setGenerationProgress(Math.min(progress, 95));
       }
-    }, 200);
+    };
+    requestAnimationFrame(animate);
   };
 
 
@@ -631,7 +640,7 @@ export const AIBuilderModal = ({ onClose, onGenerate, baseWorkout, onWorkoutGene
             <div className="space-y-2">
               <div className="w-full h-2 bg-surface-2 rounded-full overflow-hidden">
                 <div 
-                  className="h-full bg-volt rounded-full transition-all duration-300 ease-out"
+                  className="h-full bg-volt rounded-full"
                   style={{ width: `${generationProgress}%` }}
                 />
               </div>
