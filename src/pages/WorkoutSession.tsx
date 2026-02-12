@@ -57,11 +57,16 @@ function formatTimeCompact(seconds: number): string {
 
 // Helper to convert DB workout to local format for session
 function dbWorkoutToLocal(dbWorkout: DbWorkout) {
-  const phases = dbWorkout.phases as any[];
+  const rawPhases = dbWorkout.phases as any[];
+  // Extract superset metadata if present
+  const metaEntry = rawPhases?.find((p: any) => p._meta);
+  const supersetRepeats = metaEntry?.supersetRepeats || 1;
+  const phases = rawPhases?.filter((p: any) => !p._meta) || [];
+  
   const sections = {
-    warmup: phases?.filter((p: any) => p.section === 'warmup').map(({ section, ...rest }) => rest) || [],
-    grind: phases?.filter((p: any) => p.section === 'grind').map(({ section, ...rest }) => rest) || [],
-    cooldown: phases?.filter((p: any) => p.section === 'cooldown').map(({ section, ...rest }) => rest) || [],
+    warmup: phases.filter((p: any) => p.section === 'warmup').map(({ section, ...rest }: any) => rest),
+    grind: phases.filter((p: any) => p.section === 'grind').map(({ section, ...rest }: any) => rest),
+    cooldown: phases.filter((p: any) => p.section === 'cooldown').map(({ section, ...rest }: any) => rest),
   };
   
   // Use top-level combos from database (the new column), fallback to extracting from phases for legacy data
@@ -84,6 +89,7 @@ function dbWorkoutToLocal(dbWorkout: DbWorkout) {
     sections,
     combos: combos.length > 0 ? combos : undefined,
     is_preset: dbWorkout.is_preset,
+    supersetRepeats,
   };
 }
 
@@ -114,12 +120,19 @@ const WorkoutSession = () => {
     if (!workout) return [];
     
     const segments: FlatSegment[] = [];
-    const sections = ['warmup', 'grind', 'cooldown'] as const;
+    const supersetCount = workout.supersetRepeats || 1;
+    
+    // Build section order: warmup → grind (×supersetRepeats) → cooldown
+    const sectionOrder: { sectionName: 'warmup' | 'grind' | 'cooldown' }[] = [
+      { sectionName: 'warmup' },
+      ...Array.from({ length: supersetCount }, () => ({ sectionName: 'grind' as const })),
+      { sectionName: 'cooldown' },
+    ];
     
     // First pass: collect all segments to know what's next
-    const tempSegments: { segment: any; sectionName: typeof sections[number]; phase: any; repeatIndex: number }[] = [];
+    const tempSegments: { segment: any; sectionName: 'warmup' | 'grind' | 'cooldown'; phase: any; repeatIndex: number }[] = [];
     
-    sections.forEach((sectionName) => {
+    sectionOrder.forEach(({ sectionName }) => {
       const phases = workout.sections[sectionName];
       phases.forEach((phase) => {
         for (let r = 0; r < phase.repeats; r++) {
