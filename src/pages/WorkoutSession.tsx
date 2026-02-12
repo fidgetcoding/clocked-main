@@ -173,7 +173,8 @@ const WorkoutSession = () => {
       const phaseHasComboSegments = phase.segments?.some((s: any) => 
         ['combo', 'shadowboxing', 'speedbag', 'doubleend'].includes(s.segmentType || '')
       );
-      const isExerciseSegment = segment.type === 'active' && segment.segmentType === 'work' && phaseHasCombos && !phaseHasComboSegments;
+      const isExerciseSegment = segment.segmentType === 'exercise' || 
+        (segment.type === 'active' && segment.segmentType === 'work' && phaseHasCombos && !phaseHasComboSegments);
       
       if (isComboSegment || isExerciseSegment) comboSegmentIndices.push(idx);
       else if (isShadowboxing) shadowboxIndices.push(idx);

@@ -56,7 +56,7 @@ export interface ParsedPhase {
 export interface ParsedSegment {
   name: string;
   type: 'active' | 'rest';
-  segmentType?: 'work' | 'rest' | 'shadowboxing' | 'combo' | 'speedbag' | 'doubleend';
+  segmentType?: 'work' | 'rest' | 'shadowboxing' | 'combo' | 'speedbag' | 'doubleend' | 'exercise';
   duration: number;
   exercise?: string;
   activityType?: 'combos' | 'shadowbox' | 'run' | 'pushups' | 'custom';
@@ -699,12 +699,12 @@ function blockToPhase(block: ParsedBlock): ParsedPhase {
     };
   }
   
-  // Conditioning/bodyweight with exercise sets: create a single W segment + populate exercise library
+  // Conditioning/bodyweight with exercise sets: create a single E segment + populate exercise library
   if (block.exerciseSets.length > 0) {
     segments.push({
-      name: block.activityName,
+      name: 'Exercise',
       type: 'active',
-      segmentType: 'work',
+      segmentType: 'exercise',
       duration: block.workDuration,
       activityType: 'custom',
     });
