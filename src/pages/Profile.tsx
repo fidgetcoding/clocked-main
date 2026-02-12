@@ -348,17 +348,23 @@ const Profile = () => {
             className="absolute inset-0 bg-black/80 backdrop-blur-sm"
             onClick={() => setListModal(null)}
           />
-          <div className="relative w-full max-w-md mx-4 bg-surface-1 rounded-2xl border border-surface-3 max-h-[70vh] flex flex-col animate-in fade-in zoom-in-95 duration-200">
+           <div className="relative w-full max-w-md mx-4 bg-surface-1 rounded-2xl border border-surface-3 max-h-[70vh] flex flex-col animate-in fade-in zoom-in-95 duration-200">
             {/* Modal Header */}
-            <div className="flex items-center justify-between p-4 border-b border-surface-3">
-              <h2 className="text-lg font-bold text-foreground capitalize">
+            <div className="flex items-center justify-between px-4 py-3 border-b border-surface-3">
+              <button 
+                onClick={() => setListModal(null)}
+                className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+              >
+                Cancel
+              </button>
+              <h2 className="text-sm font-semibold text-foreground capitalize">
                 {listModal === 'search' ? 'Find People' : listModal}
               </h2>
               <button 
                 onClick={() => setListModal(null)}
-                className="w-8 h-8 rounded-full bg-surface-2 flex items-center justify-center text-muted-foreground hover:text-foreground"
+                className="text-sm font-semibold text-volt hover:text-volt/80 transition-colors"
               >
-                <X className="w-4 h-4" />
+                Done
               </button>
             </div>
 
