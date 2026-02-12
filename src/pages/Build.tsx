@@ -986,14 +986,16 @@ const Build = () => {
               </div>
               {/* Mode Toggle - only for combos */}
               {editingSegmentContext !== 'speedbag' && (
-              <div className="flex bg-surface-1 rounded-full p-1">
+              <div className="relative flex bg-surface-2 rounded-lg p-0.5 h-9">
+                <div
+                  className="absolute top-0.5 bottom-0.5 w-[calc(50%-2px)] bg-volt rounded-md transition-transform duration-200 ease-out"
+                  style={{ transform: comboMode === 'custom' ? 'translateX(calc(100% + 4px))' : 'translateX(0)' }}
+                />
                 <button
                   onClick={() => setComboMode('presets')}
                   className={cn(
-                    'flex-1 py-1.5 rounded-full text-sm font-medium transition-colors',
-                    comboMode === 'presets'
-                      ? 'bg-volt text-primary-foreground'
-                      : 'text-muted-foreground'
+                    'relative z-10 flex-1 text-xs font-semibold uppercase tracking-wide transition-colors',
+                    comboMode === 'presets' ? 'text-background' : 'text-muted-foreground'
                   )}
                 >
                   Presets
@@ -1001,10 +1003,8 @@ const Build = () => {
                 <button
                   onClick={() => setComboMode('custom')}
                   className={cn(
-                    'flex-1 py-1.5 rounded-full text-sm font-medium transition-colors',
-                    comboMode === 'custom'
-                      ? 'bg-volt text-primary-foreground'
-                      : 'text-muted-foreground'
+                    'relative z-10 flex-1 text-xs font-semibold uppercase tracking-wide transition-colors',
+                    comboMode === 'custom' ? 'text-background' : 'text-muted-foreground'
                   )}
                 >
                   Custom
