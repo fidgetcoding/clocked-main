@@ -34,6 +34,7 @@ export const KEYWORD_TAGS: Record<string, string[]> = {
   cardio: ['cardio', 'jump rope', 'run', 'sprint', 'jog', 'treadmill', 'conditioning'],
   hiit: ['hiit', 'interval', 'tabata', 'circuit', 'amrap', 'emom'],
   strength: ['pushup', 'pullup', 'squat', 'burpee', 'plank', 'situp', 'curlup', 'strength'],
+  conditioning: ['conditioning', 'cardio', 'bodyweight', 'burnout', 'circuit', 'hiit', 'metabolic', 'finisher', 'tabata', 'amrap', 'emom'],
   defense: ['slip', 'roll', 'duck', 'parry', 'block', 'defense', 'defensive'],
   footwork: ['footwork', 'movement', 'circle', 'step', 'pivot', 'angle'],
 };
@@ -102,6 +103,7 @@ interface ParsedBlock {
   superset: SupersetExercise[] | null;
   supersetRestBetween: number | null;
   speedBagDrills: string[][];
+  exerciseSets: string[][];
 }
 
 // =====================================================
@@ -302,6 +304,33 @@ function cleanActivityName(name: string): string {
   // Title case
   cleaned = cleaned.replace(/\b\w/g, c => c.toUpperCase());
   return cleaned;
+}
+
+// =====================================================
+// Conditioning/Bodyweight Detection
+// =====================================================
+
+const CONDITIONING_KEYWORDS = [
+  'conditioning', 'cardio', 'bodyweight', 'body weight', 'burnout', 'circuit',
+  'hiit', 'metabolic', 'finisher', 'tabata', 'amrap', 'emom',
+];
+
+const CONDITIONING_EXERCISES = [
+  'burpees', 'mountain climbers', 'squat jumps', 'jumping squats', 'jump squats',
+  'push-ups', 'pushups', 'press-ups', 'plank', 'planks', 'shoulder taps',
+  'sit-ups', 'situps', 'crunches', 'lunges', 'jumping lunges', 'high knees',
+  'butt kicks', 'box jumps', 'star jumps', 'jumping jacks', 'tuck jumps',
+  'bear crawls', 'inchworms', 'flutter kicks', 'leg raises', 'v-ups',
+  'bicycle crunches', 'wall sits', 'dips', 'tricep dips',
+  'battle ropes', 'rope slams', 'kettlebell swings', 'med ball slams',
+  'medicine ball', 'sled push', 'tire flips', 'rowing', 'assault bike',
+];
+
+function isConditioningBlock(text: string): boolean {
+  const lower = text.toLowerCase();
+  if (CONDITIONING_KEYWORDS.some(kw => lower.includes(kw))) return true;
+  const exerciseCount = CONDITIONING_EXERCISES.filter(ex => lower.includes(ex)).length;
+  return exerciseCount >= 2;
 }
 
 // =====================================================
@@ -547,6 +576,19 @@ function parseBlock(blockText: string): ParsedBlock {
     }
   }
   
+  // Detect conditioning/bodyweight phase with per-round exercises
+  const isConditioningPhase = isConditioningBlock(blockText);
+  const exerciseSets: string[][] = [];
+  
+  if (isConditioningPhase && perRoundActivities.length > 0 && bagType === 'unknown') {
+    // Each per-round activity group becomes one exercise set entry
+    for (const activity of perRoundActivities) {
+      // Normalize "and" to "&" for display consistency
+      const normalized = activity.name.replace(/\bAnd\b/g, '&');
+      exerciseSets.push([normalized]);
+    }
+  }
+  
   // Default durations based on section
   let defaultWork: number;
   if (section === 'warmup') defaultWork = 60;
@@ -573,6 +615,7 @@ function parseBlock(blockText: string): ParsedBlock {
     superset: supersetResult?.exercises ?? null,
     supersetRestBetween: supersetResult?.restBetween ?? null,
     speedBagDrills,
+    exerciseSets,
   };
 }
 
@@ -652,6 +695,37 @@ function blockToPhase(block: ParsedBlock): ParsedPhase {
       repeats: block.speedBagDrills.length,
       segments,
       combos: block.speedBagDrills,
+      comboOrder: 'sequential',
+    };
+  }
+  
+  // Conditioning/bodyweight with exercise sets: create a single W segment + populate exercise library
+  if (block.exerciseSets.length > 0) {
+    segments.push({
+      name: block.activityName,
+      type: 'active',
+      segmentType: 'work',
+      duration: block.workDuration,
+      activityType: 'custom',
+    });
+    
+    // Add rest
+    if (!block.noRest && block.restDuration > 0) {
+      segments.push({
+        name: 'Rest',
+        type: 'rest',
+        segmentType: 'rest',
+        duration: block.restDuration,
+      });
+    }
+    
+    return {
+      name: block.activityName,
+      phaseType: 'circuit',
+      section: block.section,
+      repeats: block.exerciseSets.length,
+      segments,
+      combos: block.exerciseSets,
       comboOrder: 'sequential',
     };
   }

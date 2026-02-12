@@ -158,7 +158,7 @@ const WorkoutSession = () => {
     const shadowboxIndices: number[] = [];
     
     tempSegments.forEach((item, idx) => {
-      const { segment } = item;
+      const { segment, phase } = item;
       const isSpeedbag = segment.segmentType === 'speedbag';
       const isDoubleend = segment.segmentType === 'doubleend';
       // Speedbag and double end bag segments are always freestyle — skip combo assignment
@@ -167,7 +167,15 @@ const WorkoutSession = () => {
       const isShadowboxing = segment.segmentType === 'shadowboxing' || 
                              segment.name.toLowerCase().includes('shadow') || 
                              segment.name.toLowerCase().includes('technique');
-      if (isComboSegment) comboSegmentIndices.push(idx);
+      // Work segments in phases with combos but no combo-capable segments (conditioning/exercise phases)
+      const phaseCombos = phase.combos as string[][] | undefined;
+      const phaseHasCombos = phaseCombos && phaseCombos.length > 0;
+      const phaseHasComboSegments = phase.segments?.some((s: any) => 
+        ['combo', 'shadowboxing', 'speedbag', 'doubleend'].includes(s.segmentType || '')
+      );
+      const isExerciseSegment = segment.type === 'active' && segment.segmentType === 'work' && phaseHasCombos && !phaseHasComboSegments;
+      
+      if (isComboSegment || isExerciseSegment) comboSegmentIndices.push(idx);
       else if (isShadowboxing) shadowboxIndices.push(idx);
     });
     
@@ -208,7 +216,7 @@ const WorkoutSession = () => {
     const phaseComboLists: Map<string, { list: string[][]; cursor: number }> = new Map();
     
     const getPhaseCombo = (phase: any, phaseKey: string): string[] | undefined => {
-      if (totalCombos === 0) return undefined;
+      if (totalCombos === 0 && !(phase.combos && phase.combos.length > 0)) return undefined;
       if (!phaseComboLists.has(phaseKey)) {
         phaseComboLists.set(phaseKey, { list: getComboListForPhase(phase), cursor: 0 });
       }
