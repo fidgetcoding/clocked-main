@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { X, Search, Check, Plus } from 'lucide-react';
+import { X, Search, Plus } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 
@@ -166,19 +166,16 @@ export const ExercisePickerModal = ({ open, onClose, onConfirm }: ExercisePicker
           return (
             <button
               key={exercise.name}
-              onClick={() => toggleExercise(exercise.name)}
-              className={cn(
-                'w-full flex items-center justify-between rounded-lg p-3 border transition-colors text-left',
-                isSelected
-                  ? 'bg-volt/10 border-volt'
-                  : 'bg-surface-1 border-surface-3 hover:border-muted-foreground'
-              )}
+              onClick={() => {
+                onConfirm([exercise.name]);
+                setSearch('');
+                setActiveCategory('All');
+                onClose();
+              }}
+              className="w-full flex items-center gap-3 bg-surface-1 rounded-lg p-3 border border-surface-3 hover:border-volt/50 transition-colors text-left"
             >
-              <div>
-                <span className={cn(
-                  'text-sm font-medium',
-                  isSelected ? 'text-volt' : 'text-foreground'
-                )}>
+              <div className="flex-1">
+                <span className="text-sm font-medium text-foreground">
                   {exercise.name}
                 </span>
                 {activeCategory === 'All' && (
@@ -187,9 +184,7 @@ export const ExercisePickerModal = ({ open, onClose, onConfirm }: ExercisePicker
                   </span>
                 )}
               </div>
-              {isSelected && (
-                <Check className="w-4 h-4 text-volt shrink-0" />
-              )}
+              <Plus className="w-5 h-5 text-volt/60" />
             </button>
           );
         })}
@@ -199,18 +194,6 @@ export const ExercisePickerModal = ({ open, onClose, onConfirm }: ExercisePicker
           </p>
         )}
       </div>
-
-      {/* Confirm Button */}
-      {selected.length > 0 && (
-        <div className="px-4 py-4 border-t border-surface-3 safe-bottom">
-          <button
-            onClick={handleConfirm}
-            className="w-full py-3 rounded-xl bg-volt text-background font-bold text-sm"
-          >
-            Add {selected.length === 1 ? selected[0] : `${selected.length} exercises as set`}
-          </button>
-        </div>
-      )}
     </div>
   );
 };
