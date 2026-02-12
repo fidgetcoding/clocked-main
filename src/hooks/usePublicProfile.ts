@@ -9,6 +9,7 @@ export interface PublicProfile {
   handle: string | null;
   bio: string | null;
   avatar_url: string | null;
+  role: string;
   total_xp: number;
   current_streak: number;
   workouts_completed: number;
@@ -54,6 +55,7 @@ export function usePublicProfile(userId: string | undefined) {
         handle: profile.handle,
         bio: profile.bio,
         avatar_url: profile.avatar_url,
+        role: profile.role || 'fighter',
         total_xp: totalXP,
         current_streak: profile.current_streak || 0,
         workouts_completed: profile.workouts_completed || 0,
