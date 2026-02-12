@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Settings, User, Link as LinkIcon, UserPlus, UserCheck, Clock, Trophy, Flame, ChevronRight, X, Search } from 'lucide-react';
+import { Settings, User, Link as LinkIcon, UserPlus, UserCheck, Clock, Trophy, Flame, ChevronRight, X, Search, Check } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { useUserSearch } from '@/hooks/useUserSearch';
 import { useNavigate, useParams } from 'react-router-dom';
@@ -286,18 +286,18 @@ const Profile = () => {
             <div className="flex items-center justify-between px-4 py-3 border-b border-surface-3">
               <button 
                 onClick={() => setListModal(null)}
-                className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+                className="w-8 h-8 rounded-full bg-surface-2 flex items-center justify-center hover:bg-surface-3 transition-colors"
               >
-                Cancel
+                <X className="w-4 h-4 text-muted-foreground" />
               </button>
               <h2 className="text-sm font-semibold text-foreground capitalize">
                 {listModal === 'search' ? 'Find People' : listModal}
               </h2>
               <button 
                 onClick={() => setListModal(null)}
-                className="text-sm font-semibold text-volt hover:text-volt/80 transition-colors"
+                className="w-8 h-8 rounded-full bg-volt/20 flex items-center justify-center hover:bg-volt/30 transition-colors"
               >
-                Done
+                <Check className="w-4 h-4 text-volt" />
               </button>
             </div>
 
