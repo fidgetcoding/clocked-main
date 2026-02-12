@@ -15,7 +15,8 @@ import {
   PUNCH_KEYS_BY_DIFFICULTY, 
   DEFENSE_KEYS_BY_DIFFICULTY, 
   MOVEMENT_KEYS_BY_DIFFICULTY,
-  ComboPreset 
+  ComboPreset,
+  ComboDifficulty
 } from '@/data/comboPresets';
 import { SPEED_BAG_DRILLS } from '@/data/speedBagDrills';
 import { ExercisePickerModal, isBuiltinExercise } from '@/components/ExercisePickerModal';
@@ -139,17 +140,19 @@ const Build = () => {
   const { addExercise: addCustomExercise, isInLibrary } = useCustomExercises();
   
   // Get default difficulty based on user's experience level
-  const getDefaultDifficulty = (): 'beginner' | 'intermediate' | 'advanced' => {
+  const getDefaultDifficulty = (): ComboDifficulty => {
     const level = user?.experienceLevel;
-    if (level === 'complete_beginner' || level === 'beginner') return 'beginner';
+    if (level === 'complete_beginner') return 'rookie';
+    if (level === 'beginner') return 'beginner';
     if (level === 'intermediate') return 'intermediate';
-    if (level === 'advanced' || level === 'pro') return 'advanced';
+    if (level === 'advanced') return 'advanced';
+    if (level === 'pro') return 'pro';
     return 'beginner';
   };
   
   // Form state
   const [name, setName] = useState('New Workout');
-  const [difficulty, setDifficulty] = useState<'beginner' | 'intermediate' | 'advanced'>(getDefaultDifficulty());
+  const [difficulty, setDifficulty] = useState<ComboDifficulty>(getDefaultDifficulty());
   const [warmupPhases, setWarmupPhases] = useState<WorkoutPhase[]>([]);
   const [grindPhases, setGrindPhases] = useState<WorkoutPhase[]>([]);
   const [cooldownPhases, setCooldownPhases] = useState<WorkoutPhase[]>([]);
@@ -278,7 +281,7 @@ const Build = () => {
         const { warmup, grind, cooldown, megasetRepeats: mr } = dbPhasesToLocal(dbWorkout);
         setWorkoutId(dbWorkout.id);
         setName(dbWorkout.name);
-        setDifficulty((dbWorkout.difficulty as 'beginner' | 'intermediate' | 'advanced') || 'beginner');
+        setDifficulty((dbWorkout.difficulty as ComboDifficulty) || 'beginner');
         setWarmupPhases(warmup);
         setGrindPhases(grind);
         setCooldownPhases(cooldown);
@@ -948,7 +951,7 @@ const Build = () => {
             <div className="px-4 py-3 border-b border-surface-3 space-y-3">
               {/* Difficulty Tabs */}
               <div className="flex gap-2">
-                {(['beginner', 'intermediate', 'advanced'] as const).map((d) => (
+                {(['rookie', 'beginner', 'intermediate', 'advanced', 'pro'] as const).map((d) => (
                   <button
                     key={d}
                     onClick={() => setDifficulty(d)}
@@ -1045,15 +1048,17 @@ const Build = () => {
                     <div className="space-y-2">
                       {(() => {
                         const DRILL_CATEGORIES: Record<string, string[]> = {
+                          rookie: ['single-alternating', 'doubles'],
                           beginner: ['single-alternating', 'doubles', 'double-right-lead', 'double-left-lead', 'side-to-side'],
                           intermediate: ['triples', 'triple-right-lead', 'triple-left-lead', 'fist-rolls-forward', 'backfists', 'elbow-strikes'],
                           advanced: ['fist-rolls-reverse', 'one-two-rhythm'],
+                          pro: [],
                         };
-                        const availableIds = difficulty === 'advanced'
-                          ? [...DRILL_CATEGORIES.beginner, ...DRILL_CATEGORIES.intermediate, ...DRILL_CATEGORIES.advanced]
-                          : difficulty === 'intermediate'
-                          ? [...DRILL_CATEGORIES.beginner, ...DRILL_CATEGORIES.intermediate]
-                          : DRILL_CATEGORIES.beginner;
+                        const availableIds = (() => {
+                          const levels = ['rookie', 'beginner', 'intermediate', 'advanced', 'pro'];
+                          const idx = levels.indexOf(difficulty);
+                          return levels.slice(0, idx + 1).flatMap(l => DRILL_CATEGORIES[l]);
+                        })();
                         return SPEED_BAG_DRILLS
                           .filter(d => d.id !== 'freestyle' && availableIds.includes(d.id))
                           .map((drill) => (

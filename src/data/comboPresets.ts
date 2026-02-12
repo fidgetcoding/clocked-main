@@ -1,10 +1,12 @@
 // Combo presets organized by difficulty level
 
+export type ComboDifficulty = 'rookie' | 'beginner' | 'intermediate' | 'advanced' | 'pro';
+
 export interface ComboPreset {
   id: string;
   name: string;
   combo: string[];
-  difficulty: 'beginner' | 'intermediate' | 'advanced';
+  difficulty: ComboDifficulty;
 }
 
 // Beginner presets - only 1-4, SLIP L/R, ROLL L/R
@@ -49,37 +51,53 @@ export const ADVANCED_COMBOS: ComboPreset[] = [
   { id: 'a10', name: 'Championship Round', combo: ['1', '2', '3', '4', 'SLIP L', '5', '6', '7', '8', 'CIRCLE L'], difficulty: 'advanced' },
 ];
 
+// Rookie presets - empty for now, user will add
+export const ROOKIE_COMBOS: ComboPreset[] = [];
+
+// Pro presets - empty for now, user will add
+export const PRO_COMBOS: ComboPreset[] = [];
+
 // Universal presets available at all levels
 export const UNIVERSAL_COMBOS: ComboPreset[] = [
-  { id: 'u1', name: 'Freestyle', combo: ['FREESTYLE'], difficulty: 'beginner' },
+  { id: 'u1', name: 'Freestyle', combo: ['FREESTYLE'], difficulty: 'rookie' },
 ];
 
-export const getAllPresets = (difficulty: 'beginner' | 'intermediate' | 'advanced'): ComboPreset[] => {
+export const getAllPresets = (difficulty: ComboDifficulty): ComboPreset[] => {
   switch (difficulty) {
+    case 'rookie':
+      return [...UNIVERSAL_COMBOS, ...ROOKIE_COMBOS];
     case 'beginner':
-      return [...UNIVERSAL_COMBOS, ...BEGINNER_COMBOS];
+      return [...UNIVERSAL_COMBOS, ...ROOKIE_COMBOS, ...BEGINNER_COMBOS];
     case 'intermediate':
-      return [...UNIVERSAL_COMBOS, ...BEGINNER_COMBOS, ...INTERMEDIATE_COMBOS];
+      return [...UNIVERSAL_COMBOS, ...ROOKIE_COMBOS, ...BEGINNER_COMBOS, ...INTERMEDIATE_COMBOS];
     case 'advanced':
-      return [...UNIVERSAL_COMBOS, ...BEGINNER_COMBOS, ...INTERMEDIATE_COMBOS, ...ADVANCED_COMBOS];
+      return [...UNIVERSAL_COMBOS, ...ROOKIE_COMBOS, ...BEGINNER_COMBOS, ...INTERMEDIATE_COMBOS, ...ADVANCED_COMBOS];
+    case 'pro':
+      return [...UNIVERSAL_COMBOS, ...ROOKIE_COMBOS, ...BEGINNER_COMBOS, ...INTERMEDIATE_COMBOS, ...ADVANCED_COMBOS, ...PRO_COMBOS];
   }
 };
 
 // Keys available by difficulty
-export const PUNCH_KEYS_BY_DIFFICULTY = {
+export const PUNCH_KEYS_BY_DIFFICULTY: Record<ComboDifficulty, string[]> = {
+  rookie: ['1', '2'],
   beginner: ['1', '2', '3', '4'],
   intermediate: ['1', '2', '3', '4', '5', '6'],
   advanced: ['1', '2', '3', '4', '5', '6', '7', '8'],
+  pro: ['1', '2', '3', '4', '5', '6', '7', '8'],
 };
 
-export const DEFENSE_KEYS_BY_DIFFICULTY = {
+export const DEFENSE_KEYS_BY_DIFFICULTY: Record<ComboDifficulty, string[]> = {
+  rookie: ['SLIP L', 'SLIP R'],
   beginner: ['SLIP L', 'SLIP R', 'ROLL L', 'ROLL R'],
   intermediate: ['SLIP L', 'SLIP R', 'ROLL L', 'ROLL R', 'PULL', 'BLOCK'],
   advanced: ['SLIP L', 'SLIP R', 'ROLL L', 'ROLL R', 'PULL', 'BLOCK'],
+  pro: ['SLIP L', 'SLIP R', 'ROLL L', 'ROLL R', 'PULL', 'BLOCK'],
 };
 
-export const MOVEMENT_KEYS_BY_DIFFICULTY = {
+export const MOVEMENT_KEYS_BY_DIFFICULTY: Record<ComboDifficulty, string[]> = {
+  rookie: [] as string[],
   beginner: [] as string[],
   intermediate: ['CIRCLE L', 'CIRCLE R'],
   advanced: ['CIRCLE L', 'CIRCLE R', 'STEP IN', 'STEP OUT'],
+  pro: ['CIRCLE L', 'CIRCLE R', 'STEP IN', 'STEP OUT'],
 };
