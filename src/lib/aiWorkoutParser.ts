@@ -341,17 +341,6 @@ function parseCombosFromBlock(text: string): string[][] {
     }
   }
   
-  // Fallback: parse entire text if it looks like a simple combo
-  if (combos.length === 0 && containsComboNotation(text)) {
-    const words = text.split(/\s+/);
-    if (words.length <= 15) {
-      const parsed = parseComboString(text);
-      if (parsed.length >= 2) {
-        combos.push(parsed);
-      }
-    }
-  }
-  
   return combos;
 }
 
