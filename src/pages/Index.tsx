@@ -155,9 +155,9 @@ const Index = () => {
               className="card-action h-36 group flex flex-col items-start justify-between"
             >
               <Plus className="w-5 h-5 text-volt" />
-              <div>
-                <h3 className="text-base font-black text-foreground">CREATE</h3>
-                <p className="text-xs text-muted-foreground">SET</p>
+              <div className="text-left">
+                <h3 className="text-base font-black text-foreground leading-none">CREATE</h3>
+                <p className="text-xs text-muted-foreground leading-none mt-0.5">SET</p>
               </div>
             </button>
 
@@ -167,9 +167,9 @@ const Index = () => {
               className="card-action h-36 group flex flex-col items-start justify-between"
             >
               <History className="w-5 h-5 text-volt" />
-              <div>
-                <h3 className="text-base font-black text-foreground">WORKOUT</h3>
-                <p className="text-xs text-muted-foreground">LOG</p>
+              <div className="text-left">
+                <h3 className="text-base font-black text-foreground leading-none">WORKOUT</h3>
+                <p className="text-xs text-muted-foreground leading-none mt-0.5">LOG</p>
               </div>
             </button>
           </div>
