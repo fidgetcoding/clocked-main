@@ -1,52 +1,46 @@
 
-# Fix: Phantom Combo Generation and Suggested Count
 
-## Problem
+# Contextual Segment Labels + Freestyle Indicator
 
-Two related issues:
+## Two Changes
 
-1. **Phantom combo #6 (2-2)**: The speed bag block text "2 rounds speed bag, 2 minutes each, 30 sec rest." triggers the `containsComboNotation` fallback in `parseCombosFromBlock`. The regex `\b[1-8]\b` matches the "2" in "2 rounds", so `parseComboString` processes the entire block and picks up both "2"s (from "2 rounds" and "2 minutes") as punches, creating a fake combo `["2", "2"]`.
+### 1. Parser: Use activity name instead of "Combo Work" (aiWorkoutParser.ts)
 
-2. **"3 combos suggested" label**: The `countComboSegments` function in Build.tsx counts every phase that has a combo or shadowboxing segment. Speed Bag is labeled "Combo Work" (combo segment type) contributing x2, warmup shadowboxing contributes x1, and cooldown shadowbox contributes x1. Total "required" = 9 vs 6 combos = "3 suggested". This is misleading because speed bag and cooldown don't actually need combos.
+In `blockToPhase()`, line 417, change the segment name from the generic "Combo Work" to the block's activity name. The activity name comes from what the user typed (e.g., "Heavy Bag Work", "Speed Bag").
 
-## Fix 1: Remove the aggressive `containsComboNotation` fallback in `parseCombosFromBlock`
-
-**File:** `src/lib/aiWorkoutParser.ts`
-
-The fallback at lines 345-353 parses the entire block text as a combo string when `containsComboNotation` returns true but no structured combos were found. This is too aggressive -- any block containing a single digit 1-8 (like "2 rounds") triggers it. 
-
-**Change:** Remove the fallback entirely. If `roundComboPattern` and `extractCombosFromPrompt` both find nothing, the block genuinely has no combos. The fallback was designed for very short prompts like "1-2-3" typed alone, but `extractCombosFromPrompt`'s dash pattern already handles that case.
-
-## Fix 2: Only count phases that genuinely use combos in the "suggested" label
-
-**File:** `src/pages/Build.tsx`
-
-In `countComboSegments`, skip phases whose activity clearly doesn't use combos (speed bag, bodyweight, stretching, etc.). The simplest approach: only count phases where the segment type is explicitly `'combo'`, not `'shadowboxing'` or generic `'work'`. Or alternatively, only count grind-section phases that have `segmentType === 'combo'`.
-
-Actually, the cleaner fix: change the segment type for Speed Bag from `'combo'` to `'work'` in the parser. In `blockToPhase`, the segment is labeled "Combo Work" with type `'combo'` because `block.combos.length > 0` (due to the phantom combo). Once Fix 1 removes the phantom combo, Speed Bag will have 0 combos, so `hasCombos` will be false, and the segment will correctly be named "Speed Bag" with type `'work'`. This fixes both issues at once.
-
-## Summary
-
-Only one code change is needed:
-
-- **`src/lib/aiWorkoutParser.ts`**: Remove the `containsComboNotation` fallback block (lines 345-353) from `parseCombosFromBlock`
-
-This single change:
-- Prevents phantom combos from being generated from non-combo text
-- Causes Speed Bag and Bodyweight blocks to correctly show their activity name instead of "Combo Work"
-- Fixes the "suggested combos" count since those phases will no longer have combo segment types
-
-## Technical Details
-
-```text
-BEFORE (parseCombosFromBlock):
-  roundComboPattern → 0 matches
-  extractCombosFromPrompt → 0 matches
-  containsComboNotation("2 rounds speed bag, 2 minutes...") → TRUE (matches \b2\b)
-  parseComboString(entire block) → ["2", "2"] ← PHANTOM COMBO
-
-AFTER:
-  roundComboPattern → 0 matches
-  extractCombosFromPrompt → 0 matches
-  return [] ← correct, no combos in speed bag block
 ```
+// Line 417, change:
+name: hasCombos ? 'Combo Work' : block.activityName,
+// To:
+name: block.activityName,
+```
+
+The segment type (`segmentType: 'combo'`) and badge ("C") remain unchanged -- those still correctly indicate combo behavior internally. Only the display name changes.
+
+### 2. Timer: Show FREESTYLE for work segments without combos (WorkoutSession.tsx)
+
+Currently, the combo display area for non-shadowboxing segments (line 1001-1051) only renders when `displayCombo` has content. Speed Bag segments have no combo assigned, so nothing shows -- the user has no indication of what to do.
+
+Add a FREESTYLE display for active non-shadowboxing, non-rest segments that have no combo assigned. This goes right after the existing combo display block (after line 1051):
+
+```typescript
+{/* Freestyle Display - for work segments with no combos */}
+{!isShadowboxing && !isPreparation && currentSegment?.type === 'active' && 
+ (!displayCombo || displayCombo.length === 0) && (
+  <div className="w-full max-w-sm bg-surface-1 rounded-xl p-4 border border-surface-3">
+    <p className="text-2xl font-black text-volt text-center">FREESTYLE</p>
+  </div>
+)}
+```
+
+This means:
+- Heavy Bag rounds with combos assigned: shows the specific combo (1-2, 1-1-2-3, etc.)
+- Speed Bag rounds with NO combos: shows FREESTYLE
+- Shadowboxing with no incoming combo: already shows FREESTYLE (existing behavior, unchanged)
+- Rest segments: no combo display (unchanged)
+
+### Files Changed
+
+1. **`src/lib/aiWorkoutParser.ts`** (line 417) -- one-line change to segment naming
+2. **`src/pages/WorkoutSession.tsx`** (after line 1051) -- add FREESTYLE block for non-shadowboxing work segments without combos
+
