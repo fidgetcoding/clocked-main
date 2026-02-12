@@ -148,14 +148,14 @@ const Index = () => {
 
         {/* Action Cards */}
         <section className="px-4 pb-6">
-          <div className="grid grid-cols-[1fr_1fr_0.5fr] gap-3">
+          <div className="grid grid-cols-[2fr_2fr_1fr] gap-3">
             {/* Create Set */}
             <button
               onClick={() => navigate('/build')}
-              className="card-action h-36 text-left group"
+              className="card-action h-36 group flex flex-col items-center justify-between"
             >
-              <Plus className="w-5 h-5 text-volt mb-auto" />
-              <div className="mt-auto">
+              <Plus className="w-5 h-5 text-volt" />
+              <div className="text-center">
                 <h3 className="text-base font-black text-foreground">CREATE</h3>
                 <p className="text-xs text-muted-foreground">SET</p>
               </div>
@@ -164,10 +164,10 @@ const Index = () => {
             {/* Workout Log */}
             <button
               onClick={() => navigate('/history')}
-              className="card-action h-36 text-left group"
+              className="card-action h-36 group flex flex-col items-center justify-between"
             >
-              <History className="w-5 h-5 text-volt mb-auto" />
-              <div className="mt-auto">
+              <History className="w-5 h-5 text-volt" />
+              <div className="text-center">
                 <h3 className="text-base font-black text-foreground">WORKOUT</h3>
                 <p className="text-xs text-muted-foreground">LOG</p>
               </div>
@@ -176,12 +176,12 @@ const Index = () => {
             {/* Quick Start */}
             <button
               onClick={() => navigate('/quick-session')}
-              className="card-action h-36 text-left group"
+              className="card-action h-36 group flex flex-col items-center justify-between"
             >
-              <Timer className="w-5 h-5 text-volt mb-auto" />
-              <div className="mt-auto">
-                <h3 className="text-base font-black text-foreground">QUICK</h3>
-                <p className="text-xs text-muted-foreground">START</p>
+              <Timer className="w-5 h-5 text-volt" />
+              <div className="text-center">
+                <h3 className="text-[11px] font-black text-foreground leading-tight">QUICK</h3>
+                <p className="text-[10px] text-muted-foreground">START</p>
               </div>
             </button>
           </div>
