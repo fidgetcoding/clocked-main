@@ -788,13 +788,13 @@ function blockToPhase(block: ParsedBlock): ParsedPhase {
   };
 }
 
-function inferSegmentType(name: string): 'work' | 'rest' | 'shadowboxing' | 'combo' | 'speedbag' | 'doubleend' {
+function inferSegmentType(name: string): 'exercise' | 'rest' | 'shadowboxing' | 'combo' | 'speedbag' | 'doubleend' {
   const lower = name.toLowerCase();
   if (/shadow/i.test(lower)) return 'shadowboxing';
   if (/double[\s-]*end|de\s*bag|reflex\s*bag|floor\s*to\s*ceiling|spring\s*bag/i.test(lower)) return 'doubleend';
   if (/speed[\s-]*bag|small\s*bag|platform\s*bag|swivel\s*bag/i.test(lower)) return 'speedbag';
   if (/combo|heavy[\s-]*bag|bag\s*work|mitt|pad|power\s*bag|big\s*bag/i.test(lower)) return 'combo';
-  return 'work';
+  return 'exercise';
 }
 
 /**
@@ -874,7 +874,7 @@ export function parseWorkoutInput(
         section: 'warmup',
         repeats: 1,
         segments: [
-          { name: 'Jump Rope', type: 'active', segmentType: 'work', duration: 120, activityType: 'run' },
+          { name: 'Jump Rope', type: 'active', segmentType: 'exercise', duration: 120, activityType: 'run' },
           { name: 'Active Rest', type: 'rest', segmentType: 'rest', duration: 30 },
           { name: 'Shadow Boxing', type: 'active', segmentType: 'shadowboxing', duration: 120, activityType: 'shadowbox' },
         ],
@@ -889,7 +889,7 @@ export function parseWorkoutInput(
         repeats: 1,
         segments: [
           { name: 'Light Shadow', type: 'active', segmentType: 'shadowboxing', duration: 90, activityType: 'shadowbox' },
-          { name: 'Stretch', type: 'active', segmentType: 'work', duration: 120, activityType: 'custom' },
+          { name: 'Stretch', type: 'active', segmentType: 'exercise', duration: 120, activityType: 'custom' },
         ],
       });
     }
@@ -1003,7 +1003,7 @@ function buildLegacyPhases(
       section: 'warmup',
       repeats: 1,
       segments: [
-        { name: 'Jump Rope', type: 'active', segmentType: 'work', duration: 120, activityType: 'run' },
+        { name: 'Jump Rope', type: 'active', segmentType: 'exercise', duration: 120, activityType: 'run' },
         { name: 'Active Rest', type: 'rest', segmentType: 'rest', duration: 30 },
         { name: 'Shadow Boxing', type: 'active', segmentType: 'shadowboxing', duration: 120, activityType: 'shadowbox' },
       ],
@@ -1023,7 +1023,7 @@ function buildLegacyPhases(
     grindSegments.push({
       name: exercise.name,
       type: 'active',
-      segmentType: 'work',
+      segmentType: 'exercise',
       duration: exercise.duration ?? 30,
       exercise: exercise.name,
       activityType: 'custom',
@@ -1054,7 +1054,7 @@ function buildLegacyPhases(
       repeats: 1,
       segments: [
         { name: 'Light Shadow', type: 'active', segmentType: 'shadowboxing', duration: 90, activityType: 'shadowbox' },
-        { name: 'Stretch', type: 'active', segmentType: 'work', duration: 120, activityType: 'custom' },
+        { name: 'Stretch', type: 'active', segmentType: 'exercise', duration: 120, activityType: 'custom' },
       ],
     });
   }
