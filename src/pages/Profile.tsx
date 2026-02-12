@@ -115,7 +115,7 @@ const Profile = () => {
         <div className="px-4 py-6">
           <div className="flex items-start gap-4 mb-4">
             {/* Avatar */}
-            <div className="w-20 h-20 rounded-full bg-volt/20 flex items-center justify-center">
+            <div className="w-20 h-20 rounded-full bg-volt/20 flex items-center justify-center shrink-0">
             {profileAvatar ? (
                 profileAvatar.startsWith('http') ? (
                   <img src={profileAvatar} alt={profileName} className="w-20 h-20 rounded-full object-cover" />
@@ -127,82 +127,88 @@ const Profile = () => {
               )}
             </div>
 
-            {/* Stats Row */}
-            <div className="flex-1 flex justify-around">
-              <button onClick={() => navigate('/history')} className="text-center">
-                <p className="text-xl font-bold text-foreground">
-                  {workoutsCompleted}
-                </p>
-                <p className="text-xs text-muted-foreground">Workouts</p>
-              </button>
-              <button onClick={() => setListModal('followers')} className="text-center">
-                <p className="text-xl font-bold text-foreground">{followersCount}</p>
-                <p className="text-xs text-muted-foreground">Followers</p>
-              </button>
-              <button onClick={() => setListModal('following')} className="text-center">
-                <p className="text-xl font-bold text-foreground">{followingCount}</p>
-                <p className="text-xs text-muted-foreground">Following</p>
-              </button>
+            {/* Stats + Action Buttons */}
+            <div className="flex-1 space-y-3">
+              <div className="flex justify-around">
+                <button onClick={() => navigate('/history')} className="text-center">
+                  <p className="text-xl font-bold text-foreground">
+                    {workoutsCompleted}
+                  </p>
+                  <p className="text-xs text-muted-foreground">Workouts</p>
+                </button>
+                <button onClick={() => setListModal('followers')} className="text-center">
+                  <p className="text-xl font-bold text-foreground">{followersCount}</p>
+                  <p className="text-xs text-muted-foreground">Followers</p>
+                </button>
+                <button onClick={() => setListModal('following')} className="text-center">
+                  <p className="text-xl font-bold text-foreground">{followingCount}</p>
+                  <p className="text-xs text-muted-foreground">Following</p>
+                </button>
+              </div>
+
+              {/* Action Buttons */}
+              {isOwnProfile ? (
+                <div className="flex gap-2">
+                  <Button 
+                    onClick={() => navigate('/edit-profile')}
+                    variant="outline" 
+                    size="sm"
+                    className="flex-1 bg-surface-1 border-surface-3"
+                  >
+                    Edit Profile
+                  </Button>
+                  <Button 
+                    onClick={handleOpenSearch}
+                    variant="outline" 
+                    size="sm"
+                    className="bg-surface-1 border-surface-3"
+                  >
+                    <Search className="w-4 h-4" />
+                  </Button>
+                  <Button 
+                    onClick={() => {
+                      navigator.clipboard.writeText(window.location.href);
+                      toast.success('Profile link copied!');
+                    }}
+                    variant="outline" 
+                    size="sm"
+                    className="bg-surface-1 border-surface-3"
+                  >
+                    <LinkIcon className="w-4 h-4" />
+                  </Button>
+                </div>
+              ) : (
+                <div className="flex gap-2">
+                  <Button 
+                    onClick={() => handleFollow(userId!)}
+                    disabled={follow.isPending || unfollow.isPending}
+                    size="sm"
+                    className={cn(
+                      "flex-1",
+                      isFollowing 
+                        ? "bg-surface-1 border border-surface-3 text-foreground hover:bg-surface-2" 
+                        : "bg-volt text-primary-foreground hover:bg-volt/90"
+                    )}
+                  >
+                    {isFollowing ? (
+                      <>
+                        <UserCheck className="w-4 h-4 mr-2" />
+                        Following
+                      </>
+                    ) : (
+                      <>
+                        <UserPlus className="w-4 h-4 mr-2" />
+                        Follow
+                      </>
+                    )}
+                  </Button>
+                  <Button variant="outline" size="sm" className="bg-surface-1 border-surface-3">
+                    Message
+                  </Button>
+                </div>
+              )}
             </div>
           </div>
-
-          {/* Action Buttons - right below stats */}
-          {isOwnProfile ? (
-            <div className="flex gap-2 mb-4">
-              <Button 
-                onClick={() => navigate('/edit-profile')}
-                variant="outline" 
-                className="flex-1 bg-surface-1 border-surface-3"
-              >
-                Edit Profile
-              </Button>
-              <Button 
-                onClick={handleOpenSearch}
-                variant="outline" 
-                className="bg-surface-1 border-surface-3"
-              >
-                <Search className="w-4 h-4" />
-              </Button>
-              <Button 
-                onClick={() => {
-                  navigator.clipboard.writeText(window.location.href);
-                  toast.success('Profile link copied!');
-                }}
-                variant="outline" 
-                className="bg-surface-1 border-surface-3"
-              >
-                <LinkIcon className="w-4 h-4" />
-              </Button>
-            </div>
-          ) : (
-            <div className="flex gap-2 mb-4">
-              <Button 
-                onClick={() => handleFollow(userId!)}
-                disabled={follow.isPending || unfollow.isPending}
-                className={cn(
-                  "flex-1",
-                  isFollowing 
-                    ? "bg-surface-1 border border-surface-3 text-foreground hover:bg-surface-2" 
-                    : "bg-volt text-primary-foreground hover:bg-volt/90"
-                )}
-              >
-                {isFollowing ? (
-                  <>
-                    <UserCheck className="w-4 h-4 mr-2" />
-                    Following
-                  </>
-                ) : (
-                  <>
-                    <UserPlus className="w-4 h-4 mr-2" />
-                    Follow
-                  </>
-                )}
-              </Button>
-              <Button variant="outline" className="bg-surface-1 border-surface-3">
-                Message
-              </Button>
-            </div>
-          )}
 
           {/* Name and Handle */}
           <div className="mb-3">
