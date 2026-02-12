@@ -1,97 +1,52 @@
 
+# Fix: Phantom Combo Generation and Suggested Count
 
-# AI Builder Parser Overhaul: Multi-Phase Support
+## Problem
 
-## Problem Summary
+Two related issues:
 
-The current AI workout parser treats the entire prompt as a single block. It extracts one round count, one duration, and one rest value from the whole text, then builds exactly three sections: one hardcoded warmup, one grind phase, and one hardcoded cooldown. This causes every issue you reported:
+1. **Phantom combo #6 (2-2)**: The speed bag block text "2 rounds speed bag, 2 minutes each, 30 sec rest." triggers the `containsComboNotation` fallback in `parseCombosFromBlock`. The regex `\b[1-8]\b` matches the "2" in "2 rounds", so `parseComboString` processes the entire block and picks up both "2"s (from "2 rounds" and "2 minutes") as punches, creating a fake combo `["2", "2"]`.
 
-- **Round count wrong** -- `parseRounds()` grabs the first "X rounds" match in the text (the warmup's "3 round"), ignoring the heavy bag's "5 rounds"
-- **Durations wrong** -- `parseDurations()` grabs the first minute/second match, not the one associated with the correct block
-- **Warmup/Cooldown hardcoded** -- The warmup always produces Jump Rope + Shadow Boxing at fixed durations regardless of what you specify
-- **Speed Bag and Bodyweight phases dropped** -- The parser has no concept of multiple grind phases; it creates exactly one
-- **Cooldown durations inconsistent** -- Light Shadow is hardcoded to 90 sec, Stretch to 120 sec, ignoring your input
+2. **"3 combos suggested" label**: The `countComboSegments` function in Build.tsx counts every phase that has a combo or shadowboxing segment. Speed Bag is labeled "Combo Work" (combo segment type) contributing x2, warmup shadowboxing contributes x1, and cooldown shadowbox contributes x1. Total "required" = 9 vs 6 combos = "3 suggested". This is misleading because speed bag and cooldown don't actually need combos.
 
-## Solution: Block-Based Multi-Phase Parser
+## Fix 1: Remove the aggressive `containsComboNotation` fallback in `parseCombosFromBlock`
 
-Rewrite the core of `src/lib/aiWorkoutParser.ts` to split the prompt into logical blocks first, then parse each block independently.
+**File:** `src/lib/aiWorkoutParser.ts`
 
-### Step 1: Block Splitter
+The fallback at lines 345-353 parses the entire block text as a combo string when `containsComboNotation` returns true but no structured combos were found. This is too aggressive -- any block containing a single digit 1-8 (like "2 rounds") triggers it. 
 
-Add a new function `splitIntoBlocks()` that segments the prompt by paragraph breaks and structural cues like:
-- Line breaks / double newlines
-- Sentences that start with round counts ("3 round warm up...", "5 rounds heavy bag...")
-- Section keywords: "warm up", "cool down", numbered phase indicators
+**Change:** Remove the fallback entirely. If `roundComboPattern` and `extractCombosFromPrompt` both find nothing, the block genuinely has no combos. The fallback was designed for very short prompts like "1-2-3" typed alone, but `extractCombosFromPrompt`'s dash pattern already handles that case.
 
-Each block becomes an independent parsing unit with its own round count, durations, segment names, and section assignment (warmup/grind/cooldown).
+## Fix 2: Only count phases that genuinely use combos in the "suggested" label
 
-### Step 2: Per-Block Parsing
+**File:** `src/pages/Build.tsx`
 
-For each block, independently extract:
-- **Round count**: from that block's text only
-- **Work duration**: from that block's text only (converting minutes to seconds)
-- **Rest duration**: from that block's text only
-- **Activity names**: specific exercises mentioned (shadowbox, jump rope, dynamic stretches, speed bag, burpees, etc.)
-- **Per-round assignments**: if the user says "First round X, Second round Y", create individual segments in the correct order
-- **Section classification**: detect if the block is warmup, cooldown, or main work based on keywords
+In `countComboSegments`, skip phases whose activity clearly doesn't use combos (speed bag, bodyweight, stretching, etc.). The simplest approach: only count phases where the segment type is explicitly `'combo'`, not `'shadowboxing'` or generic `'work'`. Or alternatively, only count grind-section phases that have `segmentType === 'combo'`.
 
-### Step 3: Per-Round Activity Parsing
+Actually, the cleaner fix: change the segment type for Speed Bag from `'combo'` to `'work'` in the parser. In `blockToPhase`, the segment is labeled "Combo Work" with type `'combo'` because `block.combos.length > 0` (due to the phantom combo). Once Fix 1 removes the phantom combo, Speed Bag will have 0 combos, so `hasCombos` will be false, and the segment will correctly be named "Speed Bag" with type `'work'`. This fixes both issues at once.
 
-When a block contains per-round descriptions ("First round shadowbox light. Second round jump rope."), parse each into a separate segment with:
-- The correct name
-- The duration from the block's header (e.g., "1 minute each" = 60 sec per segment)
-- Rest segments inserted between them at the block's rest duration
+## Summary
 
-### Step 4: Phase Assembly
+Only one code change is needed:
 
-Replace the current `buildPhases()` which creates one hardcoded warmup + one grind + one cooldown. Instead, convert each parsed block directly into a `ParsedPhase` with:
-- Correct section assignment (warmup/grind/cooldown)
-- Correct repeat count from block
-- Correct segments from block
-- Correct timing from block
+- **`src/lib/aiWorkoutParser.ts`**: Remove the `containsComboNotation` fallback block (lines 345-353) from `parseCombosFromBlock`
 
-Multiple grind blocks become multiple phases in the grind section.
-
-### Step 5: Update `generateWorkoutFromPrompt()` in AIBuilderModal.tsx
-
-The `hasSpecificData` check currently gates on `parsedRounds || parsedDurations || parsedCombos`. With multi-phase parsing, this should always use the new parser when blocks are detected. The legacy `parseWorkoutPrompt()` fallback remains for very simple/vague prompts.
-
-## Files Changed
-
-1. **`src/lib/aiWorkoutParser.ts`** -- Major rewrite of the parsing pipeline:
-   - New `splitIntoBlocks()` function
-   - New `parseBlock()` function for per-block extraction
-   - New `parsePerRoundActivities()` for ordered segment creation
-   - Updated `buildPhases()` to assemble from blocks instead of hardcoded templates
-   - Updated `parseWorkoutInput()` to use block-based flow
-   - Keep all existing helper functions (combo parsing, tag detection, etc.) intact
-
-2. **`src/components/AIBuilderModal.tsx`** -- Minor update to `generateWorkoutFromPrompt()`:
-   - Improve the `hasSpecificData` gate to detect multi-block prompts
-   - No structural changes needed; the function already delegates to the parser
-
-## Expected Results for the Test Prompt
-
-After this change, the test prompt would produce:
-
-- **Warmup section**: 1 phase, 3 repeats, segments: Shadowbox Light (60s), Jump Rope (60s), Dynamic Stretches (60s), with 30s rest between
-- **Grind section - Phase 1**: "Heavy Bag Work", 5 repeats, Combo Work (180s) + Rest (60s), with 5 parsed combos
-- **Grind section - Phase 2**: "Speed Bag", 2 repeats, Speed Bag (120s) + Rest (30s)
-- **Grind section - Phase 3**: "Bodyweight Burnout", 3 repeats, with per-round exercises (90s each) + Rest (45s)
-- **Cooldown section**: 1 phase, 2 repeats, Slow Shadowbox (120s), Static Stretching (120s), no rest
+This single change:
+- Prevents phantom combos from being generated from non-combo text
+- Causes Speed Bag and Bodyweight blocks to correctly show their activity name instead of "Combo Work"
+- Fixes the "suggested combos" count since those phases will no longer have combo segment types
 
 ## Technical Details
 
 ```text
-CURRENT FLOW:
-  Prompt --> parseRounds (first match) --> parseDurations (first match) --> buildPhases (hardcoded template)
-  Result: 1 warmup + 1 grind + 1 cooldown
+BEFORE (parseCombosFromBlock):
+  roundComboPattern → 0 matches
+  extractCombosFromPrompt → 0 matches
+  containsComboNotation("2 rounds speed bag, 2 minutes...") → TRUE (matches \b2\b)
+  parseComboString(entire block) → ["2", "2"] ← PHANTOM COMBO
 
-NEW FLOW:
-  Prompt --> splitIntoBlocks() --> [Block1, Block2, Block3, Block4, Block5]
-                                      |        |        |        |        |
-                                  parseBlock  parseBlock  ...   ...     ...
-                                      |        |
-                                  Phase(warmup) Phase(grind) Phase(grind) Phase(grind) Phase(cooldown)
+AFTER:
+  roundComboPattern → 0 matches
+  extractCombosFromPrompt → 0 matches
+  return [] ← correct, no combos in speed bag block
 ```
-
