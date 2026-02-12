@@ -839,23 +839,14 @@ const Build = () => {
               );
             })}
 
-            {/* Add Phase / Add Superset */}
-            <div className="flex gap-2">
-              <button
-                onClick={addPhase}
-                className="flex-1 p-4 rounded-xl border-2 border-dashed border-surface-3 text-muted-foreground hover:text-foreground hover:border-volt transition-colors flex items-center justify-center gap-2"
-              >
-                <Plus className="w-5 h-5" />
-                Add Phase
-              </button>
-              <button
-                onClick={addSuperset}
-                className="flex-1 p-4 rounded-xl border-2 border-dashed border-purple-500/30 text-muted-foreground hover:text-purple-400 hover:border-purple-500/60 transition-colors flex items-center justify-center gap-2"
-              >
-                <Layers className="w-5 h-5" />
-                Add Superset
-              </button>
-            </div>
+            {/* Add Phase */}
+            <button
+              onClick={addPhase}
+              className="w-full p-4 rounded-xl border-2 border-dashed border-surface-3 text-muted-foreground hover:text-foreground hover:border-volt transition-colors flex items-center justify-center gap-2"
+            >
+              <Plus className="w-5 h-5" />
+              Add Phase
+            </button>
           </div>
 
         </div>
