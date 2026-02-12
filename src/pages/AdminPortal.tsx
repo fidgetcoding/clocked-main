@@ -218,7 +218,7 @@ const AdminPortal = () => {
                     <span className="text-xs text-volt">({users.filter(u => u.role === 'admin').length})</span>
                   </div>
                   {users.filter(u => u.role === 'admin').map((user) => (
-                    <div key={user.id} className="card-workout flex items-center gap-3 border border-volt/20">
+                    <div key={user.id} onClick={() => navigate(`/profile/${user.id}`)} className="card-workout flex items-center gap-3 border border-volt/20 cursor-pointer hover:bg-surface-2 transition-colors">
                       <div className="flex-1 min-w-0">
                         <p className="text-foreground font-bold text-sm truncate">
                           {user.name}
@@ -246,7 +246,7 @@ const AdminPortal = () => {
                   <span className="text-xs text-muted-foreground">({users.filter(u => u.role !== 'admin').length})</span>
                 </div>
                 {users.filter(u => u.role !== 'admin').map((user) => (
-                  <div key={user.id} className="card-workout flex items-center gap-3">
+                  <div key={user.id} onClick={() => navigate(`/profile/${user.id}`)} className="card-workout flex items-center gap-3 cursor-pointer hover:bg-surface-2 transition-colors">
                     <div className="flex-1 min-w-0">
                       <p className="text-foreground font-bold text-sm truncate">
                         {user.name}
