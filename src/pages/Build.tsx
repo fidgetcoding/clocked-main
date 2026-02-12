@@ -30,12 +30,13 @@ import { SortableContext, verticalListSortingStrategy, useSortable, arrayMove } 
 import { CSS } from '@dnd-kit/utilities';
 
 const SEGMENT_TYPES: { key: SegmentType; label: string; color: string }[] = [
+  { key: 'shadowboxing', label: 'S', color: 'bg-purple-500/20 text-purple-400' },
+  { key: 'speedbag', label: 'SB', color: 'bg-orange-500/20 text-orange-400' },
+  { key: 'combo', label: 'H', color: 'bg-red-500/20 text-red-400' },
+  { key: 'doubleend', label: 'DB', color: 'bg-sky-500/20 text-sky-400' },
+  { key: 'sparring', label: 'SP', color: 'bg-amber-500/20 text-amber-400' },
   { key: 'exercise', label: 'E', color: 'bg-emerald-500/20 text-emerald-400' },
   { key: 'rest', label: 'R', color: 'bg-zinc-500/20 text-zinc-400' },
-  { key: 'shadowboxing', label: 'S', color: 'bg-purple-500/20 text-purple-400' },
-  { key: 'combo', label: 'H', color: 'bg-red-500/20 text-red-400' },
-  { key: 'speedbag', label: 'SB', color: 'bg-orange-500/20 text-orange-400' },
-  { key: 'doubleend', label: 'DB', color: 'bg-sky-500/20 text-sky-400' },
 ];
 
 const DEFAULT_SEGMENT: Omit<WorkoutSegment, 'id'> = {
@@ -389,11 +390,11 @@ const Build = () => {
   };
 
   const cycleSegmentType = (phaseId: string, segmentId: string, currentType?: SegmentType) => {
-    const types: SegmentType[] = ['exercise', 'rest', 'shadowboxing', 'combo', 'speedbag', 'doubleend'];
-    const currentIndex = types.indexOf(currentType || 'exercise');
+    const types: SegmentType[] = ['shadowboxing', 'speedbag', 'combo', 'doubleend', 'sparring', 'exercise', 'rest'];
+    const currentIndex = types.indexOf(currentType || 'shadowboxing');
     const nextType = types[(currentIndex + 1) % types.length];
     const isActive = nextType !== 'rest';
-    const nameMap: Record<string, string> = { exercise: 'Exercise', rest: 'Rest', shadowboxing: 'Shadowboxing', combo: 'Heavy Bag', speedbag: 'Speed Bag', doubleend: 'Double End Bag' };
+    const nameMap: Record<string, string> = { exercise: 'Exercise', rest: 'Rest', shadowboxing: 'Shadowboxing', combo: 'Heavy Bag', speedbag: 'Speed Bag', doubleend: 'Double End Bag', sparring: 'Sparring' };
     updateSegment(phaseId, segmentId, { 
       segmentType: nextType, 
       type: isActive ? 'active' : 'rest',
