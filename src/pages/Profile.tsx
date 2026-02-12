@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Settings, User, Link as LinkIcon, UserPlus, UserCheck, Clock, Trophy, Flame, ChevronRight, X, Search, Check } from 'lucide-react';
+import { Settings, User, Link as LinkIcon, UserPlus, UserCheck, Clock, Trophy, Flame, ChevronRight, X, Search, Check, Share2 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { useUserSearch } from '@/hooks/useUserSearch';
 import { useNavigate, useParams } from 'react-router-dom';
@@ -14,6 +14,7 @@ import { PrestigeBadge } from '@/components/ui/PrestigeDisplay';
 import { Prestige, getRankingFromLevel } from '@/lib/xpSystem';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
+import { SharedWorkoutsModal } from '@/components/SharedWorkoutsModal';
 
 function formatDuration(seconds: number): string {
   const hours = Math.floor(seconds / 3600);
@@ -34,6 +35,7 @@ const Profile = () => {
   const { data: publicProfile, isLoading: isLoadingPublic } = usePublicProfile(userId);
   const { followersCount, followingCount, followersList, followingList, isFollowing, follow, unfollow } = useFollows(userId);
   const [listModal, setListModal] = useState<ListModalType>(null);
+  const [showSharedWorkouts, setShowSharedWorkouts] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const { results: searchResults, isLoading: isSearching, hasQuery } = useUserSearch(searchQuery);
 
@@ -195,6 +197,13 @@ const Profile = () => {
                 className="flex-1 bg-surface-1 border-surface-3"
               >
                 Edit Profile
+              </Button>
+              <Button 
+                onClick={() => setShowSharedWorkouts(true)}
+                variant="outline" 
+                className="bg-surface-1 border-surface-3"
+              >
+                <Share2 className="w-4 h-4" />
               </Button>
               <Button 
                 onClick={handleOpenSearch}
@@ -374,6 +383,11 @@ const Profile = () => {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Shared Workouts Modal */}
+      {showSharedWorkouts && (
+        <SharedWorkoutsModal onClose={() => setShowSharedWorkouts(false)} />
       )}
     </AppLayout>
   );

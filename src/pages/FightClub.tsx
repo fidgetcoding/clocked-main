@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ArrowLeft, Users, Newspaper, Trophy, Search, MessageCircle, BarChart3, Send, ChevronRight, Mic, MicOff, Download, X, UserPlus, LogIn, LogOut } from 'lucide-react';
+import { ArrowLeft, Users, Newspaper, Trophy, Search, MessageCircle, BarChart3, Send, ChevronRight, Mic, MicOff, Download, X, UserPlus, LogIn, LogOut, Trash2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
@@ -10,7 +10,7 @@ import { WorkoutPreviewModal } from '@/components/WorkoutPreviewModal';
 import { AIBuilderModal } from '@/components/AIBuilderModal';
 import { LiveStreamModal } from '@/components/LiveStreamModal';
 import { useWorkoutStore } from '@/stores/workoutStore';
-import { useCommunityPosts, CommunityPost } from '@/hooks/useCommunityPosts';
+import { useCommunityPosts, CommunityPost, useDeleteCommunityPost } from '@/hooks/useCommunityPosts';
 import { Workout } from '@/types';
 import { toast } from 'sonner';
 import { useUserSearch } from '@/hooks/useUserSearch';
@@ -37,7 +37,8 @@ const FightClub = () => {
   const { addWorkout } = useWorkoutStore();
   const [feedFilter, setFeedFilter] = useState<'all' | 'following'>('all');
   const { data: communityPosts, isLoading: postsLoading } = useCommunityPosts(feedFilter, 'feed');
-  const { data: clubPosts, isLoading: clubPostsLoading } = useCommunityPosts('all', 'club');
+  const { data: clubPosts, isLoading: clubPostsLoading } = useCommunityPosts('all', 'club', EARLY_ADOPTERS_CLUB_ID);
+  const deletePost = useDeleteCommunityPost();
   const [activeTab, setActiveTab] = useState<Tab>('feed');
   const [selectedClub, setSelectedClub] = useState<Club | null>(null);
   const [clubTab, setClubTab] = useState<ClubTab>('feed');
@@ -341,6 +342,18 @@ const FightClub = () => {
                         <div className="flex items-center gap-2">
                           <span className="font-semibold text-foreground">{post.user_name}</span>
                           <span className="text-xs text-muted-foreground">{formatTimeAgo(post.created_at)}</span>
+                          {post.user_id === user?.id && (
+                            <button
+                              onClick={() => {
+                                deletePost.mutate(post.id, {
+                                  onSuccess: () => toast.success('Post deleted'),
+                                });
+                              }}
+                              className="ml-auto text-muted-foreground hover:text-destructive transition-colors"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          )}
                         </div>
                         {post.type === 'preset_shared' && (
                           <>
@@ -576,13 +589,40 @@ const FightClub = () => {
                     </div>
                     <div className="flex-1">
                       <div className="flex items-center gap-2">
-                        <span className="font-semibold text-foreground">
+                        <button
+                          onClick={() => navigate(`/profile/${post.user_id}`)}
+                          className="font-semibold text-foreground hover:text-volt transition-colors"
+                        >
                           {post.user_name}
-                        </span>
+                        </button>
                         <span className="text-xs text-muted-foreground">
                           {formatTimeAgo(post.created_at)}
                         </span>
+                        {/* Delete button for own posts */}
+                        {post.user_id === user?.id && (
+                          <button
+                            onClick={() => {
+                              deletePost.mutate(post.id, {
+                                onSuccess: () => toast.success('Post deleted'),
+                              });
+                            }}
+                            className="ml-auto text-muted-foreground hover:text-destructive transition-colors"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        )}
                       </div>
+
+                      {post.type === 'workout_complete' && (
+                        <>
+                          <p className="text-sm text-foreground mt-1">
+                            {post.message || `Completed "${post.workout_name}" 🔥`}
+                          </p>
+                          <div className="flex items-center gap-4 mt-3 text-xs text-muted-foreground">
+                            <span>❤️ {post.likes}</span>
+                          </div>
+                        </>
+                      )}
 
                       {post.type === 'preset_shared' && (
                         <>
@@ -863,17 +903,24 @@ const FightClub = () => {
                 ))}
               </div>
 
-              {/* Community Shared Presets */}
-              {communitySharedPresets && communitySharedPresets.length > 0 && (
+              {/* Trending - includes community shared presets merged in */}
+              <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
+                {selectedCategory === 'All' ? 'Trending 🔥' : selectedCategory}
+              </h3>
+
+              {/* Community shared presets + Trending workout cards */}
+              {filteredWorkouts.length === 0 && communitySharedPresets.length === 0 ? (
+                <div className="text-center py-8">
+                  <p className="text-muted-foreground">No workouts found matching your search.</p>
+                </div>
+              ) : (
                 <>
-                  <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
-                    Community Shared 🤝
-                  </h3>
+                  {/* Community shared presets as cards */}
                   {communitySharedPresets
                     .filter((post) => {
                       if (!searchQuery) return true;
-                      const name = (post.custom_name || post.workout_name || '').toLowerCase();
-                      return name.includes(searchQuery.toLowerCase());
+                      const pname = (post.custom_name || post.workout_name || '').toLowerCase();
+                      return pname.includes(searchQuery.toLowerCase());
                     })
                     .map((post) => (
                     <button
@@ -903,63 +950,44 @@ const FightClub = () => {
                             )}
                             <span>❤️ {post.likes}</span>
                           </div>
-                          {post.tags && post.tags.length > 0 && (
-                            <div className="flex flex-wrap gap-1 mt-2">
-                              {post.tags.map((tag) => (
-                                <span key={tag} className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-volt/15 text-volt border border-volt/20">
-                                  {tag}
-                                </span>
-                              ))}
-                            </div>
-                          )}
                         </div>
                         <Download className="w-5 h-5 text-volt mt-1" />
                       </div>
                     </button>
                   ))}
-                </>
-              )}
 
-              <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
-                {selectedCategory === 'All' ? 'Trending 🔥' : selectedCategory}
-              </h3>
-
-              {/* Workout Cards */}
-              {filteredWorkouts.length === 0 && (!communitySharedPresets || communitySharedPresets.length === 0) ? (
-                <div className="text-center py-8">
-                  <p className="text-muted-foreground">No workouts found matching your search.</p>
-                </div>
-              ) : (
-                filteredWorkouts.map((workout) => (
-                  <button
-                    key={workout.id}
-                    onClick={() => setSelectedWorkout(workout)}
-                    className="card-workout w-full text-left"
-                  >
-                    <div className="flex items-start gap-3">
-                      <div className="w-12 h-12 rounded-xl bg-volt/20 flex items-center justify-center text-2xl">
-                        {workout.icon}
-                      </div>
-                      <div className="flex-1">
-                        <h4 className="font-semibold text-foreground">{workout.name}</h4>
-                        <p className="text-sm text-muted-foreground">{workout.authorHandle}</p>
-                        <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground">
-                          <span>⭐ {workout.rating} ({workout.ratingCount})</span>
-                          <span>📥 {workout.downloads >= 1000 ? `${(workout.downloads / 1000).toFixed(1)}K` : workout.downloads}</span>
-                          <span>{Math.floor(workout.totalDuration / 60)} min</span>
-                          <span className={cn(
-                            workout.difficulty === 'beginner' ? 'text-volt' :
-                            workout.difficulty === 'intermediate' ? 'text-yellow-500' :
-                            'text-alert-red'
-                          )}>
-                            {workout.difficulty.charAt(0).toUpperCase() + workout.difficulty.slice(1)}
-                          </span>
+                  {/* Static trending workouts */}
+                  {filteredWorkouts.map((workout) => (
+                    <button
+                      key={workout.id}
+                      onClick={() => setSelectedWorkout(workout)}
+                      className="card-workout w-full text-left"
+                    >
+                      <div className="flex items-start gap-3">
+                        <div className="w-12 h-12 rounded-xl bg-volt/20 flex items-center justify-center text-2xl">
+                          {workout.icon}
                         </div>
+                        <div className="flex-1">
+                          <h4 className="font-semibold text-foreground">{workout.name}</h4>
+                          <p className="text-sm text-muted-foreground">{workout.authorHandle}</p>
+                          <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground">
+                            <span>⭐ {workout.rating} ({workout.ratingCount})</span>
+                            <span>📥 {workout.downloads >= 1000 ? `${(workout.downloads / 1000).toFixed(1)}K` : workout.downloads}</span>
+                            <span>{Math.floor(workout.totalDuration / 60)} min</span>
+                            <span className={cn(
+                              workout.difficulty === 'beginner' ? 'text-volt' :
+                              workout.difficulty === 'intermediate' ? 'text-yellow-500' :
+                              'text-alert-red'
+                            )}>
+                              {workout.difficulty.charAt(0).toUpperCase() + workout.difficulty.slice(1)}
+                            </span>
+                          </div>
+                        </div>
+                        <ChevronRight className="w-5 h-5 text-muted-foreground mt-1" />
                       </div>
-                      <ChevronRight className="w-5 h-5 text-muted-foreground mt-1" />
-                    </div>
-                  </button>
-                ))
+                    </button>
+                  ))}
+                </>
               )}
             </div>
           )}

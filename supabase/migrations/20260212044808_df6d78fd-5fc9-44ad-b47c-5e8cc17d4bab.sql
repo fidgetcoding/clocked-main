@@ -1,0 +1,1 @@
+ALTER TABLE public.community_posts ADD COLUMN club_id uuid REFERENCES public.clubs(id) ON DELETE SET NULL;

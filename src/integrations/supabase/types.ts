@@ -126,6 +126,7 @@ export type Database = {
       }
       community_posts: {
         Row: {
+          club_id: string | null
           created_at: string | null
           custom_name: string | null
           destination: string | null
@@ -140,6 +141,7 @@ export type Database = {
           workout_name: string | null
         }
         Insert: {
+          club_id?: string | null
           created_at?: string | null
           custom_name?: string | null
           destination?: string | null
@@ -154,6 +156,7 @@ export type Database = {
           workout_name?: string | null
         }
         Update: {
+          club_id?: string | null
           created_at?: string | null
           custom_name?: string | null
           destination?: string | null
@@ -167,7 +170,15 @@ export type Database = {
           workout_id?: string | null
           workout_name?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "community_posts_club_id_fkey"
+            columns: ["club_id"]
+            isOneToOne: false
+            referencedRelation: "clubs"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       follows: {
         Row: {
