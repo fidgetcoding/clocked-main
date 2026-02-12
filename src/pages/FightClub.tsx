@@ -36,7 +36,8 @@ const FightClub = () => {
   const navigate = useNavigate();
   const { addWorkout } = useWorkoutStore();
   const [feedFilter, setFeedFilter] = useState<'all' | 'following'>('all');
-  const { data: communityPosts, isLoading: postsLoading } = useCommunityPosts(feedFilter);
+  const { data: communityPosts, isLoading: postsLoading } = useCommunityPosts(feedFilter, 'feed');
+  const { data: clubPosts, isLoading: clubPostsLoading } = useCommunityPosts('all', 'club');
   const [activeTab, setActiveTab] = useState<Tab>('feed');
   const [selectedClub, setSelectedClub] = useState<Club | null>(null);
   const [clubTab, setClubTab] = useState<ClubTab>('feed');
@@ -209,7 +210,7 @@ const FightClub = () => {
   };
 
   // Club-specific data - empty for now, will be populated from database
-  const clubFeed: {id: string; userName: string; avatar: string; message: string; timeAgo: string; likes: number}[] = [];
+  // Club feed uses real club-destination posts
 
   // Voice recording for chat
   const handleVoiceRecord = () => {
@@ -322,25 +323,64 @@ const FightClub = () => {
           <div className="flex-1 overflow-y-auto">
             {clubTab === 'feed' && (
               <div className="px-4 py-4 space-y-4">
-                {clubFeed.map((post) => (
+                {clubPostsLoading && (
+                  <div className="text-center py-8 text-muted-foreground">Loading posts...</div>
+                )}
+                {clubPosts && clubPosts.length > 0 && clubPosts.map((post) => (
                   <div key={post.id} className="card-workout">
                     <div className="flex items-start gap-3">
-                      <div className="w-10 h-10 rounded-full bg-surface-2 flex items-center justify-center text-xl">
-                        {post.avatar}
+                      <div className="w-10 h-10 rounded-full bg-surface-2 flex items-center justify-center text-xl flex-shrink-0 overflow-hidden">
+                        {post.user_avatar ? (
+                          <img src={post.user_avatar} alt="" className="w-full h-full object-cover" />
+                        ) : '🥊'}
                       </div>
                       <div className="flex-1">
                         <div className="flex items-center gap-2">
-                          <span className="font-semibold text-foreground">{post.userName}</span>
-                          <span className="text-xs text-muted-foreground">{post.timeAgo}</span>
+                          <span className="font-semibold text-foreground">{post.user_name}</span>
+                          <span className="text-xs text-muted-foreground">{formatTimeAgo(post.created_at)}</span>
                         </div>
-                        <p className="text-sm text-foreground mt-1">{post.message}</p>
-                        <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
-                          <span>❤️ {post.likes}</span>
-                        </div>
+                        {post.type === 'preset_shared' && (
+                          <>
+                            <p className="text-sm text-foreground mt-1">
+                              Shared a workout: <span className="text-volt font-medium">{post.custom_name || post.workout_name}</span> 🥊
+                            </p>
+                            {post.tags && post.tags.length > 0 && (
+                              <div className="flex flex-wrap gap-1 mt-2">
+                                {post.tags.map((tag) => (
+                                  <span key={tag} className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-volt/15 text-volt border border-volt/20">
+                                    {tag}
+                                  </span>
+                                ))}
+                              </div>
+                            )}
+                            {post.message && (
+                              <p className="text-sm text-muted-foreground mt-2 italic">"{post.message}"</p>
+                            )}
+                            <div className="flex items-center gap-2 mt-3">
+                              <Button 
+                                size="sm" 
+                                className="bg-volt text-primary-foreground text-xs"
+                                onClick={() => handleSaveCommunityWorkout(post)}
+                              >
+                                <Download className="w-3 h-3 mr-1" />
+                                Save Workout
+                              </Button>
+                            </div>
+                            <div className="flex items-center gap-4 mt-3 text-xs text-muted-foreground">
+                              <span>❤️ {post.likes}</span>
+                            </div>
+                          </>
+                        )}
                       </div>
                     </div>
                   </div>
                 ))}
+                {!clubPostsLoading && (!clubPosts || clubPosts.length === 0) && (
+                  <div className="text-center py-8">
+                    <p className="text-muted-foreground">No posts shared to this club yet.</p>
+                    <p className="text-sm text-muted-foreground mt-1">Share a workout and select "Early Adopters" as the destination!</p>
+                  </div>
+                )}
               </div>
             )}
 
