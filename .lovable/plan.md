@@ -1,53 +1,22 @@
 
 
-# Switch Body Metrics to American Defaults with ft/in Height
+## Fix: Home Screen Action Card Proportions
 
-## Current State
-- Default unit is metric (kg/cm), with a toggle to switch to imperial (lbs/in)
-- Height in imperial mode shows inches only (e.g., "68 in") instead of feet + inches
+The current approach of using a fixed `w-20` for Quick Start makes it too narrow, forcing tiny text. Instead, we'll use a cleaner proportional approach.
 
-## Changes
+### The Change
 
-### File: `src/pages/EditProfile.tsx`
+Replace the flex layout with a **CSS grid using fractional units**: `grid-cols-[5fr_5fr_2fr]`. This gives Create and Workout Log each ~42% of the width, and Quick Start ~16% -- noticeably smaller but not so cramped that text gets clipped or needs a tiny font.
 
-**1. Default to imperial (American units)**
-- Change `useState(false)` to `useState(true)` for `useImperial`
-- Update the `useEffect` that initializes values so it converts from stored metric to imperial by default
+Quick Start will keep the same font size as the others (`text-base` for the main label) but use a shorter word: just "QUICK" with "START" below it, matching the two-line pattern of the other cards.
 
-**2. Split height into feet + inches in imperial mode**
-- Replace the single height input with two inputs (ft and in) when imperial is selected
-- Show a single cm input when metric is selected
-- Store internally in cm (no database changes needed)
-- Conversion: `totalInches = (feet * 12) + inches`, then `cm = totalInches * 2.54`
+### Specific Changes (1 file)
 
-**3. Update toggle label**
-- Default (imperial) shows: "Switch to kg/cm"
-- Toggled (metric) shows: "Switch to lbs/ft"
+**src/pages/Index.tsx** (lines 150-186):
+- Change `<div className="flex gap-3">` to `<div className="grid grid-cols-[5fr_5fr_2fr] gap-3">`
+- Remove `flex-1` from Create and Workout Log buttons
+- Remove `w-20 shrink-0` from Quick Start button
+- Restore Quick Start text to use `text-sm font-black` for "QUICK" and `text-xs` for "START" (matching the style of the other two cards but slightly smaller since the column is narrower)
+- All three cards keep `h-36`, `card-action`, and centered flex layout
 
-**4. Update the unit conversion on toggle**
-- When toggling from imperial to metric: convert lbs to kg, ft/in to cm
-- When toggling from metric to imperial: convert kg to lbs, cm to ft/in
-
-### State changes
-- Replace single `heightInput` string with `heightFt` and `heightIn` strings for imperial mode, keeping `heightInput` for cm mode
-- Add a conversion helper that handles ft/in to cm and back
-
-### No database or backend changes needed
-Weight and height remain stored in kg and cm internally.
-
-## Technical Details
-
-### New state variables
-- `heightFt` (string) -- feet portion in imperial mode
-- `heightIn` (string) -- inches portion in imperial mode
-- `useImperial` default changes from `false` to `true`
-
-### Conversion logic
-- lbs to kg: `val / 2.20462`
-- kg to lbs: `val * 2.20462`
-- ft/in to cm: `((ft * 12) + in) * 2.54`
-- cm to ft/in: `totalInches = cm / 2.54`, `ft = floor(totalInches / 12)`, `in = round(totalInches % 12)`
-
-### onBlur save for height (imperial)
-When either ft or in field blurs, compute total cm from both fields and save to profile.
-
+This keeps all three cards visually cohesive with readable text while making Quick Start clearly secondary in size.
