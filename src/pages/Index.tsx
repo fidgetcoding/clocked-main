@@ -160,7 +160,7 @@ const Index = () => {
                 <p className="text-xs text-muted-foreground leading-none mt-0.5">SET</p>
               </div>
               {/* Decorative background icon */}
-              <Plus className="absolute right-1 top-1 w-24 h-24 text-muted-foreground/10 pointer-events-none md:right-4 md:top-2 md:w-28 md:h-28" strokeWidth={1} />
+              <Plus className="absolute right-1 top-1 w-[5.5rem] h-[5.5rem] text-muted-foreground/10 pointer-events-none md:right-4 md:top-2 md:w-[6.5rem] md:h-[6.5rem]" strokeWidth={1} />
             </button>
 
             {/* Workout Log */}
@@ -174,7 +174,7 @@ const Index = () => {
                 <p className="text-xs text-muted-foreground leading-none mt-0.5">LOG</p>
               </div>
               {/* Decorative background icon */}
-              <History className="absolute right-1 top-1 w-24 h-24 text-muted-foreground/10 pointer-events-none md:right-4 md:top-2 md:w-28 md:h-28" strokeWidth={1} />
+              <History className="absolute right-1 top-1 w-[5.5rem] h-[5.5rem] text-muted-foreground/10 pointer-events-none md:right-4 md:top-2 md:w-[6.5rem] md:h-[6.5rem]" strokeWidth={1} />
             </button>
           </div>
         </section>
