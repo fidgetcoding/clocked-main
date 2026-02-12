@@ -391,12 +391,12 @@ function parseInterspersedExercises(prompt: string): Array<{ name: string; reps?
 function generateWorkoutName(prompt: string, result: ParsedWorkoutResult): string {
   const tags = result.tags;
   
-  if (tags.includes('defense') || prompt.includes('defense')) {
-    return 'Defense Drill';
+  // Prioritize combos — if the user gave specific combos, it's a combo drill
+  if (result.parsedCombos && result.combos.length > 0) {
+    if (result.combos.length >= 4) return 'Combo Blitz';
+    return 'Combo Drill';
   }
-  if (tags.includes('footwork')) {
-    return 'Footwork Focus';
-  }
+  
   if (tags.includes('hiit')) {
     return 'HIIT Boxing';
   }
@@ -406,14 +406,20 @@ function generateWorkoutName(prompt: string, result: ParsedWorkoutResult): strin
   if (prompt.includes('shadow')) {
     return 'Shadow Session';
   }
+  if (tags.includes('footwork')) {
+    return 'Footwork Focus';
+  }
+  if (tags.includes('defense') && !tags.includes('boxing')) {
+    return 'Defense Drill';
+  }
   if (tags.includes('cardio') || prompt.includes('conditioning')) {
     return 'Cardio Conditioning';
   }
   if (result.rounds && result.rounds >= 6) {
     return 'Full Session';
   }
-  if (result.parsedCombos && result.combos.length > 0) {
-    return 'Combo Drill';
+  if (tags.includes('boxing')) {
+    return 'Boxing Session';
   }
   
   return 'Quick Burn';
