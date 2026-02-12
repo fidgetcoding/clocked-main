@@ -152,24 +152,7 @@ const Build = () => {
     }
   }, [editId, workouts]);
 
-  // Count combo segments to determine required combos
-  // NOTE: Shadowboxing uses the SAME combo as combo segments, so we only count unique rounds
-  const countComboSegments = () => {
-    let count = 0;
-    [...warmupPhases, ...grindPhases, ...cooldownPhases].forEach(phase => {
-      // Check if this phase has combo OR shadowboxing - if either exists, count once per repeat
-      const hasComboOrShadow = phase.segments.some(seg => 
-        seg.segmentType === 'combo' || seg.segmentType === 'shadowboxing'
-      );
-      if (hasComboOrShadow) {
-        count += phase.repeats;
-      }
-    });
-    return count;
-  };
-
-  const requiredCombos = countComboSegments();
-  // No minimum required - combos are always optional, just a suggestion
+  // Combos are always optional - if you run out, remaining segments are freestyle
   const combosComplete = true;
 
   const getActivePhases = () => {
@@ -557,11 +540,6 @@ const Build = () => {
               <div className="flex items-center justify-between mb-4">
                 <div>
                   <h3 className="font-semibold text-foreground">Combos ({combos.length})</h3>
-                  {requiredCombos > 0 && combos.length < requiredCombos && (
-                    <p className="text-xs text-muted-foreground">
-                      {requiredCombos - combos.length} combo{requiredCombos - combos.length > 1 ? 's' : ''} suggested
-                    </p>
-                  )}
                 </div>
                 <Button 
                   onClick={() => { setShowComboBuilder(true); setCurrentCombo([]); setEditingComboIndex(null); }}

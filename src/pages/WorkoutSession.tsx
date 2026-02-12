@@ -115,7 +115,6 @@ const WorkoutSession = () => {
     
     const segments: FlatSegment[] = [];
     const sections = ['warmup', 'grind', 'cooldown'] as const;
-    let comboIndex = 0;
     
     // First pass: collect all segments to know what's next
     const tempSegments: { segment: any; sectionName: typeof sections[number]; phase: any; repeatIndex: number }[] = [];
@@ -131,32 +130,61 @@ const WorkoutSession = () => {
       });
     });
     
-    // Second pass: build flat segments with proper next-segment awareness
+    // Two-pass combo assignment:
+    // 1) Assign combos to combo segments first (in order)
+    // 2) Leftover combos overflow to shadowboxing segments (in order)
+    // 3) When combos run out, remaining segments are freestyle (no combo)
+    
+    const comboSegmentIndices: number[] = [];
+    const shadowboxIndices: number[] = [];
+    
     tempSegments.forEach((item, idx) => {
-      const { segment, sectionName, phase, repeatIndex } = item;
-      let combo: string[] | undefined;
-      let nextCombo: string[] | undefined;
-      
+      const { segment } = item;
+      const isComboSegment = segment.segmentType === 'combo' || segment.comboIndex === 'cycle';
       const isShadowboxing = segment.segmentType === 'shadowboxing' || 
                              segment.name.toLowerCase().includes('shadow') || 
                              segment.name.toLowerCase().includes('technique');
-      const isComboSegment = segment.segmentType === 'combo' || segment.comboIndex === 'cycle';
+      if (isComboSegment) comboSegmentIndices.push(idx);
+      else if (isShadowboxing) shadowboxIndices.push(idx);
+    });
+    
+    const totalCombos = workout.combos?.length || 0;
+    const comboAssignments: Map<number, string[]> = new Map();
+    const nextComboAssignments: Map<number, string[]> = new Map();
+    let assigned = 0;
+    
+    // Assign to combo segments first
+    for (const idx of comboSegmentIndices) {
+      if (assigned < totalCombos) {
+        comboAssignments.set(idx, workout.combos[assigned]);
+        assigned++;
+      }
+    }
+    
+    // Overflow to shadowboxing segments
+    for (const idx of shadowboxIndices) {
+      if (assigned < totalCombos) {
+        comboAssignments.set(idx, workout.combos[assigned]);
+        assigned++;
+      }
+    }
+    
+    // Second pass: build flat segments with proper next-segment awareness
+    tempSegments.forEach((item, idx) => {
+      const { segment, sectionName, phase, repeatIndex } = item;
       
-      // Check if the NEXT segment is a combo drill
-      const nextItem = tempSegments[idx + 1];
-      const nextIsCombo = nextItem && (
-        nextItem.segment.segmentType === 'combo' || 
-        nextItem.segment.comboIndex === 'cycle'
-      );
+      const combo = comboAssignments.get(idx);
       
-      if (workout.combos && workout.combos.length > 0) {
-        if (isShadowboxing && !isComboSegment && nextIsCombo) {
-          // For shadowboxing: only show incoming combo if next segment is actually a combo drill
-          nextCombo = workout.combos[comboIndex % workout.combos.length];
-        } else if (isComboSegment) {
-          // For combo segments: show current combo and increment
-          combo = workout.combos[comboIndex % workout.combos.length];
-          comboIndex++;
+      // For shadowboxing, check if the NEXT segment has a combo assigned (incoming combo preview)
+      const isShadowboxing = segment.segmentType === 'shadowboxing' || 
+                             segment.name.toLowerCase().includes('shadow') || 
+                             segment.name.toLowerCase().includes('technique');
+      let nextCombo: string[] | undefined;
+      if (isShadowboxing && !combo) {
+        const nextItem = tempSegments[idx + 1];
+        if (nextItem) {
+          const nextAssigned = comboAssignments.get(idx + 1);
+          if (nextAssigned) nextCombo = nextAssigned;
         }
       }
       
@@ -1047,6 +1075,15 @@ const WorkoutSession = () => {
                   );
                 })}
               </div>
+            </div>
+          )}
+
+          {/* Freestyle Display - for work/combo segments with no combos assigned */}
+          {!isShadowboxing && !isPreparation && currentSegment?.type === 'active' && 
+           currentSegment?.segmentType !== 'rest' &&
+           (!displayCombo || displayCombo.length === 0) && (
+            <div className="w-full max-w-sm bg-surface-1 rounded-xl p-4 border border-surface-3">
+              <p className="text-2xl font-black text-volt text-center">FREESTYLE</p>
             </div>
           )}
         </div>
