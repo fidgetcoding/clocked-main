@@ -16,6 +16,7 @@ import FightClub from "./pages/FightClub";
 import Stats from "./pages/Stats";
 import Profile from "./pages/Profile";
 import Auth from "./pages/Auth";
+import AdminPortal from "./pages/AdminPortal";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -42,6 +43,7 @@ const App = () => (
             <Route path="/quick-session" element={<QuickSession />} />
             <Route path="/workout/:id" element={<WorkoutSession />} />
             <Route path="/workout/:id/session" element={<WorkoutSession />} />
+            <Route path="/admin" element={<AdminPortal />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
