@@ -444,7 +444,8 @@ function blockToPhase(block: ParsedBlock): ParsedPhase {
 function inferSegmentType(name: string): 'work' | 'rest' | 'shadowboxing' | 'combo' {
   const lower = name.toLowerCase();
   if (/shadow/i.test(lower)) return 'shadowboxing';
-  if (/combo|bag|mitt|pad/i.test(lower)) return 'combo';
+  if (/combo/i.test(lower)) return 'combo';
+  // Note: bag/mitt/pad work without explicit combos = freestyle work, not combo
   return 'work';
 }
 
