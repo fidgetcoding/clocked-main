@@ -82,6 +82,11 @@ export interface ParsedWorkoutResult {
 // Block-based parsing types
 // =====================================================
 
+interface SupersetExercise {
+  name: string;
+  duration: number;
+}
+
 interface ParsedBlock {
   rawText: string;
   section: 'warmup' | 'grind' | 'cooldown';
@@ -92,6 +97,8 @@ interface ParsedBlock {
   activityName: string;
   perRoundActivities: Array<{ name: string; round: number }>;
   combos: string[][];
+  superset: SupersetExercise[] | null;
+  supersetRestBetween: number | null;
 }
 
 // =====================================================
@@ -197,6 +204,12 @@ function parseDurationFromText(text: string): number | null {
   const secEachMatch = lower.match(/(\d+)\s*sec(?:ond)?s?\s*(?:each|per\s*round)/i);
   if (secEachMatch) {
     return parseInt(secEachMatch[1]);
+  }
+  
+  // "X sec(onds)" standalone
+  const secMatch = lower.match(/(\d+)\s*sec(?:ond)?s?/i);
+  if (secMatch) {
+    return parseInt(secMatch[1]);
   }
   
   return null;
@@ -346,6 +359,152 @@ function parseCombosFromBlock(text: string): string[][] {
 }
 
 // =====================================================
+// Step 6b: Parse superset from block text
+// =====================================================
+
+const EXERCISE_NAMES: Array<{ pattern: RegExp; name: string }> = [
+  { pattern: /heavy\s*bag\s*(?:freestyle|combo\s*work|work)?/i, name: 'Heavy Bag' },
+  { pattern: /speed\s*bag/i, name: 'Speed Bag' },
+  { pattern: /double[\s-]*end\s*bag/i, name: 'Double End Bag' },
+  { pattern: /shadow\s*box(?:ing)?/i, name: 'Shadowboxing' },
+  { pattern: /jump\s*rope/i, name: 'Jump Rope' },
+  { pattern: /burpees?/i, name: 'Burpees' },
+  { pattern: /push[\s-]*ups?/i, name: 'Pushups' },
+  { pattern: /pull[\s-]*ups?/i, name: 'Pullups' },
+  { pattern: /squats?/i, name: 'Squats' },
+  { pattern: /sit[\s-]*ups?/i, name: 'Situps' },
+  { pattern: /planks?/i, name: 'Plank' },
+  { pattern: /mountain\s*climbers?/i, name: 'Mountain Climbers' },
+  { pattern: /mitt\s*work/i, name: 'Mitt Work' },
+  { pattern: /sparring/i, name: 'Sparring' },
+  { pattern: /footwork(?:\s*drills?)?/i, name: 'Footwork' },
+  { pattern: /stretch(?:ing)?/i, name: 'Stretching' },
+  { pattern: /cardio/i, name: 'Cardio' },
+  { pattern: /conditioning/i, name: 'Conditioning' },
+  { pattern: /hiit/i, name: 'HIIT' },
+  { pattern: /body\s*weight\s*(?:burnout)?/i, name: 'Bodyweight' },
+  { pattern: /bob(?:bing)?\s*(?:and|&)\s*weav(?:ing|e)/i, name: 'Bob & Weave' },
+  { pattern: /defense\s*drills?/i, name: 'Defense Drills' },
+];
+
+function extractExerciseWithDuration(text: string): { name: string; duration: number | null; raw: string } | null {
+  const lower = text.trim().toLowerCase();
+  
+  for (const { pattern, name } of EXERCISE_NAMES) {
+    if (pattern.test(lower)) {
+      // Check for "freestyle" modifier
+      const isFreestyle = /freestyle/i.test(lower);
+      const finalName = isFreestyle ? `${name} Freestyle` : name;
+      
+      // Extract duration attached to this exercise
+      const dur = parseDurationFromText(text);
+      return { name: finalName, duration: dur, raw: text.trim() };
+    }
+  }
+  
+  // Fallback: if text has meaningful words, use it as a custom exercise
+  const cleaned = text.replace(/\d+\s*(?:min(?:ute)?s?|sec(?:ond)?s?)\s*/gi, '').trim();
+  if (cleaned.length > 2 && !/^\s*$/.test(cleaned)) {
+    const dur = parseDurationFromText(text);
+    return { name: cleanActivityName(cleaned), duration: dur, raw: text.trim() };
+  }
+  
+  return null;
+}
+
+function parseSupersetFromBlock(text: string): { exercises: SupersetExercise[]; restBetween: number | null } | null {
+  const lower = text.toLowerCase();
+  
+  // Strip round info and rest-between-rounds info to isolate exercise content
+  const stripped = lower
+    .replace(/\d+\s*(?:round|rnd|set)s?\b/gi, '')
+    .replace(/\d+\s*(?:min(?:ute)?s?|sec(?:ond)?s?)\s*(?:rest|break)\s*(?:between\s*rounds?)?/gi, '')
+    .trim();
+  
+  const hasSupersetKeyword = /\bsuperset\b/i.test(lower);
+  
+  let part1: string | null = null;
+  let part2: string | null = null;
+  
+  if (hasSupersetKeyword) {
+    // Remove "superset" keyword and split on "and" / "with" / "&"
+    const afterSuperset = stripped.replace(/.*superset\s*[:\-]?\s*/i, '');
+    const splitMatch = afterSuperset.match(/^(.+?)\s+(?:and|with|&)\s+(.+?)(?:\.|$)/i);
+    if (splitMatch) {
+      // Use greedy-ish: split at the LAST "and"/"with" to handle exercise names with those words
+      const andIdx = afterSuperset.search(/\s+(?:and|with|&)\s+/i);
+      if (andIdx > 0) {
+        const andMatch = afterSuperset.match(/\s+(?:and|with|&)\s+/i)!;
+        part1 = afterSuperset.slice(0, andIdx).trim();
+        part2 = afterSuperset.slice(andIdx + andMatch[0].length).replace(/[.,;]+$/, '').trim();
+      }
+    }
+  }
+  
+  // "X and Y back to back" or "X and Y no rest between"
+  if (!part1 || !part2) {
+    const backToBackMatch = stripped.match(/(.+?)\s+(?:and|&)\s+(.+?)\s+(?:back\s+to\s+back|no\s+rest\s+between)/i);
+    if (backToBackMatch) {
+      part1 = backToBackMatch[1].trim();
+      part2 = backToBackMatch[2].trim();
+    }
+  }
+  
+  // "X then Y", "X straight into Y", "X into Y"
+  if (!part1 || !part2) {
+    const thenMatch = stripped.match(/(.+?)\s+(?:then|straight\s+into)\s+(.+?)(?:\.|$)/i);
+    if (thenMatch) {
+      const ex1 = extractExerciseWithDuration(thenMatch[1]);
+      const ex2 = extractExerciseWithDuration(thenMatch[2].replace(/[.,;]+$/, ''));
+      if (ex1 && ex2) {
+        part1 = thenMatch[1].trim();
+        part2 = thenMatch[2].replace(/[.,;]+$/, '').trim();
+      }
+    }
+    
+    // "X into Y" — only if both are recognizable exercises
+    if (!part1 || !part2) {
+      const intoMatch = stripped.match(/(.+?)\s+into\s+(.+?)(?:\.|$)/i);
+      if (intoMatch) {
+        const ex1 = extractExerciseWithDuration(intoMatch[1]);
+        const ex2 = extractExerciseWithDuration(intoMatch[2].replace(/[.,;]+$/, ''));
+        if (ex1 && ex2) {
+          part1 = intoMatch[1].trim();
+          part2 = intoMatch[2].replace(/[.,;]+$/, '').trim();
+        }
+      }
+    }
+  }
+  
+  if (!part1 || !part2) return null;
+  
+  const ex1 = extractExerciseWithDuration(part1);
+  const ex2 = extractExerciseWithDuration(part2);
+  
+  if (!ex1 || !ex2) return null;
+  
+  // Check for rest between the exercises in the superset
+  let restBetween: number | null = null;
+  const restBetweenMatch = lower.match(/(\d+)\s*(?:sec(?:ond)?s?|min(?:ute)?s?)\s*(?:rest|break)\s*(?:between\s*(?:exercises|them|sets)|in\s*between)/i);
+  if (restBetweenMatch) {
+    const val = parseInt(restBetweenMatch[1]);
+    restBetween = /min/i.test(restBetweenMatch[0]) ? val * 60 : val;
+  }
+  
+  // Default durations if not specified per-exercise: use the block-level work duration
+  const blockWorkDuration = parseDurationFromText(text);
+  const defaultDur = blockWorkDuration ?? DEFAULT_DURATIONS.boxingRound;
+  
+  return {
+    exercises: [
+      { name: ex1.name, duration: ex1.duration ?? defaultDur },
+      { name: ex2.name, duration: ex2.duration ?? defaultDur },
+    ],
+    restBetween,
+  };
+}
+
+// =====================================================
 // Step 7: Parse a single block into structured data
 // =====================================================
 
@@ -357,6 +516,9 @@ function parseBlock(blockText: string): ParsedBlock {
   const activityName = inferActivityName(blockText);
   const perRoundActivities = parsePerRoundActivities(blockText);
   const combos = parseCombosFromBlock(blockText);
+  
+  // Check for superset pattern
+  const supersetResult = parseSupersetFromBlock(blockText);
   
   // Default durations based on section
   let defaultWork: number;
@@ -376,9 +538,13 @@ function parseBlock(blockText: string): ParsedBlock {
     workDuration: workDuration ?? defaultWork,
     restDuration: rest.duration ?? defaultRest,
     noRest: rest.noRest,
-    activityName,
+    activityName: supersetResult 
+      ? `${supersetResult.exercises[0].name} & ${supersetResult.exercises[1].name} Superset`
+      : activityName,
     perRoundActivities,
     combos,
+    superset: supersetResult?.exercises ?? null,
+    supersetRestBetween: supersetResult?.restBetween ?? null,
   };
 }
 
@@ -388,6 +554,48 @@ function parseBlock(blockText: string): ParsedBlock {
 
 function blockToPhase(block: ParsedBlock): ParsedPhase {
   const segments: ParsedSegment[] = [];
+  
+  // Superset: 2+ active segments in one phase
+  if (block.superset && block.superset.length >= 2) {
+    for (let i = 0; i < block.superset.length; i++) {
+      const ex = block.superset[i];
+      segments.push({
+        name: ex.name,
+        type: 'active',
+        segmentType: inferSegmentType(ex.name),
+        duration: ex.duration,
+        activityType: inferActivityType(ex.name),
+      });
+      
+      // Add rest between superset exercises if specified
+      if (i < block.superset.length - 1 && block.supersetRestBetween && block.supersetRestBetween > 0) {
+        segments.push({
+          name: 'Rest',
+          type: 'rest',
+          segmentType: 'rest',
+          duration: block.supersetRestBetween,
+        });
+      }
+    }
+    
+    // Add rest after the pair (between rounds)
+    if (!block.noRest && block.restDuration > 0) {
+      segments.push({
+        name: 'Rest',
+        type: 'rest',
+        segmentType: 'rest',
+        duration: block.restDuration,
+      });
+    }
+    
+    return {
+      name: block.activityName,
+      phaseType: 'circuit',
+      section: block.section,
+      repeats: block.rounds,
+      segments,
+    };
+  }
   
   if (block.perRoundActivities.length > 0) {
     // Per-round activities: create individual segments
@@ -509,8 +717,44 @@ export function parseWorkoutInput(
   
   // Build phases from blocks
   let phases: ParsedPhase[];
+  const hasSupersetBlock = parsedBlocks.some(b => b.superset !== null);
+  
   if (isMultiBlock) {
     phases = parsedBlocks.map(blockToPhase);
+  } else if (hasSupersetBlock) {
+    // Superset detected in single block — use blockToPhase for the grind,
+    // but still wrap with warmup/cooldown from legacy logic
+    const singleBlock = parsedBlocks[0];
+    const hasWarmup = !lowerPrompt.includes('no warmup') && !lowerPrompt.includes('skip warmup');
+    const hasCooldown = !lowerPrompt.includes('no cooldown') && !lowerPrompt.includes('skip cooldown');
+    
+    phases = [];
+    if (hasWarmup) {
+      phases.push({
+        name: 'Dynamic Warmup',
+        phaseType: 'continuous',
+        section: 'warmup',
+        repeats: 1,
+        segments: [
+          { name: 'Jump Rope', type: 'active', segmentType: 'work', duration: 120, activityType: 'run' },
+          { name: 'Active Rest', type: 'rest', segmentType: 'rest', duration: 30 },
+          { name: 'Shadow Boxing', type: 'active', segmentType: 'shadowboxing', duration: 120, activityType: 'shadowbox' },
+        ],
+      });
+    }
+    phases.push(blockToPhase(singleBlock));
+    if (hasCooldown) {
+      phases.push({
+        name: 'Cooldown',
+        phaseType: 'continuous',
+        section: 'cooldown',
+        repeats: 1,
+        segments: [
+          { name: 'Light Shadow', type: 'active', segmentType: 'shadowboxing', duration: 90, activityType: 'shadowbox' },
+          { name: 'Stretch', type: 'active', segmentType: 'work', duration: 120, activityType: 'custom' },
+        ],
+      });
+    }
   } else {
     // Single block: use legacy-style phase building with interspersed exercises
     const singleBlock = parsedBlocks[0];
@@ -800,6 +1044,13 @@ function generateWorkoutName(
       const mainActivity = grindBlocks[0].activityName;
       if (mainActivity !== 'Training') return mainActivity;
     }
+  }
+  
+  // Superset-specific name: use the block-generated name
+  const hasSupersetPhase = blocks.some(b => b.superset !== null);
+  if (hasSupersetPhase && !isMultiBlock) {
+    const supersetBlock = blocks.find(b => b.superset !== null);
+    if (supersetBlock) return supersetBlock.activityName;
   }
   
   const tags = result.tags;
