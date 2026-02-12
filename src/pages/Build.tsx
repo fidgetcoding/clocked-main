@@ -950,21 +950,39 @@ const Build = () => {
             {editingSegmentContext !== 'exercises' && (
             <div className="px-4 py-3 border-b border-surface-3 space-y-3">
               {/* Difficulty Tabs */}
-              <div className="flex gap-2">
-                {(['rookie', 'beginner', 'intermediate', 'advanced', 'pro'] as const).map((d) => (
-                  <button
-                    key={d}
-                    onClick={() => setDifficulty(d)}
-                    className={cn(
-                      'flex-1 py-1.5 rounded-full text-xs font-medium uppercase transition-colors',
-                      difficulty === d 
-                        ? 'bg-volt text-primary-foreground' 
-                        : 'bg-surface-1 text-muted-foreground'
-                    )}
-                  >
-                    {d}
-                  </button>
-                ))}
+              <div className="space-y-2">
+                <div className="flex gap-2">
+                  {(['rookie', 'beginner', 'intermediate'] as const).map((d) => (
+                    <button
+                      key={d}
+                      onClick={() => setDifficulty(d)}
+                      className={cn(
+                        'flex-1 py-1.5 rounded-full text-xs font-medium uppercase transition-colors',
+                        difficulty === d 
+                          ? 'bg-volt text-primary-foreground' 
+                          : 'bg-surface-1 text-muted-foreground'
+                      )}
+                    >
+                      {d}
+                    </button>
+                  ))}
+                </div>
+                <div className="flex gap-2">
+                  {(['advanced', 'pro'] as const).map((d) => (
+                    <button
+                      key={d}
+                      onClick={() => setDifficulty(d)}
+                      className={cn(
+                        'flex-1 py-1.5 rounded-full text-xs font-medium uppercase transition-colors',
+                        difficulty === d 
+                          ? 'bg-volt text-primary-foreground' 
+                          : 'bg-surface-1 text-muted-foreground'
+                      )}
+                    >
+                      {d}
+                    </button>
+                  ))}
+                </div>
               </div>
               {/* Mode Toggle - only for combos */}
               {editingSegmentContext !== 'speedbag' && (
