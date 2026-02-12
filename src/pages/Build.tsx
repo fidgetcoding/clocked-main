@@ -950,7 +950,7 @@ const Build = () => {
             {editingSegmentContext !== 'exercises' && (
             <div className="px-4 py-3 border-b border-surface-3 space-y-3">
               {/* Difficulty Tabs */}
-              <div className="space-y-2">
+              <div className="space-y-2 border border-surface-3 rounded-xl p-2.5 bg-surface-1/30">
                 <div className="flex gap-2">
                   {(['rookie', 'beginner', 'intermediate'] as const).map((d) => (
                     <button
@@ -960,7 +960,7 @@ const Build = () => {
                         'flex-1 py-1.5 rounded-full text-xs font-medium uppercase transition-colors',
                         difficulty === d 
                           ? 'bg-volt text-primary-foreground' 
-                          : 'bg-surface-1 text-muted-foreground'
+                          : 'bg-surface-2 text-muted-foreground'
                       )}
                     >
                       {d}
@@ -976,7 +976,7 @@ const Build = () => {
                         'flex-1 py-1.5 rounded-full text-xs font-medium uppercase transition-colors',
                         difficulty === d 
                           ? 'bg-volt text-primary-foreground' 
-                          : 'bg-surface-1 text-muted-foreground'
+                          : 'bg-surface-2 text-muted-foreground'
                       )}
                     >
                       {d}
