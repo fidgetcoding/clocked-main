@@ -11,6 +11,7 @@ import { useWorkoutHistory } from '@/hooks/useWorkoutHistory';
 import { Workout, WorkoutPhase } from '@/types';
 import { parseWorkoutInput, parsedResultToWorkout, checkPromptQuality } from '@/lib/aiWorkoutParser';
 import { analyzeWorkoutHistory, getInsightsSummary, HistoryInsights } from '@/lib/workoutHistoryAnalysis';
+import { detectBagType, detectAllSpeedBagDrills, containsSpeedBagVocabulary } from '@/data/speedBagDrills';
 
 interface AIBuilderModalProps {
   onClose: () => void;
@@ -83,69 +84,76 @@ export function parseWorkoutPrompt(prompt: string, userLevel: string = 'beginner
   const hasDefense = lowerPrompt.includes('defense') || lowerPrompt.includes('defensive') || lowerPrompt.includes('slip') || lowerPrompt.includes('roll');
   const hasFootwork = lowerPrompt.includes('footwork') || lowerPrompt.includes('movement');
   
-  // Generate combos based on focus
+  // Detect bag type
+  const bagType = detectBagType(prompt);
+  const isSpeedBag = bagType === 'speedbag';
+  const isDoubleEnd = bagType === 'doubleend';
+  const speedBagDrills = isSpeedBag ? detectAllSpeedBagDrills(prompt) : [];
+  
+  // Generate combos based on focus — NEVER for speed bag
   const combos: string[][] = [];
-  for (let i = 0; i < rounds; i++) {
-    let combo: string[] = [];
-    
-    if (hasDefense) {
-      // Defense-focused combos
-      const defensePatterns = [
-        ['1', '2', 'SLIP L', '2'],
-        ['1', 'SLIP R', '2', '3'],
-        ['1', '2', 'ROLL L', '3', '2'],
-        ['SLIP L', 'SLIP R', '2', '3', '2'],
-        ['1', '2', 'PULL', '2', '3'],
-      ];
-      combo = defensePatterns[i % defensePatterns.length];
-    } else if (hasFootwork) {
-      // Footwork-focused combos
-      const footworkPatterns = [
-        ['1', '1', '2', 'CIRCLE L'],
-        ['1', '2', 'CIRCLE R', '2', '3'],
-        ['STEP IN', '1', '2', '3', 'STEP OUT'],
-        ['CIRCLE L', '1', '2', 'CIRCLE R', '2'],
-      ];
-      combo = footworkPatterns[i % footworkPatterns.length];
-    } else {
-      // Standard punch combos by difficulty
-      const beginnerCombos = [
-        ['1', '2'],
-        ['1', '2', '3'],
-        ['1', '1', '2'],
-        ['1', '2', '3', '2'],
-        ['2', '3', '2'],
-      ];
-      const intermediateCombos = [
-        ['1', '2', '3', '2'],
-        ['1', '2', '5', '3', '2'],
-        ['1', '6', '3', '2'],
-        ['1', '2', '3', '6', '3', '2'],
-        ['1', '2', 'SLIP L', '2', '3', '2'],
-      ];
-      const advancedCombos = [
-        ['1', '2', '3', '4', '5', '6'],
-        ['1', '2', '5', '6', '3', '2'],
-        ['SLIP L', '2', '3', '2', '5', '6', '3'],
-        ['1', '2', 'ROLL L', '7', '8', '3', '2'],
-        ['1', '1', '2', '3', '2', '5', '6', '3', '2'],
-      ];
+  if (!isSpeedBag) {
+    for (let i = 0; i < rounds; i++) {
+      let combo: string[] = [];
       
-      if (difficulty === 'advanced') {
-        combo = advancedCombos[i % advancedCombos.length];
-      } else if (difficulty === 'intermediate') {
-        combo = intermediateCombos[i % intermediateCombos.length];
+      if (hasDefense) {
+        const defensePatterns = [
+          ['1', '2', 'SLIP L', '2'],
+          ['1', 'SLIP R', '2', '3'],
+          ['1', '2', 'ROLL L', '3', '2'],
+          ['SLIP L', 'SLIP R', '2', '3', '2'],
+          ['1', '2', 'PULL', '2', '3'],
+        ];
+        combo = defensePatterns[i % defensePatterns.length];
+      } else if (hasFootwork) {
+        const footworkPatterns = [
+          ['1', '1', '2', 'CIRCLE L'],
+          ['1', '2', 'CIRCLE R', '2', '3'],
+          ['STEP IN', '1', '2', '3', 'STEP OUT'],
+          ['CIRCLE L', '1', '2', 'CIRCLE R', '2'],
+        ];
+        combo = footworkPatterns[i % footworkPatterns.length];
       } else {
-        combo = beginnerCombos[i % beginnerCombos.length];
+        const beginnerCombos = [
+          ['1', '2'],
+          ['1', '2', '3'],
+          ['1', '1', '2'],
+          ['1', '2', '3', '2'],
+          ['2', '3', '2'],
+        ];
+        const intermediateCombos = [
+          ['1', '2', '3', '2'],
+          ['1', '2', '5', '3', '2'],
+          ['1', '6', '3', '2'],
+          ['1', '2', '3', '6', '3', '2'],
+          ['1', '2', 'SLIP L', '2', '3', '2'],
+        ];
+        const advancedCombos = [
+          ['1', '2', '3', '4', '5', '6'],
+          ['1', '2', '5', '6', '3', '2'],
+          ['SLIP L', '2', '3', '2', '5', '6', '3'],
+          ['1', '2', 'ROLL L', '7', '8', '3', '2'],
+          ['1', '1', '2', '3', '2', '5', '6', '3', '2'],
+        ];
+        
+        if (difficulty === 'advanced') {
+          combo = advancedCombos[i % advancedCombos.length];
+        } else if (difficulty === 'intermediate') {
+          combo = intermediateCombos[i % intermediateCombos.length];
+        } else {
+          combo = beginnerCombos[i % beginnerCombos.length];
+        }
       }
+      
+      combos.push(combo);
     }
-    
-    combos.push(combo);
   }
   
-  // Build workout name
+  // Build workout name with bag type context
   let name = 'AI Workout';
-  if (hasHeavyBag) name = 'Heavy Bag Blast';
+  if (isSpeedBag) name = speedBagDrills.length > 0 ? 'Speed Bag Drill' : 'Speed Bag Session';
+  else if (isDoubleEnd) name = 'Double End Bag Session';
+  else if (hasHeavyBag) name = 'Heavy Bag Blast';
   else if (hasShadowboxing) name = 'Shadow Session';
   else if (hasHIIT) name = 'HIIT Boxing';
   else if (hasCardio) name = 'Cardio Conditioning';
@@ -153,6 +161,25 @@ export function parseWorkoutPrompt(prompt: string, userLevel: string = 'beginner
   else if (hasFootwork) name = 'Footwork Focus';
   else if (rounds >= 5) name = 'Full Session';
   else name = 'Quick Burn';
+  
+  // Determine segment type for the grind phase
+  let grindSegmentType: 'combo' | 'speedbag' | 'doubleend' | 'shadowboxing' = 'combo';
+  let grindSegmentName = 'Heavy Bag Freestyle';
+  
+  if (isSpeedBag) {
+    grindSegmentType = 'speedbag';
+    grindSegmentName = speedBagDrills.length > 0 
+      ? `Speed Bag ${speedBagDrills[0].name}` 
+      : 'Speed Bag Freestyle';
+  } else if (isDoubleEnd) {
+    grindSegmentType = 'doubleend';
+    grindSegmentName = combos.length > 0 ? 'Double End Bag Combo Work' : 'Double End Bag Freestyle';
+  } else if (hasShadowboxing) {
+    grindSegmentType = 'shadowboxing';
+    grindSegmentName = 'Shadowboxing';
+  } else if (combos.length > 0) {
+    grindSegmentName = 'Heavy Bag Combo Work';
+  }
   
   return {
     name,
@@ -165,6 +192,10 @@ export function parseWorkoutPrompt(prompt: string, userLevel: string = 'beginner
     hasCooldown: lowerPrompt.includes('cooldown') || lowerPrompt.includes('cool down') || !lowerPrompt.includes('quick'),
     hasShadowboxing,
     hasHIIT,
+    grindSegmentType,
+    grindSegmentName,
+    isSpeedBag,
+    isDoubleEnd,
   };
 }
 
@@ -186,7 +217,9 @@ export function generateWorkoutFromPrompt(
     const workout = parsedResultToWorkout(parsedResult);
     
     // If no combos were parsed, generate them using legacy logic
-    if (!parsedResult.parsedCombos || parsedResult.combos.length === 0) {
+    // BUT only for heavy bag / double end bag — NEVER for speed bag
+    const bagType = detectBagType(prompt);
+    if (bagType !== 'speedbag' && (!parsedResult.parsedCombos || parsedResult.combos.length === 0)) {
       const legacyParsed = parseWorkoutPrompt(prompt, userLevel);
       workout.combos = legacyParsed.combos;
     }
@@ -215,7 +248,7 @@ export function generateWorkoutFromPrompt(
     ],
   }] : [];
   
-  // Main rounds
+  // Main rounds — use bag-type-aware segment name and type
   const grindPhases: WorkoutPhase[] = [{
     id: generateId(),
     name: parsed.hasHIIT ? 'HIIT Rounds' : 'Main Rounds',
@@ -223,13 +256,15 @@ export function generateWorkoutFromPrompt(
     segments: [
       { 
         id: generateId(), 
-        name: parsed.hasShadowboxing ? 'Shadowboxing' : 'Combo Work', 
+        name: parsed.grindSegmentName, 
         type: 'active', 
-        segmentType: parsed.hasShadowboxing ? 'shadowboxing' : 'combo', 
+        segmentType: parsed.grindSegmentType, 
         duration: parsed.roundDuration 
       },
       { id: generateId(), name: 'Rest', type: 'rest', segmentType: 'rest', duration: parsed.restDuration },
     ],
+    // Only attach combos to grind phase for non-speed-bag workouts
+    combos: !parsed.isSpeedBag && parsed.combos.length > 0 ? parsed.combos : undefined,
   }];
   
   // Cooldown phases

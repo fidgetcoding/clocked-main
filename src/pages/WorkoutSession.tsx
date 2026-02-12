@@ -430,12 +430,13 @@ const WorkoutSession = () => {
           announcement = 'Rest';
         } else if (currentSegment.segmentType === 'shadowboxing' || currentSegment.name.toLowerCase().includes('shadow')) {
           announcement = 'Shadowboxing';
-         } else if (currentSegment.segmentType === 'speedbag') {
-           announcement = 'Speed Bag';
-         } else if (currentSegment.segmentType === 'doubleend') {
-           announcement = 'Double End Bag';
-         } else if (currentSegment.segmentType === 'combo') {
-          announcement = 'Combo';
+        } else if (currentSegment.segmentType === 'speedbag') {
+          // Use the segment name which includes the drill (e.g., "Speed Bag Doubles")
+          announcement = currentSegment.name.includes('Freestyle') ? 'Speed Bag Freestyle' : currentSegment.name;
+        } else if (currentSegment.segmentType === 'doubleend') {
+          announcement = currentSegment.name.includes('Freestyle') ? 'Double End Bag Freestyle' : 'Double End Bag';
+        } else if (currentSegment.segmentType === 'combo') {
+          announcement = currentSegment.name.includes('Freestyle') ? 'Heavy Bag Freestyle' : 'Heavy Bag';
         } else {
           announcement = currentSegment.name;
         }
