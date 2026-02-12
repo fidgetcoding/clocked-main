@@ -148,7 +148,7 @@ const Index = () => {
 
         {/* Action Cards */}
         <section className="px-4 pb-6">
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-[1fr_1fr_0.5fr] gap-3">
             {/* Create Set */}
             <button
               onClick={() => navigate('/build')}
