@@ -114,17 +114,20 @@ const Profile = () => {
         {/* Profile Header Section */}
         <div className="px-4 py-6">
           <div className="flex items-start gap-4 mb-4">
-            {/* Avatar */}
-            <div className="w-20 h-20 rounded-full bg-volt/20 flex items-center justify-center shrink-0">
-            {profileAvatar ? (
-                profileAvatar.startsWith('http') ? (
-                  <img src={profileAvatar} alt={profileName} className="w-20 h-20 rounded-full object-cover" />
+            {/* Avatar + Name */}
+            <div className="shrink-0 flex flex-col items-center">
+              <div className="w-16 h-16 rounded-full bg-volt/20 flex items-center justify-center">
+                {profileAvatar ? (
+                  profileAvatar.startsWith('http') ? (
+                    <img src={profileAvatar} alt={profileName} className="w-16 h-16 rounded-full object-cover" />
+                  ) : (
+                    <span className="text-3xl">{profileAvatar}</span>
+                  )
                 ) : (
-                  <span className="text-4xl">{profileAvatar}</span>
-                )
-              ) : (
-                <User className="w-10 h-10 text-volt" />
-              )}
+                  <User className="w-8 h-8 text-volt" />
+                )}
+              </div>
+              <h2 className="text-sm font-bold text-foreground mt-1.5 text-center max-w-[80px] truncate">{profileName}</h2>
             </div>
 
             {/* Stats + Action Buttons */}
@@ -214,7 +217,6 @@ const Profile = () => {
 
           {/* Name and Handle */}
           <div className="mb-3">
-            <h2 className="text-lg font-bold text-foreground">{profileName}</h2>
             <div className="flex items-center gap-2 flex-wrap">
               <span className="text-xs font-bold uppercase text-volt">
                 {profileRole === 'coach' ? 'Coach' : 'Fighter'}
