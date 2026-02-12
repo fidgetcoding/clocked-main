@@ -262,7 +262,7 @@ const AdminPortal = () => {
                       </div>
                     </div>
                     <button
-                      onClick={() => setUserToDelete(user)}
+                      onClick={(e) => { e.stopPropagation(); setUserToDelete(user); }}
                       className="p-2 text-muted-foreground hover:text-destructive transition-colors shrink-0"
                     >
                       <Trash2 className="w-4 h-4" />
