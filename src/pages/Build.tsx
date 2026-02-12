@@ -622,9 +622,11 @@ const Build = () => {
                 </div>
 
                 {/* Combo Order Toggle - show if phase has combo or shadowboxing segments */}
-                {phase.segments.some(s => s.segmentType === 'combo' || s.segmentType === 'shadowboxing') && (phase.combos?.length || 0) > 0 && (
+                {phase.segments.some(s => ['combo', 'shadowboxing', 'speedbag', 'doubleend'].includes(s.segmentType || '')) && (phase.combos?.length || 0) > 0 && (
                   <div className="flex items-center justify-between px-3 py-2 border-b border-surface-3">
-                    <span className="text-xs text-muted-foreground">Combo Order</span>
+                    <span className="text-xs text-muted-foreground">
+                      {getPhaseSegmentContext(phase) === 'speedbag' ? 'Drill Order' : 'Combo Order'}
+                    </span>
                     <div className="flex gap-1">
                       <button
                         onClick={() => updatePhase(phase.id, { comboOrder: 'sequential' })}
