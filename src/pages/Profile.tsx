@@ -270,75 +270,8 @@ const Profile = () => {
           </div>
         </div>
 
-        {/* Followers Preview (own profile only) */}
-        {isOwnProfile && followersList.length > 0 && (
-          <div className="px-4 mb-4">
-            <div className="card-workout">
-              <div className="flex items-center justify-between mb-3">
-                <h3 className="font-semibold text-foreground">Followers</h3>
-                <button 
-                  onClick={() => setListModal('followers')}
-                  className="text-sm text-volt hover:underline"
-                >
-                  See All
-                </button>
-              </div>
-              <div className="space-y-2">
-                {followersList.slice(0, 3).map((follower) => (
-                  <button
-                    key={follower.id}
-                    onClick={() => navigate(`/profile/${follower.id}`)}
-                    className="flex items-center gap-3 w-full p-2 rounded-lg hover:bg-surface-2 transition-colors"
-                  >
-                    <div className="w-10 h-10 rounded-full bg-surface-2 flex items-center justify-center text-lg">
-                      {follower.avatar || '👤'}
-                    </div>
-                    <div className="flex-1 text-left">
-                      <p className="font-medium text-foreground">{follower.name}</p>
-                      <p className="text-xs text-muted-foreground">{follower.handle}</p>
-                    </div>
-                    <ChevronRight className="w-4 h-4 text-muted-foreground" />
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-        )}
 
-        {/* Following Preview (own profile only) */}
-        {isOwnProfile && followingList.length > 0 && (
-          <div className="px-4 mb-4">
-            <div className="card-workout">
-              <div className="flex items-center justify-between mb-3">
-                <h3 className="font-semibold text-foreground">Following</h3>
-                <button 
-                  onClick={() => setListModal('following')}
-                  className="text-sm text-volt hover:underline"
-                >
-                  See All
-                </button>
-              </div>
-              <div className="space-y-2">
-                {followingList.slice(0, 3).map((person) => (
-                  <button
-                    key={person.id}
-                    onClick={() => navigate(`/profile/${person.id}`)}
-                    className="flex items-center gap-3 w-full p-2 rounded-lg hover:bg-surface-2 transition-colors"
-                  >
-                    <div className="w-10 h-10 rounded-full bg-surface-2 flex items-center justify-center text-lg">
-                      {person.avatar || '👤'}
-                    </div>
-                    <div className="flex-1 text-left">
-                      <p className="font-medium text-foreground">{person.name}</p>
-                      <p className="text-xs text-muted-foreground">{person.handle}</p>
-                    </div>
-                    <ChevronRight className="w-4 h-4 text-muted-foreground" />
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-        )}
+
       </div>
 
       {/* Followers/Following Modal */}
@@ -409,8 +342,14 @@ const Profile = () => {
                       }}
                       className="flex items-center gap-3 w-full p-3 rounded-lg hover:bg-surface-2 transition-colors"
                     >
-                      <div className="w-12 h-12 rounded-full bg-surface-2 flex items-center justify-center text-xl">
-                        {person.avatar || '👤'}
+                      <div className="w-12 h-12 rounded-full bg-surface-2 flex items-center justify-center text-xl overflow-hidden">
+                        {person.avatar ? (
+                          person.avatar.startsWith('http') ? (
+                            <img src={person.avatar} alt={person.name} className="w-12 h-12 rounded-full object-cover" />
+                          ) : (
+                            <span>{person.avatar}</span>
+                          )
+                        ) : '👤'}
                       </div>
                       <div className="flex-1 text-left">
                         <p className="font-semibold text-foreground">{person.name}</p>
