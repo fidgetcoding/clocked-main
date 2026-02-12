@@ -17,6 +17,7 @@ import {
   MOVEMENT_KEYS_BY_DIFFICULTY,
   ComboPreset 
 } from '@/data/comboPresets';
+import { SPEED_BAG_DRILLS } from '@/data/speedBagDrills';
 import { AIBuilderModal } from '@/components/AIBuilderModal';
 import { useShareWorkout } from '@/hooks/useCommunityPosts';
 import { toast } from 'sonner';
@@ -161,6 +162,7 @@ const Build = () => {
   const [currentCombo, setCurrentCombo] = useState<string[]>([]);
   const [editingComboIndex, setEditingComboIndex] = useState<number | null>(null);
   const [showAIBuilder, setShowAIBuilder] = useState(false);
+  const [editingSegmentContext, setEditingSegmentContext] = useState<'speedbag' | 'combo'>('combo');
   const [showShareDialog, setShowShareDialog] = useState(false);
   const [shareMessage, setShareMessage] = useState('');
   
@@ -349,6 +351,17 @@ const Build = () => {
     if (!editingPhaseId) return;
     const phaseCombos = getPhaseCombos(editingPhaseId);
     setPhaseCombos(editingPhaseId, [...phaseCombos, preset.combo]);
+  };
+
+  const addSpeedBagDrill = (drillName: string) => {
+    if (!editingPhaseId) return;
+    const phaseCombos = getPhaseCombos(editingPhaseId);
+    setPhaseCombos(editingPhaseId, [...phaseCombos, [drillName]]);
+  };
+
+  // Determine if a phase has speed bag segments (for context-aware labels)
+  const getPhaseSegmentContext = (phase: WorkoutPhase): 'speedbag' | 'combo' => {
+    return phase.segments.some(s => s.segmentType === 'speedbag') ? 'speedbag' : 'combo';
   };
 
   const editCombo = (index: number) => {
@@ -683,17 +696,25 @@ const Build = () => {
                         </div>
 
                         {/* Inline Combos - rendered after last combo-capable segment */}
-                        {isLastComboSegment && (
+                        {isLastComboSegment && (() => {
+                          const ctx = getPhaseSegmentContext(phase);
+                          const labelWord = ctx === 'speedbag' ? 'Drills' : 'Combos';
+                          const emptyText = ctx === 'speedbag' 
+                            ? 'No drills — segments will be freestyle' 
+                            : 'No combos — segments will be freestyle';
+                          return (
                           <div className="px-3 pb-3 pt-1">
                             <div className="flex items-center justify-between mb-2">
                               <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                                Combos ({phase.combos?.length || 0})
+                                {labelWord} ({phase.combos?.length || 0})
                               </span>
                               <button
                                 onClick={() => {
                                   setEditingPhaseId(phase.id);
+                                  setEditingSegmentContext(ctx);
                                   setCurrentCombo([]);
                                   setEditingComboIndex(null);
+                                  setComboMode('presets');
                                   setShowComboBuilder(true);
                                 }}
                                 className="text-xs font-medium text-volt hover:text-volt/80 flex items-center gap-1"
@@ -704,7 +725,7 @@ const Build = () => {
                             </div>
                             {(phase.combos?.length || 0) === 0 ? (
                               <p className="text-xs text-muted-foreground text-center py-2">
-                                No combos — segments will be freestyle
+                                {emptyText}
                               </p>
                             ) : (
                               <DndContext
@@ -732,9 +753,10 @@ const Build = () => {
                                         index={idx}
                                         onEdit={(i) => {
                                           setEditingPhaseId(phase.id);
+                                          setEditingSegmentContext(ctx);
                                           setCurrentCombo((phase.combos || [])[i]);
                                           setEditingComboIndex(i);
-                                          setComboMode('custom');
+                                          setComboMode(ctx === 'speedbag' ? 'presets' : 'custom');
                                           setShowComboBuilder(true);
                                         }}
                                         onDelete={(i) => {
@@ -747,7 +769,8 @@ const Build = () => {
                               </DndContext>
                             )}
                           </div>
-                        )}
+                          );
+                        })()}
                       </div>
                     );
                   })}
@@ -784,7 +807,9 @@ const Build = () => {
                 <X className="w-6 h-6" />
               </button>
               <h2 className="font-bold text-foreground">
-                {editingComboIndex !== null ? 'Edit Combo' : 'Add Combo'}
+                {editingSegmentContext === 'speedbag' 
+                  ? (editingComboIndex !== null ? 'Edit Drill' : 'Add Drill')
+                  : (editingComboIndex !== null ? 'Edit Combo' : 'Add Combo')}
               </h2>
               {comboMode === 'custom' ? (
                 <Button onClick={saveCombo} size="sm" className="bg-volt text-primary-foreground" disabled={currentCombo.length === 0}>
@@ -795,7 +820,8 @@ const Build = () => {
               )}
             </header>
 
-            {/* Mode Toggle */}
+            {/* Mode Toggle - hide Custom tab for speed bag */}
+            {editingSegmentContext !== 'speedbag' && (
             <div className="px-4 py-3 border-b border-surface-3">
               <div className="flex gap-2">
                 <button
@@ -822,47 +848,76 @@ const Build = () => {
                 </button>
               </div>
             </div>
+            )}
 
-            {comboMode === 'presets' ? (
+            {(comboMode === 'presets' || editingSegmentContext === 'speedbag') ? (
               /* Presets List */
               <div className="flex-1 overflow-y-auto px-4 py-4">
-                <p className="text-xs text-muted-foreground uppercase tracking-wider mb-3">
-                  {difficulty.toUpperCase()} PRESETS
-                </p>
-                <div className="space-y-2">
-                  {presets.map((preset) => (
-                    <button
-                      key={preset.id}
-                      onClick={() => {
-                        addPresetCombo(preset);
-                        setShowComboBuilder(false);
-                      }}
-                      className="w-full flex items-center gap-3 bg-surface-1 rounded-lg p-3 border border-surface-3 hover:border-volt transition-colors text-left"
-                    >
-                      <div className="flex-1">
-                        <p className="font-medium text-foreground text-sm">{preset.name}</p>
-                        <div className="flex flex-wrap gap-1 mt-1">
-                          {preset.combo.map((move, idx) => (
-                            <span 
-                              key={idx} 
-                              className={cn(
-                                'px-1.5 py-0.5 rounded text-[10px] font-medium',
-                                move.includes('SLIP') || move.includes('ROLL') || move.includes('PULL') || move.includes('BLOCK')
-                                  ? 'bg-yellow-500/20 text-yellow-500'
-                                  : move.includes('CIRCLE') || move.includes('STEP')
-                                  ? 'bg-blue-500/20 text-blue-400'
-                                  : 'bg-volt/20 text-volt'
-                              )}
-                            >
-                              {move}
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-                      <Plus className="w-5 h-5 text-volt" />
-                    </button>
-                  ))}
-                </div>
+                {editingSegmentContext === 'speedbag' ? (
+                  <>
+                    <p className="text-xs text-muted-foreground uppercase tracking-wider mb-3">
+                      SPEED BAG DRILLS
+                    </p>
+                    <div className="space-y-2">
+                      {SPEED_BAG_DRILLS.filter(d => d.id !== 'freestyle').map((drill) => (
+                        <button
+                          key={drill.id}
+                          onClick={() => {
+                            addSpeedBagDrill(drill.name);
+                            setShowComboBuilder(false);
+                          }}
+                          className="w-full flex items-center gap-3 bg-surface-1 rounded-lg p-3 border border-surface-3 hover:border-orange-500 transition-colors text-left"
+                        >
+                          <div className="flex-1">
+                            <p className="font-medium text-foreground text-sm">{drill.name}</p>
+                            <p className="text-xs text-muted-foreground mt-1">{drill.description}</p>
+                          </div>
+                          <Plus className="w-5 h-5 text-orange-400" />
+                        </button>
+                      ))}
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <p className="text-xs text-muted-foreground uppercase tracking-wider mb-3">
+                      {difficulty.toUpperCase()} PRESETS
+                    </p>
+                    <div className="space-y-2">
+                      {presets.map((preset) => (
+                        <button
+                          key={preset.id}
+                          onClick={() => {
+                            addPresetCombo(preset);
+                            setShowComboBuilder(false);
+                          }}
+                          className="w-full flex items-center gap-3 bg-surface-1 rounded-lg p-3 border border-surface-3 hover:border-volt transition-colors text-left"
+                        >
+                          <div className="flex-1">
+                            <p className="font-medium text-foreground text-sm">{preset.name}</p>
+                            <div className="flex flex-wrap gap-1 mt-1">
+                              {preset.combo.map((move, idx) => (
+                                <span 
+                                  key={idx} 
+                                  className={cn(
+                                    'px-1.5 py-0.5 rounded text-[10px] font-medium',
+                                    move.includes('SLIP') || move.includes('ROLL') || move.includes('PULL') || move.includes('BLOCK')
+                                      ? 'bg-yellow-500/20 text-yellow-500'
+                                      : move.includes('CIRCLE') || move.includes('STEP')
+                                      ? 'bg-blue-500/20 text-blue-400'
+                                      : 'bg-volt/20 text-volt'
+                                  )}
+                                >
+                                  {move}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                          <Plus className="w-5 h-5 text-volt" />
+                        </button>
+                      ))}
+                    </div>
+                  </>
+                )}
               </div>
             ) : (
               /* Custom Builder */
