@@ -402,8 +402,7 @@ const Build = () => {
   // Determine phase context for library labels (combos vs drills vs exercises)
   const getPhaseSegmentContext = (phase: WorkoutPhase): 'speedbag' | 'combo' | 'exercises' => {
     if (phase.segments.some(s => s.segmentType === 'speedbag')) return 'speedbag';
-    if (phase.segments.some(s => s.segmentType === 'exercise')) return 'exercises';
-    // If the phase has combos but no combo/shadowboxing/speedbag/doubleend segments, it's exercises
+    // Exercise-library phase: has combos populated but NO combo/shadowboxing/speedbag/doubleend segments
     const hasComboCapableSegment = phase.segments.some(s => 
       ['combo', 'shadowboxing', 'speedbag', 'doubleend'].includes(s.segmentType || '')
     );
@@ -720,7 +719,7 @@ const Build = () => {
                 <div className="divide-y divide-surface-3">
                   {phase.segments.map((segment, segIdx) => {
                     const segInfo = getSegmentTypeInfo(segment.segmentType);
-                    const hasComboSupport = segment.segmentType === 'combo' || segment.segmentType === 'shadowboxing' || segment.segmentType === 'speedbag' || segment.segmentType === 'doubleend' || segment.segmentType === 'exercise';
+                    const hasComboSupport = segment.segmentType === 'combo' || segment.segmentType === 'shadowboxing' || segment.segmentType === 'speedbag' || segment.segmentType === 'doubleend' || (segment.segmentType === 'exercise' && phaseCtx === 'exercises');
                     // For exercise-library phases, show library after the last active segment
                     const isExercisePhase = phaseCtx === 'exercises';
                     const isLastActiveSegment = isExercisePhase && segment.type === 'active' && !phase.segments.slice(segIdx + 1).some(s => s.type === 'active');
