@@ -298,11 +298,104 @@ function parsePerRoundActivities(text: string): Array<{ name: string; round: num
   return activities.sort((a, b) => a.round - b.round);
 }
 
+// =====================================================
+// Canonical Exercise Name Resolution
+// =====================================================
+// Maps spelling variations to a single canonical name.
+// "squat jumps" and "squats" are DIFFERENT exercises.
+// "pushups" and "push-ups" are the SAME exercise.
+
+const CANONICAL_EXERCISES: Array<{ canonical: string; aliases: string[] }> = [
+  { canonical: 'Push-Ups', aliases: ['pushups', 'push ups', 'push-ups', 'press ups', 'press-ups'] },
+  { canonical: 'Sit-Ups', aliases: ['situps', 'sit ups', 'sit-ups'] },
+  { canonical: 'Pull-Ups', aliases: ['pullups', 'pull ups', 'pull-ups'] },
+  { canonical: 'Jumping Jacks', aliases: ['jumping jacks', 'jumpingjacks', 'star jumps jacks'] },
+  { canonical: 'Mountain Climbers', aliases: ['mountain climbers', 'mtn climbers', 'mountainclimbers'] },
+  { canonical: 'Squat Jumps', aliases: ['squat jumps', 'squat-jumps', 'jump squats', 'jumping squats'] },
+  { canonical: 'Butt Kicks', aliases: ['butt kicks', 'buttkicks', 'butt-kicks'] },
+  { canonical: 'High Knees', aliases: ['high knees', 'highknees', 'high-knees'] },
+  { canonical: 'Jumping Lunges', aliases: ['jumping lunges', 'jump lunges', 'lunge jumps'] },
+  { canonical: 'Bicycle Crunches', aliases: ['bicycle crunches', 'bicyclecrunches', 'bike crunches'] },
+  { canonical: 'Flutter Kicks', aliases: ['flutter kicks', 'flutterkicks', 'flutter-kicks'] },
+  { canonical: 'Russian Twists', aliases: ['russian twists', 'russiantwists', 'russian-twists'] },
+  { canonical: 'Bear Crawls', aliases: ['bear crawls', 'bearcrawls', 'bear-crawls'] },
+  { canonical: 'Box Jumps', aliases: ['box jumps', 'boxjumps', 'box-jumps'] },
+  { canonical: 'Tuck Jumps', aliases: ['tuck jumps', 'tuckjumps', 'tuck-jumps'] },
+  { canonical: 'Star Jumps', aliases: ['star jumps', 'starjumps', 'star-jumps'] },
+  { canonical: 'Leg Raises', aliases: ['leg raises', 'legraises', 'leg-raises'] },
+  { canonical: 'Shoulder Taps', aliases: ['shoulder taps', 'shouldertaps', 'shoulder-taps'] },
+  { canonical: 'Glute Bridges', aliases: ['glute bridges', 'glutebridges', 'glute-bridges', 'hip bridges'] },
+  { canonical: 'Kettlebell Swings', aliases: ['kettlebell swings', 'kb swings', 'kettle bell swings'] },
+  { canonical: 'Med Ball Slams', aliases: ['med ball slams', 'medicine ball slams', 'medball slams'] },
+  { canonical: 'Battle Ropes', aliases: ['battle ropes', 'battleropes', 'battle-ropes', 'rope slams'] },
+  { canonical: 'Sled Push', aliases: ['sled push', 'sledpush', 'sled-push'] },
+  { canonical: 'Dips', aliases: ['dips', 'tricep dips', 'bench dips'] },
+  { canonical: 'V-Ups', aliases: ['v-ups', 'v ups', 'vups'] },
+  { canonical: 'Dead Bugs', aliases: ['dead bugs', 'deadbugs', 'dead-bugs'] },
+  { canonical: 'Wall Sit', aliases: ['wall sit', 'wallsit', 'wall-sit', 'wall sits'] },
+  { canonical: 'Burpees', aliases: ['burpees', 'burpee'] },
+  { canonical: 'Squats', aliases: ['squats', 'squat', 'bodyweight squats'] },
+  { canonical: 'Lunges', aliases: ['lunges', 'lunge', 'walking lunges'] },
+  { canonical: 'Crunches', aliases: ['crunches', 'crunch'] },
+  { canonical: 'Plank Hold', aliases: ['plank hold', 'plank', 'planks', 'forearm plank'] },
+  { canonical: 'Inchworms', aliases: ['inchworms', 'inchworm', 'inch worms'] },
+  { canonical: 'Calf Raises', aliases: ['calf raises', 'calfraises', 'calf-raises'] },
+  { canonical: 'Lateral Shuffles', aliases: ['lateral shuffles', 'lateral shuffle', 'side shuffles'] },
+  { canonical: 'Skaters', aliases: ['skaters', 'skater jumps', 'speed skaters'] },
+  { canonical: 'Bird Dogs', aliases: ['bird dogs', 'birddogs', 'bird-dogs'] },
+  { canonical: 'Jump Rope', aliases: ['jump rope', 'jumprope', 'jump-rope', 'skipping', 'skip rope'] },
+  { canonical: 'Dynamic Stretches', aliases: ['dynamic stretches', 'dynamic stretching', 'dynamic warmup stretches'] },
+  { canonical: 'Static Stretching', aliases: ['static stretching', 'static stretches', 'static stretch'] },
+  { canonical: 'Arm Circles', aliases: ['arm circles', 'armcircles', 'arm-circles'] },
+  { canonical: 'Leg Swings', aliases: ['leg swings', 'legswings', 'leg-swings'] },
+  { canonical: 'Hip Circles', aliases: ['hip circles', 'hipcircles', 'hip-circles'] },
+  { canonical: 'Torso Twists', aliases: ['torso twists', 'torsotwists', 'torso-twists', 'trunk twists'] },
+  { canonical: 'Light Jogging', aliases: ['light jogging', 'light jog', 'easy jog', 'jogging'] },
+  { canonical: 'Foam Rolling', aliases: ['foam rolling', 'foam roll', 'foamrolling'] },
+  { canonical: 'Deep Breathing', aliases: ['deep breathing', 'breathing exercises', 'breath work', 'breathwork'] },
+  { canonical: 'Cool Down Walk', aliases: ['cool down walk', 'cooldown walk', 'walking cooldown'] },
+  { canonical: 'Light Stretching', aliases: ['light stretching', 'easy stretching', 'gentle stretching'] },
+  { canonical: 'Rowing Sprints', aliases: ['rowing sprints', 'rowing', 'row sprints'] },
+  { canonical: 'Step-Ups', aliases: ['step-ups', 'step ups', 'stepups'] },
+];
+
+// Normalize text for comparison: strip hyphens, collapse spaces, lowercase
+function normalizeForComparison(text: string): string {
+  return text.toLowerCase().replace(/[-_]/g, ' ').replace(/\s+/g, ' ').trim();
+}
+
+/**
+ * Resolve an exercise name to its canonical form.
+ * - If it fuzzy-matches an existing entry, return the canonical name.
+ * - If it's similar but a DISTINCT exercise (different movement), keep it as-is.
+ * - If no match, return title-cased version of input.
+ */
+function resolveCanonicalExerciseName(rawName: string): string {
+  const normalized = normalizeForComparison(rawName);
+  
+  // Check against canonical exercise list (longest alias first to prefer specific matches)
+  // e.g., "squat jumps" should match before "squats"
+  const allEntries = CANONICAL_EXERCISES.flatMap(entry =>
+    entry.aliases.map(alias => ({ alias: normalizeForComparison(alias), canonical: entry.canonical }))
+  );
+  // Sort by alias length descending so "squat jumps" matches before "squats"
+  allEntries.sort((a, b) => b.alias.length - a.alias.length);
+  
+  for (const { alias, canonical } of allEntries) {
+    if (normalized === alias) {
+      return canonical;
+    }
+  }
+  
+  // No exact match found — return title-cased input
+  return rawName.replace(/\b\w/g, c => c.toUpperCase());
+}
+
 function cleanActivityName(name: string): string {
   // Remove trailing punctuation, leading/trailing whitespace
   let cleaned = name.replace(/[.,;:!]+$/, '').trim();
-  // Title case
-  cleaned = cleaned.replace(/\b\w/g, c => c.toUpperCase());
+  // Resolve to canonical exercise name (handles fuzzy matching)
+  cleaned = resolveCanonicalExerciseName(cleaned);
   return cleaned;
 }
 

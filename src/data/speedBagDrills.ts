@@ -21,7 +21,7 @@ export const SPEED_BAG_DRILLS: SpeedBagDrill[] = [
     aliases: [
       'singles', 'single hits', 'alternating singles', 'single alternating',
       'basic rhythm', 'one-one', 'left right left right', 'alternate hands',
-      'basic pattern', 'single',
+      'basic pattern', 'single', 'singlehits',
     ],
   },
   {
@@ -87,6 +87,7 @@ export const SPEED_BAG_DRILLS: SpeedBagDrill[] = [
     aliases: [
       'fist rolls', 'forward rolls', 'rolling', 'roll the fists',
       'front rolls', 'circular punching', 'windmill', 'rolls',
+      'fistrolls', 'fist roll', 'fistroll',
     ],
   },
   {
@@ -95,7 +96,8 @@ export const SPEED_BAG_DRILLS: SpeedBagDrill[] = [
     description: 'Same circular motion but in reverse direction.',
     aliases: [
       'reverse rolls', 'backward rolls', 'reverse fist rolls',
-      'roll backwards', 'reverse roll',
+      'roll backwards', 'reverse roll', 'fist rolls reverse',
+      'fistrolls reverse', 'fist roll reverse',
     ],
   },
   {
@@ -105,6 +107,7 @@ export const SPEED_BAG_DRILLS: SpeedBagDrill[] = [
     aliases: [
       'side to side', 'side hits', 'lateral hits', 'sideways',
       'left-right sides', 'side punching', 'sides',
+      'side-to-side', 'sidetoside',
     ],
   },
   {
@@ -122,7 +125,7 @@ export const SPEED_BAG_DRILLS: SpeedBagDrill[] = [
     description: 'Hitting the bag with the back of the fist.',
     aliases: [
       'backfists', 'back fist', 'backhand hits', 'reverse fist',
-      'back of hand', 'backfist',
+      'back of hand', 'backfist', 'back fists', 'back-fists',
     ],
   },
   {
