@@ -1,7 +1,8 @@
 import { useState, useMemo } from 'react';
-import { X, Search, Plus, Check } from 'lucide-react';
+import { X, Search, Plus, Check, Trash2 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
+import { useCustomExercises } from '@/hooks/useCustomExercises';
 
 const EXERCISE_CATEGORIES = {
   Core: [
@@ -23,9 +24,16 @@ const EXERCISE_CATEGORIES = {
   Cardio: ['Jumping Jacks', 'High Knees', 'Butt Kicks', 'Rowing Sprints'],
 } as const;
 
-type Category = 'All' | keyof typeof EXERCISE_CATEGORIES;
+// All built-in exercise names for checking if something is "custom"
+const ALL_BUILTIN_EXERCISES = new Set(
+  Object.values(EXERCISE_CATEGORIES).flat().map(n => n.toLowerCase())
+);
 
-const ALL_CATEGORIES: Category[] = ['All', 'Core', 'Lower Body', 'Upper Body', 'Full Body', 'Cardio'];
+export function isBuiltinExercise(name: string): boolean {
+  return ALL_BUILTIN_EXERCISES.has(name.toLowerCase());
+}
+
+type Category = 'All' | 'My Exercises' | keyof typeof EXERCISE_CATEGORIES;
 
 interface ExercisePickerModalProps {
   open: boolean;
@@ -38,17 +46,31 @@ export const ExercisePickerModal = ({ open, onClose, onConfirm }: ExercisePicker
   const [activeCategory, setActiveCategory] = useState<Category>('All');
   const [selected, setSelected] = useState<string[]>([]);
   const [customText, setCustomText] = useState('');
+  const { exercises: customExercises, addExercise, removeExercise } = useCustomExercises();
+
+  const allCategories: Category[] = useMemo(() => {
+    const base: Category[] = ['All'];
+    if (customExercises.length > 0) base.push('My Exercises');
+    base.push('Core', 'Lower Body', 'Upper Body', 'Full Body', 'Cardio');
+    return base;
+  }, [customExercises.length]);
 
   const filteredExercises = useMemo(() => {
     const query = search.toLowerCase().trim();
-    let exercises: { name: string; category: string }[] = [];
+    let exercises: { name: string; category: string; customId?: string }[] = [];
 
     if (activeCategory === 'All') {
+      // Add custom exercises first
+      for (const ce of customExercises) {
+        exercises.push({ name: ce.name, category: 'My Exercises', customId: ce.id });
+      }
       for (const [cat, items] of Object.entries(EXERCISE_CATEGORIES)) {
         for (const name of items) {
           exercises.push({ name, category: cat });
         }
       }
+    } else if (activeCategory === 'My Exercises') {
+      exercises = customExercises.map(ce => ({ name: ce.name, category: 'My Exercises', customId: ce.id }));
     } else {
       const items = EXERCISE_CATEGORIES[activeCategory as keyof typeof EXERCISE_CATEGORIES] || [];
       exercises = items.map(name => ({ name, category: activeCategory }));
@@ -59,7 +81,7 @@ export const ExercisePickerModal = ({ open, onClose, onConfirm }: ExercisePicker
     }
 
     return exercises;
-  }, [search, activeCategory]);
+  }, [search, activeCategory, customExercises]);
 
   const toggleExercise = (name: string) => {
     setSelected(prev =>
@@ -143,7 +165,7 @@ export const ExercisePickerModal = ({ open, onClose, onConfirm }: ExercisePicker
 
       {/* Category Tabs */}
       <div className="px-4 pb-2 flex gap-1.5 overflow-x-auto no-scrollbar">
-        {ALL_CATEGORIES.map((cat) => (
+        {allCategories.map((cat) => (
           <button
             key={cat}
             onClick={() => setActiveCategory(cat)}
@@ -165,7 +187,7 @@ export const ExercisePickerModal = ({ open, onClose, onConfirm }: ExercisePicker
           const isSelected = selected.includes(exercise.name);
           return (
             <div
-              key={exercise.name}
+              key={`${exercise.category}-${exercise.name}`}
               className={cn(
                 'w-full flex items-center rounded-lg p-3 border transition-colors',
                 isSelected
@@ -196,6 +218,20 @@ export const ExercisePickerModal = ({ open, onClose, onConfirm }: ExercisePicker
                   </span>
                 )}
               </button>
+
+              {/* Delete button for custom exercises */}
+              {exercise.customId && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    removeExercise.mutate(exercise.customId!);
+                  }}
+                  className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ml-1 bg-surface-2 text-muted-foreground hover:text-destructive transition-colors"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                </button>
+              )}
+
               {/* Tap + icon = toggle multi-select */}
               <button
                 onClick={(e) => {

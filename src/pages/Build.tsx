@@ -18,7 +18,8 @@ import {
   ComboPreset 
 } from '@/data/comboPresets';
 import { SPEED_BAG_DRILLS } from '@/data/speedBagDrills';
-import { ExercisePickerModal } from '@/components/ExercisePickerModal';
+import { ExercisePickerModal, isBuiltinExercise } from '@/components/ExercisePickerModal';
+import { useCustomExercises } from '@/hooks/useCustomExercises';
 import { AIBuilderModal } from '@/components/AIBuilderModal';
 import { useShareWorkout } from '@/hooks/useCommunityPosts';
 import { useClubs } from '@/hooks/useClubs';
@@ -135,6 +136,7 @@ const Build = () => {
   
   const { workouts, addWorkout, updateWorkout } = useWorkouts();
   const user = useUserStore((state) => state.user);
+  const { addExercise: addCustomExercise, isInLibrary } = useCustomExercises();
   
   // Get default difficulty based on user's experience level
   const getDefaultDifficulty = (): 'beginner' | 'intermediate' | 'advanced' => {
@@ -230,6 +232,38 @@ const Build = () => {
         setMegasetRepeats(workout.megasetRepeats || 1);
         setIsPreset(false);
         toast.success(`Loaded "${workout.name}" - customize and save or start!`);
+
+        // Detect custom exercises not in the built-in library
+        const allPhases = [...workout.sections.warmup, ...grind, ...workout.sections.cooldown];
+        const customNames = new Set<string>();
+        for (const phase of allPhases) {
+          for (const seg of phase.segments) {
+            if (seg.segmentType === 'exercise' && seg.name && !isBuiltinExercise(seg.name) && !isInLibrary(seg.name)) {
+              // Skip generic names
+              const generic = ['exercise', 'exercise a', 'exercise b', 'rest', 'stretch', 'stretching', 'warmup', 'cooldown'];
+              if (!generic.includes(seg.name.toLowerCase())) {
+                customNames.add(seg.name);
+              }
+            }
+          }
+        }
+        if (customNames.size > 0) {
+          const names = Array.from(customNames);
+          setTimeout(() => {
+            toast(`New exercises detected: ${names.join(', ')}`, {
+              duration: 8000,
+              action: {
+                label: 'Save to Library',
+                onClick: () => {
+                  for (const n of names) {
+                    addCustomExercise.mutate({ name: n });
+                  }
+                  toast.success(`Saved ${names.length} exercise${names.length > 1 ? 's' : ''} to your library`);
+                },
+              },
+            });
+          }, 1500);
+        }
       } catch (e) {
         console.error('Failed to parse AI workout data', e);
       }
