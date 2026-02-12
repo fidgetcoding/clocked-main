@@ -329,7 +329,7 @@ const WorkoutSession = () => {
 
   // Wall-clock ref for background-safe timing
   const lastTickTimeRef = useRef<number>(Date.now());
-  const prevLevelRef = useRef<number>(profile?.current_level || 1);
+  const prevLevelRef = useRef<number | null>(null);
 
   const { playLevelUpSound } = useSoundEffects();
 
@@ -341,11 +341,16 @@ const WorkoutSession = () => {
 
   // Detect level-up during session
   useEffect(() => {
+    if (prevLevelRef.current === null) {
+      // First time we have a valid level — just store it, don't animate
+      prevLevelRef.current = liveLevel;
+      return;
+    }
     if (liveLevel > prevLevelRef.current) {
       setLevelUpLevel(liveLevel);
       playLevelUpSound();
-      prevLevelRef.current = liveLevel;
     }
+    prevLevelRef.current = liveLevel;
   }, [liveLevel, playLevelUpSound]);
 
   // Helper: compute XP per second for a given segment
