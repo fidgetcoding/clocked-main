@@ -148,11 +148,11 @@ const Index = () => {
 
         {/* Action Cards */}
         <section className="px-4 pb-6">
-          <div className="flex gap-3">
+          <div className="grid grid-cols-[5fr_5fr_2fr] gap-3">
             {/* Create Set */}
             <button
               onClick={() => navigate('/build')}
-              className="card-action h-36 flex-1 group flex flex-col items-center justify-between"
+              className="card-action h-36 group flex flex-col items-center justify-between"
             >
               <Plus className="w-5 h-5 text-volt" />
               <div className="text-center">
@@ -164,7 +164,7 @@ const Index = () => {
             {/* Workout Log */}
             <button
               onClick={() => navigate('/history')}
-              className="card-action h-36 flex-1 group flex flex-col items-center justify-between"
+              className="card-action h-36 group flex flex-col items-center justify-between"
             >
               <History className="w-5 h-5 text-volt" />
               <div className="text-center">
@@ -176,11 +176,12 @@ const Index = () => {
             {/* Quick Start */}
             <button
               onClick={() => navigate('/quick-session')}
-              className="card-action h-36 w-20 shrink-0 group flex flex-col items-center justify-between"
+              className="card-action h-36 group flex flex-col items-center justify-between"
             >
               <Timer className="w-5 h-5 text-volt" />
               <div className="text-center">
-                <p className="text-[10px] font-bold text-muted-foreground uppercase">Quick</p>
+                <h3 className="text-sm font-black text-foreground">QUICK</h3>
+                <p className="text-xs text-muted-foreground">START</p>
               </div>
             </button>
           </div>
