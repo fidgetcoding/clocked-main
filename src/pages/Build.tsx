@@ -622,33 +622,33 @@ const Build = () => {
 
           {/* Megaset + phase repeat info - only visible when ROUNDS tab is active */}
           {activeSection === 'grind' && (
-            <div className="flex items-center justify-center px-4 py-2 border-b border-surface-3">
+            <div className="flex items-center justify-between px-4 py-2 border-b border-surface-3">
               <div className="flex items-center gap-2">
                 <Repeat className="w-4 h-4 text-muted-foreground" />
                 <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Megaset</span>
-                <div className="flex items-center gap-1">
-                  <button
-                    onClick={() => setMegasetRepeats(Math.max(1, megasetRepeats - 1))}
-                    className={cn(
-                      'w-6 h-6 rounded bg-surface-2 flex items-center justify-center text-muted-foreground transition-opacity',
-                      megasetRepeats <= 1 && 'opacity-30 pointer-events-none'
-                    )}
-                  >
-                    <ChevronDown className="w-3.5 h-3.5" />
-                  </button>
-                  <span className={cn(
-                    'w-8 text-center text-sm font-semibold',
-                    megasetRepeats > 1 ? 'text-volt' : 'text-muted-foreground'
-                  )}>
-                    ×{megasetRepeats}
-                  </span>
-                  <button
-                    onClick={() => setMegasetRepeats(megasetRepeats + 1)}
-                    className="w-6 h-6 rounded bg-surface-2 flex items-center justify-center text-muted-foreground"
-                  >
-                    <ChevronUp className="w-3.5 h-3.5" />
-                  </button>
-                </div>
+              </div>
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={() => setMegasetRepeats(Math.max(1, megasetRepeats - 1))}
+                  className={cn(
+                    'w-6 h-6 rounded bg-surface-2 flex items-center justify-center text-muted-foreground transition-opacity',
+                    megasetRepeats <= 1 && 'opacity-30 pointer-events-none'
+                  )}
+                >
+                  <ChevronDown className="w-3.5 h-3.5" />
+                </button>
+                <span className={cn(
+                  'w-8 text-center text-sm font-semibold',
+                  megasetRepeats > 1 ? 'text-volt' : 'text-muted-foreground'
+                )}>
+                  ×{megasetRepeats}
+                </span>
+                <button
+                  onClick={() => setMegasetRepeats(megasetRepeats + 1)}
+                  className="w-6 h-6 rounded bg-surface-2 flex items-center justify-center text-muted-foreground"
+                >
+                  <ChevronUp className="w-3.5 h-3.5" />
+                </button>
               </div>
             </div>
           )}
