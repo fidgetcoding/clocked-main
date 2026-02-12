@@ -148,11 +148,11 @@ const Profile = () => {
           <div className="mb-3">
             <h2 className="text-lg font-bold text-foreground">{profileName}</h2>
             <div className="flex items-center gap-2 flex-wrap">
-              <p className="text-sm text-muted-foreground">{profileHandle}</p>
-              <span className="text-muted-foreground/50">•</span>
               <span className="text-xs font-bold uppercase text-volt">
-                {profileRole === 'coach' ? '🏋️ Coach' : '🥊 Fighter'}
+                {profileRole === 'coach' ? 'Coach' : 'Fighter'}
               </span>
+              <span className="text-muted-foreground/50">•</span>
+              <p className="text-sm text-muted-foreground">{profileHandle}</p>
               {isOwnProfile && authUser?.email && (
                 <>
                   <span className="text-muted-foreground/50">•</span>
