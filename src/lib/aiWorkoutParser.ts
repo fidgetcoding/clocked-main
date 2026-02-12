@@ -5,7 +5,7 @@
 import { parseComboString, extractCombosFromPrompt, containsComboNotation } from './comboParser';
 import { Workout, WorkoutPhase, WorkoutSegment } from '@/types';
 import { HistoryInsights, getAdjustedDifficulty, getAdjustedRestDuration, getAdjustedRounds } from './workoutHistoryAnalysis';
-import { detectBagType, detectAllSpeedBagDrills, containsSpeedBagVocabulary, DetectedBagType } from '@/data/speedBagDrills';
+import { detectBagType, detectAllSpeedBagDrills, detectSpeedBagDrill, containsSpeedBagVocabulary, DetectedBagType } from '@/data/speedBagDrills';
 
 // =====================================================
 // Default Durations
@@ -48,6 +48,8 @@ export interface ParsedPhase {
   section: 'warmup' | 'grind' | 'cooldown';
   repeats: number;
   segments: ParsedSegment[];
+  combos?: string[][];
+  comboOrder?: 'sequential' | 'random';
 }
 
 export interface ParsedSegment {
@@ -99,6 +101,7 @@ interface ParsedBlock {
   combos: string[][];
   superset: SupersetExercise[] | null;
   supersetRestBetween: number | null;
+  speedBagDrills: string[][];
 }
 
 // =====================================================
@@ -278,8 +281,9 @@ function parsePerRoundActivities(text: string): Array<{ name: string; round: num
   while ((match = roundPattern.exec(lower)) !== null) {
     const roundNum = parseInt(match[1]);
     const activity = match[2].trim();
-    // Check if this is a combo (contains dash notation like 1-2-3)
-    if (/^\d+[-\s]/.test(activity) || /^[\d\s-]+$/.test(activity.replace(/[^0-9\s-]/g, ''))) {
+    // Check if this is a combo (contains dash notation like 1-2-3, or just numbers/dashes)
+    const strippedActivity = activity.replace(/[^0-9\s-]/g, '').trim();
+    if (/^\d+[-\s]/.test(activity) || (strippedActivity.length > 0 && /^[\d\s-]+$/.test(strippedActivity) && /\d/.test(strippedActivity))) {
       // This is a combo assignment, not an activity name — skip here, combos are parsed separately
       continue;
     }
@@ -520,6 +524,29 @@ function parseBlock(blockText: string): ParsedBlock {
   // Check for superset pattern
   const supersetResult = parseSupersetFromBlock(blockText);
   
+  // Detect speed bag drills from per-round activities
+  const bagType = detectBagType(blockText);
+  const speedBagDrills: string[][] = [];
+  
+  if (bagType === 'speedbag' && perRoundActivities.length > 0) {
+    // Check if per-round activities are speed bag drill names
+    for (const activity of perRoundActivities) {
+      const drill = detectSpeedBagDrill(activity.name);
+      if (drill) {
+        speedBagDrills.push([drill.name]);
+      }
+    }
+  }
+  
+  // If we found speed bag drills from per-round activities, also check the full text
+  // for drills not in per-round format
+  if (bagType === 'speedbag' && speedBagDrills.length === 0) {
+    const detectedDrills = detectAllSpeedBagDrills(blockText);
+    for (const drill of detectedDrills) {
+      speedBagDrills.push([drill.name]);
+    }
+  }
+  
   // Default durations based on section
   let defaultWork: number;
   if (section === 'warmup') defaultWork = 60;
@@ -545,6 +572,7 @@ function parseBlock(blockText: string): ParsedBlock {
     combos,
     superset: supersetResult?.exercises ?? null,
     supersetRestBetween: supersetResult?.restBetween ?? null,
+    speedBagDrills,
   };
 }
 
@@ -597,6 +625,37 @@ function blockToPhase(block: ParsedBlock): ParsedPhase {
     };
   }
   
+  // Speed bag with drills: create a single SB segment + populate drill library
+  if (block.speedBagDrills.length > 0) {
+    segments.push({
+      name: 'Speed Bag',
+      type: 'active',
+      segmentType: 'speedbag',
+      duration: block.workDuration,
+      activityType: 'custom',
+    });
+    
+    // Add rest
+    if (!block.noRest && block.restDuration > 0) {
+      segments.push({
+        name: 'Rest',
+        type: 'rest',
+        segmentType: 'rest',
+        duration: block.restDuration,
+      });
+    }
+    
+    return {
+      name: block.activityName,
+      phaseType: 'circuit',
+      section: block.section,
+      repeats: block.speedBagDrills.length,
+      segments,
+      combos: block.speedBagDrills,
+      comboOrder: 'sequential',
+    };
+  }
+  
   if (block.perRoundActivities.length > 0) {
     // Per-round activities: create individual segments
     for (let i = 0; i < block.perRoundActivities.length; i++) {
@@ -622,12 +681,15 @@ function blockToPhase(block: ParsedBlock): ParsedPhase {
   } else {
     // Single activity per round
     const hasCombos = block.combos.length > 0;
+    const bagType = detectBagType(block.rawText);
+    const isSpeedBag = bagType === 'speedbag';
+    
     segments.push({
       name: block.activityName,
       type: 'active',
-      segmentType: hasCombos ? 'combo' : inferSegmentType(block.activityName),
+      segmentType: isSpeedBag ? 'speedbag' : (hasCombos ? 'combo' : inferSegmentType(block.activityName)),
       duration: block.workDuration,
-      activityType: hasCombos ? 'combos' : inferActivityType(block.activityName),
+      activityType: isSpeedBag ? 'custom' : (hasCombos ? 'combos' : inferActivityType(block.activityName)),
     });
   }
   
@@ -647,6 +709,8 @@ function blockToPhase(block: ParsedBlock): ParsedPhase {
     section: block.section,
     repeats: block.perRoundActivities.length > 0 ? 1 : block.rounds,
     segments,
+    combos: block.combos.length > 0 ? block.combos : undefined,
+    comboOrder: block.combos.length > 0 ? 'sequential' : undefined,
   };
 }
 
@@ -1102,6 +1166,8 @@ export function parsedResultToWorkout(result: ParsedWorkoutResult): Workout {
         duration: seg.duration,
         reps: seg.reps,
       } as WorkoutSegment)),
+      ...(phase.combos && phase.combos.length > 0 ? { combos: phase.combos } : {}),
+      ...(phase.comboOrder ? { comboOrder: phase.comboOrder } : {}),
     };
     
     switch (phase.section) {
