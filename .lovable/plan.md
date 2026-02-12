@@ -1,78 +1,79 @@
 
 
-# Speed Bag Category + Per-Phase Combos
+## AI Builder: Smart Difficulty Classification and Prestige-Aware Combo Selection
 
-## Overview
+### Problem
+When the AI builder generates a workout:
+- It doesn't analyze the actual combo content to determine the correct difficulty tier
+- If a user provides combos with punches 5-8, STEP IN/OUT, CIRCLE, etc., the workout still drops in as "Beginner"
+- When no difficulty is specified in the prompt, it falls back to `experienceLevel` (a string like `'complete_beginner'`) instead of the user's actual prestige from their profile
+- Combos generated when none are specified don't pull from the combo preset library (`comboPresets.ts`)
 
-Three interconnected changes to improve the workout builder's segment classification and combo organization.
+### Solution
 
----
+#### 1. Add combo content analysis function (`aiWorkoutParser.ts`)
 
-## 1. New "Speed Bag" Segment Type
+Create a new function `classifyDifficultyFromCombos(combos: string[][])` that inspects the actual punch numbers, defense moves, and footwork in the combos:
+- If any combo contains punches 7-8, or movements like STEP IN/STEP OUT: classify as **advanced**
+- If any combo contains punches 5-6, or PULL/BLOCK/CIRCLE: classify as **intermediate**
+- Otherwise: **beginner**
 
-Add a new `speedbag` segment type with its own badge and color, distinct from both Shadowboxing (S) and Combo (C).
+This function will be called after combos are parsed from the prompt. If the user-specified combos imply a higher difficulty than what `inferDifficulty` returned, the difficulty gets upgraded to match.
 
-- **Badge**: "SB" (to avoid collision with Shadowboxing's "S")
-- **Color**: A unique accent -- orange/amber (`bg-orange-500/20 text-orange-400`) to differentiate from volt-green combo and shadowboxing badges
-- Speed bag segments default to freestyle (no combo assignment) unless combos are explicitly added to its phase
-- The AI parser will detect "speed bag" in prompts and assign `segmentType: 'speedbag'` instead of `'combo'`
+#### 2. Update `inferDifficulty` to handle prestige strings
 
-### Files changed:
-- **`src/types/index.ts`**: Add `'speedbag'` to the `SegmentType` union
-- **`src/pages/Build.tsx`**: Add `speedbag` entry to `SEGMENT_TYPES` array and include it in the segment type cycle
-- **`src/lib/aiWorkoutParser.ts`**: Update `inferSegmentType` to detect "speed bag" and return `'speedbag'`
-- **`src/pages/WorkoutSession.tsx`**: 
-  - Exclude `speedbag` segments from combo assignment (they default to freestyle)
-  - Show FREESTYLE label for `speedbag` segments (same as combo segments without combos)
+The `userLevel` parameter currently receives values like `'complete_beginner'`, `'beginner'`, `'intermediate'`, `'advanced'`, `'pro'`. The function already handles most of these, but `'complete_beginner'` and `'rookie'` (prestige value) are not mapped. Add those mappings so the fallback works correctly regardless of whether `experienceLevel` or `prestige` is passed.
 
----
+#### 3. Pass user prestige as fallback in `AIBuilderModal.tsx`
 
-## 2. Move Combos from Global List to Per-Phase
+Update the `handleGenerate` call to prefer the database profile's `prestige` field over the local store's `experienceLevel`. The modal already has access to the user store; we'll also check if a profile hook value is available, or map `experienceLevel` through `experienceLevelToPrestige` for consistency.
 
-Currently, combos live at the workout level (`workout.combos: string[][]`) and are shared across all phases. The new model stores combos on each phase (`phase.combos: string[][]`), so different phases (Heavy Bag vs Speed Bag) can have independent combo lists.
+#### 4. Pull combos from preset library when none specified
 
-### Data model change:
-- **`src/types/index.ts`**: Add `combos?: string[][]` to the `WorkoutPhase` interface
-- The top-level `workout.combos` stays for backward compatibility but phases with their own combos take priority
+When no combos are parsed from the prompt AND the bag type supports combos (heavy bag, double end, shadowboxing), instead of using hardcoded combo arrays:
+- Import `getAllPresets` from `comboPresets.ts`
+- Use the resolved difficulty tier to call `getAllPresets(difficulty)`
+- Select combos from the appropriate preset pool, cycling through them for each round
 
-### Builder UI change (`src/pages/Build.tsx`):
-- **Remove** the global "Combos" section at the bottom of the Rounds tab (lines 624-668)
-- **Add** an inline combo list below each combo-type segment within a phase:
-  - Shows the phase's combo list (add, edit, delete, reorder)
-  - The "+ Add" button opens the same combo builder modal, but saves to the phase's combos
-  - Each phase manages its own independent combo list
-  - Only visible for phases containing combo or shadowboxing segments
+This ensures the Freestyle Rule is still respected (no combos = Freestyle), but when the system does generate combos (because the context calls for combo work), they come from the proper difficulty-appropriate preset library.
 
-### Timer/session change (`src/pages/WorkoutSession.tsx`):
-- Update `getComboListForPhase` to read from `phase.combos` first, falling back to `workout.combos` for backward compatibility
-- Speed bag phases are excluded from combo assignment entirely (always freestyle)
+#### 5. Auto-upgrade difficulty when combo content exceeds tier
 
-### Save/Load changes:
-- **`dbPhasesToLocal`** in Build.tsx already preserves phase data -- combos on each phase will serialize naturally since phases are stored as JSONB
-- No database migration needed -- the `phases` JSONB column already stores arbitrary phase properties
+In `parseWorkoutInput` (the main parser), after all combos are collected and difficulty is inferred:
+- Run `classifyDifficultyFromCombos` on the parsed combos
+- If the combo-derived difficulty is higher than the inferred difficulty, upgrade
+- This ensures "5 rounds heavy bag with 1-2-5-6-3-2" correctly drops as intermediate, not beginner
 
-### AI Builder changes (`src/lib/aiWorkoutParser.ts` + `src/components/AIBuilderModal.tsx`):
-- When generating combos, attach them to the relevant phase's `combos` array instead of the workout-level array
-- Legacy `generateWorkoutFromPrompt` fallback also attaches combos per-phase
+### Files to modify
 
----
+- **`src/lib/aiWorkoutParser.ts`** -- Add `classifyDifficultyFromCombos`, update `inferDifficulty` mappings, integrate combo-based difficulty upgrade in `parseWorkoutInput`
+- **`src/components/AIBuilderModal.tsx`** -- Update `generateWorkoutFromPrompt` legacy path to use preset combos instead of hardcoded arrays; map `experienceLevel` through prestige mapping for consistent fallback
 
-## 3. Migration / Backward Compatibility
+### Technical Details
 
-- Existing workouts with top-level `combos` will continue to work: the timer reads `phase.combos` first, then falls back to `workout.combos`
-- When a user edits an old workout, the builder will migrate top-level combos into the first grind phase that has combo segments, so they appear inline
-- New workouts always store combos per-phase
+```text
+Difficulty classification from combo content:
 
----
+ADVANCED indicators:
+  Punches: 7, 8
+  Movement: STEP IN, STEP OUT
 
-## Technical Summary
+INTERMEDIATE indicators:
+  Punches: 5, 6
+  Defense: PULL, BLOCK
+  Movement: CIRCLE L, CIRCLE R
 
-| File | Change |
-|------|--------|
-| `src/types/index.ts` | Add `'speedbag'` to SegmentType; add `combos?: string[][]` to WorkoutPhase |
-| `src/pages/Build.tsx` | Add SB segment type; remove global combos section; add inline per-phase combo list below combo segments |
-| `src/pages/WorkoutSession.tsx` | Read phase-level combos; exclude speedbag from combo assignment; show FREESTYLE for speedbag |
-| `src/lib/aiWorkoutParser.ts` | Detect speed bag; assign combos per-phase; return `'speedbag'` segment type |
-| `src/components/AIBuilderModal.tsx` | Attach generated combos to phases instead of workout-level |
-| `src/data/comboPresets.ts` | No changes needed |
+BEGINNER (default):
+  Punches: 1, 2, 3, 4
+  Defense: SLIP L/R, ROLL L/R
+```
+
+```text
+Resolution order:
+1. Check prompt for explicit difficulty keywords (advanced, beginner, etc.)
+2. Parse combos from prompt -> classify difficulty from combo content
+3. Take the HIGHER of steps 1 and 2
+4. If neither found, fall back to user's prestige tier
+5. Apply history-based adjustments if available
+```
 
