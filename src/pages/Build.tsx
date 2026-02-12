@@ -604,7 +604,7 @@ const Build = () => {
 
           {/* Megaset + phase repeat info - only visible when ROUNDS tab is active */}
           {activeSection === 'grind' && (
-            <div className="flex items-center justify-between px-4 py-2 border-b border-surface-3">
+            <div className="flex items-center justify-center px-4 py-2 border-b border-surface-3">
               <div className="flex items-center gap-2">
                 <Repeat className="w-4 h-4 text-muted-foreground" />
                 <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Megaset</span>
