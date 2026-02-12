@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { ArrowLeft, Plus, Trash2, GripVertical, Pencil, Play, X, ChevronDown, ChevronUp, Sparkles, Share2, Shuffle, ListOrdered, Repeat } from 'lucide-react';
+import { ArrowLeft, Plus, Trash2, GripVertical, Pencil, Play, X, ChevronDown, ChevronUp, Sparkles, Share2, Shuffle, ListOrdered, Repeat, Layers } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
@@ -279,6 +279,38 @@ const Build = () => {
         id: generateId(),
         ...DEFAULT_SEGMENT,
       }],
+    };
+    setActivePhases([...getActivePhases(), newPhase]);
+  };
+
+  const addSuperset = () => {
+    const newPhase: WorkoutPhase = {
+      id: generateId(),
+      name: 'Superset',
+      repeats: 3,
+      segments: [
+        {
+          id: generateId(),
+          name: 'Exercise A',
+          type: 'active',
+          segmentType: 'work',
+          duration: 45,
+        },
+        {
+          id: generateId(),
+          name: 'Exercise B',
+          type: 'active',
+          segmentType: 'work',
+          duration: 45,
+        },
+        {
+          id: generateId(),
+          name: 'Rest',
+          type: 'rest',
+          segmentType: 'rest',
+          duration: 30,
+        },
+      ],
     };
     setActivePhases([...getActivePhases(), newPhase]);
   };
@@ -594,7 +626,10 @@ const Build = () => {
 
           {/* Phases */}
           <div className="px-4 py-4 space-y-4">
-            {getActivePhases().map((phase) => (
+            {getActivePhases().map((phase) => {
+              const activeSegmentCount = phase.segments.filter(s => s.type === 'active').length;
+              const isSuperset = activeSegmentCount >= 2;
+              return (
               <div key={phase.id} className="bg-surface-1 rounded-xl border border-surface-3 overflow-hidden">
                 {/* Phase Header */}
                 <div className="flex items-center gap-3 p-3 border-b border-surface-3">
@@ -604,6 +639,12 @@ const Build = () => {
                     onChange={(e) => updatePhase(phase.id, { name: e.target.value })}
                     className="flex-1 bg-transparent border-none font-semibold text-foreground p-0 h-auto focus-visible:ring-0"
                   />
+                  {isSuperset && (
+                    <span className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-purple-500/20 text-purple-400">
+                      <Layers className="w-3 h-3" />
+                      Superset
+                    </span>
+                  )}
                   <div className="flex items-center gap-1">
                     <button
                       onClick={() => updatePhase(phase.id, { repeats: Math.max(1, phase.repeats - 1) })}
@@ -795,16 +836,26 @@ const Build = () => {
                   Add Segment
                 </button>
               </div>
-            ))}
+              );
+            })}
 
-            {/* Add Phase */}
-            <button
-              onClick={addPhase}
-              className="w-full p-4 rounded-xl border-2 border-dashed border-surface-3 text-muted-foreground hover:text-foreground hover:border-volt transition-colors flex items-center justify-center gap-2"
-            >
-              <Plus className="w-5 h-5" />
-              Add Phase
-            </button>
+            {/* Add Phase / Add Superset */}
+            <div className="flex gap-2">
+              <button
+                onClick={addPhase}
+                className="flex-1 p-4 rounded-xl border-2 border-dashed border-surface-3 text-muted-foreground hover:text-foreground hover:border-volt transition-colors flex items-center justify-center gap-2"
+              >
+                <Plus className="w-5 h-5" />
+                Add Phase
+              </button>
+              <button
+                onClick={addSuperset}
+                className="flex-1 p-4 rounded-xl border-2 border-dashed border-purple-500/30 text-muted-foreground hover:text-purple-400 hover:border-purple-500/60 transition-colors flex items-center justify-center gap-2"
+              >
+                <Layers className="w-5 h-5" />
+                Add Superset
+              </button>
+            </div>
           </div>
 
         </div>
