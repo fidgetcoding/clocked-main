@@ -774,7 +774,10 @@ const WorkoutSession = () => {
                          currentSegment?.name.toLowerCase().includes('technique');
   // For shadowboxing, show the nextCombo (the upcoming combo to practice)
   // For combo segments, show the current combo
-  const displayCombo = isShadowboxing ? currentSegment?.nextCombo : currentSegment?.combo;
+  // Treat ['FREESTYLE'] as no combo — it means freestyle round
+  const rawCombo = isShadowboxing ? currentSegment?.nextCombo : currentSegment?.combo;
+  const isFreestyleCombo = rawCombo?.length === 1 && rawCombo[0] === 'FREESTYLE';
+  const displayCombo = isFreestyleCombo ? undefined : rawCombo;
 
   // Check if current segment is rest (for rest screen preview)
   const isRestSegment = currentSegment?.type === 'rest' && !isPreparation;
