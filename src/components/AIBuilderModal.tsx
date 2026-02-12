@@ -282,6 +282,7 @@ export const AIBuilderModal = ({ onClose, onGenerate, baseWorkout, onWorkoutGene
   const [interimTranscript, setInterimTranscript] = useState('');
   const [promptHints, setPromptHints] = useState<string[]>([]);
   const recognitionRef = useRef<any>(null);
+  const generatedWorkoutRef = useRef<Workout | null>(null);
   
   // Analyze workout history for personalization
   const historyInsights = useMemo(() => {
@@ -407,9 +408,11 @@ export const AIBuilderModal = ({ onClose, onGenerate, baseWorkout, onWorkoutGene
       historyInsights
     );
     
+    // Store workout for later use
+    generatedWorkoutRef.current = workout;
+    
     // If we have a callback, use that (for inline usage)
     if (onWorkoutGenerated) {
-      // Animate progress then deliver
       let progress = 0;
       const interval = setInterval(() => {
         progress += Math.random() * 25 + 10;
@@ -418,11 +421,7 @@ export const AIBuilderModal = ({ onClose, onGenerate, baseWorkout, onWorkoutGene
           clearInterval(interval);
           setGenerationProgress(100);
           setGenerationDone(true);
-          setTimeout(() => {
-            onWorkoutGenerated(workout);
-            setIsGenerating(false);
-            onClose();
-          }, 600);
+          setTimeout(() => finishGeneration(), 800);
         } else {
           setGenerationProgress(Math.min(progress, 95));
         }
@@ -439,16 +438,28 @@ export const AIBuilderModal = ({ onClose, onGenerate, baseWorkout, onWorkoutGene
         clearInterval(interval);
         setGenerationProgress(100);
         setGenerationDone(true);
-        setTimeout(() => {
-          toast.success(`Generated "${workout.name}" - now customize it!`);
-          const workoutData = encodeURIComponent(JSON.stringify(workout));
-          navigate(`/build?ai=${workoutData}`, { replace: true });
-        }, 600);
+        setTimeout(() => finishGeneration(), 800);
       } else {
         setGenerationProgress(Math.min(progress, 95));
       }
     }, 200);
   };
+
+  const finishGeneration = useCallback(() => {
+    const workout = generatedWorkoutRef.current;
+    if (!workout) return;
+    
+    if (onWorkoutGenerated) {
+      onWorkoutGenerated(workout);
+      setIsGenerating(false);
+      onClose();
+    } else {
+      toast.success(`Generated "${workout.name}" - now customize it!`);
+      onClose();
+      const workoutData = encodeURIComponent(JSON.stringify(workout));
+      navigate(`/build?ai=${workoutData}`, { replace: true });
+    }
+  }, [onWorkoutGenerated, onClose, navigate]);
 
   const handleSuggestionClick = (suggestion: string) => {
     setPrompt(suggestion);
@@ -633,8 +644,8 @@ export const AIBuilderModal = ({ onClose, onGenerate, baseWorkout, onWorkoutGene
               Cancel
             </Button>
             <Button 
-              onClick={handleGenerate}
-              disabled={!prompt.trim() || isGenerating}
+              onClick={generationDone ? finishGeneration : handleGenerate}
+              disabled={!prompt.trim() || (isGenerating && !generationDone)}
               className="flex-1 bg-volt text-primary-foreground hover:bg-volt/90 disabled:opacity-50"
             >
               {isGenerating ? (
