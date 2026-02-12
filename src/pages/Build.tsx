@@ -163,7 +163,7 @@ const Build = () => {
   const [currentCombo, setCurrentCombo] = useState<string[]>([]);
   const [editingComboIndex, setEditingComboIndex] = useState<number | null>(null);
   const [showAIBuilder, setShowAIBuilder] = useState(false);
-  const [editingSegmentContext, setEditingSegmentContext] = useState<'speedbag' | 'combo'>('combo');
+  const [editingSegmentContext, setEditingSegmentContext] = useState<'speedbag' | 'combo' | 'exercises'>('combo');
   const [showShareDialog, setShowShareDialog] = useState(false);
   const [shareMessage, setShareMessage] = useState('');
   const [shareName, setShareName] = useState('');
@@ -399,9 +399,15 @@ const Build = () => {
     setPhaseCombos(editingPhaseId, [...phaseCombos, [drillName]]);
   };
 
-  // Determine if a phase has speed bag segments (for context-aware labels)
-  const getPhaseSegmentContext = (phase: WorkoutPhase): 'speedbag' | 'combo' => {
-    return phase.segments.some(s => s.segmentType === 'speedbag') ? 'speedbag' : 'combo';
+  // Determine phase context for library labels (combos vs drills vs exercises)
+  const getPhaseSegmentContext = (phase: WorkoutPhase): 'speedbag' | 'combo' | 'exercises' => {
+    if (phase.segments.some(s => s.segmentType === 'speedbag')) return 'speedbag';
+    // If the phase has combos but no combo/shadowboxing/speedbag/doubleend segments, it's exercises
+    const hasComboCapableSegment = phase.segments.some(s => 
+      ['combo', 'shadowboxing', 'speedbag', 'doubleend'].includes(s.segmentType || '')
+    );
+    if ((phase.combos?.length || 0) > 0 && !hasComboCapableSegment) return 'exercises';
+    return 'combo';
   };
 
   const editCombo = (index: number) => {
@@ -628,7 +634,9 @@ const Build = () => {
           <div className="px-4 py-4 space-y-4">
             {getActivePhases().map((phase) => {
               const activeSegmentCount = phase.segments.filter(s => s.type === 'active').length;
-              const isSuperset = activeSegmentCount >= 2;
+              const phaseCtx = getPhaseSegmentContext(phase);
+              // Superset only when 2+ active segments AND not an exercise-library phase
+              const isSuperset = activeSegmentCount >= 2 && phaseCtx !== 'exercises';
               return (
               <div key={phase.id} className="bg-surface-1 rounded-xl border border-surface-3 overflow-hidden">
                 {/* Phase Header */}
@@ -670,11 +678,11 @@ const Build = () => {
                   </button>
                 </div>
 
-                {/* Combo Order Toggle - show if phase has combo or shadowboxing segments */}
-                {phase.segments.some(s => ['combo', 'shadowboxing', 'speedbag', 'doubleend'].includes(s.segmentType || '')) && (phase.combos?.length || 0) > 0 && (
+                {/* Combo/Drill/Exercise Order Toggle */}
+                {((phase.segments.some(s => ['combo', 'shadowboxing', 'speedbag', 'doubleend'].includes(s.segmentType || '')) || phaseCtx === 'exercises') && (phase.combos?.length || 0) > 0) && (
                   <div className="flex items-center justify-between px-3 py-2 border-b border-surface-3">
                     <span className="text-xs text-muted-foreground">
-                      {getPhaseSegmentContext(phase) === 'speedbag' ? 'Drill Order' : 'Combo Order'}
+                      {phaseCtx === 'speedbag' ? 'Drill Order' : phaseCtx === 'exercises' ? 'Exercise Order' : 'Combo Order'}
                     </span>
                     <div className="flex gap-1">
                       <button
@@ -710,10 +718,13 @@ const Build = () => {
                   {phase.segments.map((segment, segIdx) => {
                     const segInfo = getSegmentTypeInfo(segment.segmentType);
                     const hasComboSupport = segment.segmentType === 'combo' || segment.segmentType === 'shadowboxing' || segment.segmentType === 'speedbag' || segment.segmentType === 'doubleend';
+                    // For exercise-library phases, show library after the last active segment
+                    const isExercisePhase = phaseCtx === 'exercises';
+                    const isLastActiveSegment = isExercisePhase && segment.type === 'active' && !phase.segments.slice(segIdx + 1).some(s => s.type === 'active');
                     // Only show combos after the LAST combo-capable segment in the phase
-                    const isLastComboSegment = hasComboSupport && !phase.segments.slice(segIdx + 1).some(
+                    const isLastComboSegment = (hasComboSupport && !phase.segments.slice(segIdx + 1).some(
                       s => s.segmentType === 'combo' || s.segmentType === 'shadowboxing' || s.segmentType === 'speedbag' || s.segmentType === 'doubleend'
-                    );
+                    )) || isLastActiveSegment;
                     return (
                       <div key={segment.id}>
                         <div className="flex items-center gap-3 p-3">
@@ -749,9 +760,11 @@ const Build = () => {
                         {/* Inline Combos - rendered after last combo-capable segment */}
                         {isLastComboSegment && (() => {
                           const ctx = getPhaseSegmentContext(phase);
-                          const labelWord = ctx === 'speedbag' ? 'Drills' : 'Combos';
+                          const labelWord = ctx === 'speedbag' ? 'Drills' : ctx === 'exercises' ? 'Exercises' : 'Combos';
                           const emptyText = ctx === 'speedbag' 
                             ? 'No drills — segments will be freestyle' 
+                            : ctx === 'exercises'
+                            ? 'No exercises — segments will be freestyle'
                             : 'No combos — segments will be freestyle';
                           return (
                           <div className="px-3 pb-3 pt-1">
@@ -861,6 +874,8 @@ const Build = () => {
               <h2 className="font-bold text-foreground">
                 {editingSegmentContext === 'speedbag' 
                   ? (editingComboIndex !== null ? 'Edit Drill' : 'Add Drill')
+                  : editingSegmentContext === 'exercises'
+                  ? (editingComboIndex !== null ? 'Edit Exercise' : 'Add Exercise')
                   : (editingComboIndex !== null ? 'Edit Combo' : 'Add Combo')}
               </h2>
               {comboMode === 'custom' ? (
@@ -872,8 +887,8 @@ const Build = () => {
               )}
             </header>
 
-            {/* Mode Toggle - hide Custom tab for speed bag */}
-            {editingSegmentContext !== 'speedbag' && (
+            {/* Mode Toggle - hide for speed bag and exercises (both are single-mode) */}
+            {editingSegmentContext !== 'speedbag' && editingSegmentContext !== 'exercises' && (
             <div className="px-4 py-3 border-b border-surface-3">
               <div className="flex gap-2">
                 <button
@@ -902,7 +917,48 @@ const Build = () => {
             </div>
             )}
 
-            {(comboMode === 'presets' || editingSegmentContext === 'speedbag') ? (
+            {/* Exercise name input mode */}
+            {editingSegmentContext === 'exercises' ? (
+              <div className="flex-1 overflow-y-auto px-4 py-4">
+                <p className="text-xs text-muted-foreground uppercase tracking-wider mb-3">
+                  ADD EXERCISE SET
+                </p>
+                <p className="text-xs text-muted-foreground mb-4">
+                  Type the exercises for this round. Use "&" to combine multiple exercises in one set.
+                </p>
+                <div className="space-y-3">
+                  <Input
+                    id="exercise-name-input"
+                    placeholder="e.g. Mountain Climbers & Squat Jumps"
+                    className="bg-surface-2 border-surface-3 text-foreground"
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        const val = (e.target as HTMLInputElement).value.trim();
+                        if (val && editingPhaseId) {
+                          addSpeedBagDrill(val);
+                          (e.target as HTMLInputElement).value = '';
+                          setShowComboBuilder(false);
+                        }
+                      }
+                    }}
+                  />
+                  <Button
+                    onClick={() => {
+                      const input = document.getElementById('exercise-name-input') as HTMLInputElement;
+                      const val = input?.value?.trim();
+                      if (val && editingPhaseId) {
+                        addSpeedBagDrill(val);
+                        input.value = '';
+                        setShowComboBuilder(false);
+                      }
+                    }}
+                    className="w-full bg-volt text-primary-foreground"
+                  >
+                    Add Exercise Set
+                  </Button>
+                </div>
+              </div>
+            ) : (comboMode === 'presets' || editingSegmentContext === 'speedbag') ? (
               /* Presets List */
               <div className="flex-1 overflow-y-auto px-4 py-4">
                 {editingSegmentContext === 'speedbag' ? (
