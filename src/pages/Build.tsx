@@ -18,6 +18,7 @@ import {
   ComboPreset 
 } from '@/data/comboPresets';
 import { SPEED_BAG_DRILLS } from '@/data/speedBagDrills';
+import { ExercisePickerModal } from '@/components/ExercisePickerModal';
 import { AIBuilderModal } from '@/components/AIBuilderModal';
 import { useShareWorkout } from '@/hooks/useCommunityPosts';
 import { useClubs } from '@/hooks/useClubs';
@@ -163,6 +164,7 @@ const Build = () => {
   const [currentCombo, setCurrentCombo] = useState<string[]>([]);
   const [editingComboIndex, setEditingComboIndex] = useState<number | null>(null);
   const [showAIBuilder, setShowAIBuilder] = useState(false);
+  const [showExercisePicker, setShowExercisePicker] = useState(false);
   const [editingSegmentContext, setEditingSegmentContext] = useState<'speedbag' | 'combo' | 'exercises'>('combo');
   const [showShareDialog, setShowShareDialog] = useState(false);
   const [shareMessage, setShareMessage] = useState('');
@@ -773,11 +775,15 @@ const Build = () => {
                               <button
                                 onClick={() => {
                                   setEditingPhaseId(phase.id);
-                                  setEditingSegmentContext(ctx);
-                                  setCurrentCombo([]);
-                                  setEditingComboIndex(null);
-                                  setComboMode('presets');
-                                  setShowComboBuilder(true);
+                                  if (ctx === 'exercises') {
+                                    setShowExercisePicker(true);
+                                  } else {
+                                    setEditingSegmentContext(ctx);
+                                    setCurrentCombo([]);
+                                    setEditingComboIndex(null);
+                                    setComboMode('presets');
+                                    setShowComboBuilder(true);
+                                  }
                                 }}
                                 className="text-xs font-medium text-volt hover:text-volt/80 flex items-center gap-1"
                               >
@@ -1311,6 +1317,18 @@ const Build = () => {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+
+        {/* Exercise Picker Modal */}
+        <ExercisePickerModal
+          open={showExercisePicker}
+          onClose={() => setShowExercisePicker(false)}
+          onConfirm={(exercises) => {
+            if (editingPhaseId) {
+              const phaseCombos = getPhaseCombos(editingPhaseId);
+              setPhaseCombos(editingPhaseId, [...phaseCombos, exercises]);
+            }
+          }}
+        />
       </div>
     </AppLayout>
   );
