@@ -12,6 +12,7 @@ import { Workout, WorkoutPhase } from '@/types';
 import { parseWorkoutInput, parsedResultToWorkout, checkPromptQuality } from '@/lib/aiWorkoutParser';
 import { analyzeWorkoutHistory, getInsightsSummary, HistoryInsights } from '@/lib/workoutHistoryAnalysis';
 import { detectBagType, detectAllSpeedBagDrills, containsSpeedBagVocabulary } from '@/data/speedBagDrills';
+import { getAllPresets } from '@/data/comboPresets';
 
 interface AIBuilderModalProps {
   onClose: () => void;
@@ -71,9 +72,10 @@ export function parseWorkoutPrompt(prompt: string, userLevel: string = 'beginner
   } else if (lowerPrompt.includes('beginner') || lowerPrompt.includes('easy')) {
     difficulty = 'beginner';
   } else {
-    // Use user's level as default
+    // Use user's level as default — handle prestige strings too
     if (userLevel === 'advanced' || userLevel === 'pro') difficulty = 'advanced';
     else if (userLevel === 'intermediate') difficulty = 'intermediate';
+    else difficulty = 'beginner'; // covers 'beginner', 'complete_beginner', 'rookie'
   }
   
   // Extract workout type/focus
@@ -93,59 +95,33 @@ export function parseWorkoutPrompt(prompt: string, userLevel: string = 'beginner
   // Generate combos based on focus — NEVER for speed bag
   const combos: string[][] = [];
   if (!isSpeedBag) {
-    for (let i = 0; i < rounds; i++) {
-      let combo: string[] = [];
-      
-      if (hasDefense) {
-        const defensePatterns = [
-          ['1', '2', 'SLIP L', '2'],
-          ['1', 'SLIP R', '2', '3'],
-          ['1', '2', 'ROLL L', '3', '2'],
-          ['SLIP L', 'SLIP R', '2', '3', '2'],
-          ['1', '2', 'PULL', '2', '3'],
-        ];
-        combo = defensePatterns[i % defensePatterns.length];
-      } else if (hasFootwork) {
-        const footworkPatterns = [
-          ['1', '1', '2', 'CIRCLE L'],
-          ['1', '2', 'CIRCLE R', '2', '3'],
-          ['STEP IN', '1', '2', '3', 'STEP OUT'],
-          ['CIRCLE L', '1', '2', 'CIRCLE R', '2'],
-        ];
-        combo = footworkPatterns[i % footworkPatterns.length];
-      } else {
-        const beginnerCombos = [
-          ['1', '2'],
-          ['1', '2', '3'],
-          ['1', '1', '2'],
-          ['1', '2', '3', '2'],
-          ['2', '3', '2'],
-        ];
-        const intermediateCombos = [
-          ['1', '2', '3', '2'],
-          ['1', '2', '5', '3', '2'],
-          ['1', '6', '3', '2'],
-          ['1', '2', '3', '6', '3', '2'],
-          ['1', '2', 'SLIP L', '2', '3', '2'],
-        ];
-        const advancedCombos = [
-          ['1', '2', '3', '4', '5', '6'],
-          ['1', '2', '5', '6', '3', '2'],
-          ['SLIP L', '2', '3', '2', '5', '6', '3'],
-          ['1', '2', 'ROLL L', '7', '8', '3', '2'],
-          ['1', '1', '2', '3', '2', '5', '6', '3', '2'],
-        ];
-        
-        if (difficulty === 'advanced') {
-          combo = advancedCombos[i % advancedCombos.length];
-        } else if (difficulty === 'intermediate') {
-          combo = intermediateCombos[i % intermediateCombos.length];
-        } else {
-          combo = beginnerCombos[i % beginnerCombos.length];
-        }
+    // Pull from preset library instead of hardcoded arrays
+    const presets = getAllPresets(difficulty);
+    // Filter out the Freestyle universal preset
+    const comboPresets = presets.filter(p => p.combo[0] !== 'FREESTYLE');
+
+    if (hasDefense) {
+      // Filter presets that contain defense moves
+      const defensePresets = comboPresets.filter(p =>
+        p.combo.some(t => ['SLIP L', 'SLIP R', 'ROLL L', 'ROLL R', 'PULL', 'BLOCK'].includes(t))
+      );
+      const pool = defensePresets.length > 0 ? defensePresets : comboPresets;
+      for (let i = 0; i < rounds; i++) {
+        combos.push(pool[i % pool.length].combo);
       }
-      
-      combos.push(combo);
+    } else if (hasFootwork) {
+      // Filter presets that contain movement
+      const footworkPresets = comboPresets.filter(p =>
+        p.combo.some(t => ['CIRCLE L', 'CIRCLE R', 'STEP IN', 'STEP OUT'].includes(t))
+      );
+      const pool = footworkPresets.length > 0 ? footworkPresets : comboPresets;
+      for (let i = 0; i < rounds; i++) {
+        combos.push(pool[i % pool.length].combo);
+      }
+    } else {
+      for (let i = 0; i < rounds; i++) {
+        combos.push(comboPresets[i % comboPresets.length].combo);
+      }
     }
   }
   
@@ -216,12 +192,18 @@ export function generateWorkoutFromPrompt(
     // Use the new parser's output
     const workout = parsedResultToWorkout(parsedResult);
     
-    // If no combos were parsed, generate them using legacy logic
+    // If no combos were parsed, generate them from preset library
     // BUT only for heavy bag / double end bag — NEVER for speed bag
     const bagType = detectBagType(prompt);
     if (bagType !== 'speedbag' && (!parsedResult.parsedCombos || parsedResult.combos.length === 0)) {
-      const legacyParsed = parseWorkoutPrompt(prompt, userLevel);
-      workout.combos = legacyParsed.combos;
+      const presets = getAllPresets(parsedResult.difficulty);
+      const comboPresets = presets.filter(p => p.combo[0] !== 'FREESTYLE');
+      const rounds = parsedResult.rounds ?? 3;
+      const generatedCombos: string[][] = [];
+      for (let i = 0; i < rounds; i++) {
+        generatedCombos.push(comboPresets[i % comboPresets.length].combo);
+      }
+      workout.combos = generatedCombos;
     }
     
     // Add tags if detected
@@ -436,10 +418,13 @@ export const AIBuilderModal = ({ onClose, onGenerate, baseWorkout, onWorkoutGene
       setIsListening(false);
     }
     
+    // Resolve user level: prefer prestige, fall back to experienceLevel
+    const userLevel = user?.prestige || user?.experienceLevel || 'beginner';
+    
     // Parse the prompt and generate workout
     const workout = generateWorkoutFromPrompt(
       prompt, 
-      user?.experienceLevel || 'beginner',
+      userLevel,
       historyInsights
     );
     
