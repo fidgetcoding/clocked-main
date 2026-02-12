@@ -49,14 +49,19 @@ export const ADVANCED_COMBOS: ComboPreset[] = [
   { id: 'a10', name: 'Championship Round', combo: ['1', '2', '3', '4', 'SLIP L', '5', '6', '7', '8', 'CIRCLE L'], difficulty: 'advanced' },
 ];
 
+// Universal presets available at all levels
+export const UNIVERSAL_COMBOS: ComboPreset[] = [
+  { id: 'u1', name: 'Freestyle', combo: ['FREESTYLE'], difficulty: 'beginner' },
+];
+
 export const getAllPresets = (difficulty: 'beginner' | 'intermediate' | 'advanced'): ComboPreset[] => {
   switch (difficulty) {
     case 'beginner':
-      return BEGINNER_COMBOS;
+      return [...UNIVERSAL_COMBOS, ...BEGINNER_COMBOS];
     case 'intermediate':
-      return [...BEGINNER_COMBOS, ...INTERMEDIATE_COMBOS];
+      return [...UNIVERSAL_COMBOS, ...BEGINNER_COMBOS, ...INTERMEDIATE_COMBOS];
     case 'advanced':
-      return [...BEGINNER_COMBOS, ...INTERMEDIATE_COMBOS, ...ADVANCED_COMBOS];
+      return [...UNIVERSAL_COMBOS, ...BEGINNER_COMBOS, ...INTERMEDIATE_COMBOS, ...ADVANCED_COMBOS];
   }
 };
 
