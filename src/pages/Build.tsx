@@ -605,35 +605,105 @@ const Build = () => {
                 <div className="divide-y divide-surface-3">
                   {phase.segments.map((segment) => {
                     const segInfo = getSegmentTypeInfo(segment.segmentType);
+                    const hasComboSupport = segment.segmentType === 'combo' || segment.segmentType === 'shadowboxing' || segment.segmentType === 'speedbag' || segment.segmentType === 'doubleend';
                     return (
-                      <div key={segment.id} className="flex items-center gap-3 p-3">
-                        <button
-                          onClick={() => cycleSegmentType(phase.id, segment.id, segment.segmentType)}
-                          className={cn(
-                            'w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold',
-                            segInfo.color
-                          )}
-                        >
-                          {segInfo.label}
-                        </button>
-                        <Input
-                          value={segment.name}
-                          onChange={(e) => updateSegment(phase.id, segment.id, { name: e.target.value })}
-                          className="flex-1 bg-surface-2 border-surface-3 text-foreground text-sm h-8"
-                        />
-                        <Input
-                          type="number"
-                          value={segment.duration}
-                          onChange={(e) => updateSegment(phase.id, segment.id, { duration: parseInt(e.target.value) || 0 })}
-                          className="w-16 bg-surface-2 border-surface-3 text-foreground text-sm h-8 text-center"
-                        />
-                        <span className="text-xs text-muted-foreground">sec</span>
-                        <button
-                          onClick={() => removeSegment(phase.id, segment.id)}
-                          className="text-muted-foreground hover:text-destructive"
-                        >
-                          <X className="w-4 h-4" />
-                        </button>
+                      <div key={segment.id}>
+                        <div className="flex items-center gap-3 p-3">
+                          <button
+                            onClick={() => cycleSegmentType(phase.id, segment.id, segment.segmentType)}
+                            className={cn(
+                              'w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold',
+                              segInfo.color
+                            )}
+                          >
+                            {segInfo.label}
+                          </button>
+                          <Input
+                            value={segment.name}
+                            onChange={(e) => updateSegment(phase.id, segment.id, { name: e.target.value })}
+                            className="flex-1 bg-surface-2 border-surface-3 text-foreground text-sm h-8"
+                          />
+                          <Input
+                            type="number"
+                            value={segment.duration}
+                            onChange={(e) => updateSegment(phase.id, segment.id, { duration: parseInt(e.target.value) || 0 })}
+                            className="w-16 bg-surface-2 border-surface-3 text-foreground text-sm h-8 text-center"
+                          />
+                          <span className="text-xs text-muted-foreground">sec</span>
+                          <button
+                            onClick={() => removeSegment(phase.id, segment.id)}
+                            className="text-muted-foreground hover:text-destructive"
+                          >
+                            <X className="w-4 h-4" />
+                          </button>
+                        </div>
+
+                        {/* Inline Combos - rendered directly below combo-capable segments */}
+                        {hasComboSupport && (
+                          <div className="px-3 pb-3 pt-1 ml-11">
+                            <div className="flex items-center justify-between mb-2">
+                              <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                                Combos ({phase.combos?.length || 0})
+                              </span>
+                              <button
+                                onClick={() => {
+                                  setEditingPhaseId(phase.id);
+                                  setCurrentCombo([]);
+                                  setEditingComboIndex(null);
+                                  setShowComboBuilder(true);
+                                }}
+                                className="text-xs font-medium text-volt hover:text-volt/80 flex items-center gap-1"
+                              >
+                                <Plus className="w-3 h-3" />
+                                Add
+                              </button>
+                            </div>
+                            {(phase.combos?.length || 0) === 0 ? (
+                              <p className="text-xs text-muted-foreground text-center py-2">
+                                No combos — segments will be freestyle
+                              </p>
+                            ) : (
+                              <DndContext
+                                sensors={comboSensors}
+                                collisionDetection={closestCenter}
+                                onDragEnd={(event) => {
+                                  const { active, over } = event;
+                                  if (!over || active.id === over.id) return;
+                                  const ids = (phase.combos || []).map((_, i) => `combo-${phase.id}-${i}`);
+                                  const oldIndex = ids.indexOf(active.id as string);
+                                  const newIndex = ids.indexOf(over.id as string);
+                                  setPhaseCombos(phase.id, arrayMove(phase.combos || [], oldIndex, newIndex));
+                                }}
+                              >
+                                <SortableContext 
+                                  items={(phase.combos || []).map((_, i) => `combo-${phase.id}-${i}`)} 
+                                  strategy={verticalListSortingStrategy}
+                                >
+                                  <div className="space-y-1.5">
+                                    {(phase.combos || []).map((combo, idx) => (
+                                      <SortableComboItem
+                                        key={`combo-${phase.id}-${idx}`}
+                                        id={`combo-${phase.id}-${idx}`}
+                                        combo={combo}
+                                        index={idx}
+                                        onEdit={(i) => {
+                                          setEditingPhaseId(phase.id);
+                                          setCurrentCombo((phase.combos || [])[i]);
+                                          setEditingComboIndex(i);
+                                          setComboMode('custom');
+                                          setShowComboBuilder(true);
+                                        }}
+                                        onDelete={(i) => {
+                                          setPhaseCombos(phase.id, (phase.combos || []).filter((_, ci) => ci !== i));
+                                        }}
+                                      />
+                                    ))}
+                                  </div>
+                                </SortableContext>
+                              </DndContext>
+                            )}
+                          </div>
+                        )}
                       </div>
                     );
                   })}
@@ -647,73 +717,6 @@ const Build = () => {
                   <Plus className="w-4 h-4" />
                   Add Segment
                 </button>
-
-                {/* Inline Per-Phase Combos - show if phase has combo, shadowboxing, or speedbag segments */}
-                {phase.segments.some(s => s.segmentType === 'combo' || s.segmentType === 'shadowboxing' || s.segmentType === 'speedbag' || s.segmentType === 'doubleend') && (
-                  <div className="px-3 py-3 border-t border-surface-3">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                        Combos ({phase.combos?.length || 0})
-                      </span>
-                      <button
-                        onClick={() => {
-                          setEditingPhaseId(phase.id);
-                          setCurrentCombo([]);
-                          setEditingComboIndex(null);
-                          setShowComboBuilder(true);
-                        }}
-                        className="text-xs font-medium text-volt hover:text-volt/80 flex items-center gap-1"
-                      >
-                        <Plus className="w-3 h-3" />
-                        Add
-                      </button>
-                    </div>
-                    {(phase.combos?.length || 0) === 0 ? (
-                      <p className="text-xs text-muted-foreground text-center py-2">
-                        No combos — segments will be freestyle
-                      </p>
-                    ) : (
-                      <DndContext
-                        sensors={comboSensors}
-                        collisionDetection={closestCenter}
-                        onDragEnd={(event) => {
-                          const { active, over } = event;
-                          if (!over || active.id === over.id) return;
-                          const ids = (phase.combos || []).map((_, i) => `combo-${phase.id}-${i}`);
-                          const oldIndex = ids.indexOf(active.id as string);
-                          const newIndex = ids.indexOf(over.id as string);
-                          setPhaseCombos(phase.id, arrayMove(phase.combos || [], oldIndex, newIndex));
-                        }}
-                      >
-                        <SortableContext 
-                          items={(phase.combos || []).map((_, i) => `combo-${phase.id}-${i}`)} 
-                          strategy={verticalListSortingStrategy}
-                        >
-                          <div className="space-y-1.5">
-                            {(phase.combos || []).map((combo, idx) => (
-                              <SortableComboItem
-                                key={`combo-${phase.id}-${idx}`}
-                                id={`combo-${phase.id}-${idx}`}
-                                combo={combo}
-                                index={idx}
-                                onEdit={(i) => {
-                                  setEditingPhaseId(phase.id);
-                                  setCurrentCombo((phase.combos || [])[i]);
-                                  setEditingComboIndex(i);
-                                  setComboMode('custom');
-                                  setShowComboBuilder(true);
-                                }}
-                                onDelete={(i) => {
-                                  setPhaseCombos(phase.id, (phase.combos || []).filter((_, ci) => ci !== i));
-                                }}
-                              />
-                            ))}
-                          </div>
-                        </SortableContext>
-                      </DndContext>
-                    )}
-                  </div>
-                )}
               </div>
             ))}
 
