@@ -399,7 +399,7 @@ const Build = () => {
         {/* Header */}
         <header className="flex items-center justify-between px-4 py-4 safe-top border-b border-surface-3">
           <button 
-            onClick={() => navigate(-1)}
+            onClick={() => navigate('/')}
             className="text-muted-foreground"
           >
             <ArrowLeft className="w-6 h-6" />
