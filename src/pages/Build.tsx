@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { ArrowLeft, Plus, Trash2, GripVertical, Pencil, Play, X, ChevronDown, ChevronUp, Sparkles, Share2 } from 'lucide-react';
+import { ArrowLeft, Plus, Trash2, GripVertical, Pencil, Play, X, ChevronDown, ChevronUp, Sparkles, Share2, Shuffle, ListOrdered } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
@@ -528,6 +528,39 @@ const Build = () => {
                     <Trash2 className="w-4 h-4" />
                   </button>
                 </div>
+
+                {/* Combo Order Toggle - show if phase has combo or shadowboxing segments */}
+                {phase.segments.some(s => s.segmentType === 'combo' || s.segmentType === 'shadowboxing') && (
+                  <div className="flex items-center justify-between px-3 py-2 border-b border-surface-3">
+                    <span className="text-xs text-muted-foreground">Combo Order</span>
+                    <div className="flex gap-1">
+                      <button
+                        onClick={() => updatePhase(phase.id, { comboOrder: 'sequential' })}
+                        className={cn(
+                          'flex items-center gap-1 px-2.5 py-1 rounded text-xs font-medium transition-colors',
+                          (phase.comboOrder || 'sequential') === 'sequential'
+                            ? 'bg-volt/20 text-volt'
+                            : 'bg-surface-2 text-muted-foreground'
+                        )}
+                      >
+                        <ListOrdered className="w-3 h-3" />
+                        In Order
+                      </button>
+                      <button
+                        onClick={() => updatePhase(phase.id, { comboOrder: 'random' })}
+                        className={cn(
+                          'flex items-center gap-1 px-2.5 py-1 rounded text-xs font-medium transition-colors',
+                          phase.comboOrder === 'random'
+                            ? 'bg-volt/20 text-volt'
+                            : 'bg-surface-2 text-muted-foreground'
+                        )}
+                      >
+                        <Shuffle className="w-3 h-3" />
+                        Random
+                      </button>
+                    </div>
+                  </div>
+                )}
 
                 {/* Segments */}
                 <div className="divide-y divide-surface-3">
