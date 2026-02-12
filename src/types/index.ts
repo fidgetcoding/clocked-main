@@ -119,7 +119,7 @@ export interface Workout {
   sections: WorkoutSection;
   combos?: string[][];
   // NEW: AI-generated workout support
-  supersetRepeats?: number;  // Repeat entire workout X times (default 1)
+  megasetRepeats?: number;  // Repeat entire ROUNDS block X times (default 1)
   tags?: string[];           // Auto-generated tags (boxing, hiit, strength, etc.)
 }
 

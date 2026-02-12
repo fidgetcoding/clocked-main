@@ -97,10 +97,10 @@ function formatDuration(seconds: number): string {
 }
 
 // Helper to convert DB workout phases to local format
-function dbPhasesToLocal(dbWorkout: DbWorkout): { warmup: WorkoutPhase[], grind: WorkoutPhase[], cooldown: WorkoutPhase[], supersetRepeats: number } {
+function dbPhasesToLocal(dbWorkout: DbWorkout): { warmup: WorkoutPhase[], grind: WorkoutPhase[], cooldown: WorkoutPhase[], megasetRepeats: number } {
   const phases = dbWorkout.phases as any[];
   const metaEntry = phases?.find((p: any) => p._meta);
-  const supersetRepeats = metaEntry?.supersetRepeats || 1;
+  const megasetRepeats = metaEntry?.megasetRepeats || metaEntry?.supersetRepeats || 1;
   const actualPhases = phases?.filter((p: any) => !p._meta) || [];
   const warmup = actualPhases.filter((p: any) => p.section === 'warmup').map(({ section, ...rest }: any) => rest) || [];
   const grind = actualPhases.filter((p: any) => p.section === 'grind').map(({ section, ...rest }: any) => rest) || [];
@@ -123,7 +123,7 @@ function dbPhasesToLocal(dbWorkout: DbWorkout): { warmup: WorkoutPhase[], grind:
     }
   }
   
-  return { warmup, grind, cooldown, supersetRepeats };
+  return { warmup, grind, cooldown, megasetRepeats };
 }
 
 const Build = () => {
@@ -150,7 +150,7 @@ const Build = () => {
   const [warmupPhases, setWarmupPhases] = useState<WorkoutPhase[]>([]);
   const [grindPhases, setGrindPhases] = useState<WorkoutPhase[]>([]);
   const [cooldownPhases, setCooldownPhases] = useState<WorkoutPhase[]>([]);
-  const [supersetRepeats, setSupersetRepeats] = useState(1);
+  const [megasetRepeats, setMegasetRepeats] = useState(1);
   // Per-phase combo editing state
   const [editingPhaseId, setEditingPhaseId] = useState<string | null>(null);
   const [workoutId, setWorkoutId] = useState<string | null>(null);
@@ -225,6 +225,7 @@ const Build = () => {
         setWarmupPhases(workout.sections.warmup);
         setGrindPhases(grind);
         setCooldownPhases(workout.sections.cooldown);
+        setMegasetRepeats(workout.megasetRepeats || 1);
         setIsPreset(false);
         toast.success(`Loaded "${workout.name}" - customize and save or start!`);
       } catch (e) {
@@ -238,14 +239,14 @@ const Build = () => {
     if (editId && workouts.length > 0) {
       const dbWorkout = workouts.find(w => w.id === editId);
       if (dbWorkout) {
-        const { warmup, grind, cooldown, supersetRepeats: sr } = dbPhasesToLocal(dbWorkout);
+        const { warmup, grind, cooldown, megasetRepeats: mr } = dbPhasesToLocal(dbWorkout);
         setWorkoutId(dbWorkout.id);
         setName(dbWorkout.name);
         setDifficulty((dbWorkout.difficulty as 'beginner' | 'intermediate' | 'advanced') || 'beginner');
         setWarmupPhases(warmup);
         setGrindPhases(grind);
         setCooldownPhases(cooldown);
-        setSupersetRepeats(sr);
+        setMegasetRepeats(mr);
         setIsPreset(dbWorkout.is_preset || false);
       }
     }
@@ -386,27 +387,27 @@ const Build = () => {
     setPhaseCombos(editingPhaseId, phaseCombos.filter((_, i) => i !== index));
   };
 
-  // Calculate total duration (factoring in superset repeats)
+  // Calculate total duration (factoring in megaset repeats)
   const calculateTotalDuration = () => {
     let total = 0;
     [...warmupPhases, ...grindPhases, ...cooldownPhases].forEach(phase => {
       const phaseTotal = phase.segments.reduce((acc, seg) => acc + seg.duration, 0);
       total += phaseTotal * phase.repeats;
     });
-    return total * supersetRepeats;
+    return total * megasetRepeats;
   };
 
   const handleSave = (andStart: boolean = false) => {
     const id = workoutId || editId || generateId();
     const existingWorkout = workouts.find(w => w.id === id);
     
-    // Convert to database format — include superset metadata
+    // Convert to database format — include megaset metadata
     const phasesForDb = JSON.parse(JSON.stringify([
       ...warmupPhases.map(p => ({ ...p, section: 'warmup' })),
       ...grindPhases.map(p => ({ ...p, section: 'grind' })),
       ...cooldownPhases.map(p => ({ ...p, section: 'cooldown' })),
-      // Store superset repeats as metadata entry
-      ...(supersetRepeats > 1 ? [{ _meta: true, supersetRepeats }] : []),
+      // Store megaset repeats as metadata entry
+      ...(megasetRepeats > 1 ? [{ _meta: true, megasetRepeats }] : []),
     ]));
     
     const workoutData = {
@@ -558,31 +559,31 @@ const Build = () => {
             ))}
           </div>
 
-          {/* Superset toggle - only visible when ROUNDS tab is active */}
+          {/* Megaset toggle - only visible when ROUNDS tab is active */}
           {activeSection === 'grind' && (
             <div className="flex items-center justify-between px-4 py-2.5 border-b border-surface-3">
               <div className="flex items-center gap-2">
                 <Repeat className="w-4 h-4 text-muted-foreground" />
-                <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Superset</span>
+                <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Megaset</span>
               </div>
               <div className="flex items-center gap-1.5">
                 <button
-                  onClick={() => setSupersetRepeats(Math.max(1, supersetRepeats - 1))}
+                  onClick={() => setMegasetRepeats(Math.max(1, megasetRepeats - 1))}
                   className={cn(
                     'w-6 h-6 rounded bg-surface-2 flex items-center justify-center text-muted-foreground transition-opacity',
-                    supersetRepeats <= 1 && 'opacity-30 pointer-events-none'
+                    megasetRepeats <= 1 && 'opacity-30 pointer-events-none'
                   )}
                 >
                   <ChevronDown className="w-3.5 h-3.5" />
                 </button>
                 <span className={cn(
                   'w-8 text-center text-sm font-semibold',
-                  supersetRepeats > 1 ? 'text-volt' : 'text-muted-foreground'
+                  megasetRepeats > 1 ? 'text-volt' : 'text-muted-foreground'
                 )}>
-                  ×{supersetRepeats}
+                  ×{megasetRepeats}
                 </span>
                 <button
-                  onClick={() => setSupersetRepeats(supersetRepeats + 1)}
+                  onClick={() => setMegasetRepeats(megasetRepeats + 1)}
                   className="w-6 h-6 rounded bg-surface-2 flex items-center justify-center text-muted-foreground"
                 >
                   <ChevronUp className="w-3.5 h-3.5" />
