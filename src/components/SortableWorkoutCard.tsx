@@ -17,10 +17,11 @@ function formatDuration(seconds: number): string {
 }
 
 function getWorkoutStats(workout: DbWorkout) {
-  const phases = workout.phases as any[];
-  const warmupPhases = phases?.filter((p: any) => p.section === 'warmup') || [];
-  const grindPhases = phases?.filter((p: any) => p.section === 'grind') || [];
-  const cooldownPhases = phases?.filter((p: any) => p.section === 'cooldown') || [];
+  const raw = workout.phases;
+  const phases: any[] = Array.isArray(raw) ? raw : [];
+  const warmupPhases = phases.filter((p: any) => p.section === 'warmup');
+  const grindPhases = phases.filter((p: any) => p.section === 'grind');
+  const cooldownPhases = phases.filter((p: any) => p.section === 'cooldown');
   const totalPhases = warmupPhases.length + grindPhases.length + cooldownPhases.length;
   return { totalPhases };
 }
