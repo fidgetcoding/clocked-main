@@ -212,40 +212,67 @@ const AdminPortal = () => {
               <p className="text-muted-foreground text-sm">Loading users...</p>
             </div>
           ) : (
-            <div className="space-y-2">
-              {users.map((user) => (
-                <div
-                  key={user.id}
-                  className="card-workout flex items-center gap-3"
-                >
-                  <div className="flex-1 min-w-0">
-                    <p className="text-foreground font-bold text-sm truncate">
-                      {user.name}
-                      {user.handle && (
-                        <span className="text-muted-foreground font-normal ml-1">@{user.handle}</span>
-                      )}
-                    </p>
-                    <p className="text-xs text-muted-foreground truncate">{user.email}</p>
-                    <div className="flex gap-3 mt-1">
-                      <span className="text-[10px] text-muted-foreground uppercase">
-                        {user.role}
-                      </span>
-                      <span className="text-[10px] text-muted-foreground">
-                        {user.total_xp} XP
-                      </span>
-                      <span className="text-[10px] text-muted-foreground">
-                        {user.workouts_completed} sessions
-                      </span>
-                    </div>
+            <div className="space-y-6">
+              {/* Administrators */}
+              {users.filter(u => u.role === 'admin').length > 0 && (
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 text-volt">
+                    <Shield className="w-4 h-4" />
+                    <span className="text-xs font-bold uppercase tracking-wider">Administrators</span>
                   </div>
-                  <button
-                    onClick={() => setUserToDelete(user)}
-                    className="p-2 text-muted-foreground hover:text-destructive transition-colors shrink-0"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
+                  {users.filter(u => u.role === 'admin').map((user) => (
+                    <div key={user.id} className="card-workout flex items-center gap-3 border border-volt/20">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-foreground font-bold text-sm truncate">
+                          {user.name}
+                          {user.handle && (
+                            <span className="text-muted-foreground font-normal ml-1">@{user.handle}</span>
+                          )}
+                        </p>
+                        <p className="text-xs text-muted-foreground truncate">{user.email}</p>
+                        <div className="flex gap-3 mt-1">
+                          <span className="text-[10px] text-volt uppercase font-bold">ADMIN</span>
+                          <span className="text-[10px] text-muted-foreground">{user.total_xp} XP</span>
+                          <span className="text-[10px] text-muted-foreground">{user.workouts_completed} sessions</span>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
                 </div>
-              ))}
+              )}
+
+              {/* Regular Users */}
+              <div className="space-y-2">
+                <div className="flex items-center gap-2 text-muted-foreground">
+                  <Users className="w-4 h-4" />
+                  <span className="text-xs font-bold uppercase tracking-wider">Users</span>
+                  <span className="text-xs text-muted-foreground">({users.filter(u => u.role !== 'admin').length})</span>
+                </div>
+                {users.filter(u => u.role !== 'admin').map((user) => (
+                  <div key={user.id} className="card-workout flex items-center gap-3">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-foreground font-bold text-sm truncate">
+                        {user.name}
+                        {user.handle && (
+                          <span className="text-muted-foreground font-normal ml-1">@{user.handle}</span>
+                        )}
+                      </p>
+                      <p className="text-xs text-muted-foreground truncate">{user.email}</p>
+                      <div className="flex gap-3 mt-1">
+                        <span className="text-[10px] text-muted-foreground uppercase">{user.role}</span>
+                        <span className="text-[10px] text-muted-foreground">{user.total_xp} XP</span>
+                        <span className="text-[10px] text-muted-foreground">{user.workouts_completed} sessions</span>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => setUserToDelete(user)}
+                      className="p-2 text-muted-foreground hover:text-destructive transition-colors shrink-0"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
         </div>
