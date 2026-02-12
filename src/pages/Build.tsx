@@ -721,13 +721,10 @@ const Build = () => {
                   {phase.segments.map((segment, segIdx) => {
                     const segInfo = getSegmentTypeInfo(segment.segmentType);
                     const hasComboSupport = segment.segmentType === 'combo' || segment.segmentType === 'shadowboxing' || segment.segmentType === 'speedbag' || segment.segmentType === 'doubleend' || segment.segmentType === 'exercise';
-                    // For exercise-library phases, show library after the last active segment
-                    const isExercisePhase = phaseCtx === 'exercises';
-                    const isLastActiveSegment = isExercisePhase && segment.type === 'active' && !phase.segments.slice(segIdx + 1).some(s => s.type === 'active');
-                    // Only show combos after the LAST combo-capable segment in the phase
-                    const isLastComboSegment = (hasComboSupport && !phase.segments.slice(segIdx + 1).some(
-                      s => s.segmentType === 'combo' || s.segmentType === 'shadowboxing' || s.segmentType === 'speedbag' || s.segmentType === 'doubleend'
-                    )) || isLastActiveSegment;
+                    // Show the library after the LAST combo-capable segment in the phase
+                    const isLastComboSegment = hasComboSupport && !phase.segments.slice(segIdx + 1).some(
+                      s => s.segmentType === 'combo' || s.segmentType === 'shadowboxing' || s.segmentType === 'speedbag' || s.segmentType === 'doubleend' || s.segmentType === 'exercise'
+                    );
                     return (
                       <div key={segment.id}>
                         <div className="flex items-center gap-3 p-3">
