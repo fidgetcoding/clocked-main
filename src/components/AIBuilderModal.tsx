@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import { X, Sparkles, Wand2, Mic, MicOff, TrendingUp } from 'lucide-react';
+import { X, Sparkles, Wand2, Mic, MicOff, TrendingUp, CheckCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { TrendingWorkout } from '@/data/trendingWorkouts';
@@ -276,6 +276,8 @@ export const AIBuilderModal = ({ onClose, onGenerate, baseWorkout, onWorkoutGene
   
   const [prompt, setPrompt] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
+  const [generationProgress, setGenerationProgress] = useState(0);
+  const [generationDone, setGenerationDone] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const [interimTranscript, setInterimTranscript] = useState('');
   const [promptHints, setPromptHints] = useState<string[]>([]);
@@ -389,6 +391,8 @@ export const AIBuilderModal = ({ onClose, onGenerate, baseWorkout, onWorkoutGene
   const handleGenerate = () => {
     if (!prompt.trim()) return;
     setIsGenerating(true);
+    setGenerationProgress(0);
+    setGenerationDone(false);
     
     // Stop listening if active
     if (isListening) {
@@ -396,8 +400,7 @@ export const AIBuilderModal = ({ onClose, onGenerate, baseWorkout, onWorkoutGene
       setIsListening(false);
     }
     
-    // Parse the prompt and generate workout, then navigate to Build page
-    // Pass history insights for personalization
+    // Parse the prompt and generate workout
     const workout = generateWorkoutFromPrompt(
       prompt, 
       user?.experienceLevel || 'beginner',
@@ -406,16 +409,45 @@ export const AIBuilderModal = ({ onClose, onGenerate, baseWorkout, onWorkoutGene
     
     // If we have a callback, use that (for inline usage)
     if (onWorkoutGenerated) {
-      onWorkoutGenerated(workout);
-      setIsGenerating(false);
-      onClose();
+      // Animate progress then deliver
+      let progress = 0;
+      const interval = setInterval(() => {
+        progress += Math.random() * 25 + 10;
+        if (progress >= 100) {
+          progress = 100;
+          clearInterval(interval);
+          setGenerationProgress(100);
+          setGenerationDone(true);
+          setTimeout(() => {
+            onWorkoutGenerated(workout);
+            setIsGenerating(false);
+            onClose();
+          }, 600);
+        } else {
+          setGenerationProgress(Math.min(progress, 95));
+        }
+      }, 200);
       return;
     }
     
-    // Navigate immediately to build page with workout data (don't close modal first to avoid flash)
-    toast.success(`Generated "${workout.name}" - now customize it!`);
-    const workoutData = encodeURIComponent(JSON.stringify(workout));
-    navigate(`/build?ai=${workoutData}`, { replace: true });
+    // Animate progress bar then navigate
+    let progress = 0;
+    const interval = setInterval(() => {
+      progress += Math.random() * 25 + 10;
+      if (progress >= 100) {
+        progress = 100;
+        clearInterval(interval);
+        setGenerationProgress(100);
+        setGenerationDone(true);
+        setTimeout(() => {
+          toast.success(`Generated "${workout.name}" - now customize it!`);
+          const workoutData = encodeURIComponent(JSON.stringify(workout));
+          navigate(`/build?ai=${workoutData}`, { replace: true });
+        }, 600);
+      } else {
+        setGenerationProgress(Math.min(progress, 95));
+      }
+    }, 200);
   };
 
   const handleSuggestionClick = (suggestion: string) => {
@@ -565,31 +597,66 @@ export const AIBuilderModal = ({ onClose, onGenerate, baseWorkout, onWorkoutGene
         </div>
 
         {/* Actions */}
-        <div className="p-4 border-t border-surface-3 flex gap-3">
-          <Button 
-            variant="outline"
-            onClick={onClose}
-            className="flex-1 border-surface-3 text-foreground hover:bg-surface-2"
-          >
-            Cancel
-          </Button>
-          <Button 
-            onClick={handleGenerate}
-            disabled={!prompt.trim() || isGenerating}
-            className="flex-1 bg-volt text-primary-foreground hover:bg-volt/90 disabled:opacity-50"
-          >
-            {isGenerating ? (
-              <>
-                <div className="w-4 h-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin mr-2" />
-                Generating...
-              </>
-            ) : (
-              <>
-                <Wand2 className="w-4 h-4 mr-2" />
-                Generate
-              </>
-            )}
-          </Button>
+        <div className="p-4 border-t border-surface-3 space-y-3">
+          {/* Progress Bar (visible during generation) */}
+          {isGenerating && (
+            <div className="space-y-2">
+              <div className="w-full h-2 bg-surface-2 rounded-full overflow-hidden">
+                <div 
+                  className="h-full bg-volt rounded-full transition-all duration-300 ease-out"
+                  style={{ width: `${generationProgress}%` }}
+                />
+              </div>
+              <p className={cn(
+                "text-xs text-center font-medium transition-colors",
+                generationDone ? "text-volt" : "text-muted-foreground"
+              )}>
+                {generationDone ? (
+                  <span className="flex items-center justify-center gap-1">
+                    <CheckCircle className="w-3.5 h-3.5" />
+                    Workout built!
+                  </span>
+                ) : (
+                  `Building workout... ${Math.round(generationProgress)}%`
+                )}
+              </p>
+            </div>
+          )}
+          
+          <div className="flex gap-3">
+            <Button 
+              variant="outline"
+              onClick={onClose}
+              disabled={isGenerating}
+              className="flex-1 border-surface-3 text-foreground hover:bg-surface-2"
+            >
+              Cancel
+            </Button>
+            <Button 
+              onClick={handleGenerate}
+              disabled={!prompt.trim() || isGenerating}
+              className="flex-1 bg-volt text-primary-foreground hover:bg-volt/90 disabled:opacity-50"
+            >
+              {isGenerating ? (
+                generationDone ? (
+                  <>
+                    <CheckCircle className="w-4 h-4 mr-2" />
+                    Done!
+                  </>
+                ) : (
+                  <>
+                    <div className="w-4 h-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin mr-2" />
+                    Generating...
+                  </>
+                )
+              ) : (
+                <>
+                  <Wand2 className="w-4 h-4 mr-2" />
+                  Generate
+                </>
+              )}
+            </Button>
+          </div>
         </div>
       </div>
     </div>
