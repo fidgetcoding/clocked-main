@@ -127,20 +127,20 @@ const Profile = () => {
 
             {/* Stats Row */}
             <div className="flex-1 flex justify-around">
-              <div className="text-center">
+              <button onClick={() => navigate('/history')} className="text-center">
                 <p className="text-xl font-bold text-foreground">
                   {workoutsCompleted}
                 </p>
                 <p className="text-xs text-muted-foreground">Workouts</p>
-              </div>
-              <div className="text-center">
+              </button>
+              <button onClick={() => setListModal('followers')} className="text-center">
                 <p className="text-xl font-bold text-foreground">{followersCount}</p>
                 <p className="text-xs text-muted-foreground">Followers</p>
-              </div>
-              <div className="text-center">
+              </button>
+              <button onClick={() => setListModal('following')} className="text-center">
                 <p className="text-xl font-bold text-foreground">{followingCount}</p>
                 <p className="text-xs text-muted-foreground">Following</p>
-              </div>
+              </button>
             </div>
           </div>
 
