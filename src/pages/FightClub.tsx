@@ -70,6 +70,9 @@ const FightClub = () => {
     { id: 'presets', label: 'Presets', icon: Trophy },
   ];
 
+  // Community shared presets (preset_shared posts from the feed)
+  const communitySharedPresets = communityPosts?.filter(p => p.type === 'preset_shared' && p.workout_data) || [];
+
   // Filter trending workouts
   const filteredWorkouts = TRENDING_WORKOUTS.filter((workout) => {
     const matchesSearch = workout.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -860,12 +863,69 @@ const FightClub = () => {
                 ))}
               </div>
 
+              {/* Community Shared Presets */}
+              {communitySharedPresets && communitySharedPresets.length > 0 && (
+                <>
+                  <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
+                    Community Shared 🤝
+                  </h3>
+                  {communitySharedPresets
+                    .filter((post) => {
+                      if (!searchQuery) return true;
+                      const name = (post.custom_name || post.workout_name || '').toLowerCase();
+                      return name.includes(searchQuery.toLowerCase());
+                    })
+                    .map((post) => (
+                    <button
+                      key={post.id}
+                      onClick={() => handleSaveCommunityWorkout(post)}
+                      className="card-workout w-full text-left"
+                    >
+                      <div className="flex items-start gap-3">
+                        <div className="w-12 h-12 rounded-xl bg-volt/20 flex items-center justify-center text-2xl">
+                          {post.workout_data?.icon || '🥊'}
+                        </div>
+                        <div className="flex-1">
+                          <h4 className="font-semibold text-foreground">{post.custom_name || post.workout_name}</h4>
+                          <p className="text-sm text-muted-foreground">by {post.user_name}</p>
+                          <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground">
+                            {post.workout_data?.totalDuration && (
+                              <span>{Math.floor(post.workout_data.totalDuration / 60)} min</span>
+                            )}
+                            {post.workout_data?.difficulty && (
+                              <span className={cn(
+                                post.workout_data.difficulty === 'beginner' ? 'text-volt' :
+                                post.workout_data.difficulty === 'intermediate' ? 'text-yellow-500' :
+                                'text-alert-red'
+                              )}>
+                                {post.workout_data.difficulty.charAt(0).toUpperCase() + post.workout_data.difficulty.slice(1)}
+                              </span>
+                            )}
+                            <span>❤️ {post.likes}</span>
+                          </div>
+                          {post.tags && post.tags.length > 0 && (
+                            <div className="flex flex-wrap gap-1 mt-2">
+                              {post.tags.map((tag) => (
+                                <span key={tag} className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-volt/15 text-volt border border-volt/20">
+                                  {tag}
+                                </span>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                        <Download className="w-5 h-5 text-volt mt-1" />
+                      </div>
+                    </button>
+                  ))}
+                </>
+              )}
+
               <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
                 {selectedCategory === 'All' ? 'Trending 🔥' : selectedCategory}
               </h3>
 
               {/* Workout Cards */}
-              {filteredWorkouts.length === 0 ? (
+              {filteredWorkouts.length === 0 && (!communitySharedPresets || communitySharedPresets.length === 0) ? (
                 <div className="text-center py-8">
                   <p className="text-muted-foreground">No workouts found matching your search.</p>
                 </div>
