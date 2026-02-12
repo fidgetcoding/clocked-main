@@ -119,11 +119,20 @@ Deno.serve(async (req) => {
         });
       }
 
+      // Validate name input
+      const trimmedName = (name || "").trim().replace(/<[^>]*>/g, "");
+      if (trimmedName.length > 100) {
+        return new Response(JSON.stringify({ error: "Name must be 100 characters or less" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
       const { data: newUser, error: createError } = await supabaseAdmin.auth.admin.createUser({
         email,
         password,
         email_confirm: true,
-        user_metadata: { name: name || "Fighter" },
+        user_metadata: { name: trimmedName || "Fighter" },
       });
 
       if (createError) {
