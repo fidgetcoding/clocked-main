@@ -210,6 +210,8 @@ const Profile = () => {
             </div>
           </div>
 
+          <div className="border-b border-surface-3 mb-4" />
+
           {/* Name and Handle */}
           <div className="mb-3">
             <h2 className="text-lg font-bold text-foreground">{profileName}</h2>
