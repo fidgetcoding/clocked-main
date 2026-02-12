@@ -934,18 +934,14 @@ const WorkoutSession = () => {
         <div className="flex-1 flex flex-col items-center justify-center px-4">
           {/* Section Indicator */}
           {!isPreparation && currentSegment?.section && (
-            <div className="flex flex-col items-center mb-1">
-              <p className="text-xs text-muted-foreground uppercase tracking-widest">
-                {currentSegment.section === 'warmup' ? 'WARM-UP' : 
-                 currentSegment.section === 'grind' ? 'ROUNDS' : 
-                 'COOL DOWN'}
-              </p>
-              {(workout?.supersetRepeats || 1) > 1 && currentSegment.supersetIndex !== undefined && (
-                <p className="text-[10px] text-volt/70 font-bold uppercase tracking-widest mt-0.5">
-                  SET {currentSegment.supersetIndex + 1} / {workout?.supersetRepeats}
-                </p>
-              )}
-            </div>
+            <p className="text-xs text-muted-foreground uppercase tracking-widest mb-1">
+              {currentSegment.section === 'warmup' ? 'WARM-UP' : 
+               currentSegment.section === 'grind' 
+                 ? ((workout?.supersetRepeats || 1) > 1 && currentSegment.supersetIndex !== undefined
+                   ? `ROUNDS ${currentSegment.supersetIndex + 1}/${workout?.supersetRepeats}`
+                   : 'ROUNDS')
+                 : 'COOL DOWN'}
+            </p>
           )}
           
           {/* Phase Title */}
