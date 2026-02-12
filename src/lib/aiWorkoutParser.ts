@@ -414,7 +414,7 @@ function blockToPhase(block: ParsedBlock): ParsedPhase {
     // Single activity per round
     const hasCombos = block.combos.length > 0;
     segments.push({
-      name: hasCombos ? 'Combo Work' : block.activityName,
+      name: block.activityName,
       type: 'active',
       segmentType: hasCombos ? 'combo' : inferSegmentType(block.activityName),
       duration: block.workDuration,
