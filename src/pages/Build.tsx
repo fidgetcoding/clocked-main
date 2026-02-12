@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { ArrowLeft, Plus, Trash2, GripVertical, Pencil, Play, X, ChevronDown, ChevronUp, Sparkles, Share2 } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
@@ -20,6 +20,9 @@ import {
 import { AIBuilderModal } from '@/components/AIBuilderModal';
 import { useShareWorkout } from '@/hooks/useCommunityPosts';
 import { toast } from 'sonner';
+import { DndContext, closestCenter, PointerSensor, TouchSensor, useSensor, useSensors } from '@dnd-kit/core';
+import { SortableContext, verticalListSortingStrategy, useSortable, arrayMove } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 
 const SEGMENT_TYPES: { key: SegmentType; label: string; color: string }[] = [
   { key: 'work', label: 'W', color: 'bg-volt/20 text-volt' },
@@ -43,6 +46,43 @@ const DEFAULT_PHASE: Omit<WorkoutPhase, 'id'> = {
 
 function generateId() {
   return crypto.randomUUID();
+}
+
+// Sortable combo item component
+function SortableComboItem({ id, combo, index, onEdit, onDelete }: { 
+  id: string; combo: string[]; index: number; onEdit: (i: number) => void; onDelete: (i: number) => void 
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
+  const style = { transform: CSS.Transform.toString(transform), transition };
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={cn(
+        'flex items-center gap-2 bg-surface-1 rounded-lg p-3 border border-surface-3',
+        isDragging && 'opacity-50 shadow-2xl z-50'
+      )}
+    >
+      <div {...attributes} {...listeners} className="cursor-grab active:cursor-grabbing touch-none p-1 -ml-1">
+        <GripVertical className="w-4 h-4 text-muted-foreground" />
+      </div>
+      <span className="text-xs text-muted-foreground w-6">#{index + 1}</span>
+      <div className="flex-1 flex flex-wrap gap-1">
+        {combo.map((move, mIdx) => (
+          <span key={mIdx} className="px-2 py-0.5 rounded text-xs font-medium bg-volt/20 text-volt">
+            {move}
+          </span>
+        ))}
+      </div>
+      <button onClick={() => onEdit(index)} className="text-muted-foreground hover:text-foreground">
+        <Pencil className="w-4 h-4" />
+      </button>
+      <button onClick={() => onDelete(index)} className="text-muted-foreground hover:text-destructive">
+        <Trash2 className="w-4 h-4" />
+      </button>
+    </div>
+  );
 }
 
 function formatDuration(seconds: number): string {
@@ -113,6 +153,20 @@ const Build = () => {
   const [shareMessage, setShareMessage] = useState('');
   
   const shareWorkout = useShareWorkout();
+
+  // Combo drag-and-drop
+  const comboSensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 150, tolerance: 5 } })
+  );
+  const comboIds = useMemo(() => combos.map((_, i) => `combo-${i}`), [combos]);
+  const handleComboDragEnd = (event: any) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    const oldIndex = comboIds.indexOf(active.id);
+    const newIndex = comboIds.indexOf(over.id);
+    setCombos(arrayMove(combos, oldIndex, newIndex));
+  };
 
   // Load AI-generated workout from URL params
   useEffect(() => {
@@ -556,29 +610,26 @@ const Build = () => {
                   No combos yet. Add combos for shadowboxing and bag work.
                 </p>
               ) : (
-                <div className="space-y-2">
-                  {combos.map((combo, idx) => (
-                    <div key={idx} className="flex items-center gap-2 bg-surface-1 rounded-lg p-3 border border-surface-3">
-                      <span className="text-xs text-muted-foreground w-6">#{idx + 1}</span>
-                      <div className="flex-1 flex flex-wrap gap-1">
-                        {combo.map((move, mIdx) => (
-                          <span 
-                            key={mIdx} 
-                            className="px-2 py-0.5 rounded text-xs font-medium bg-volt/20 text-volt"
-                          >
-                            {move}
-                          </span>
-                        ))}
-                      </div>
-                      <button onClick={() => editCombo(idx)} className="text-muted-foreground hover:text-foreground">
-                        <Pencil className="w-4 h-4" />
-                      </button>
-                      <button onClick={() => deleteCombo(idx)} className="text-muted-foreground hover:text-destructive">
-                        <Trash2 className="w-4 h-4" />
-                      </button>
+                <DndContext
+                  sensors={comboSensors}
+                  collisionDetection={closestCenter}
+                  onDragEnd={handleComboDragEnd}
+                >
+                  <SortableContext items={comboIds} strategy={verticalListSortingStrategy}>
+                    <div className="space-y-2">
+                      {combos.map((combo, idx) => (
+                        <SortableComboItem
+                          key={`combo-${idx}`}
+                          id={`combo-${idx}`}
+                          combo={combo}
+                          index={idx}
+                          onEdit={editCombo}
+                          onDelete={deleteCombo}
+                        />
+                      ))}
                     </div>
-                  ))}
-                </div>
+                  </SortableContext>
+                </DndContext>
               )}
             </div>
           )}
