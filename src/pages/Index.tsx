@@ -152,25 +152,29 @@ const Index = () => {
             {/* Create Set */}
             <button
               onClick={() => navigate('/build')}
-              className="card-action h-36 group flex flex-col items-start justify-between"
+              className="card-action h-36 group flex flex-col items-start justify-between relative overflow-hidden"
             >
               <Plus className="w-5 h-5 text-volt" />
               <div className="text-left">
                 <h3 className="text-base font-black text-foreground leading-none">CREATE</h3>
                 <p className="text-xs text-muted-foreground leading-none mt-0.5">SET</p>
               </div>
+              {/* Decorative background icon */}
+              <Plus className="absolute right-2 bottom-2 w-20 h-20 text-muted-foreground/10 pointer-events-none md:right-4 md:bottom-4 md:w-24 md:h-24" strokeWidth={1} />
             </button>
 
             {/* Workout Log */}
             <button
               onClick={() => navigate('/history')}
-              className="card-action h-36 group flex flex-col items-start justify-between"
+              className="card-action h-36 group flex flex-col items-start justify-between relative overflow-hidden"
             >
               <History className="w-5 h-5 text-volt" />
               <div className="text-left">
                 <h3 className="text-base font-black text-foreground leading-none">WORKOUT</h3>
                 <p className="text-xs text-muted-foreground leading-none mt-0.5">LOG</p>
               </div>
+              {/* Decorative background icon */}
+              <History className="absolute right-2 bottom-2 w-20 h-20 text-muted-foreground/10 pointer-events-none md:right-4 md:bottom-4 md:w-24 md:h-24" strokeWidth={1} />
             </button>
           </div>
         </section>
