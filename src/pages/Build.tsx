@@ -746,10 +746,10 @@ const Build = () => {
                           const ctx = segment.segmentType === 'exercise' ? 'exercises' as const : getPhaseSegmentContext(phase);
                           const labelWord = ctx === 'speedbag' ? 'Drills' : ctx === 'exercises' ? 'Exercises' : 'Combos';
                           const emptyText = ctx === 'speedbag' 
-                            ? 'No drills selected' 
+                            ? 'No drills selected - segments will be freestyle' 
                             : ctx === 'exercises'
-                            ? 'No exercises selected'
-                            : 'No combos selected';
+                            ? 'No exercises selected - segments will be freestyle'
+                            : 'No combos selected - segments will be freestyle';
                           return (
                           <div className="px-3 pb-3 pt-1">
                             <div className="flex items-center justify-between mb-2">
