@@ -42,7 +42,7 @@ interface FlatSegment {
   intensity?: string;
   reps?: number;
   repeatIndex?: number;
-  supersetIndex?: number;
+  megasetIndex?: number;
 }
 
 function formatTime(seconds: number): string {
@@ -60,9 +60,9 @@ function formatTimeCompact(seconds: number): string {
 // Helper to convert DB workout to local format for session
 function dbWorkoutToLocal(dbWorkout: DbWorkout) {
   const rawPhases = dbWorkout.phases as any[];
-  // Extract superset metadata if present
+  // Extract megaset metadata if present
   const metaEntry = rawPhases?.find((p: any) => p._meta);
-  const supersetRepeats = metaEntry?.supersetRepeats || 1;
+  const megasetRepeats = metaEntry?.megasetRepeats || metaEntry?.supersetRepeats || 1;
   const phases = rawPhases?.filter((p: any) => !p._meta) || [];
   
   const sections = {
@@ -91,7 +91,7 @@ function dbWorkoutToLocal(dbWorkout: DbWorkout) {
     sections,
     combos: combos.length > 0 ? combos : undefined,
     is_preset: dbWorkout.is_preset,
-    supersetRepeats,
+    megasetRepeats,
   };
 }
 
@@ -123,27 +123,27 @@ const WorkoutSession = () => {
     if (!workout) return [];
     
     const segments: FlatSegment[] = [];
-    const supersetCount = workout.supersetRepeats || 1;
+    const megasetCount = workout.megasetRepeats || 1;
     
-    // Build section order: warmup → grind (×supersetRepeats) → cooldown
+    // Build section order: warmup → grind (×megasetRepeats) → cooldown
     const sectionOrder: { sectionName: 'warmup' | 'grind' | 'cooldown' }[] = [
       { sectionName: 'warmup' },
-      ...Array.from({ length: supersetCount }, () => ({ sectionName: 'grind' as const })),
+      ...Array.from({ length: megasetCount }, () => ({ sectionName: 'grind' as const })),
       { sectionName: 'cooldown' },
     ];
     
     // First pass: collect all segments to know what's next
-    const tempSegments: { segment: any; sectionName: 'warmup' | 'grind' | 'cooldown'; phase: any; repeatIndex: number; supersetIndex?: number }[] = [];
+    const tempSegments: { segment: any; sectionName: 'warmup' | 'grind' | 'cooldown'; phase: any; repeatIndex: number; megasetIndex?: number }[] = [];
     
     let grindIterationIndex = 0;
     sectionOrder.forEach(({ sectionName }) => {
-      const currentSupersetIndex = sectionName === 'grind' ? grindIterationIndex : undefined;
+      const currentMegasetIndex = sectionName === 'grind' ? grindIterationIndex : undefined;
       if (sectionName === 'grind') grindIterationIndex++;
       const phases = workout.sections[sectionName];
       phases.forEach((phase) => {
         for (let r = 0; r < phase.repeats; r++) {
           phase.segments.forEach((segment) => {
-            tempSegments.push({ segment, sectionName, phase, repeatIndex: r, supersetIndex: currentSupersetIndex });
+            tempSegments.push({ segment, sectionName, phase, repeatIndex: r, megasetIndex: currentMegasetIndex });
           });
         }
       });
@@ -235,7 +235,7 @@ const WorkoutSession = () => {
     
     // Second pass: build flat segments with proper next-segment awareness
     tempSegments.forEach((item, idx) => {
-      const { segment, sectionName, phase, repeatIndex, supersetIndex } = item;
+      const { segment, sectionName, phase, repeatIndex, megasetIndex } = item;
       
       const combo = comboAssignments.get(idx);
       
@@ -264,7 +264,7 @@ const WorkoutSession = () => {
         intensity: segment.intensity,
         reps: segment.reps,
         repeatIndex: phase.repeats > 1 ? repeatIndex + 1 : undefined,
-        supersetIndex,
+        megasetIndex,
       });
     });
     
@@ -953,11 +953,11 @@ const WorkoutSession = () => {
                  currentSegment.section === 'grind' ? 'ROUNDS' : 
                  'COOL DOWN'}
               </p>
-              {(workout?.supersetRepeats || 1) > 1 && currentSegment.supersetIndex !== undefined && (
+              {(workout?.megasetRepeats || 1) > 1 && currentSegment.megasetIndex !== undefined && (
                 <span className="inline-flex items-center gap-0.5 text-xs font-black uppercase tracking-wider text-volt/60">
-                  <span>{currentSegment.supersetIndex + 1}</span>
+                  <span>{currentSegment.megasetIndex + 1}</span>
                   <span>/</span>
-                  <span>{workout?.supersetRepeats}</span>
+                  <span>{workout?.megasetRepeats}</span>
                 </span>
               )}
             </div>

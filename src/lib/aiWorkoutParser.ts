@@ -69,7 +69,7 @@ export interface ParsedWorkoutResult {
   combos: string[][];
   phases: ParsedPhase[];
   tags: string[];
-  supersetRepeats: number;
+  megasetRepeats: number;
   hasWarmup: boolean;
   hasCooldown: boolean;
   parsedRounds: boolean;
@@ -518,9 +518,9 @@ export function parseWorkoutInput(
     phases = buildLegacyPhases(singleBlock, exercises, allCombos.length > 0, lowerPrompt);
   }
   
-  // Detect tags, superset, warmup/cooldown flags
+  // Detect tags, megaset, warmup/cooldown flags
   const tags = detectTags(prompt);
-  const supersetRepeats = parseSupersetRepeats(lowerPrompt);
+  const megasetRepeats = parseMegasetRepeats(lowerPrompt);
   
   // Check what was explicitly parsed
   const anyRoundsParsed = parsedBlocks.some(b => parseRoundsFromText(b.rawText) !== null);
@@ -546,7 +546,7 @@ export function parseWorkoutInput(
     combos: allCombos,
     phases,
     tags,
-    supersetRepeats,
+    megasetRepeats,
     hasWarmup: isMultiBlock ? hasWarmupBlock : !lowerPrompt.includes('no warmup') && !lowerPrompt.includes('skip warmup'),
     hasCooldown: isMultiBlock ? hasCooldownBlock : !lowerPrompt.includes('no cooldown') && !lowerPrompt.includes('skip cooldown'),
     parsedRounds: anyRoundsParsed,
@@ -684,11 +684,11 @@ function buildLegacyPhases(
 // Individual Helper Functions (kept from original)
 // =====================================================
 
-function parseSupersetRepeats(prompt: string): number {
+function parseMegasetRepeats(prompt: string): number {
   if (/(?:whole\s*thing|everything|all)\s*(?:twice|2\s*times|two\s*times)/i.test(prompt)) return 2;
   if (/(?:whole\s*thing|everything|all)\s*(?:three\s*times|3\s*times)/i.test(prompt)) return 3;
-  const supersetMatch = prompt.match(/(\d+)\s*superset/i);
-  if (supersetMatch) return parseInt(supersetMatch[1]);
+  const megasetMatch = prompt.match(/(\d+)\s*megaset/i);
+  if (megasetMatch) return parseInt(megasetMatch[1]);
   if (/run\s*it\s*back/i.test(prompt)) return 2;
   return 1;
 }
@@ -865,7 +865,7 @@ export function parsedResultToWorkout(result: ParsedWorkoutResult): Workout {
     const phaseDur = phase.segments.reduce((acc, s) => acc + s.duration, 0);
     totalDuration += phaseDur * phase.repeats;
   }
-  totalDuration *= result.supersetRepeats;
+  totalDuration *= result.megasetRepeats;
   
   return {
     id: generateId(),
