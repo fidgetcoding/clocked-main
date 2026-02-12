@@ -1,10 +1,11 @@
 import { useState } from 'react';
-import { ArrowLeft, LogOut, Volume2, Timer } from 'lucide-react';
+import { ArrowLeft, LogOut, Volume2, Timer, Shield } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Switch } from '@/components/ui/switch';
 import { useUserStore } from '@/stores/userStore';
 import { useAuth } from '@/contexts/AuthContext';
+import { useUserRole } from '@/hooks/useUserRole';
 import { toast } from 'sonner';
 import { useAppVersion } from '@/hooks/useAppVersion';
 
@@ -15,6 +16,7 @@ const Settings = () => {
   const setUser = useUserStore((state) => state.setUser);
   const { signOut } = useAuth();
   const { data: version } = useAppVersion();
+  const { isAdmin } = useUserRole();
   
   const [isSigningOut, setIsSigningOut] = useState(false);
 
@@ -140,6 +142,23 @@ const Settings = () => {
               ))}
             </div>
           </div>
+
+          {/* Admin Portal */}
+          {isAdmin && (
+            <button
+              onClick={() => navigate('/admin')}
+              className="card-workout flex items-center gap-3 w-full text-left"
+            >
+              <div className="w-8 h-8 rounded-lg bg-volt/20 flex items-center justify-center">
+                <Shield className="w-4 h-4 text-volt" />
+              </div>
+              <div className="flex-1">
+                <p className="text-foreground font-bold">Admin Portal</p>
+                <p className="text-xs text-muted-foreground">Manage users</p>
+              </div>
+              <ArrowLeft className="w-4 h-4 text-muted-foreground rotate-180" />
+            </button>
+          )}
 
           {/* Version */}
           <div className="text-center text-xs text-muted-foreground pt-4">
