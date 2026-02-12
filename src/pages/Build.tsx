@@ -640,7 +640,7 @@ const Build = () => {
 
                         {/* Inline Combos - rendered directly below combo-capable segments */}
                         {hasComboSupport && (
-                          <div className="px-3 pb-3 pt-1 ml-11">
+                          <div className="px-3 pb-3 pt-1">
                             <div className="flex items-center justify-between mb-2">
                               <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                                 Combos ({phase.combos?.length || 0})
