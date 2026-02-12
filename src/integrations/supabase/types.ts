@@ -127,9 +127,12 @@ export type Database = {
       community_posts: {
         Row: {
           created_at: string | null
+          custom_name: string | null
+          destination: string | null
           id: string
           likes: number | null
           message: string | null
+          tags: string[] | null
           type: string
           user_id: string
           workout_data: Json | null
@@ -138,9 +141,12 @@ export type Database = {
         }
         Insert: {
           created_at?: string | null
+          custom_name?: string | null
+          destination?: string | null
           id?: string
           likes?: number | null
           message?: string | null
+          tags?: string[] | null
           type: string
           user_id: string
           workout_data?: Json | null
@@ -149,9 +155,12 @@ export type Database = {
         }
         Update: {
           created_at?: string | null
+          custom_name?: string | null
+          destination?: string | null
           id?: string
           likes?: number | null
           message?: string | null
+          tags?: string[] | null
           type?: string
           user_id?: string
           workout_data?: Json | null
