@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { ArrowRight, User, Users, Dumbbell, Target, Home as HomeIcon, Swords, Trophy, Check, Lock, Globe, GraduationCap, ClipboardList, Users2, TrendingUp, LogIn } from 'lucide-react';
+import { ArrowRight, User, Users, Dumbbell, Target, Home as HomeIcon, Swords, Trophy, Check, Lock, Globe, GraduationCap, ClipboardList, Users2, TrendingUp, LogIn, Star } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useUserStore } from '@/stores/userStore';
@@ -8,6 +8,7 @@ import { useWorkoutStore } from '@/stores/workoutStore';
 import { useAuth } from '@/contexts/AuthContext';
 import { useProfile } from '@/hooks/useProfile';
 import { experienceLevelToPrestige } from '@/lib/xpSystem';
+import { generateLoadoutWorkout } from '@/lib/loadoutGenerator';
 import { cn } from '@/lib/utils';
 import clockedLogo from '@/assets/clocked-logo.png';
 
@@ -65,6 +66,7 @@ const Onboarding = () => {
   const [name, setName] = useState('');
   const [experience, setExperience] = useState<string>('beginner');
   const [equipment, setEquipment] = useState<Record<string, boolean>>({});
+  const [primaryBag, setPrimaryBag] = useState<'heavy' | 'double_end' | 'none'>('none');
   const [goals, setGoals] = useState<string[]>([]);
   
   // Coach-specific state
@@ -95,9 +97,10 @@ const Onboarding = () => {
   const handleComplete = async () => {
     // Coaches are automatically pro level and have all equipment
     const finalExperience = role === 'coach' ? 'pro' : experience;
-    const finalEquipment = role === 'coach' 
-      ? { gloves: true, wraps: true, heavyBag: true, speedBag: true, doubleEndBag: true, jumpRope: true, weights: true }
-      : equipment;
+    const coachEquip = { gloves: true, wraps: true, heavyBag: true, speedBag: true, doubleEndBag: true, jumpRope: true, weights: true, treadmill: true };
+    const finalEquipmentBools = role === 'coach' ? coachEquip : equipment;
+    const finalPrimaryBag = role === 'coach' ? 'heavy' as const : primaryBag;
+    const finalEquipmentWithBag = { ...finalEquipmentBools, primaryBag: finalPrimaryBag };
     
     // Get prestige from experience level
     const prestige = experienceLevelToPrestige(finalExperience);
@@ -108,7 +111,7 @@ const Onboarding = () => {
         name: name || (role === 'coach' ? 'Coach' : 'Fighter'),
         role,
         experience_level: finalExperience,
-        equipment: finalEquipment,
+        equipment: finalEquipmentWithBag,
         goals: goals,
         prestige,
         current_level: 1,
@@ -122,9 +125,24 @@ const Onboarding = () => {
       role,
       name: name || (role === 'coach' ? 'Coach' : 'Fighter'),
       experienceLevel: finalExperience as any,
-      equipment: finalEquipment as any,
+      equipment: finalEquipmentWithBag as any,
       goals: goals as any,
     });
+    
+    // Generate loadout workout based on tier + equipment
+    const loadoutEquipment = {
+      jumpRope: !!finalEquipmentBools.jumpRope,
+      heavyBag: !!finalEquipmentBools.heavyBag,
+      doubleEndBag: !!finalEquipmentBools.doubleEndBag,
+      speedBag: !!finalEquipmentBools.speedBag,
+      treadmill: !!(finalEquipmentBools as any).treadmill,
+      primaryBag: finalPrimaryBag,
+    };
+    const loadout = generateLoadoutWorkout(finalExperience, loadoutEquipment);
+    
+    // Save loadout to workout store
+    const { addWorkout } = useWorkoutStore.getState();
+    addWorkout(loadout);
     
     // Load appropriate presets based on experience level
     if (finalExperience === 'complete_beginner') {
@@ -142,7 +160,30 @@ const Onboarding = () => {
   };
 
   const toggleEquipment = (id: string) => {
-    setEquipment(prev => ({ ...prev, [id]: !prev[id] }));
+    setEquipment(prev => {
+      const newVal = !prev[id];
+      const updated = { ...prev, [id]: newVal };
+      // If turning off a bag that's the primary, reset primaryBag
+      if (!newVal) {
+        if (id === 'heavyBag' && primaryBag === 'heavy') {
+          setPrimaryBag(updated.doubleEndBag ? 'double_end' : 'none');
+        } else if (id === 'doubleEndBag' && primaryBag === 'double_end') {
+          setPrimaryBag(updated.heavyBag ? 'heavy' : 'none');
+        }
+      }
+      // If turning on a bag and no primary yet, auto-set it
+      if (newVal) {
+        if (id === 'heavyBag' && primaryBag === 'none') setPrimaryBag('heavy');
+        else if (id === 'doubleEndBag' && primaryBag === 'none') setPrimaryBag('double_end');
+      }
+      return updated;
+    });
+  };
+
+  const togglePrimaryBag = (bagId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (bagId === 'heavyBag') setPrimaryBag('heavy');
+    else if (bagId === 'doubleEndBag') setPrimaryBag('double_end');
   };
 
   const toggleGoal = (id: string) => {
@@ -341,22 +382,41 @@ const Onboarding = () => {
               What equipment do you have access to?
             </p>
 
-            <div className="grid grid-cols-2 gap-3 mb-6">
-              {equipmentOptions.map((item) => (
-                <button
-                  key={item.id}
-                  onClick={() => toggleEquipment(item.id)}
-                  className={cn(
-                    'p-4 rounded-xl border text-left transition-all',
-                    equipment[item.id] 
-                      ? 'border-volt bg-volt/10' 
-                      : 'border-surface-3 bg-surface-1'
-                  )}
-                >
-                  <span className="text-2xl mb-2 block">{item.icon}</span>
-                  <span className="text-sm font-medium text-foreground">{item.label}</span>
-                </button>
-              ))}
+             <div className="grid grid-cols-2 gap-3 mb-6">
+              {equipmentOptions.map((item) => {
+                const isBag = item.id === 'heavyBag' || item.id === 'doubleEndBag';
+                const isSelected = equipment[item.id];
+                const isPrimary = (item.id === 'heavyBag' && primaryBag === 'heavy') ||
+                                  (item.id === 'doubleEndBag' && primaryBag === 'double_end');
+                const showStar = isBag && isSelected && equipment.heavyBag && equipment.doubleEndBag;
+                return (
+                  <button
+                    key={item.id}
+                    onClick={() => toggleEquipment(item.id)}
+                    className={cn(
+                      'p-4 rounded-xl border text-left transition-all relative',
+                      isSelected
+                        ? 'border-volt bg-volt/10' 
+                        : 'border-surface-3 bg-surface-1'
+                    )}
+                  >
+                    <span className="text-2xl mb-2 block">{item.icon}</span>
+                    <span className="text-sm font-medium text-foreground">{item.label}</span>
+                    {showStar && (
+                      <button
+                        onClick={(e) => togglePrimaryBag(item.id, e)}
+                        className={cn(
+                          'absolute top-2 right-2 w-7 h-7 rounded-full flex items-center justify-center transition-all',
+                          isPrimary ? 'bg-volt text-background' : 'bg-surface-3 text-muted-foreground hover:bg-surface-2'
+                        )}
+                        title="Set as primary bag"
+                      >
+                        <Star className={cn('w-4 h-4', isPrimary && 'fill-current')} />
+                      </button>
+                    )}
+                  </button>
+                );
+              })}
             </div>
 
             <Button onClick={() => handleNext()} className="btn-primary-glow w-full h-14 text-lg">

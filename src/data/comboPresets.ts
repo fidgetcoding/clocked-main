@@ -77,27 +77,31 @@ export const getAllPresets = (difficulty: ComboDifficulty): ComboPreset[] => {
   }
 };
 
-// Keys available by difficulty
+// Keys available by difficulty (per architecture doc)
+// Loadout punches: Rookie 1-6 (1-3 primary, 4 intro, 5-6 late), Beginner 1-6, Intermediate 1-6, Advanced 1-8, Pro 1-8
+// Preset library punches: All tiers get 1-6, Intermediate+ get 7-8
 export const PUNCH_KEYS_BY_DIFFICULTY: Record<ComboDifficulty, string[]> = {
-  rookie: ['1', '2'],
-  beginner: ['1', '2', '3', '4'],
-  intermediate: ['1', '2', '3', '4', '5', '6'],
+  rookie: ['1', '2', '3', '4', '5', '6'],
+  beginner: ['1', '2', '3', '4', '5', '6'],
+  intermediate: ['1', '2', '3', '4', '5', '6', '7', '8'],
   advanced: ['1', '2', '3', '4', '5', '6', '7', '8'],
   pro: ['1', '2', '3', '4', '5', '6', '7', '8'],
 };
 
+// Defense keys per tier (preset library access)
+// Rookie/Beginner: Slip L/R. Beginner: + Roll L/R. Intermediate: + Pullback. Advanced: + Circle L/R. Pro: all.
 export const DEFENSE_KEYS_BY_DIFFICULTY: Record<ComboDifficulty, string[]> = {
   rookie: ['SLIP L', 'SLIP R'],
   beginner: ['SLIP L', 'SLIP R', 'ROLL L', 'ROLL R'],
-  intermediate: ['SLIP L', 'SLIP R', 'ROLL L', 'ROLL R', 'PULL', 'BLOCK'],
-  advanced: ['SLIP L', 'SLIP R', 'ROLL L', 'ROLL R', 'PULL', 'BLOCK'],
-  pro: ['SLIP L', 'SLIP R', 'ROLL L', 'ROLL R', 'PULL', 'BLOCK'],
+  intermediate: ['SLIP L', 'SLIP R', 'ROLL L', 'ROLL R', 'PULL'],
+  advanced: ['SLIP L', 'SLIP R', 'ROLL L', 'ROLL R', 'PULL'],
+  pro: ['SLIP L', 'SLIP R', 'ROLL L', 'ROLL R', 'PULL'],
 };
 
 export const MOVEMENT_KEYS_BY_DIFFICULTY: Record<ComboDifficulty, string[]> = {
   rookie: [] as string[],
   beginner: [] as string[],
-  intermediate: ['CIRCLE L', 'CIRCLE R'],
-  advanced: ['CIRCLE L', 'CIRCLE R', 'STEP IN', 'STEP OUT'],
-  pro: ['CIRCLE L', 'CIRCLE R', 'STEP IN', 'STEP OUT'],
+  intermediate: [] as string[],
+  advanced: ['CIRCLE L', 'CIRCLE R'],
+  pro: ['CIRCLE L', 'CIRCLE R'],
 };

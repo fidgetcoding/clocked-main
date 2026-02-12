@@ -12,7 +12,7 @@ export interface Profile {
   role: 'fighter' | 'coach';
   avatar_url: string | null;
   experience_level: string | null;
-  equipment: Record<string, boolean>;
+  equipment: Record<string, boolean | string>;
   goals: string[];
   total_xp: number;
   current_streak: number;
