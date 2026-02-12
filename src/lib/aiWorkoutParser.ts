@@ -488,7 +488,7 @@ export function parseWorkoutInput(
 ): ParsedWorkoutResult {
   const lowerPrompt = prompt.toLowerCase();
   
-  // Determine difficulty
+  // Determine difficulty (step 1: keyword + user level)
   let baseDifficulty = inferDifficulty(lowerPrompt, userLevel);
   if (historyInsights) {
     baseDifficulty = getAdjustedDifficulty(baseDifficulty, historyInsights);
@@ -531,6 +531,12 @@ export function parseWorkoutInput(
   const hasWarmupBlock = isMultiBlock && parsedBlocks.some(b => b.section === 'warmup');
   const hasCooldownBlock = isMultiBlock && parsedBlocks.some(b => b.section === 'cooldown');
   
+  // Step 2+3: Auto-upgrade difficulty if combo content exceeds inferred tier
+  if (allCombos.length > 0) {
+    const comboDifficulty = classifyDifficultyFromCombos(allCombos);
+    baseDifficulty = higherDifficulty(baseDifficulty, comboDifficulty);
+  }
+
   const result: ParsedWorkoutResult = {
     name: 'AI Workout',
     rounds: isMultiBlock ? undefined : (parsedBlocks[0]?.rounds ?? 3),
@@ -691,9 +697,44 @@ function inferDifficulty(prompt: string, userLevel: string): 'beginner' | 'inter
   if (/\b(advanced|pro|hard|intense|brutal|killer)\b/i.test(prompt)) return 'advanced';
   if (/\b(intermediate|medium|moderate)\b/i.test(prompt)) return 'intermediate';
   if (/\b(beginner|easy|simple|basic|starter|newbie)\b/i.test(prompt)) return 'beginner';
+  // Map prestige and experienceLevel strings to difficulty tiers
   if (userLevel === 'advanced' || userLevel === 'pro') return 'advanced';
   if (userLevel === 'intermediate') return 'intermediate';
+  if (userLevel === 'beginner' || userLevel === 'complete_beginner' || userLevel === 'rookie') return 'beginner';
   return 'beginner';
+}
+
+// =====================================================
+// Classify difficulty from actual combo content
+// =====================================================
+
+const DIFFICULTY_SCORES = { beginner: 0, intermediate: 1, advanced: 2 } as const;
+
+export function classifyDifficultyFromCombos(combos: string[][]): 'beginner' | 'intermediate' | 'advanced' {
+  let maxLevel: 'beginner' | 'intermediate' | 'advanced' = 'beginner';
+
+  for (const combo of combos) {
+    for (const token of combo) {
+      const upper = token.toUpperCase().trim();
+      // Advanced indicators
+      if (['7', '8'].includes(upper) || upper === 'STEP IN' || upper === 'STEP OUT') {
+        return 'advanced'; // Can't go higher, short-circuit
+      }
+      // Intermediate indicators
+      if (['5', '6'].includes(upper) || upper === 'PULL' || upper === 'BLOCK' || upper === 'CIRCLE L' || upper === 'CIRCLE R') {
+        maxLevel = 'intermediate';
+      }
+    }
+  }
+
+  return maxLevel;
+}
+
+function higherDifficulty(
+  a: 'beginner' | 'intermediate' | 'advanced',
+  b: 'beginner' | 'intermediate' | 'advanced'
+): 'beginner' | 'intermediate' | 'advanced' {
+  return DIFFICULTY_SCORES[a] >= DIFFICULTY_SCORES[b] ? a : b;
 }
 
 export function detectTags(prompt: string): string[] {
