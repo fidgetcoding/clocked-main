@@ -1,22 +1,50 @@
 
 
-## Fix: Home Screen Action Card Proportions
+# Fix: Following List and User Search
 
-The current approach of using a fixed `w-20` for Quick Start makes it too narrow, forcing tiny text. Instead, we'll use a cleaner proportional approach.
+## Problem
+Two features are broken because of Row-Level Security on the `profiles` table:
 
-### The Change
+1. **Following/Followers list shows empty** -- The `profiles_public` view selects from `profiles`, but the view uses the caller's permissions. RLS on `profiles` only lets you see your own row, so looking up Dan and a tester returns nothing.
 
-Replace the flex layout with a **CSS grid using fractional units**: `grid-cols-[5fr_5fr_2fr]`. This gives Create and Workout Log each ~42% of the width, and Quick Start ~16% -- noticeably smaller but not so cramped that text gets clipped or needs a tiny font.
+2. **Search returns no results** -- The `useUserSearch` hook queries the `profiles` table directly with the same RLS restriction, so you can never find other users.
 
-Quick Start will keep the same font size as the others (`text-base` for the main label) but use a shorter word: just "QUICK" with "START" below it, matching the two-line pattern of the other cards.
+## Root Cause
+The `profiles_public` view was created without disabling security invoker, so it inherits the calling user's RLS restrictions rather than bypassing them.
 
-### Specific Changes (1 file)
+## Solution
 
-**src/pages/Index.tsx** (lines 150-186):
-- Change `<div className="flex gap-3">` to `<div className="grid grid-cols-[5fr_5fr_2fr] gap-3">`
-- Remove `flex-1` from Create and Workout Log buttons
-- Remove `w-20 shrink-0` from Quick Start button
-- Restore Quick Start text to use `text-sm font-black` for "QUICK" and `text-xs` for "START" (matching the style of the other two cards but slightly smaller since the column is narrower)
-- All three cards keep `h-36`, `card-action`, and centered flex layout
+### Step 1: Recreate the `profiles_public` view (database migration)
+Drop and recreate the view with `security_invoker = false` so it runs as the view owner (bypassing RLS). This is safe because the view already only exposes non-sensitive columns.
 
-This keeps all three cards visually cohesive with readable text while making Quick Start clearly secondary in size.
+```sql
+DROP VIEW IF EXISTS public.profiles_public;
+CREATE VIEW public.profiles_public
+WITH (security_invoker = false)
+AS SELECT
+  id, user_id, name, handle, avatar_url, bio, role,
+  total_xp, current_level, prestige,
+  workouts_completed, current_streak,
+  total_training_seconds, sessions_completed_this_year,
+  created_at
+FROM public.profiles;
+```
+
+### Step 2: Update `useUserSearch` to query `profiles_public` instead of `profiles`
+Change the search hook to query the public view so it can find other users. Map the returned fields accordingly.
+
+**File:** `src/hooks/useUserSearch.ts`
+- Change `.from('profiles')` to `.from('profiles_public')`
+- Keep the same `.select()` and `.ilike()` filters
+
+### Step 3: Grant SELECT on the view to authenticated users
+```sql
+GRANT SELECT ON public.profiles_public TO authenticated;
+```
+
+## What This Fixes
+- Clicking "Following" will show Dan, a tester, and any other followed users
+- Clicking "Followers" will show anyone following you
+- The search modal will find users by name
+- No sensitive data is exposed (the view only includes public columns)
+
