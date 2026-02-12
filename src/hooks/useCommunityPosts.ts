@@ -21,11 +21,11 @@ export interface CommunityPost {
   user_avatar?: string;
 }
 
-export function useCommunityPosts(filter: 'all' | 'following' = 'all') {
+export function useCommunityPosts(filter: 'all' | 'following' = 'all', destination: 'feed' | 'club' = 'feed') {
   const { user } = useAuth();
 
   return useQuery({
-    queryKey: ['community-posts', filter, user?.id],
+    queryKey: ['community-posts', filter, destination, user?.id],
     queryFn: async () => {
       // If filtering by following, first get the list of users we follow
       let followingIds: string[] = [];
@@ -49,6 +49,14 @@ export function useCommunityPosts(filter: 'all' | 'following' = 'all') {
         .select('*')
         .order('created_at', { ascending: false })
         .limit(50);
+
+      // Filter by destination
+      if (destination === 'club') {
+        query = query.eq('destination', 'club');
+      } else {
+        // Main feed shows 'feed' destination and legacy posts (null)
+        query = query.or('destination.eq.feed,destination.is.null');
+      }
 
       // Filter by following if needed
       if (filter === 'following' && followingIds.length > 0) {
