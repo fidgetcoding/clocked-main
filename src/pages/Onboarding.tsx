@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useUserStore } from '@/stores/userStore';
 import { useWorkoutStore } from '@/stores/workoutStore';
+import { useWorkouts } from '@/hooks/useWorkouts';
 import { useAuth } from '@/contexts/AuthContext';
 import { useProfile } from '@/hooks/useProfile';
 import { experienceLevelToPrestige } from '@/lib/xpSystem';
@@ -58,6 +59,7 @@ const Onboarding = () => {
   const { completeOnboarding } = useUserStore();
   const { profile, updateProfile, setInitialPrestige } = useProfile();
   const { loadCompleteBeginnerPresets, loadBeginnerPresets, loadIntermediatePresets, loadAdvancedPresets, loadProPresets } = useWorkoutStore();
+  const { addWorkout: addWorkoutToDb } = useWorkouts();
   
   // If user just signed up (has ?continue=true), skip welcome and go to role selection
   const shouldContinue = searchParams.get('continue') === 'true';
@@ -140,9 +142,12 @@ const Onboarding = () => {
     };
     const loadout = generateLoadoutWorkout(finalExperience, loadoutEquipment);
     
-    // Save loadout to workout store
-    const { addWorkout } = useWorkoutStore.getState();
-    addWorkout(loadout);
+    // Save loadout to Supabase
+    try {
+      await addWorkoutToDb.mutateAsync(loadout as any);
+    } catch (error) {
+      console.error('Failed to save loadout workout:', error);
+    }
     
     // Load appropriate presets based on experience level
     if (finalExperience === 'complete_beginner') {
