@@ -5,6 +5,11 @@ import { cn } from '@/lib/utils';
 import { useCustomExercises } from '@/hooks/useCustomExercises';
 
 const EXERCISE_CATEGORIES = {
+  'Warmup / Cooldown': [
+    'Jump Rope', 'Dynamic Stretches', 'Static Stretching', 'Arm Circles',
+    'Leg Swings', 'Hip Circles', 'Torso Twists', 'Light Jogging',
+    'Foam Rolling', 'Deep Breathing', 'Cool Down Walk', 'Light Stretching',
+  ],
   Core: [
     'Sit-Ups', 'Crunches', 'Plank Hold', 'Side Plank', 'Leg Raises',
     'Flutter Kicks', 'Bicycle Crunches', 'V-Ups', 'Russian Twists',
@@ -51,7 +56,7 @@ export const ExercisePickerModal = ({ open, onClose, onConfirm }: ExercisePicker
   const allCategories: Category[] = useMemo(() => {
     const base: Category[] = ['All'];
     if (customExercises.length > 0) base.push('My Exercises');
-    base.push('Core', 'Lower Body', 'Upper Body', 'Full Body', 'Cardio');
+    base.push('Warmup / Cooldown', 'Core', 'Lower Body', 'Upper Body', 'Full Body', 'Cardio');
     return base;
   }, [customExercises.length]);
 
