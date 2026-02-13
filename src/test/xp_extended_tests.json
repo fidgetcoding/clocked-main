@@ -1,0 +1,4035 @@
+{
+  "combo_xp_tests": [
+    {
+      "tier": "Rookie",
+      "group": "Easy (Rds 1-4)",
+      "combo": "1-1",
+      "moves": 2,
+      "punches": 2,
+      "defense_moves": 0,
+      "length_bonus": 1.0,
+      "defense_bonus": 1.0,
+      "xp_30s": 11.0,
+      "xp_60s": 22.0
+    },
+    {
+      "tier": "Rookie",
+      "group": "Easy (Rds 1-4)",
+      "combo": "1-2",
+      "moves": 2,
+      "punches": 2,
+      "defense_moves": 0,
+      "length_bonus": 1.0,
+      "defense_bonus": 1.0,
+      "xp_30s": 12.0,
+      "xp_60s": 24.0
+    },
+    {
+      "tier": "Rookie",
+      "group": "Easy (Rds 1-4)",
+      "combo": "2-1",
+      "moves": 2,
+      "punches": 2,
+      "defense_moves": 0,
+      "length_bonus": 1.0,
+      "defense_bonus": 1.0,
+      "xp_30s": 12.0,
+      "xp_60s": 24.0
+    },
+    {
+      "tier": "Rookie",
+      "group": "Easy (Rds 1-4)",
+      "combo": "2-2",
+      "moves": 2,
+      "punches": 2,
+      "defense_moves": 0,
+      "length_bonus": 1.0,
+      "defense_bonus": 1.0,
+      "xp_30s": 13.0,
+      "xp_60s": 26.0
+    },
+    {
+      "tier": "Rookie",
+      "group": "Easy (Rds 1-4)",
+      "combo": "1-3",
+      "moves": 2,
+      "punches": 2,
+      "defense_moves": 0,
+      "length_bonus": 1.0,
+      "defense_bonus": 1.0,
+      "xp_30s": 13.0,
+      "xp_60s": 26.0
+    },
+    {
+      "tier": "Rookie",
+      "group": "Easy (Rds 1-4)",
+      "combo": "2-3",
+      "moves": 2,
+      "punches": 2,
+      "defense_moves": 0,
+      "length_bonus": 1.0,
+      "defense_bonus": 1.0,
+      "xp_30s": 14.0,
+      "xp_60s": 28.0
+    },
+    {
+      "tier": "Rookie",
+      "group": "Easy (Rds 1-4)",
+      "combo": "3-2",
+      "moves": 2,
+      "punches": 2,
+      "defense_moves": 0,
+      "length_bonus": 1.0,
+      "defense_bonus": 1.0,
+      "xp_30s": 14.0,
+      "xp_60s": 28.0
+    },
+    {
+      "tier": "Rookie",
+      "group": "Easy (Rds 1-4)",
+      "combo": "3-1",
+      "moves": 2,
+      "punches": 2,
+      "defense_moves": 0,
+      "length_bonus": 1.0,
+      "defense_bonus": 1.0,
+      "xp_30s": 13.0,
+      "xp_60s": 26.0
+    },
+    {
+      "tier": "Rookie",
+      "group": "Medium (Rds 5-7)",
+      "combo": "1-1-2",
+      "moves": 3,
+      "punches": 3,
+      "defense_moves": 0,
+      "length_bonus": 1.0,
+      "defense_bonus": 1.0,
+      "xp_30s": 17.5,
+      "xp_60s": 35.0
+    },
+    {
+      "tier": "Rookie",
+      "group": "Medium (Rds 5-7)",
+      "combo": "2-1-2",
+      "moves": 3,
+      "punches": 3,
+      "defense_moves": 0,
+      "length_bonus": 1.0,
+      "defense_bonus": 1.0,
+      "xp_30s": 18.5,
+      "xp_60s": 37.0
+    },
+    {
+      "tier": "Rookie",
+      "group": "Medium (Rds 5-7)",
+      "combo": "1-2-3",
+      "moves": 3,
+      "punches": 3,
+      "defense_moves": 0,
+      "length_bonus": 1.0,
+      "defense_bonus": 1.0,
+      "xp_30s": 19.5,
+      "xp_60s": 39.0
+    },
+    {
+      "tier": "Rookie",
+      "group": "Medium (Rds 5-7)",
+      "combo": "1-2-1",
+      "moves": 3,
+      "punches": 3,
+      "defense_moves": 0,
+      "length_bonus": 1.0,
+      "defense_bonus": 1.0,
+      "xp_30s": 17.5,
+      "xp_60s": 35.0
+    },
+    {
+      "tier": "Rookie",
+      "group": "Medium (Rds 5-7)",
+      "combo": "2-3-2",
+      "moves": 3,
+      "punches": 3,
+      "defense_moves": 0,
+      "length_bonus": 1.0,
+      "defense_bonus": 1.0,
+      "xp_30s": 20.5,
+      "xp_60s": 41.0
+    },
+    {
+      "tier": "Rookie",
+      "group": "Medium (Rds 5-7)",
+      "combo": "2-1-3",
+      "moves": 3,
+      "punches": 3,
+      "defense_moves": 0,
+      "length_bonus": 1.0,
+      "defense_bonus": 1.0,
+      "xp_30s": 19.5,
+      "xp_60s": 39.0
+    },
+    {
+      "tier": "Rookie",
+      "group": "Medium (Rds 5-7)",
+      "combo": "3-2-1",
+      "moves": 3,
+      "punches": 3,
+      "defense_moves": 0,
+      "length_bonus": 1.0,
+      "defense_bonus": 1.0,
+      "xp_30s": 19.5,
+      "xp_60s": 39.0
+    },
+    {
+      "tier": "Rookie",
+      "group": "Medium (Rds 5-7)",
+      "combo": "1-3-2",
+      "moves": 3,
+      "punches": 3,
+      "defense_moves": 0,
+      "length_bonus": 1.0,
+      "defense_bonus": 1.0,
+      "xp_30s": 19.5,
+      "xp_60s": 39.0
+    },
+    {
+      "tier": "Rookie",
+      "group": "Medium (Rds 5-7)",
+      "combo": "1-2-4",
+      "moves": 3,
+      "punches": 3,
+      "defense_moves": 0,
+      "length_bonus": 1.0,
+      "defense_bonus": 1.0,
+      "xp_30s": 20.0,
+      "xp_60s": 40.0
+    },
+    {
+      "tier": "Rookie",
+      "group": "Medium (Rds 5-7)",
+      "combo": "2-3-4",
+      "moves": 3,
+      "punches": 3,
+      "defense_moves": 0,
+      "length_bonus": 1.0,
+      "defense_bonus": 1.0,
+      "xp_30s": 22.0,
+      "xp_60s": 44.0
+    },
+    {
+      "tier": "Rookie",
+      "group": "Medium (Rds 5-7)",
+      "combo": "3-2-3",
+      "moves": 3,
+      "punches": 3,
+      "defense_moves": 0,
+      "length_bonus": 1.0,
+      "defense_bonus": 1.0,
+      "xp_30s": 21.5,
+      "xp_60s": 43.0
+    },
+    {
+      "tier": "Rookie",
+      "group": "Medium (Rds 5-7)",
+      "combo": "1-4-3",
+      "moves": 3,
+      "punches": 3,
+      "defense_moves": 0,
+      "length_bonus": 1.0,
+      "defense_bonus": 1.0,
+      "xp_30s": 21.0,
+      "xp_60s": 42.0
+    },
+    {
+      "tier": "Rookie",
+      "group": "Hard (Rds 8-10)",
+      "combo": "1-2-5",
+      "moves": 3,
+      "punches": 3,
+      "defense_moves": 0,
+      "length_bonus": 1.0,
+      "defense_bonus": 1.0,
+      "xp_30s": 20.5,
+      "xp_60s": 41.0
+    },
+    {
+      "tier": "Rookie",
+      "group": "Hard (Rds 8-10)",
+      "combo": "2-1-6",
+      "moves": 3,
+      "punches": 3,
+      "defense_moves": 0,
+      "length_bonus": 1.0,
+      "defense_bonus": 1.0,
+      "xp_30s": 21.5,
+      "xp_60s": 43.0
+    },
+    {
+      "tier": "Rookie",
+      "group": "Hard (Rds 8-10)",
+      "combo": "5-2-3",
+      "moves": 3,
+      "punches": 3,
+      "defense_moves": 0,
+      "length_bonus": 1.0,
+      "defense_bonus": 1.0,
+      "xp_30s": 22.5,
+      "xp_60s": 45.0
+    },
+    {
+      "tier": "Rookie",
+      "group": "Hard (Rds 8-10)",
+      "combo": "6-3-2",
+      "moves": 3,
+      "punches": 3,
+      "defense_moves": 0,
+      "length_bonus": 1.0,
+      "defense_bonus": 1.0,
+      "xp_30s": 23.5,
+      "xp_60s": 47.0
+    },
+    {
+      "tier": "Rookie",
+      "group": "Hard (Rds 8-10)",
+      "combo": "1-6-3",
+      "moves": 3,
+      "punches": 3,
+      "defense_moves": 0,
+      "length_bonus": 1.0,
+      "defense_bonus": 1.0,
+      "xp_30s": 22.5,
+      "xp_60s": 45.0
+    },
+    {
+      "tier": "Rookie",
+      "group": "Hard (Rds 8-10)",
+      "combo": "2-5-2",
+      "moves": 3,
+      "punches": 3,
+      "defense_moves": 0,
+      "length_bonus": 1.0,
+      "defense_bonus": 1.0,
+      "xp_30s": 21.5,
+      "xp_60s": 43.0
+    },
+    {
+      "tier": "Rookie",
+      "group": "Hard (Rds 8-10)",
+      "combo": "3-2-5",
+      "moves": 3,
+      "punches": 3,
+      "defense_moves": 0,
+      "length_bonus": 1.0,
+      "defense_bonus": 1.0,
+      "xp_30s": 22.5,
+      "xp_60s": 45.0
+    },
+    {
+      "tier": "Rookie",
+      "group": "Hard (Rds 8-10)",
+      "combo": "4-1-6",
+      "moves": 3,
+      "punches": 3,
+      "defense_moves": 0,
+      "length_bonus": 1.0,
+      "defense_bonus": 1.0,
+      "xp_30s": 23.0,
+      "xp_60s": 46.0
+    },
+    {
+      "tier": "Rookie",
+      "group": "Hard (Rds 8-10)",
+      "combo": "1-4-5",
+      "moves": 3,
+      "punches": 3,
+      "defense_moves": 0,
+      "length_bonus": 1.0,
+      "defense_bonus": 1.0,
+      "xp_30s": 22.0,
+      "xp_60s": 44.0
+    },
+    {
+      "tier": "Rookie",
+      "group": "Hard (Rds 8-10)",
+      "combo": "2-3-6",
+      "moves": 3,
+      "punches": 3,
+      "defense_moves": 0,
+      "length_bonus": 1.0,
+      "defense_bonus": 1.0,
+      "xp_30s": 23.5,
+      "xp_60s": 47.0
+    },
+    {
+      "tier": "Rookie",
+      "group": "Hard (Rds 8-10)",
+      "combo": "5-6-1",
+      "moves": 3,
+      "punches": 3,
+      "defense_moves": 0,
+      "length_bonus": 1.0,
+      "defense_bonus": 1.0,
+      "xp_30s": 23.5,
+      "xp_60s": 47.0
+    },
+    {
+      "tier": "Rookie",
+      "group": "Hard (Rds 8-10)",
+      "combo": "6-1-2",
+      "moves": 3,
+      "punches": 3,
+      "defense_moves": 0,
+      "length_bonus": 1.0,
+      "defense_bonus": 1.0,
+      "xp_30s": 21.5,
+      "xp_60s": 43.0
+    },
+    {
+      "tier": "Beginner",
+      "group": "Warmup (Rds 1-2)",
+      "combo": "1-2",
+      "moves": 2,
+      "punches": 2,
+      "defense_moves": 0,
+      "length_bonus": 1.0,
+      "defense_bonus": 1.0,
+      "xp_30s": 12.0,
+      "xp_60s": 24.0
+    },
+    {
+      "tier": "Beginner",
+      "group": "Warmup (Rds 1-2)",
+      "combo": "2-1",
+      "moves": 2,
+      "punches": 2,
+      "defense_moves": 0,
+      "length_bonus": 1.0,
+      "defense_bonus": 1.0,
+      "xp_30s": 12.0,
+      "xp_60s": 24.0
+    },
+    {
+      "tier": "Beginner",
+      "group": "Warmup (Rds 1-2)",
+      "combo": "1-3",
+      "moves": 2,
+      "punches": 2,
+      "defense_moves": 0,
+      "length_bonus": 1.0,
+      "defense_bonus": 1.0,
+      "xp_30s": 13.0,
+      "xp_60s": 26.0
+    },
+    {
+      "tier": "Beginner",
+      "group": "Warmup (Rds 1-2)",
+      "combo": "2-3",
+      "moves": 2,
+      "punches": 2,
+      "defense_moves": 0,
+      "length_bonus": 1.0,
+      "defense_bonus": 1.0,
+      "xp_30s": 14.0,
+      "xp_60s": 28.0
+    },
+    {
+      "tier": "Beginner",
+      "group": "Warmup (Rds 1-2)",
+      "combo": "3-2",
+      "moves": 2,
+      "punches": 2,
+      "defense_moves": 0,
+      "length_bonus": 1.0,
+      "defense_bonus": 1.0,
+      "xp_30s": 14.0,
+      "xp_60s": 28.0
+    },
+    {
+      "tier": "Beginner",
+      "group": "Warmup (Rds 1-2)",
+      "combo": "3-1",
+      "moves": 2,
+      "punches": 2,
+      "defense_moves": 0,
+      "length_bonus": 1.0,
+      "defense_bonus": 1.0,
+      "xp_30s": 13.0,
+      "xp_60s": 26.0
+    },
+    {
+      "tier": "Beginner",
+      "group": "Warmup (Rds 1-2)",
+      "combo": "1-4",
+      "moves": 2,
+      "punches": 2,
+      "defense_moves": 0,
+      "length_bonus": 1.0,
+      "defense_bonus": 1.0,
+      "xp_30s": 13.5,
+      "xp_60s": 27.0
+    },
+    {
+      "tier": "Beginner",
+      "group": "Warmup (Rds 1-2)",
+      "combo": "4-1",
+      "moves": 2,
+      "punches": 2,
+      "defense_moves": 0,
+      "length_bonus": 1.0,
+      "defense_bonus": 1.0,
+      "xp_30s": 13.5,
+      "xp_60s": 27.0
+    },
+    {
+      "tier": "Beginner",
+      "group": "Warmup (Rds 1-2)",
+      "combo": "1-6",
+      "moves": 2,
+      "punches": 2,
+      "defense_moves": 0,
+      "length_bonus": 1.0,
+      "defense_bonus": 1.0,
+      "xp_30s": 15.0,
+      "xp_60s": 30.0
+    },
+    {
+      "tier": "Beginner",
+      "group": "Warmup (Rds 1-2)",
+      "combo": "6-1",
+      "moves": 2,
+      "punches": 2,
+      "defense_moves": 0,
+      "length_bonus": 1.0,
+      "defense_bonus": 1.0,
+      "xp_30s": 15.0,
+      "xp_60s": 30.0
+    },
+    {
+      "tier": "Beginner",
+      "group": "Warmup (Rds 1-2)",
+      "combo": "5-2",
+      "moves": 2,
+      "punches": 2,
+      "defense_moves": 0,
+      "length_bonus": 1.0,
+      "defense_bonus": 1.0,
+      "xp_30s": 15.0,
+      "xp_60s": 30.0
+    },
+    {
+      "tier": "Beginner",
+      "group": "Warmup (Rds 1-2)",
+      "combo": "2-5",
+      "moves": 2,
+      "punches": 2,
+      "defense_moves": 0,
+      "length_bonus": 1.0,
+      "defense_bonus": 1.0,
+      "xp_30s": 15.0,
+      "xp_60s": 30.0
+    },
+    {
+      "tier": "Beginner",
+      "group": "Warmup (Rds 1-2)",
+      "combo": "6-3",
+      "moves": 2,
+      "punches": 2,
+      "defense_moves": 0,
+      "length_bonus": 1.0,
+      "defense_bonus": 1.0,
+      "xp_30s": 17.0,
+      "xp_60s": 34.0
+    },
+    {
+      "tier": "Beginner",
+      "group": "Warmup (Rds 1-2)",
+      "combo": "4-3",
+      "moves": 2,
+      "punches": 2,
+      "defense_moves": 0,
+      "length_bonus": 1.0,
+      "defense_bonus": 1.0,
+      "xp_30s": 15.5,
+      "xp_60s": 31.0
+    },
+    {
+      "tier": "Beginner",
+      "group": "Warmup (Rds 1-2)",
+      "combo": "3-4",
+      "moves": 2,
+      "punches": 2,
+      "defense_moves": 0,
+      "length_bonus": 1.0,
+      "defense_bonus": 1.0,
+      "xp_30s": 15.5,
+      "xp_60s": 31.0
+    },
+    {
+      "tier": "Beginner",
+      "group": "Warmup (Rds 1-2)",
+      "combo": "5-6",
+      "moves": 2,
+      "punches": 2,
+      "defense_moves": 0,
+      "length_bonus": 1.0,
+      "defense_bonus": 1.0,
+      "xp_30s": 18.0,
+      "xp_60s": 36.0
+    },
+    {
+      "tier": "Beginner",
+      "group": "Build (Rds 3-5)",
+      "combo": "1-2-3",
+      "moves": 3,
+      "punches": 3,
+      "defense_moves": 0,
+      "length_bonus": 1.0,
+      "defense_bonus": 1.0,
+      "xp_30s": 19.5,
+      "xp_60s": 39.0
+    },
+    {
+      "tier": "Beginner",
+      "group": "Build (Rds 3-5)",
+      "combo": "1-2-1",
+      "moves": 3,
+      "punches": 3,
+      "defense_moves": 0,
+      "length_bonus": 1.0,
+      "defense_bonus": 1.0,
+      "xp_30s": 17.5,
+      "xp_60s": 35.0
+    },
+    {
+      "tier": "Beginner",
+      "group": "Build (Rds 3-5)",
+      "combo": "1-1-2",
+      "moves": 3,
+      "punches": 3,
+      "defense_moves": 0,
+      "length_bonus": 1.0,
+      "defense_bonus": 1.0,
+      "xp_30s": 17.5,
+      "xp_60s": 35.0
+    },
+    {
+      "tier": "Beginner",
+      "group": "Build (Rds 3-5)",
+      "combo": "2-1-2",
+      "moves": 3,
+      "punches": 3,
+      "defense_moves": 0,
+      "length_bonus": 1.0,
+      "defense_bonus": 1.0,
+      "xp_30s": 18.5,
+      "xp_60s": 37.0
+    },
+    {
+      "tier": "Beginner",
+      "group": "Build (Rds 3-5)",
+      "combo": "2-3-2",
+      "moves": 3,
+      "punches": 3,
+      "defense_moves": 0,
+      "length_bonus": 1.0,
+      "defense_bonus": 1.0,
+      "xp_30s": 20.5,
+      "xp_60s": 41.0
+    },
+    {
+      "tier": "Beginner",
+      "group": "Build (Rds 3-5)",
+      "combo": "2-1-3",
+      "moves": 3,
+      "punches": 3,
+      "defense_moves": 0,
+      "length_bonus": 1.0,
+      "defense_bonus": 1.0,
+      "xp_30s": 19.5,
+      "xp_60s": 39.0
+    },
+    {
+      "tier": "Beginner",
+      "group": "Build (Rds 3-5)",
+      "combo": "2-3-4",
+      "moves": 3,
+      "punches": 3,
+      "defense_moves": 0,
+      "length_bonus": 1.0,
+      "defense_bonus": 1.0,
+      "xp_30s": 22.0,
+      "xp_60s": 44.0
+    },
+    {
+      "tier": "Beginner",
+      "group": "Build (Rds 3-5)",
+      "combo": "1-2-5",
+      "moves": 3,
+      "punches": 3,
+      "defense_moves": 0,
+      "length_bonus": 1.0,
+      "defense_bonus": 1.0,
+      "xp_30s": 20.5,
+      "xp_60s": 41.0
+    },
+    {
+      "tier": "Beginner",
+      "group": "Build (Rds 3-5)",
+      "combo": "2-1-6",
+      "moves": 3,
+      "punches": 3,
+      "defense_moves": 0,
+      "length_bonus": 1.0,
+      "defense_bonus": 1.0,
+      "xp_30s": 21.5,
+      "xp_60s": 43.0
+    },
+    {
+      "tier": "Beginner",
+      "group": "Build (Rds 3-5)",
+      "combo": "1-3-2",
+      "moves": 3,
+      "punches": 3,
+      "defense_moves": 0,
+      "length_bonus": 1.0,
+      "defense_bonus": 1.0,
+      "xp_30s": 19.5,
+      "xp_60s": 39.0
+    },
+    {
+      "tier": "Beginner",
+      "group": "Build (Rds 3-5)",
+      "combo": "3-2-3",
+      "moves": 3,
+      "punches": 3,
+      "defense_moves": 0,
+      "length_bonus": 1.0,
+      "defense_bonus": 1.0,
+      "xp_30s": 21.5,
+      "xp_60s": 43.0
+    },
+    {
+      "tier": "Beginner",
+      "group": "Build (Rds 3-5)",
+      "combo": "1-6-3",
+      "moves": 3,
+      "punches": 3,
+      "defense_moves": 0,
+      "length_bonus": 1.0,
+      "defense_bonus": 1.0,
+      "xp_30s": 22.5,
+      "xp_60s": 45.0
+    },
+    {
+      "tier": "Beginner",
+      "group": "Build (Rds 3-5)",
+      "combo": "5-2-3",
+      "moves": 3,
+      "punches": 3,
+      "defense_moves": 0,
+      "length_bonus": 1.0,
+      "defense_bonus": 1.0,
+      "xp_30s": 22.5,
+      "xp_60s": 45.0
+    },
+    {
+      "tier": "Beginner",
+      "group": "Build (Rds 3-5)",
+      "combo": "6-3-2",
+      "moves": 3,
+      "punches": 3,
+      "defense_moves": 0,
+      "length_bonus": 1.0,
+      "defense_bonus": 1.0,
+      "xp_30s": 23.5,
+      "xp_60s": 47.0
+    },
+    {
+      "tier": "Beginner",
+      "group": "Build (Rds 3-5)",
+      "combo": "1-4-5",
+      "moves": 3,
+      "punches": 3,
+      "defense_moves": 0,
+      "length_bonus": 1.0,
+      "defense_bonus": 1.0,
+      "xp_30s": 22.0,
+      "xp_60s": 44.0
+    },
+    {
+      "tier": "Beginner",
+      "group": "Build (Rds 3-5)",
+      "combo": "2-5-2",
+      "moves": 3,
+      "punches": 3,
+      "defense_moves": 0,
+      "length_bonus": 1.0,
+      "defense_bonus": 1.0,
+      "xp_30s": 21.5,
+      "xp_60s": 43.0
+    },
+    {
+      "tier": "Beginner",
+      "group": "Slip Intro (Rds 6-8)",
+      "combo": "1-2-slip left",
+      "moves": 3,
+      "punches": 2,
+      "defense_moves": 1,
+      "length_bonus": 1.0,
+      "defense_bonus": 1.15,
+      "xp_30s": 18.97,
+      "xp_60s": 37.95
+    },
+    {
+      "tier": "Beginner",
+      "group": "Slip Intro (Rds 6-8)",
+      "combo": "2-3-slip left",
+      "moves": 3,
+      "punches": 2,
+      "defense_moves": 1,
+      "length_bonus": 1.0,
+      "defense_bonus": 1.15,
+      "xp_30s": 21.27,
+      "xp_60s": 42.55
+    },
+    {
+      "tier": "Beginner",
+      "group": "Slip Intro (Rds 6-8)",
+      "combo": "1-2-3-slip left",
+      "moves": 4,
+      "punches": 3,
+      "defense_moves": 1,
+      "length_bonus": 1.1,
+      "defense_bonus": 1.15,
+      "xp_30s": 30.36,
+      "xp_60s": 60.72
+    },
+    {
+      "tier": "Beginner",
+      "group": "Slip Intro (Rds 6-8)",
+      "combo": "2-1-3-slip left",
+      "moves": 4,
+      "punches": 3,
+      "defense_moves": 1,
+      "length_bonus": 1.1,
+      "defense_bonus": 1.15,
+      "xp_30s": 30.36,
+      "xp_60s": 60.72
+    },
+    {
+      "tier": "Beginner",
+      "group": "Slip Intro (Rds 6-8)",
+      "combo": "1-1-2-slip left",
+      "moves": 4,
+      "punches": 3,
+      "defense_moves": 1,
+      "length_bonus": 1.1,
+      "defense_bonus": 1.15,
+      "xp_30s": 27.83,
+      "xp_60s": 55.66
+    },
+    {
+      "tier": "Beginner",
+      "group": "Slip Intro (Rds 6-8)",
+      "combo": "2-3-2-slip left",
+      "moves": 4,
+      "punches": 3,
+      "defense_moves": 1,
+      "length_bonus": 1.1,
+      "defense_bonus": 1.15,
+      "xp_30s": 31.62,
+      "xp_60s": 63.25
+    },
+    {
+      "tier": "Beginner",
+      "group": "Slip Intro (Rds 6-8)",
+      "combo": "3-2-slip left",
+      "moves": 3,
+      "punches": 2,
+      "defense_moves": 1,
+      "length_bonus": 1.0,
+      "defense_bonus": 1.15,
+      "xp_30s": 21.27,
+      "xp_60s": 42.55
+    },
+    {
+      "tier": "Beginner",
+      "group": "Slip Intro (Rds 6-8)",
+      "combo": "1-2-4-slip left",
+      "moves": 4,
+      "punches": 3,
+      "defense_moves": 1,
+      "length_bonus": 1.1,
+      "defense_bonus": 1.15,
+      "xp_30s": 30.99,
+      "xp_60s": 61.98
+    },
+    {
+      "tier": "Beginner",
+      "group": "Slip Intro (Rds 6-8)",
+      "combo": "2-1-2-slip left",
+      "moves": 4,
+      "punches": 3,
+      "defense_moves": 1,
+      "length_bonus": 1.1,
+      "defense_bonus": 1.15,
+      "xp_30s": 29.09,
+      "xp_60s": 58.19
+    },
+    {
+      "tier": "Beginner",
+      "group": "Slip Intro (Rds 6-8)",
+      "combo": "1-3-2-slip left",
+      "moves": 4,
+      "punches": 3,
+      "defense_moves": 1,
+      "length_bonus": 1.1,
+      "defense_bonus": 1.15,
+      "xp_30s": 30.36,
+      "xp_60s": 60.72
+    },
+    {
+      "tier": "Beginner",
+      "group": "Slip Intro (Rds 6-8)",
+      "combo": "1-6-3-slip left",
+      "moves": 4,
+      "punches": 3,
+      "defense_moves": 1,
+      "length_bonus": 1.1,
+      "defense_bonus": 1.15,
+      "xp_30s": 34.16,
+      "xp_60s": 68.31
+    },
+    {
+      "tier": "Beginner",
+      "group": "Slip Intro (Rds 6-8)",
+      "combo": "2-5-2-slip left",
+      "moves": 4,
+      "punches": 3,
+      "defense_moves": 1,
+      "length_bonus": 1.1,
+      "defense_bonus": 1.15,
+      "xp_30s": 32.89,
+      "xp_60s": 65.78
+    },
+    {
+      "tier": "Beginner",
+      "group": "Adv Slip (Rds 9-10)",
+      "combo": "1-slip left-2",
+      "moves": 3,
+      "punches": 2,
+      "defense_moves": 1,
+      "length_bonus": 1.0,
+      "defense_bonus": 1.15,
+      "xp_30s": 18.97,
+      "xp_60s": 37.95
+    },
+    {
+      "tier": "Beginner",
+      "group": "Adv Slip (Rds 9-10)",
+      "combo": "2-slip right-3",
+      "moves": 3,
+      "punches": 2,
+      "defense_moves": 1,
+      "length_bonus": 1.0,
+      "defense_bonus": 1.15,
+      "xp_30s": 21.27,
+      "xp_60s": 42.55
+    },
+    {
+      "tier": "Beginner",
+      "group": "Adv Slip (Rds 9-10)",
+      "combo": "1-2-slip left-3",
+      "moves": 4,
+      "punches": 3,
+      "defense_moves": 1,
+      "length_bonus": 1.1,
+      "defense_bonus": 1.15,
+      "xp_30s": 30.36,
+      "xp_60s": 60.72
+    },
+    {
+      "tier": "Beginner",
+      "group": "Adv Slip (Rds 9-10)",
+      "combo": "2-3-slip right-2",
+      "moves": 4,
+      "punches": 3,
+      "defense_moves": 1,
+      "length_bonus": 1.1,
+      "defense_bonus": 1.15,
+      "xp_30s": 31.62,
+      "xp_60s": 63.25
+    },
+    {
+      "tier": "Beginner",
+      "group": "Adv Slip (Rds 9-10)",
+      "combo": "1-slip left-3-2",
+      "moves": 4,
+      "punches": 3,
+      "defense_moves": 1,
+      "length_bonus": 1.1,
+      "defense_bonus": 1.15,
+      "xp_30s": 30.36,
+      "xp_60s": 60.72
+    },
+    {
+      "tier": "Beginner",
+      "group": "Adv Slip (Rds 9-10)",
+      "combo": "1-slip right-2-3",
+      "moves": 4,
+      "punches": 3,
+      "defense_moves": 1,
+      "length_bonus": 1.1,
+      "defense_bonus": 1.15,
+      "xp_30s": 30.36,
+      "xp_60s": 60.72
+    },
+    {
+      "tier": "Beginner",
+      "group": "Adv Slip (Rds 9-10)",
+      "combo": "2-slip left-3-slip left",
+      "moves": 4,
+      "punches": 2,
+      "defense_moves": 2,
+      "length_bonus": 1.1,
+      "defense_bonus": 1.3,
+      "xp_30s": 32.89,
+      "xp_60s": 65.78
+    },
+    {
+      "tier": "Beginner",
+      "group": "Adv Slip (Rds 9-10)",
+      "combo": "1-2-slip right-3-2",
+      "moves": 5,
+      "punches": 4,
+      "defense_moves": 1,
+      "length_bonus": 1.2,
+      "defense_bonus": 1.15,
+      "xp_30s": 42.09,
+      "xp_60s": 84.18
+    },
+    {
+      "tier": "Beginner",
+      "group": "Adv Slip (Rds 9-10)",
+      "combo": "slip left-2-3",
+      "moves": 3,
+      "punches": 2,
+      "defense_moves": 1,
+      "length_bonus": 1.0,
+      "defense_bonus": 1.15,
+      "xp_30s": 21.27,
+      "xp_60s": 42.55
+    },
+    {
+      "tier": "Beginner",
+      "group": "Adv Slip (Rds 9-10)",
+      "combo": "slip right-1-2-3",
+      "moves": 4,
+      "punches": 3,
+      "defense_moves": 1,
+      "length_bonus": 1.1,
+      "defense_bonus": 1.15,
+      "xp_30s": 30.36,
+      "xp_60s": 60.72
+    },
+    {
+      "tier": "Intermediate",
+      "group": "Warmup (Rd 1)",
+      "combo": "1-2",
+      "moves": 2,
+      "punches": 2,
+      "defense_moves": 0,
+      "length_bonus": 1.0,
+      "defense_bonus": 1.0,
+      "xp_30s": 12.0,
+      "xp_60s": 24.0
+    },
+    {
+      "tier": "Intermediate",
+      "group": "Warmup (Rd 1)",
+      "combo": "2-3",
+      "moves": 2,
+      "punches": 2,
+      "defense_moves": 0,
+      "length_bonus": 1.0,
+      "defense_bonus": 1.0,
+      "xp_30s": 14.0,
+      "xp_60s": 28.0
+    },
+    {
+      "tier": "Intermediate",
+      "group": "Warmup (Rd 1)",
+      "combo": "3-2",
+      "moves": 2,
+      "punches": 2,
+      "defense_moves": 0,
+      "length_bonus": 1.0,
+      "defense_bonus": 1.0,
+      "xp_30s": 14.0,
+      "xp_60s": 28.0
+    },
+    {
+      "tier": "Intermediate",
+      "group": "Warmup (Rd 1)",
+      "combo": "1-6",
+      "moves": 2,
+      "punches": 2,
+      "defense_moves": 0,
+      "length_bonus": 1.0,
+      "defense_bonus": 1.0,
+      "xp_30s": 15.0,
+      "xp_60s": 30.0
+    },
+    {
+      "tier": "Intermediate",
+      "group": "Warmup (Rd 1)",
+      "combo": "5-2",
+      "moves": 2,
+      "punches": 2,
+      "defense_moves": 0,
+      "length_bonus": 1.0,
+      "defense_bonus": 1.0,
+      "xp_30s": 15.0,
+      "xp_60s": 30.0
+    },
+    {
+      "tier": "Intermediate",
+      "group": "Warmup (Rd 1)",
+      "combo": "2-4",
+      "moves": 2,
+      "punches": 2,
+      "defense_moves": 0,
+      "length_bonus": 1.0,
+      "defense_bonus": 1.0,
+      "xp_30s": 14.5,
+      "xp_60s": 29.0
+    },
+    {
+      "tier": "Intermediate",
+      "group": "Slip Found (Rds 2-3)",
+      "combo": "1-2-slip left",
+      "moves": 3,
+      "punches": 2,
+      "defense_moves": 1,
+      "length_bonus": 1.0,
+      "defense_bonus": 1.15,
+      "xp_30s": 18.97,
+      "xp_60s": 37.95
+    },
+    {
+      "tier": "Intermediate",
+      "group": "Slip Found (Rds 2-3)",
+      "combo": "2-3-slip right",
+      "moves": 3,
+      "punches": 2,
+      "defense_moves": 1,
+      "length_bonus": 1.0,
+      "defense_bonus": 1.15,
+      "xp_30s": 21.27,
+      "xp_60s": 42.55
+    },
+    {
+      "tier": "Intermediate",
+      "group": "Slip Found (Rds 2-3)",
+      "combo": "1-slip left-2",
+      "moves": 3,
+      "punches": 2,
+      "defense_moves": 1,
+      "length_bonus": 1.0,
+      "defense_bonus": 1.15,
+      "xp_30s": 18.97,
+      "xp_60s": 37.95
+    },
+    {
+      "tier": "Intermediate",
+      "group": "Slip Found (Rds 2-3)",
+      "combo": "2-slip right-3",
+      "moves": 3,
+      "punches": 2,
+      "defense_moves": 1,
+      "length_bonus": 1.0,
+      "defense_bonus": 1.15,
+      "xp_30s": 21.27,
+      "xp_60s": 42.55
+    },
+    {
+      "tier": "Intermediate",
+      "group": "Slip Found (Rds 2-3)",
+      "combo": "slip left-3-2",
+      "moves": 3,
+      "punches": 2,
+      "defense_moves": 1,
+      "length_bonus": 1.0,
+      "defense_bonus": 1.15,
+      "xp_30s": 21.27,
+      "xp_60s": 42.55
+    },
+    {
+      "tier": "Intermediate",
+      "group": "Slip Found (Rds 2-3)",
+      "combo": "slip right-2-3",
+      "moves": 3,
+      "punches": 2,
+      "defense_moves": 1,
+      "length_bonus": 1.0,
+      "defense_bonus": 1.15,
+      "xp_30s": 21.27,
+      "xp_60s": 42.55
+    },
+    {
+      "tier": "Intermediate",
+      "group": "Slip Found (Rds 2-3)",
+      "combo": "1-slip right-6",
+      "moves": 3,
+      "punches": 2,
+      "defense_moves": 1,
+      "length_bonus": 1.0,
+      "defense_bonus": 1.15,
+      "xp_30s": 22.42,
+      "xp_60s": 44.85
+    },
+    {
+      "tier": "Intermediate",
+      "group": "Slip Found (Rds 2-3)",
+      "combo": "slip left-5-2",
+      "moves": 3,
+      "punches": 2,
+      "defense_moves": 1,
+      "length_bonus": 1.0,
+      "defense_bonus": 1.15,
+      "xp_30s": 22.42,
+      "xp_60s": 44.85
+    },
+    {
+      "tier": "Intermediate",
+      "group": "Slip Found (Rds 2-3)",
+      "combo": "2-slip left-2",
+      "moves": 3,
+      "punches": 2,
+      "defense_moves": 1,
+      "length_bonus": 1.0,
+      "defense_bonus": 1.15,
+      "xp_30s": 20.12,
+      "xp_60s": 40.25
+    },
+    {
+      "tier": "Intermediate",
+      "group": "Slip Found (Rds 2-3)",
+      "combo": "1-2-slip right",
+      "moves": 3,
+      "punches": 2,
+      "defense_moves": 1,
+      "length_bonus": 1.0,
+      "defense_bonus": 1.15,
+      "xp_30s": 18.97,
+      "xp_60s": 37.95
+    },
+    {
+      "tier": "Intermediate",
+      "group": "Slip Combo (Rds 4-5)",
+      "combo": "1-2-3-slip left",
+      "moves": 4,
+      "punches": 3,
+      "defense_moves": 1,
+      "length_bonus": 1.1,
+      "defense_bonus": 1.15,
+      "xp_30s": 30.36,
+      "xp_60s": 60.72
+    },
+    {
+      "tier": "Intermediate",
+      "group": "Slip Combo (Rds 4-5)",
+      "combo": "1-slip left-3-2",
+      "moves": 4,
+      "punches": 3,
+      "defense_moves": 1,
+      "length_bonus": 1.1,
+      "defense_bonus": 1.15,
+      "xp_30s": 30.36,
+      "xp_60s": 60.72
+    },
+    {
+      "tier": "Intermediate",
+      "group": "Slip Combo (Rds 4-5)",
+      "combo": "2-3-slip right-2",
+      "moves": 4,
+      "punches": 3,
+      "defense_moves": 1,
+      "length_bonus": 1.1,
+      "defense_bonus": 1.15,
+      "xp_30s": 31.62,
+      "xp_60s": 63.25
+    },
+    {
+      "tier": "Intermediate",
+      "group": "Slip Combo (Rds 4-5)",
+      "combo": "1-2-slip left-3",
+      "moves": 4,
+      "punches": 3,
+      "defense_moves": 1,
+      "length_bonus": 1.1,
+      "defense_bonus": 1.15,
+      "xp_30s": 30.36,
+      "xp_60s": 60.72
+    },
+    {
+      "tier": "Intermediate",
+      "group": "Slip Combo (Rds 4-5)",
+      "combo": "slip right-2-3-2",
+      "moves": 4,
+      "punches": 3,
+      "defense_moves": 1,
+      "length_bonus": 1.1,
+      "defense_bonus": 1.15,
+      "xp_30s": 31.62,
+      "xp_60s": 63.25
+    },
+    {
+      "tier": "Intermediate",
+      "group": "Slip Combo (Rds 4-5)",
+      "combo": "1-slip left-2-3",
+      "moves": 4,
+      "punches": 3,
+      "defense_moves": 1,
+      "length_bonus": 1.1,
+      "defense_bonus": 1.15,
+      "xp_30s": 30.36,
+      "xp_60s": 60.72
+    },
+    {
+      "tier": "Intermediate",
+      "group": "Slip Combo (Rds 4-5)",
+      "combo": "2-1-slip right-3",
+      "moves": 4,
+      "punches": 3,
+      "defense_moves": 1,
+      "length_bonus": 1.1,
+      "defense_bonus": 1.15,
+      "xp_30s": 30.36,
+      "xp_60s": 60.72
+    },
+    {
+      "tier": "Intermediate",
+      "group": "Slip Combo (Rds 4-5)",
+      "combo": "3-2-slip left-2",
+      "moves": 4,
+      "punches": 3,
+      "defense_moves": 1,
+      "length_bonus": 1.1,
+      "defense_bonus": 1.15,
+      "xp_30s": 31.62,
+      "xp_60s": 63.25
+    },
+    {
+      "tier": "Intermediate",
+      "group": "Slip Combo (Rds 4-5)",
+      "combo": "1-2-slip right-6",
+      "moves": 4,
+      "punches": 3,
+      "defense_moves": 1,
+      "length_bonus": 1.1,
+      "defense_bonus": 1.15,
+      "xp_30s": 32.89,
+      "xp_60s": 65.78
+    },
+    {
+      "tier": "Intermediate",
+      "group": "Slip Combo (Rds 4-5)",
+      "combo": "slip left-5-2-3",
+      "moves": 4,
+      "punches": 3,
+      "defense_moves": 1,
+      "length_bonus": 1.1,
+      "defense_bonus": 1.15,
+      "xp_30s": 34.16,
+      "xp_60s": 68.31
+    },
+    {
+      "tier": "Intermediate",
+      "group": "Roll Intro (Rds 6-8)",
+      "combo": "1-2-roll-3",
+      "moves": 4,
+      "punches": 3,
+      "defense_moves": 1,
+      "length_bonus": 1.1,
+      "defense_bonus": 1.15,
+      "xp_30s": 31.62,
+      "xp_60s": 63.25
+    },
+    {
+      "tier": "Intermediate",
+      "group": "Roll Intro (Rds 6-8)",
+      "combo": "2-3-roll-2",
+      "moves": 4,
+      "punches": 3,
+      "defense_moves": 1,
+      "length_bonus": 1.1,
+      "defense_bonus": 1.15,
+      "xp_30s": 32.89,
+      "xp_60s": 65.78
+    },
+    {
+      "tier": "Intermediate",
+      "group": "Roll Intro (Rds 6-8)",
+      "combo": "1-2-3-roll",
+      "moves": 4,
+      "punches": 3,
+      "defense_moves": 1,
+      "length_bonus": 1.1,
+      "defense_bonus": 1.15,
+      "xp_30s": 31.62,
+      "xp_60s": 63.25
+    },
+    {
+      "tier": "Intermediate",
+      "group": "Roll Intro (Rds 6-8)",
+      "combo": "roll-1-2-3",
+      "moves": 4,
+      "punches": 3,
+      "defense_moves": 1,
+      "length_bonus": 1.1,
+      "defense_bonus": 1.15,
+      "xp_30s": 31.62,
+      "xp_60s": 63.25
+    },
+    {
+      "tier": "Intermediate",
+      "group": "Roll Intro (Rds 6-8)",
+      "combo": "1-slip left-2-roll-3",
+      "moves": 5,
+      "punches": 3,
+      "defense_moves": 2,
+      "length_bonus": 1.2,
+      "defense_bonus": 1.3,
+      "xp_30s": 46.02,
+      "xp_60s": 92.04
+    },
+    {
+      "tier": "Intermediate",
+      "group": "Roll Intro (Rds 6-8)",
+      "combo": "2-roll-3-2",
+      "moves": 4,
+      "punches": 3,
+      "defense_moves": 1,
+      "length_bonus": 1.1,
+      "defense_bonus": 1.15,
+      "xp_30s": 32.89,
+      "xp_60s": 65.78
+    },
+    {
+      "tier": "Intermediate",
+      "group": "Roll Intro (Rds 6-8)",
+      "combo": "3-2-roll-1-2",
+      "moves": 5,
+      "punches": 4,
+      "defense_moves": 1,
+      "length_bonus": 1.2,
+      "defense_bonus": 1.15,
+      "xp_30s": 43.47,
+      "xp_60s": 86.94
+    },
+    {
+      "tier": "Intermediate",
+      "group": "Roll Intro (Rds 6-8)",
+      "combo": "1-2-roll-3-2",
+      "moves": 5,
+      "punches": 4,
+      "defense_moves": 1,
+      "length_bonus": 1.2,
+      "defense_bonus": 1.15,
+      "xp_30s": 43.47,
+      "xp_60s": 86.94
+    },
+    {
+      "tier": "Intermediate",
+      "group": "Roll Intro (Rds 6-8)",
+      "combo": "roll-2-3-slip left",
+      "moves": 4,
+      "punches": 2,
+      "defense_moves": 2,
+      "length_bonus": 1.1,
+      "defense_bonus": 1.3,
+      "xp_30s": 34.32,
+      "xp_60s": 68.64
+    },
+    {
+      "tier": "Intermediate",
+      "group": "Roll Intro (Rds 6-8)",
+      "combo": "1-roll-2-3",
+      "moves": 4,
+      "punches": 3,
+      "defense_moves": 1,
+      "length_bonus": 1.1,
+      "defense_bonus": 1.15,
+      "xp_30s": 31.62,
+      "xp_60s": 63.25
+    },
+    {
+      "tier": "Intermediate",
+      "group": "Combined (Rds 9-10)",
+      "combo": "1-2-slip left-3-roll-2",
+      "moves": 6,
+      "punches": 4,
+      "defense_moves": 2,
+      "length_bonus": 1.35,
+      "defense_bonus": 1.3,
+      "xp_30s": 63.18,
+      "xp_60s": 126.36
+    },
+    {
+      "tier": "Intermediate",
+      "group": "Combined (Rds 9-10)",
+      "combo": "2-3-roll-slip right-2-3",
+      "moves": 5,
+      "punches": 4,
+      "defense_moves": 0,
+      "length_bonus": 1.2,
+      "defense_bonus": 1.0,
+      "xp_30s": 33.6,
+      "xp_60s": 67.2
+    },
+    {
+      "tier": "Intermediate",
+      "group": "Combined (Rds 9-10)",
+      "combo": "1-slip left-2-3-roll-2",
+      "moves": 6,
+      "punches": 4,
+      "defense_moves": 2,
+      "length_bonus": 1.35,
+      "defense_bonus": 1.3,
+      "xp_30s": 63.18,
+      "xp_60s": 126.36
+    },
+    {
+      "tier": "Intermediate",
+      "group": "Combined (Rds 9-10)",
+      "combo": "roll-1-2-slip right-3-2",
+      "moves": 6,
+      "punches": 4,
+      "defense_moves": 2,
+      "length_bonus": 1.35,
+      "defense_bonus": 1.3,
+      "xp_30s": 63.18,
+      "xp_60s": 126.36
+    },
+    {
+      "tier": "Intermediate",
+      "group": "Combined (Rds 9-10)",
+      "combo": "1-2-3-slip left-roll-2",
+      "moves": 5,
+      "punches": 4,
+      "defense_moves": 0,
+      "length_bonus": 1.2,
+      "defense_bonus": 1.0,
+      "xp_30s": 31.2,
+      "xp_60s": 62.4
+    },
+    {
+      "tier": "Intermediate",
+      "group": "Combined (Rds 9-10)",
+      "combo": "2-slip right-3-roll-1-2",
+      "moves": 6,
+      "punches": 4,
+      "defense_moves": 2,
+      "length_bonus": 1.35,
+      "defense_bonus": 1.3,
+      "xp_30s": 63.18,
+      "xp_60s": 126.36
+    },
+    {
+      "tier": "Intermediate",
+      "group": "Combined (Rds 9-10)",
+      "combo": "slip left-3-2-roll-2-3",
+      "moves": 6,
+      "punches": 4,
+      "defense_moves": 2,
+      "length_bonus": 1.35,
+      "defense_bonus": 1.3,
+      "xp_30s": 66.69,
+      "xp_60s": 133.38
+    },
+    {
+      "tier": "Intermediate",
+      "group": "Combined (Rds 9-10)",
+      "combo": "1-2-roll-3-slip left-2",
+      "moves": 6,
+      "punches": 4,
+      "defense_moves": 2,
+      "length_bonus": 1.35,
+      "defense_bonus": 1.3,
+      "xp_30s": 63.18,
+      "xp_60s": 126.36
+    },
+    {
+      "tier": "Advanced",
+      "group": "Warmup (Rd 1)",
+      "combo": "1-2-slip left",
+      "moves": 3,
+      "punches": 2,
+      "defense_moves": 1,
+      "length_bonus": 1.0,
+      "defense_bonus": 1.15,
+      "xp_30s": 18.97,
+      "xp_60s": 37.95
+    },
+    {
+      "tier": "Advanced",
+      "group": "Warmup (Rd 1)",
+      "combo": "2-3-slip right",
+      "moves": 3,
+      "punches": 2,
+      "defense_moves": 1,
+      "length_bonus": 1.0,
+      "defense_bonus": 1.15,
+      "xp_30s": 21.27,
+      "xp_60s": 42.55
+    },
+    {
+      "tier": "Advanced",
+      "group": "Warmup (Rd 1)",
+      "combo": "1-slip left-2-3",
+      "moves": 4,
+      "punches": 3,
+      "defense_moves": 1,
+      "length_bonus": 1.1,
+      "defense_bonus": 1.15,
+      "xp_30s": 30.36,
+      "xp_60s": 60.72
+    },
+    {
+      "tier": "Advanced",
+      "group": "Warmup (Rd 1)",
+      "combo": "slip right-1-2",
+      "moves": 3,
+      "punches": 2,
+      "defense_moves": 1,
+      "length_bonus": 1.0,
+      "defense_bonus": 1.15,
+      "xp_30s": 18.97,
+      "xp_60s": 37.95
+    },
+    {
+      "tier": "Advanced",
+      "group": "Warmup (Rd 1)",
+      "combo": "2-roll-3-2",
+      "moves": 4,
+      "punches": 3,
+      "defense_moves": 1,
+      "length_bonus": 1.1,
+      "defense_bonus": 1.15,
+      "xp_30s": 32.89,
+      "xp_60s": 65.78
+    },
+    {
+      "tier": "Advanced",
+      "group": "Warmup (Rd 1)",
+      "combo": "1-2-3-roll",
+      "moves": 4,
+      "punches": 3,
+      "defense_moves": 1,
+      "length_bonus": 1.1,
+      "defense_bonus": 1.15,
+      "xp_30s": 31.62,
+      "xp_60s": 63.25
+    },
+    {
+      "tier": "Advanced",
+      "group": "Build (Rd 2)",
+      "combo": "1-2-slip left-3-2",
+      "moves": 5,
+      "punches": 4,
+      "defense_moves": 1,
+      "length_bonus": 1.2,
+      "defense_bonus": 1.15,
+      "xp_30s": 42.09,
+      "xp_60s": 84.18
+    },
+    {
+      "tier": "Advanced",
+      "group": "Build (Rd 2)",
+      "combo": "2-3-roll-2-1",
+      "moves": 5,
+      "punches": 4,
+      "defense_moves": 1,
+      "length_bonus": 1.2,
+      "defense_bonus": 1.15,
+      "xp_30s": 43.47,
+      "xp_60s": 86.94
+    },
+    {
+      "tier": "Advanced",
+      "group": "Build (Rd 2)",
+      "combo": "1-slip right-2-3-roll",
+      "moves": 5,
+      "punches": 3,
+      "defense_moves": 2,
+      "length_bonus": 1.2,
+      "defense_bonus": 1.3,
+      "xp_30s": 46.02,
+      "xp_60s": 92.04
+    },
+    {
+      "tier": "Advanced",
+      "group": "Build (Rd 2)",
+      "combo": "slip left-3-2-slip right-2",
+      "moves": 5,
+      "punches": 3,
+      "defense_moves": 2,
+      "length_bonus": 1.2,
+      "defense_bonus": 1.3,
+      "xp_30s": 46.02,
+      "xp_60s": 92.04
+    },
+    {
+      "tier": "Advanced",
+      "group": "Build (Rd 2)",
+      "combo": "1-2-roll-3-slip left",
+      "moves": 5,
+      "punches": 3,
+      "defense_moves": 2,
+      "length_bonus": 1.2,
+      "defense_bonus": 1.3,
+      "xp_30s": 46.02,
+      "xp_60s": 92.04
+    },
+    {
+      "tier": "Advanced",
+      "group": "Build (Rd 2)",
+      "combo": "2-3-slip right-roll-1-2",
+      "moves": 5,
+      "punches": 4,
+      "defense_moves": 0,
+      "length_bonus": 1.2,
+      "defense_bonus": 1.0,
+      "xp_30s": 31.2,
+      "xp_60s": 62.4
+    },
+    {
+      "tier": "Advanced",
+      "group": "Mid (Rds 3-5)",
+      "combo": "1-2-slip left-3-roll-2",
+      "moves": 6,
+      "punches": 4,
+      "defense_moves": 2,
+      "length_bonus": 1.35,
+      "defense_bonus": 1.3,
+      "xp_30s": 63.18,
+      "xp_60s": 126.36
+    },
+    {
+      "tier": "Advanced",
+      "group": "Mid (Rds 3-5)",
+      "combo": "2-3-roll-slip right-2-1",
+      "moves": 5,
+      "punches": 4,
+      "defense_moves": 0,
+      "length_bonus": 1.2,
+      "defense_bonus": 1.0,
+      "xp_30s": 31.2,
+      "xp_60s": 62.4
+    },
+    {
+      "tier": "Advanced",
+      "group": "Mid (Rds 3-5)",
+      "combo": "1-2-3-slip left-roll-2-3",
+      "moves": 6,
+      "punches": 5,
+      "defense_moves": 0,
+      "length_bonus": 1.35,
+      "defense_bonus": 1.0,
+      "xp_30s": 45.23,
+      "xp_60s": 90.45
+    },
+    {
+      "tier": "Advanced",
+      "group": "Mid (Rds 3-5)",
+      "combo": "roll-1-2-slip right-3-2",
+      "moves": 6,
+      "punches": 4,
+      "defense_moves": 2,
+      "length_bonus": 1.35,
+      "defense_bonus": 1.3,
+      "xp_30s": 63.18,
+      "xp_60s": 126.36
+    },
+    {
+      "tier": "Advanced",
+      "group": "Mid (Rds 3-5)",
+      "combo": "1-slip left-2-3-roll-2",
+      "moves": 6,
+      "punches": 4,
+      "defense_moves": 2,
+      "length_bonus": 1.35,
+      "defense_bonus": 1.3,
+      "xp_30s": 63.18,
+      "xp_60s": 126.36
+    },
+    {
+      "tier": "Advanced",
+      "group": "Mid (Rds 3-5)",
+      "combo": "2-roll-3-slip right-2-1",
+      "moves": 6,
+      "punches": 4,
+      "defense_moves": 2,
+      "length_bonus": 1.35,
+      "defense_bonus": 1.3,
+      "xp_30s": 63.18,
+      "xp_60s": 126.36
+    },
+    {
+      "tier": "Advanced",
+      "group": "Mid (Rds 3-5)",
+      "combo": "1-2-slip left-3-2-roll",
+      "moves": 6,
+      "punches": 4,
+      "defense_moves": 2,
+      "length_bonus": 1.35,
+      "defense_bonus": 1.3,
+      "xp_30s": 63.18,
+      "xp_60s": 126.36
+    },
+    {
+      "tier": "Advanced",
+      "group": "Mid (Rds 3-5)",
+      "combo": "slip right-2-3-roll-1-2",
+      "moves": 6,
+      "punches": 4,
+      "defense_moves": 2,
+      "length_bonus": 1.35,
+      "defense_bonus": 1.3,
+      "xp_30s": 63.18,
+      "xp_60s": 126.36
+    },
+    {
+      "tier": "Advanced",
+      "group": "Mid (Rds 3-5)",
+      "combo": "2-1-roll-3-slip left-2",
+      "moves": 6,
+      "punches": 4,
+      "defense_moves": 2,
+      "length_bonus": 1.35,
+      "defense_bonus": 1.3,
+      "xp_30s": 63.18,
+      "xp_60s": 126.36
+    },
+    {
+      "tier": "Advanced",
+      "group": "Mid (Rds 3-5)",
+      "combo": "1-2-3-roll-slip right-2",
+      "moves": 5,
+      "punches": 4,
+      "defense_moves": 0,
+      "length_bonus": 1.2,
+      "defense_bonus": 1.0,
+      "xp_30s": 31.2,
+      "xp_60s": 62.4
+    },
+    {
+      "tier": "Advanced",
+      "group": "Advanced (Rds 6-8)",
+      "combo": "1-2-slip left-3-roll-2-pullback",
+      "moves": 7,
+      "punches": 4,
+      "defense_moves": 3,
+      "length_bonus": 1.35,
+      "defense_bonus": 1.45,
+      "xp_30s": 80.26,
+      "xp_60s": 160.51
+    },
+    {
+      "tier": "Advanced",
+      "group": "Advanced (Rds 6-8)",
+      "combo": "2-3-roll-slip right-2-1-pullback",
+      "moves": 6,
+      "punches": 4,
+      "defense_moves": 1,
+      "length_bonus": 1.35,
+      "defense_bonus": 1.15,
+      "xp_30s": 48.13,
+      "xp_60s": 96.25
+    },
+    {
+      "tier": "Advanced",
+      "group": "Advanced (Rds 6-8)",
+      "combo": "pullback-1-2-slip left-3-roll-2",
+      "moves": 7,
+      "punches": 4,
+      "defense_moves": 3,
+      "length_bonus": 1.35,
+      "defense_bonus": 1.45,
+      "xp_30s": 80.26,
+      "xp_60s": 160.51
+    },
+    {
+      "tier": "Advanced",
+      "group": "Advanced (Rds 6-8)",
+      "combo": "1-slip left-2-3-roll-pullback-2",
+      "moves": 6,
+      "punches": 4,
+      "defense_moves": 1,
+      "length_bonus": 1.35,
+      "defense_bonus": 1.15,
+      "xp_30s": 47.35,
+      "xp_60s": 94.7
+    },
+    {
+      "tier": "Advanced",
+      "group": "Advanced (Rds 6-8)",
+      "combo": "2-3-pullback-slip right-roll-1-2",
+      "moves": 5,
+      "punches": 4,
+      "defense_moves": 0,
+      "length_bonus": 1.2,
+      "defense_bonus": 1.0,
+      "xp_30s": 31.2,
+      "xp_60s": 62.4
+    },
+    {
+      "tier": "Advanced",
+      "group": "Advanced (Rds 6-8)",
+      "combo": "1-2-3-slip left-pullback-roll-2",
+      "moves": 5,
+      "punches": 4,
+      "defense_moves": 0,
+      "length_bonus": 1.2,
+      "defense_bonus": 1.0,
+      "xp_30s": 31.2,
+      "xp_60s": 62.4
+    },
+    {
+      "tier": "Advanced",
+      "group": "Advanced (Rds 6-8)",
+      "combo": "roll-2-3-pullback-slip right-1-2",
+      "moves": 6,
+      "punches": 4,
+      "defense_moves": 1,
+      "length_bonus": 1.35,
+      "defense_bonus": 1.15,
+      "xp_30s": 48.9,
+      "xp_60s": 97.81
+    },
+    {
+      "tier": "Advanced",
+      "group": "Advanced (Rds 6-8)",
+      "combo": "1-pullback-2-slip left-3-roll-2",
+      "moves": 7,
+      "punches": 4,
+      "defense_moves": 3,
+      "length_bonus": 1.35,
+      "defense_bonus": 1.45,
+      "xp_30s": 80.26,
+      "xp_60s": 160.51
+    },
+    {
+      "tier": "Advanced",
+      "group": "Advanced (Rds 6-8)",
+      "combo": "2-1-slip right-3-pullback-roll-2",
+      "moves": 6,
+      "punches": 4,
+      "defense_moves": 1,
+      "length_bonus": 1.35,
+      "defense_bonus": 1.15,
+      "xp_30s": 47.35,
+      "xp_60s": 94.7
+    },
+    {
+      "tier": "Advanced",
+      "group": "Advanced (Rds 6-8)",
+      "combo": "1-2-roll-3-pullback-slip left-2",
+      "moves": 6,
+      "punches": 4,
+      "defense_moves": 1,
+      "length_bonus": 1.35,
+      "defense_bonus": 1.15,
+      "xp_30s": 48.9,
+      "xp_60s": 97.81
+    },
+    {
+      "tier": "Advanced",
+      "group": "Full Arsenal (Rds 9-10)",
+      "combo": "1-2-slip left-3-roll-pullback-2-3",
+      "moves": 7,
+      "punches": 5,
+      "defense_moves": 1,
+      "length_bonus": 1.35,
+      "defense_bonus": 1.15,
+      "xp_30s": 58.99,
+      "xp_60s": 117.99
+    },
+    {
+      "tier": "Advanced",
+      "group": "Full Arsenal (Rds 9-10)",
+      "combo": "2-3-roll-slip right-pullback-1-2-3",
+      "moves": 6,
+      "punches": 5,
+      "defense_moves": 0,
+      "length_bonus": 1.35,
+      "defense_bonus": 1.0,
+      "xp_30s": 45.23,
+      "xp_60s": 90.45
+    },
+    {
+      "tier": "Advanced",
+      "group": "Full Arsenal (Rds 9-10)",
+      "combo": "pullback-1-2-slip left-3-roll-2-slip right",
+      "moves": 8,
+      "punches": 4,
+      "defense_moves": 4,
+      "length_bonus": 1.35,
+      "defense_bonus": 1.45,
+      "xp_30s": 89.07,
+      "xp_60s": 178.13
+    },
+    {
+      "tier": "Advanced",
+      "group": "Full Arsenal (Rds 9-10)",
+      "combo": "roll-2-3-pullback-slip right-1-2-slip left",
+      "moves": 7,
+      "punches": 4,
+      "defense_moves": 2,
+      "length_bonus": 1.35,
+      "defense_bonus": 1.3,
+      "xp_30s": 63.18,
+      "xp_60s": 126.36
+    },
+    {
+      "tier": "Advanced",
+      "group": "Full Arsenal (Rds 9-10)",
+      "combo": "1-2-3-slip left-roll-pullback-2-3-2",
+      "moves": 7,
+      "punches": 6,
+      "defense_moves": 0,
+      "length_bonus": 1.35,
+      "defense_bonus": 1.0,
+      "xp_30s": 54.0,
+      "xp_60s": 108.0
+    },
+    {
+      "tier": "Advanced",
+      "group": "Full Arsenal (Rds 9-10)",
+      "combo": "2-slip right-3-roll-pullback-1-2-3",
+      "moves": 7,
+      "punches": 5,
+      "defense_moves": 1,
+      "length_bonus": 1.35,
+      "defense_bonus": 1.15,
+      "xp_30s": 58.99,
+      "xp_60s": 117.99
+    },
+    {
+      "tier": "Advanced",
+      "group": "Full Arsenal (Rds 9-10)",
+      "combo": "1-pullback-2-3-slip left-roll-2-slip right",
+      "moves": 7,
+      "punches": 4,
+      "defense_moves": 2,
+      "length_bonus": 1.35,
+      "defense_bonus": 1.3,
+      "xp_30s": 62.3,
+      "xp_60s": 124.61
+    },
+    {
+      "tier": "Advanced",
+      "group": "Full Arsenal (Rds 9-10)",
+      "combo": "slip left-2-3-roll-pullback-slip right-1-2",
+      "moves": 6,
+      "punches": 4,
+      "defense_moves": 1,
+      "length_bonus": 1.35,
+      "defense_bonus": 1.15,
+      "xp_30s": 47.35,
+      "xp_60s": 94.7
+    },
+    {
+      "tier": "Pro",
+      "group": "Warmup (Rds 1-2)",
+      "combo": "1-2-slip left-3-roll-2",
+      "moves": 6,
+      "punches": 4,
+      "defense_moves": 2,
+      "length_bonus": 1.35,
+      "defense_bonus": 1.3,
+      "xp_30s": 63.18,
+      "xp_60s": 126.36
+    },
+    {
+      "tier": "Pro",
+      "group": "Warmup (Rds 1-2)",
+      "combo": "2-3-roll-slip right-2-1",
+      "moves": 5,
+      "punches": 4,
+      "defense_moves": 0,
+      "length_bonus": 1.2,
+      "defense_bonus": 1.0,
+      "xp_30s": 31.2,
+      "xp_60s": 62.4
+    },
+    {
+      "tier": "Pro",
+      "group": "Warmup (Rds 1-2)",
+      "combo": "pullback-1-2-slip left-3",
+      "moves": 5,
+      "punches": 3,
+      "defense_moves": 2,
+      "length_bonus": 1.2,
+      "defense_bonus": 1.3,
+      "xp_30s": 45.24,
+      "xp_60s": 90.48
+    },
+    {
+      "tier": "Pro",
+      "group": "Warmup (Rds 1-2)",
+      "combo": "roll-2-3-pullback-2",
+      "moves": 5,
+      "punches": 3,
+      "defense_moves": 2,
+      "length_bonus": 1.2,
+      "defense_bonus": 1.3,
+      "xp_30s": 48.36,
+      "xp_60s": 96.72
+    },
+    {
+      "tier": "Pro",
+      "group": "Warmup (Rds 1-2)",
+      "combo": "1-2-3-slip left-roll",
+      "moves": 4,
+      "punches": 3,
+      "defense_moves": 0,
+      "length_bonus": 1.1,
+      "defense_bonus": 1.0,
+      "xp_30s": 21.45,
+      "xp_60s": 42.9
+    },
+    {
+      "tier": "Pro",
+      "group": "Warmup (Rds 1-2)",
+      "combo": "2-slip right-3-pullback-1",
+      "moves": 5,
+      "punches": 3,
+      "defense_moves": 2,
+      "length_bonus": 1.2,
+      "defense_bonus": 1.3,
+      "xp_30s": 45.24,
+      "xp_60s": 90.48
+    },
+    {
+      "tier": "Pro",
+      "group": "Warmup (Rds 1-2)",
+      "combo": "slip left-3-2-roll-1",
+      "moves": 5,
+      "punches": 3,
+      "defense_moves": 2,
+      "length_bonus": 1.2,
+      "defense_bonus": 1.3,
+      "xp_30s": 46.02,
+      "xp_60s": 92.04
+    },
+    {
+      "tier": "Pro",
+      "group": "Warmup (Rds 1-2)",
+      "combo": "1-roll-2-3-slip right",
+      "moves": 5,
+      "punches": 3,
+      "defense_moves": 2,
+      "length_bonus": 1.2,
+      "defense_bonus": 1.3,
+      "xp_30s": 46.02,
+      "xp_60s": 92.04
+    },
+    {
+      "tier": "Pro",
+      "group": "All Defense (Rds 3-4)",
+      "combo": "1-2-slip left-3-roll-pullback-2",
+      "moves": 6,
+      "punches": 4,
+      "defense_moves": 1,
+      "length_bonus": 1.35,
+      "defense_bonus": 1.15,
+      "xp_30s": 47.35,
+      "xp_60s": 94.7
+    },
+    {
+      "tier": "Pro",
+      "group": "All Defense (Rds 3-4)",
+      "combo": "2-3-roll-slip right-pullback-1-2",
+      "moves": 5,
+      "punches": 4,
+      "defense_moves": 0,
+      "length_bonus": 1.2,
+      "defense_bonus": 1.0,
+      "xp_30s": 31.2,
+      "xp_60s": 62.4
+    },
+    {
+      "tier": "Pro",
+      "group": "All Defense (Rds 3-4)",
+      "combo": "pullback-1-2-slip left-3-roll-2",
+      "moves": 7,
+      "punches": 4,
+      "defense_moves": 3,
+      "length_bonus": 1.35,
+      "defense_bonus": 1.45,
+      "xp_30s": 80.26,
+      "xp_60s": 160.51
+    },
+    {
+      "tier": "Pro",
+      "group": "All Defense (Rds 3-4)",
+      "combo": "roll-2-slip right-3-pullback-1-2",
+      "moves": 7,
+      "punches": 4,
+      "defense_moves": 3,
+      "length_bonus": 1.35,
+      "defense_bonus": 1.45,
+      "xp_30s": 80.26,
+      "xp_60s": 160.51
+    },
+    {
+      "tier": "Pro",
+      "group": "All Defense (Rds 3-4)",
+      "combo": "1-slip left-2-roll-3-pullback-2",
+      "moves": 7,
+      "punches": 4,
+      "defense_moves": 3,
+      "length_bonus": 1.35,
+      "defense_bonus": 1.45,
+      "xp_30s": 80.26,
+      "xp_60s": 160.51
+    },
+    {
+      "tier": "Pro",
+      "group": "All Defense (Rds 3-4)",
+      "combo": "2-pullback-3-slip right-roll-1-2",
+      "moves": 6,
+      "punches": 4,
+      "defense_moves": 1,
+      "length_bonus": 1.35,
+      "defense_bonus": 1.15,
+      "xp_30s": 48.13,
+      "xp_60s": 96.25
+    },
+    {
+      "tier": "Pro",
+      "group": "All Defense (Rds 3-4)",
+      "combo": "1-2-3-roll-slip left-pullback-2",
+      "moves": 5,
+      "punches": 4,
+      "defense_moves": 0,
+      "length_bonus": 1.2,
+      "defense_bonus": 1.0,
+      "xp_30s": 31.2,
+      "xp_60s": 62.4
+    },
+    {
+      "tier": "Pro",
+      "group": "All Defense (Rds 3-4)",
+      "combo": "slip right-2-3-roll-pullback-1-2",
+      "moves": 6,
+      "punches": 4,
+      "defense_moves": 1,
+      "length_bonus": 1.35,
+      "defense_bonus": 1.15,
+      "xp_30s": 47.35,
+      "xp_60s": 94.7
+    },
+    {
+      "tier": "Pro",
+      "group": "All Defense (Rds 3-4)",
+      "combo": "1-roll-2-slip left-3-pullback-2",
+      "moves": 7,
+      "punches": 4,
+      "defense_moves": 3,
+      "length_bonus": 1.35,
+      "defense_bonus": 1.45,
+      "xp_30s": 80.26,
+      "xp_60s": 160.51
+    },
+    {
+      "tier": "Pro",
+      "group": "All Defense (Rds 3-4)",
+      "combo": "2-3-pullback-roll-slip right-1-2",
+      "moves": 5,
+      "punches": 4,
+      "defense_moves": 0,
+      "length_bonus": 1.2,
+      "defense_bonus": 1.0,
+      "xp_30s": 31.2,
+      "xp_60s": 62.4
+    },
+    {
+      "tier": "Pro",
+      "group": "Weaved (Rds 5-7)",
+      "combo": "1-2-slip left-3-roll-pullback-2-3",
+      "moves": 7,
+      "punches": 5,
+      "defense_moves": 1,
+      "length_bonus": 1.35,
+      "defense_bonus": 1.15,
+      "xp_30s": 58.99,
+      "xp_60s": 117.99
+    },
+    {
+      "tier": "Pro",
+      "group": "Weaved (Rds 5-7)",
+      "combo": "2-3-roll-slip right-pullback-1-2-3",
+      "moves": 6,
+      "punches": 5,
+      "defense_moves": 0,
+      "length_bonus": 1.35,
+      "defense_bonus": 1.0,
+      "xp_30s": 45.23,
+      "xp_60s": 90.45
+    },
+    {
+      "tier": "Pro",
+      "group": "Weaved (Rds 5-7)",
+      "combo": "pullback-1-2-slip left-3-roll-2-slip right",
+      "moves": 8,
+      "punches": 4,
+      "defense_moves": 4,
+      "length_bonus": 1.35,
+      "defense_bonus": 1.45,
+      "xp_30s": 89.07,
+      "xp_60s": 178.13
+    },
+    {
+      "tier": "Pro",
+      "group": "Weaved (Rds 5-7)",
+      "combo": "roll-2-3-pullback-slip right-1-2-slip left",
+      "moves": 7,
+      "punches": 4,
+      "defense_moves": 2,
+      "length_bonus": 1.35,
+      "defense_bonus": 1.3,
+      "xp_30s": 63.18,
+      "xp_60s": 126.36
+    },
+    {
+      "tier": "Pro",
+      "group": "Weaved (Rds 5-7)",
+      "combo": "1-2-3-slip left-roll-pullback-2-3-2",
+      "moves": 7,
+      "punches": 6,
+      "defense_moves": 0,
+      "length_bonus": 1.35,
+      "defense_bonus": 1.0,
+      "xp_30s": 54.0,
+      "xp_60s": 108.0
+    },
+    {
+      "tier": "Pro",
+      "group": "Weaved (Rds 5-7)",
+      "combo": "2-slip right-3-roll-pullback-1-2-3",
+      "moves": 7,
+      "punches": 5,
+      "defense_moves": 1,
+      "length_bonus": 1.35,
+      "defense_bonus": 1.15,
+      "xp_30s": 58.99,
+      "xp_60s": 117.99
+    },
+    {
+      "tier": "Pro",
+      "group": "Weaved (Rds 5-7)",
+      "combo": "1-pullback-2-3-slip left-roll-2-slip right",
+      "moves": 7,
+      "punches": 4,
+      "defense_moves": 2,
+      "length_bonus": 1.35,
+      "defense_bonus": 1.3,
+      "xp_30s": 62.3,
+      "xp_60s": 124.61
+    },
+    {
+      "tier": "Pro",
+      "group": "Weaved (Rds 5-7)",
+      "combo": "slip left-2-3-roll-pullback-slip right-1-2",
+      "moves": 6,
+      "punches": 4,
+      "defense_moves": 1,
+      "length_bonus": 1.35,
+      "defense_bonus": 1.15,
+      "xp_30s": 47.35,
+      "xp_60s": 94.7
+    },
+    {
+      "tier": "Pro",
+      "group": "Weaved (Rds 5-7)",
+      "combo": "1-2-roll-3-slip left-pullback-2-3",
+      "moves": 7,
+      "punches": 5,
+      "defense_moves": 1,
+      "length_bonus": 1.35,
+      "defense_bonus": 1.15,
+      "xp_30s": 60.55,
+      "xp_60s": 121.09
+    },
+    {
+      "tier": "Pro",
+      "group": "Weaved (Rds 5-7)",
+      "combo": "2-3-pullback-slip right-roll-1-2-3",
+      "moves": 6,
+      "punches": 5,
+      "defense_moves": 0,
+      "length_bonus": 1.35,
+      "defense_bonus": 1.0,
+      "xp_30s": 45.23,
+      "xp_60s": 90.45
+    },
+    {
+      "tier": "Pro",
+      "group": "Weaved (Rds 5-7)",
+      "combo": "roll-1-2-slip left-3-pullback-2-3",
+      "moves": 8,
+      "punches": 5,
+      "defense_moves": 3,
+      "length_bonus": 1.35,
+      "defense_bonus": 1.45,
+      "xp_30s": 94.94,
+      "xp_60s": 189.88
+    },
+    {
+      "tier": "Pro",
+      "group": "Weaved (Rds 5-7)",
+      "combo": "1-slip left-2-3-roll-pullback-slip right-2",
+      "moves": 6,
+      "punches": 4,
+      "defense_moves": 1,
+      "length_bonus": 1.35,
+      "defense_bonus": 1.15,
+      "xp_30s": 47.35,
+      "xp_60s": 94.7
+    },
+    {
+      "tier": "Pro",
+      "group": "Weaved (Rds 5-7)",
+      "combo": "pullback-2-3-roll-slip left-1-2-3",
+      "moves": 7,
+      "punches": 5,
+      "defense_moves": 1,
+      "length_bonus": 1.35,
+      "defense_bonus": 1.15,
+      "xp_30s": 59.77,
+      "xp_60s": 119.54
+    },
+    {
+      "tier": "Pro",
+      "group": "Weaved (Rds 5-7)",
+      "combo": "2-roll-3-slip right-pullback-1-2-slip left",
+      "moves": 7,
+      "punches": 4,
+      "defense_moves": 2,
+      "length_bonus": 1.35,
+      "defense_bonus": 1.3,
+      "xp_30s": 63.18,
+      "xp_60s": 126.36
+    },
+    {
+      "tier": "Pro",
+      "group": "True Pro (Rds 8-10)",
+      "combo": "1-2-slip left-3-roll-pullback-circle left-2-3-2",
+      "moves": 8,
+      "punches": 6,
+      "defense_moves": 1,
+      "length_bonus": 1.35,
+      "defense_bonus": 1.15,
+      "xp_30s": 69.09,
+      "xp_60s": 138.17
+    },
+    {
+      "tier": "Pro",
+      "group": "True Pro (Rds 8-10)",
+      "combo": "2-3-roll-slip right-pullback-circle right-1-2-3",
+      "moves": 6,
+      "punches": 5,
+      "defense_moves": 0,
+      "length_bonus": 1.35,
+      "defense_bonus": 1.0,
+      "xp_30s": 45.23,
+      "xp_60s": 90.45
+    },
+    {
+      "tier": "Pro",
+      "group": "True Pro (Rds 8-10)",
+      "combo": "circle left-1-2-slip left-3-roll-pullback-2-3",
+      "moves": 8,
+      "punches": 5,
+      "defense_moves": 2,
+      "length_bonus": 1.35,
+      "defense_bonus": 1.3,
+      "xp_30s": 73.71,
+      "xp_60s": 147.42
+    },
+    {
+      "tier": "Pro",
+      "group": "True Pro (Rds 8-10)",
+      "combo": "1-2-3-slip left-roll-pullback-circle right-2-3-2",
+      "moves": 7,
+      "punches": 6,
+      "defense_moves": 0,
+      "length_bonus": 1.35,
+      "defense_bonus": 1.0,
+      "xp_30s": 54.0,
+      "xp_60s": 108.0
+    },
+    {
+      "tier": "Pro",
+      "group": "True Pro (Rds 8-10)",
+      "combo": "pullback-1-2-slip left-circle left-3-roll-2-slip right-3",
+      "moves": 9,
+      "punches": 5,
+      "defense_moves": 3,
+      "length_bonus": 1.35,
+      "defense_bonus": 1.45,
+      "xp_30s": 94.94,
+      "xp_60s": 189.88
+    },
+    {
+      "tier": "Pro",
+      "group": "True Pro (Rds 8-10)",
+      "combo": "roll-2-3-pullback-circle right-slip right-1-2-3-2",
+      "moves": 8,
+      "punches": 6,
+      "defense_moves": 1,
+      "length_bonus": 1.35,
+      "defense_bonus": 1.15,
+      "xp_30s": 70.64,
+      "xp_60s": 141.28
+    },
+    {
+      "tier": "Pro",
+      "group": "True Pro (Rds 8-10)",
+      "combo": "1-slip left-2-3-roll-circle left-pullback-2-3-slip right",
+      "moves": 8,
+      "punches": 5,
+      "defense_moves": 2,
+      "length_bonus": 1.35,
+      "defense_bonus": 1.3,
+      "xp_30s": 74.59,
+      "xp_60s": 149.18
+    },
+    {
+      "tier": "Pro",
+      "group": "True Pro (Rds 8-10)",
+      "combo": "2-circle right-3-slip left-roll-pullback-1-2-3-2",
+      "moves": 8,
+      "punches": 6,
+      "defense_moves": 1,
+      "length_bonus": 1.35,
+      "defense_bonus": 1.15,
+      "xp_30s": 68.31,
+      "xp_60s": 136.62
+    },
+    {
+      "tier": "Pro",
+      "group": "True Pro (Rds 8-10)",
+      "combo": "circle left-slip left-1-2-3-roll-pullback-2-circle right-3",
+      "moves": 8,
+      "punches": 5,
+      "defense_moves": 1,
+      "length_bonus": 1.35,
+      "defense_bonus": 1.15,
+      "xp_30s": 58.22,
+      "xp_60s": 116.44
+    },
+    {
+      "tier": "Pro",
+      "group": "True Pro (Rds 8-10)",
+      "combo": "1-2-roll-3-pullback-circle left-slip left-2-3-2",
+      "moves": 8,
+      "punches": 6,
+      "defense_moves": 1,
+      "length_bonus": 1.35,
+      "defense_bonus": 1.15,
+      "xp_30s": 70.64,
+      "xp_60s": 141.28
+    },
+    {
+      "tier": "Pro",
+      "group": "True Pro (Rds 8-10)",
+      "combo": "2-3-circle right-roll-slip right-pullback-1-2-3",
+      "moves": 6,
+      "punches": 5,
+      "defense_moves": 0,
+      "length_bonus": 1.35,
+      "defense_bonus": 1.0,
+      "xp_30s": 45.23,
+      "xp_60s": 90.45
+    },
+    {
+      "tier": "Pro",
+      "group": "True Pro (Rds 8-10)",
+      "combo": "1-pullback-2-slip left-3-roll-circle left-2-3-circle right",
+      "moves": 9,
+      "punches": 5,
+      "defense_moves": 3,
+      "length_bonus": 1.35,
+      "defense_bonus": 1.45,
+      "xp_30s": 92.0,
+      "xp_60s": 184.0
+    }
+  ],
+  "bag_session_xp_tests": {
+    "Rookie": 773.6,
+    "Beginner": 886.3,
+    "Intermediate": 1095.2,
+    "Advanced": 1451.5,
+    "Pro": 1588.4
+  },
+  "exercise_duration_tests": [
+    {
+      "activity": "pushups",
+      "rate_per_sec": 0.22,
+      "duration_sec": 30,
+      "expected_xp": 6.6
+    },
+    {
+      "activity": "pushups",
+      "rate_per_sec": 0.22,
+      "duration_sec": 60,
+      "expected_xp": 13.2
+    },
+    {
+      "activity": "pushups",
+      "rate_per_sec": 0.22,
+      "duration_sec": 120,
+      "expected_xp": 26.4
+    },
+    {
+      "activity": "pushups",
+      "rate_per_sec": 0.22,
+      "duration_sec": 180,
+      "expected_xp": 39.6
+    },
+    {
+      "activity": "pushups",
+      "rate_per_sec": 0.22,
+      "duration_sec": 600,
+      "expected_xp": 132.0
+    },
+    {
+      "activity": "burpees",
+      "rate_per_sec": 0.28,
+      "duration_sec": 30,
+      "expected_xp": 8.4
+    },
+    {
+      "activity": "burpees",
+      "rate_per_sec": 0.28,
+      "duration_sec": 60,
+      "expected_xp": 16.8
+    },
+    {
+      "activity": "burpees",
+      "rate_per_sec": 0.28,
+      "duration_sec": 120,
+      "expected_xp": 33.6
+    },
+    {
+      "activity": "burpees",
+      "rate_per_sec": 0.28,
+      "duration_sec": 180,
+      "expected_xp": 50.4
+    },
+    {
+      "activity": "burpees",
+      "rate_per_sec": 0.28,
+      "duration_sec": 600,
+      "expected_xp": 168.0
+    },
+    {
+      "activity": "curlups",
+      "rate_per_sec": 0.18,
+      "duration_sec": 30,
+      "expected_xp": 5.4
+    },
+    {
+      "activity": "curlups",
+      "rate_per_sec": 0.18,
+      "duration_sec": 60,
+      "expected_xp": 10.8
+    },
+    {
+      "activity": "curlups",
+      "rate_per_sec": 0.18,
+      "duration_sec": 120,
+      "expected_xp": 21.6
+    },
+    {
+      "activity": "curlups",
+      "rate_per_sec": 0.18,
+      "duration_sec": 180,
+      "expected_xp": 32.4
+    },
+    {
+      "activity": "curlups",
+      "rate_per_sec": 0.18,
+      "duration_sec": 600,
+      "expected_xp": 108.0
+    },
+    {
+      "activity": "jump_rope",
+      "rate_per_sec": 0.25,
+      "duration_sec": 30,
+      "expected_xp": 7.5
+    },
+    {
+      "activity": "jump_rope",
+      "rate_per_sec": 0.25,
+      "duration_sec": 60,
+      "expected_xp": 15.0
+    },
+    {
+      "activity": "jump_rope",
+      "rate_per_sec": 0.25,
+      "duration_sec": 120,
+      "expected_xp": 30.0
+    },
+    {
+      "activity": "jump_rope",
+      "rate_per_sec": 0.25,
+      "duration_sec": 180,
+      "expected_xp": 45.0
+    },
+    {
+      "activity": "jump_rope",
+      "rate_per_sec": 0.25,
+      "duration_sec": 600,
+      "expected_xp": 150.0
+    },
+    {
+      "activity": "treadmill",
+      "rate_per_sec": 0.2,
+      "duration_sec": 30,
+      "expected_xp": 6.0
+    },
+    {
+      "activity": "treadmill",
+      "rate_per_sec": 0.2,
+      "duration_sec": 60,
+      "expected_xp": 12.0
+    },
+    {
+      "activity": "treadmill",
+      "rate_per_sec": 0.2,
+      "duration_sec": 120,
+      "expected_xp": 24.0
+    },
+    {
+      "activity": "treadmill",
+      "rate_per_sec": 0.2,
+      "duration_sec": 180,
+      "expected_xp": 36.0
+    },
+    {
+      "activity": "treadmill",
+      "rate_per_sec": 0.2,
+      "duration_sec": 600,
+      "expected_xp": 120.0
+    },
+    {
+      "activity": "jog_in_place",
+      "rate_per_sec": 0.15,
+      "duration_sec": 30,
+      "expected_xp": 4.5
+    },
+    {
+      "activity": "jog_in_place",
+      "rate_per_sec": 0.15,
+      "duration_sec": 60,
+      "expected_xp": 9.0
+    },
+    {
+      "activity": "jog_in_place",
+      "rate_per_sec": 0.15,
+      "duration_sec": 120,
+      "expected_xp": 18.0
+    },
+    {
+      "activity": "jog_in_place",
+      "rate_per_sec": 0.15,
+      "duration_sec": 180,
+      "expected_xp": 27.0
+    },
+    {
+      "activity": "jog_in_place",
+      "rate_per_sec": 0.15,
+      "duration_sec": 600,
+      "expected_xp": 90.0
+    },
+    {
+      "activity": "jog",
+      "rate_per_sec": 0.15,
+      "duration_sec": 30,
+      "expected_xp": 4.5
+    },
+    {
+      "activity": "jog",
+      "rate_per_sec": 0.15,
+      "duration_sec": 60,
+      "expected_xp": 9.0
+    },
+    {
+      "activity": "jog",
+      "rate_per_sec": 0.15,
+      "duration_sec": 120,
+      "expected_xp": 18.0
+    },
+    {
+      "activity": "jog",
+      "rate_per_sec": 0.15,
+      "duration_sec": 180,
+      "expected_xp": 27.0
+    },
+    {
+      "activity": "jog",
+      "rate_per_sec": 0.15,
+      "duration_sec": 600,
+      "expected_xp": 90.0
+    },
+    {
+      "activity": "rest",
+      "rate_per_sec": 0.0,
+      "duration_sec": 30,
+      "expected_xp": 0.0
+    },
+    {
+      "activity": "rest",
+      "rate_per_sec": 0.0,
+      "duration_sec": 60,
+      "expected_xp": 0.0
+    },
+    {
+      "activity": "rest",
+      "rate_per_sec": 0.0,
+      "duration_sec": 120,
+      "expected_xp": 0.0
+    },
+    {
+      "activity": "rest",
+      "rate_per_sec": 0.0,
+      "duration_sec": 180,
+      "expected_xp": 0.0
+    },
+    {
+      "activity": "rest",
+      "rate_per_sec": 0.0,
+      "duration_sec": 600,
+      "expected_xp": 0.0
+    },
+    {
+      "activity": "freestyle",
+      "rate_per_sec": 0.35,
+      "duration_sec": 30,
+      "expected_xp": 10.5
+    },
+    {
+      "activity": "freestyle",
+      "rate_per_sec": 0.35,
+      "duration_sec": 60,
+      "expected_xp": 21.0
+    },
+    {
+      "activity": "freestyle",
+      "rate_per_sec": 0.35,
+      "duration_sec": 120,
+      "expected_xp": 42.0
+    },
+    {
+      "activity": "freestyle",
+      "rate_per_sec": 0.35,
+      "duration_sec": 180,
+      "expected_xp": 63.0
+    },
+    {
+      "activity": "freestyle",
+      "rate_per_sec": 0.35,
+      "duration_sec": 600,
+      "expected_xp": 210.0
+    },
+    {
+      "activity": "bag_freestyle",
+      "rate_per_sec": 0.4,
+      "duration_sec": 30,
+      "expected_xp": 12.0
+    },
+    {
+      "activity": "bag_freestyle",
+      "rate_per_sec": 0.4,
+      "duration_sec": 60,
+      "expected_xp": 24.0
+    },
+    {
+      "activity": "bag_freestyle",
+      "rate_per_sec": 0.4,
+      "duration_sec": 120,
+      "expected_xp": 48.0
+    },
+    {
+      "activity": "bag_freestyle",
+      "rate_per_sec": 0.4,
+      "duration_sec": 180,
+      "expected_xp": 72.0
+    },
+    {
+      "activity": "bag_freestyle",
+      "rate_per_sec": 0.4,
+      "duration_sec": 600,
+      "expected_xp": 240.0
+    },
+    {
+      "activity": "bag_combo_bonus",
+      "rate_per_sec": 0.2,
+      "duration_sec": 30,
+      "expected_xp": 6.0
+    },
+    {
+      "activity": "bag_combo_bonus",
+      "rate_per_sec": 0.2,
+      "duration_sec": 60,
+      "expected_xp": 12.0
+    },
+    {
+      "activity": "bag_combo_bonus",
+      "rate_per_sec": 0.2,
+      "duration_sec": 120,
+      "expected_xp": 24.0
+    },
+    {
+      "activity": "bag_combo_bonus",
+      "rate_per_sec": 0.2,
+      "duration_sec": 180,
+      "expected_xp": 36.0
+    },
+    {
+      "activity": "bag_combo_bonus",
+      "rate_per_sec": 0.2,
+      "duration_sec": 600,
+      "expected_xp": 120.0
+    }
+  ],
+  "championship_tests": [
+    {
+      "activity": "freestyle",
+      "duration": 60,
+      "base_rate": 0.35,
+      "champ_mult": 2,
+      "expected": 42.0,
+      "note": "Shadow freestyle in championship"
+    },
+    {
+      "activity": "freestyle",
+      "duration": 30,
+      "base_rate": 0.35,
+      "champ_mult": 2,
+      "expected": 21.0,
+      "note": "Shadow freestyle in championship (bag mode)"
+    },
+    {
+      "activity": "bag_freestyle",
+      "duration": 30,
+      "base_rate": 0.4,
+      "champ_mult": 2,
+      "expected": 24.0,
+      "note": "Bag freestyle in championship"
+    },
+    {
+      "activity": "burpees",
+      "duration": 30,
+      "base_rate": 0.28,
+      "champ_mult": 1,
+      "expected": 8.4,
+      "note": "Burpees NOT multiplied in championship"
+    },
+    {
+      "activity": "pushups",
+      "duration": 30,
+      "base_rate": 0.22,
+      "champ_mult": 1,
+      "expected": 6.6,
+      "note": "Pushups NOT multiplied (regular round, not championship)"
+    }
+  ],
+  "streak_multiplier_table": [
+    {
+      "day": 0,
+      "multiplier": 1.0
+    },
+    {
+      "day": 1,
+      "multiplier": 1.0
+    },
+    {
+      "day": 2,
+      "multiplier": 1.0
+    },
+    {
+      "day": 3,
+      "multiplier": 1.1
+    },
+    {
+      "day": 4,
+      "multiplier": 1.1
+    },
+    {
+      "day": 5,
+      "multiplier": 1.1
+    },
+    {
+      "day": 6,
+      "multiplier": 1.1
+    },
+    {
+      "day": 7,
+      "multiplier": 1.25
+    },
+    {
+      "day": 8,
+      "multiplier": 1.25
+    },
+    {
+      "day": 9,
+      "multiplier": 1.25
+    },
+    {
+      "day": 10,
+      "multiplier": 1.25
+    },
+    {
+      "day": 11,
+      "multiplier": 1.25
+    },
+    {
+      "day": 12,
+      "multiplier": 1.25
+    },
+    {
+      "day": 13,
+      "multiplier": 1.25
+    },
+    {
+      "day": 14,
+      "multiplier": 1.4
+    },
+    {
+      "day": 15,
+      "multiplier": 1.4
+    },
+    {
+      "day": 16,
+      "multiplier": 1.4
+    },
+    {
+      "day": 17,
+      "multiplier": 1.4
+    },
+    {
+      "day": 18,
+      "multiplier": 1.4
+    },
+    {
+      "day": 19,
+      "multiplier": 1.4
+    },
+    {
+      "day": 20,
+      "multiplier": 1.4
+    },
+    {
+      "day": 21,
+      "multiplier": 1.4
+    },
+    {
+      "day": 22,
+      "multiplier": 1.4
+    },
+    {
+      "day": 23,
+      "multiplier": 1.4
+    },
+    {
+      "day": 24,
+      "multiplier": 1.4
+    },
+    {
+      "day": 25,
+      "multiplier": 1.4
+    },
+    {
+      "day": 26,
+      "multiplier": 1.4
+    },
+    {
+      "day": 27,
+      "multiplier": 1.4
+    },
+    {
+      "day": 28,
+      "multiplier": 1.4
+    },
+    {
+      "day": 29,
+      "multiplier": 1.4
+    },
+    {
+      "day": 30,
+      "multiplier": 1.6
+    },
+    {
+      "day": 31,
+      "multiplier": 1.6
+    },
+    {
+      "day": 32,
+      "multiplier": 1.6
+    },
+    {
+      "day": 33,
+      "multiplier": 1.6
+    },
+    {
+      "day": 34,
+      "multiplier": 1.6
+    },
+    {
+      "day": 35,
+      "multiplier": 1.6
+    },
+    {
+      "day": 36,
+      "multiplier": 1.6
+    },
+    {
+      "day": 37,
+      "multiplier": 1.6
+    },
+    {
+      "day": 38,
+      "multiplier": 1.6
+    },
+    {
+      "day": 39,
+      "multiplier": 1.6
+    },
+    {
+      "day": 40,
+      "multiplier": 1.6
+    },
+    {
+      "day": 41,
+      "multiplier": 1.6
+    },
+    {
+      "day": 42,
+      "multiplier": 1.6
+    },
+    {
+      "day": 43,
+      "multiplier": 1.6
+    },
+    {
+      "day": 44,
+      "multiplier": 1.6
+    },
+    {
+      "day": 45,
+      "multiplier": 1.6
+    },
+    {
+      "day": 46,
+      "multiplier": 1.6
+    },
+    {
+      "day": 47,
+      "multiplier": 1.6
+    },
+    {
+      "day": 48,
+      "multiplier": 1.6
+    },
+    {
+      "day": 49,
+      "multiplier": 1.6
+    },
+    {
+      "day": 50,
+      "multiplier": 1.6
+    },
+    {
+      "day": 51,
+      "multiplier": 1.6
+    },
+    {
+      "day": 52,
+      "multiplier": 1.6
+    },
+    {
+      "day": 53,
+      "multiplier": 1.6
+    },
+    {
+      "day": 54,
+      "multiplier": 1.6
+    },
+    {
+      "day": 55,
+      "multiplier": 1.6
+    },
+    {
+      "day": 56,
+      "multiplier": 1.6
+    },
+    {
+      "day": 57,
+      "multiplier": 1.6
+    },
+    {
+      "day": 58,
+      "multiplier": 1.6
+    },
+    {
+      "day": 59,
+      "multiplier": 1.6
+    },
+    {
+      "day": 60,
+      "multiplier": 1.8
+    },
+    {
+      "day": 61,
+      "multiplier": 1.8
+    },
+    {
+      "day": 62,
+      "multiplier": 1.8
+    },
+    {
+      "day": 63,
+      "multiplier": 1.8
+    },
+    {
+      "day": 64,
+      "multiplier": 1.8
+    },
+    {
+      "day": 65,
+      "multiplier": 1.8
+    },
+    {
+      "day": 66,
+      "multiplier": 1.8
+    },
+    {
+      "day": 67,
+      "multiplier": 1.8
+    },
+    {
+      "day": 68,
+      "multiplier": 1.8
+    },
+    {
+      "day": 69,
+      "multiplier": 1.8
+    },
+    {
+      "day": 70,
+      "multiplier": 1.8
+    },
+    {
+      "day": 71,
+      "multiplier": 1.8
+    },
+    {
+      "day": 72,
+      "multiplier": 1.8
+    },
+    {
+      "day": 73,
+      "multiplier": 1.8
+    },
+    {
+      "day": 74,
+      "multiplier": 1.8
+    },
+    {
+      "day": 75,
+      "multiplier": 1.8
+    },
+    {
+      "day": 76,
+      "multiplier": 1.8
+    },
+    {
+      "day": 77,
+      "multiplier": 1.8
+    },
+    {
+      "day": 78,
+      "multiplier": 1.8
+    },
+    {
+      "day": 79,
+      "multiplier": 1.8
+    },
+    {
+      "day": 80,
+      "multiplier": 1.8
+    },
+    {
+      "day": 81,
+      "multiplier": 1.8
+    },
+    {
+      "day": 82,
+      "multiplier": 1.8
+    },
+    {
+      "day": 83,
+      "multiplier": 1.8
+    },
+    {
+      "day": 84,
+      "multiplier": 1.8
+    },
+    {
+      "day": 85,
+      "multiplier": 1.8
+    },
+    {
+      "day": 86,
+      "multiplier": 1.8
+    },
+    {
+      "day": 87,
+      "multiplier": 1.8
+    },
+    {
+      "day": 88,
+      "multiplier": 1.8
+    },
+    {
+      "day": 89,
+      "multiplier": 1.8
+    },
+    {
+      "day": 90,
+      "multiplier": 1.8
+    },
+    {
+      "day": 91,
+      "multiplier": 1.8
+    },
+    {
+      "day": 92,
+      "multiplier": 1.8
+    },
+    {
+      "day": 93,
+      "multiplier": 1.8
+    },
+    {
+      "day": 94,
+      "multiplier": 1.8
+    },
+    {
+      "day": 95,
+      "multiplier": 1.8
+    },
+    {
+      "day": 96,
+      "multiplier": 1.8
+    },
+    {
+      "day": 97,
+      "multiplier": 1.8
+    },
+    {
+      "day": 98,
+      "multiplier": 1.8
+    },
+    {
+      "day": 99,
+      "multiplier": 1.8
+    },
+    {
+      "day": 100,
+      "multiplier": 2.0
+    },
+    {
+      "day": 101,
+      "multiplier": 2.0
+    },
+    {
+      "day": 102,
+      "multiplier": 2.0
+    },
+    {
+      "day": 103,
+      "multiplier": 2.0
+    },
+    {
+      "day": 104,
+      "multiplier": 2.0
+    }
+  ],
+  "streak_reset_scenarios": [
+    {
+      "scenario": "Miss day after 14-day streak",
+      "streak_before": 14,
+      "missed_days": 1,
+      "streak_after": 0,
+      "mult_before": 1.4,
+      "mult_after": 1.0
+    },
+    {
+      "scenario": "Miss day after 100-day streak",
+      "streak_before": 100,
+      "missed_days": 1,
+      "streak_after": 0,
+      "mult_before": 2.0,
+      "mult_after": 1.0
+    },
+    {
+      "scenario": "Miss day after 3-day streak",
+      "streak_before": 3,
+      "missed_days": 1,
+      "streak_after": 0,
+      "mult_before": 1.1,
+      "mult_after": 1.0
+    },
+    {
+      "scenario": "Two workouts same day (day 5)",
+      "streak_before": 5,
+      "workouts_today": 2,
+      "streak_after": 5,
+      "mult": 1.1,
+      "note": "Streak does not double-count same day"
+    },
+    {
+      "scenario": "Workout at 11:59pm then 12:01am",
+      "streak_before": 5,
+      "streak_after": 6,
+      "mult_after": 1.1,
+      "note": "New calendar day = streak increments"
+    }
+  ],
+  "level_boundary_edge_cases": [
+    {
+      "test": "Rookie L1: 1 XP below threshold",
+      "tier": "Rookie",
+      "cumulative_xp": 142.6,
+      "expected_level": 0
+    },
+    {
+      "test": "Rookie L1: exactly at threshold",
+      "tier": "Rookie",
+      "cumulative_xp": 142.7,
+      "expected_level": 1
+    },
+    {
+      "test": "Rookie L1: 1 XP above threshold",
+      "tier": "Rookie",
+      "cumulative_xp": 142.8,
+      "expected_level": 1
+    },
+    {
+      "test": "Rookie L10: 1 XP below threshold",
+      "tier": "Rookie",
+      "cumulative_xp": 1948.2,
+      "expected_level": 9
+    },
+    {
+      "test": "Rookie L10: exactly at threshold",
+      "tier": "Rookie",
+      "cumulative_xp": 1948.3,
+      "expected_level": 10
+    },
+    {
+      "test": "Rookie L10: 1 XP above threshold",
+      "tier": "Rookie",
+      "cumulative_xp": 1948.4,
+      "expected_level": 10
+    },
+    {
+      "test": "Rookie L25: 1 XP below threshold",
+      "tier": "Rookie",
+      "cumulative_xp": 5745.5,
+      "expected_level": 24
+    },
+    {
+      "test": "Rookie L25: exactly at threshold",
+      "tier": "Rookie",
+      "cumulative_xp": 5745.6,
+      "expected_level": 25
+    },
+    {
+      "test": "Rookie L25: 1 XP above threshold",
+      "tier": "Rookie",
+      "cumulative_xp": 5745.7,
+      "expected_level": 25
+    },
+    {
+      "test": "Rookie L50: 1 XP below threshold",
+      "tier": "Rookie",
+      "cumulative_xp": 13108.2,
+      "expected_level": 49
+    },
+    {
+      "test": "Rookie L50: exactly at threshold",
+      "tier": "Rookie",
+      "cumulative_xp": 13108.3,
+      "expected_level": 50
+    },
+    {
+      "test": "Rookie L50: 1 XP above threshold",
+      "tier": "Rookie",
+      "cumulative_xp": 13108.4,
+      "expected_level": 50
+    },
+    {
+      "test": "Rookie L75: 1 XP below threshold",
+      "tier": "Rookie",
+      "cumulative_xp": 21269.8,
+      "expected_level": 74
+    },
+    {
+      "test": "Rookie L75: exactly at threshold",
+      "tier": "Rookie",
+      "cumulative_xp": 21269.9,
+      "expected_level": 75
+    },
+    {
+      "test": "Rookie L75: 1 XP above threshold",
+      "tier": "Rookie",
+      "cumulative_xp": 21270.0,
+      "expected_level": 75
+    },
+    {
+      "test": "Rookie L99: 1 XP below threshold",
+      "tier": "Rookie",
+      "cumulative_xp": 29641.6,
+      "expected_level": 98
+    },
+    {
+      "test": "Rookie L99: exactly at threshold",
+      "tier": "Rookie",
+      "cumulative_xp": 29641.7,
+      "expected_level": 99
+    },
+    {
+      "test": "Rookie L99: 1 XP above threshold",
+      "tier": "Rookie",
+      "cumulative_xp": 29641.8,
+      "expected_level": 99
+    },
+    {
+      "test": "Beginner L1: 1 XP below threshold",
+      "tier": "Beginner",
+      "cumulative_xp": 149.2,
+      "expected_level": 0
+    },
+    {
+      "test": "Beginner L1: exactly at threshold",
+      "tier": "Beginner",
+      "cumulative_xp": 149.3,
+      "expected_level": 1
+    },
+    {
+      "test": "Beginner L1: 1 XP above threshold",
+      "tier": "Beginner",
+      "cumulative_xp": 149.4,
+      "expected_level": 1
+    },
+    {
+      "test": "Beginner L10: 1 XP below threshold",
+      "tier": "Beginner",
+      "cumulative_xp": 2957.9,
+      "expected_level": 9
+    },
+    {
+      "test": "Beginner L10: exactly at threshold",
+      "tier": "Beginner",
+      "cumulative_xp": 2958.0,
+      "expected_level": 10
+    },
+    {
+      "test": "Beginner L10: 1 XP above threshold",
+      "tier": "Beginner",
+      "cumulative_xp": 2958.1,
+      "expected_level": 10
+    },
+    {
+      "test": "Beginner L25: 1 XP below threshold",
+      "tier": "Beginner",
+      "cumulative_xp": 10576.5,
+      "expected_level": 24
+    },
+    {
+      "test": "Beginner L25: exactly at threshold",
+      "tier": "Beginner",
+      "cumulative_xp": 10576.6,
+      "expected_level": 25
+    },
+    {
+      "test": "Beginner L25: 1 XP above threshold",
+      "tier": "Beginner",
+      "cumulative_xp": 10576.7,
+      "expected_level": 25
+    },
+    {
+      "test": "Beginner L50: 1 XP below threshold",
+      "tier": "Beginner",
+      "cumulative_xp": 28083.4,
+      "expected_level": 49
+    },
+    {
+      "test": "Beginner L50: exactly at threshold",
+      "tier": "Beginner",
+      "cumulative_xp": 28083.5,
+      "expected_level": 50
+    },
+    {
+      "test": "Beginner L50: 1 XP above threshold",
+      "tier": "Beginner",
+      "cumulative_xp": 28083.6,
+      "expected_level": 50
+    },
+    {
+      "test": "Beginner L75: 1 XP below threshold",
+      "tier": "Beginner",
+      "cumulative_xp": 49861.4,
+      "expected_level": 74
+    },
+    {
+      "test": "Beginner L75: exactly at threshold",
+      "tier": "Beginner",
+      "cumulative_xp": 49861.5,
+      "expected_level": 75
+    },
+    {
+      "test": "Beginner L75: 1 XP above threshold",
+      "tier": "Beginner",
+      "cumulative_xp": 49861.6,
+      "expected_level": 75
+    },
+    {
+      "test": "Beginner L99: 1 XP below threshold",
+      "tier": "Beginner",
+      "cumulative_xp": 73930.5,
+      "expected_level": 98
+    },
+    {
+      "test": "Beginner L99: exactly at threshold",
+      "tier": "Beginner",
+      "cumulative_xp": 73930.6,
+      "expected_level": 99
+    },
+    {
+      "test": "Beginner L99: 1 XP above threshold",
+      "tier": "Beginner",
+      "cumulative_xp": 73930.7,
+      "expected_level": 99
+    },
+    {
+      "test": "Intermediate L1: 1 XP below threshold",
+      "tier": "Intermediate",
+      "cumulative_xp": 243.8,
+      "expected_level": 0
+    },
+    {
+      "test": "Intermediate L1: exactly at threshold",
+      "tier": "Intermediate",
+      "cumulative_xp": 243.9,
+      "expected_level": 1
+    },
+    {
+      "test": "Intermediate L1: 1 XP above threshold",
+      "tier": "Intermediate",
+      "cumulative_xp": 244.0,
+      "expected_level": 1
+    },
+    {
+      "test": "Intermediate L10: 1 XP below threshold",
+      "tier": "Intermediate",
+      "cumulative_xp": 5611.8,
+      "expected_level": 9
+    },
+    {
+      "test": "Intermediate L10: exactly at threshold",
+      "tier": "Intermediate",
+      "cumulative_xp": 5611.9,
+      "expected_level": 10
+    },
+    {
+      "test": "Intermediate L10: 1 XP above threshold",
+      "tier": "Intermediate",
+      "cumulative_xp": 5612.0,
+      "expected_level": 10
+    },
+    {
+      "test": "Intermediate L25: 1 XP below threshold",
+      "tier": "Intermediate",
+      "cumulative_xp": 21648.1,
+      "expected_level": 24
+    },
+    {
+      "test": "Intermediate L25: exactly at threshold",
+      "tier": "Intermediate",
+      "cumulative_xp": 21648.2,
+      "expected_level": 25
+    },
+    {
+      "test": "Intermediate L25: 1 XP above threshold",
+      "tier": "Intermediate",
+      "cumulative_xp": 21648.3,
+      "expected_level": 25
+    },
+    {
+      "test": "Intermediate L50: 1 XP below threshold",
+      "tier": "Intermediate",
+      "cumulative_xp": 61000.6,
+      "expected_level": 49
+    },
+    {
+      "test": "Intermediate L50: exactly at threshold",
+      "tier": "Intermediate",
+      "cumulative_xp": 61000.7,
+      "expected_level": 50
+    },
+    {
+      "test": "Intermediate L50: 1 XP above threshold",
+      "tier": "Intermediate",
+      "cumulative_xp": 61000.8,
+      "expected_level": 50
+    },
+    {
+      "test": "Intermediate L75: 1 XP below threshold",
+      "tier": "Intermediate",
+      "cumulative_xp": 112178.5,
+      "expected_level": 74
+    },
+    {
+      "test": "Intermediate L75: exactly at threshold",
+      "tier": "Intermediate",
+      "cumulative_xp": 112178.6,
+      "expected_level": 75
+    },
+    {
+      "test": "Intermediate L75: 1 XP above threshold",
+      "tier": "Intermediate",
+      "cumulative_xp": 112178.7,
+      "expected_level": 75
+    },
+    {
+      "test": "Intermediate L99: 1 XP below threshold",
+      "tier": "Intermediate",
+      "cumulative_xp": 170394.7,
+      "expected_level": 98
+    },
+    {
+      "test": "Intermediate L99: exactly at threshold",
+      "tier": "Intermediate",
+      "cumulative_xp": 170394.8,
+      "expected_level": 99
+    },
+    {
+      "test": "Intermediate L99: 1 XP above threshold",
+      "tier": "Intermediate",
+      "cumulative_xp": 170394.9,
+      "expected_level": 99
+    },
+    {
+      "test": "Advanced L1: 1 XP below threshold",
+      "tier": "Advanced",
+      "cumulative_xp": 442.9,
+      "expected_level": 0
+    },
+    {
+      "test": "Advanced L1: exactly at threshold",
+      "tier": "Advanced",
+      "cumulative_xp": 443.0,
+      "expected_level": 1
+    },
+    {
+      "test": "Advanced L1: 1 XP above threshold",
+      "tier": "Advanced",
+      "cumulative_xp": 443.1,
+      "expected_level": 1
+    },
+    {
+      "test": "Advanced L10: 1 XP below threshold",
+      "tier": "Advanced",
+      "cumulative_xp": 10275.8,
+      "expected_level": 9
+    },
+    {
+      "test": "Advanced L10: exactly at threshold",
+      "tier": "Advanced",
+      "cumulative_xp": 10275.9,
+      "expected_level": 10
+    },
+    {
+      "test": "Advanced L10: 1 XP above threshold",
+      "tier": "Advanced",
+      "cumulative_xp": 10276.0,
+      "expected_level": 10
+    },
+    {
+      "test": "Advanced L25: 1 XP below threshold",
+      "tier": "Advanced",
+      "cumulative_xp": 39797.9,
+      "expected_level": 24
+    },
+    {
+      "test": "Advanced L25: exactly at threshold",
+      "tier": "Advanced",
+      "cumulative_xp": 39798.0,
+      "expected_level": 25
+    },
+    {
+      "test": "Advanced L25: 1 XP above threshold",
+      "tier": "Advanced",
+      "cumulative_xp": 39798.1,
+      "expected_level": 25
+    },
+    {
+      "test": "Advanced L50: 1 XP below threshold",
+      "tier": "Advanced",
+      "cumulative_xp": 112492.7,
+      "expected_level": 49
+    },
+    {
+      "test": "Advanced L50: exactly at threshold",
+      "tier": "Advanced",
+      "cumulative_xp": 112492.8,
+      "expected_level": 50
+    },
+    {
+      "test": "Advanced L50: 1 XP above threshold",
+      "tier": "Advanced",
+      "cumulative_xp": 112492.9,
+      "expected_level": 50
+    },
+    {
+      "test": "Advanced L75: 1 XP below threshold",
+      "tier": "Advanced",
+      "cumulative_xp": 207252.6,
+      "expected_level": 74
+    },
+    {
+      "test": "Advanced L75: exactly at threshold",
+      "tier": "Advanced",
+      "cumulative_xp": 207252.7,
+      "expected_level": 75
+    },
+    {
+      "test": "Advanced L75: 1 XP above threshold",
+      "tier": "Advanced",
+      "cumulative_xp": 207252.8,
+      "expected_level": 75
+    },
+    {
+      "test": "Advanced L99: 1 XP below threshold",
+      "tier": "Advanced",
+      "cumulative_xp": 315208.3,
+      "expected_level": 98
+    },
+    {
+      "test": "Advanced L99: exactly at threshold",
+      "tier": "Advanced",
+      "cumulative_xp": 315208.4,
+      "expected_level": 99
+    },
+    {
+      "test": "Advanced L99: 1 XP above threshold",
+      "tier": "Advanced",
+      "cumulative_xp": 315208.5,
+      "expected_level": 99
+    },
+    {
+      "test": "Pro L1: 1 XP below threshold",
+      "tier": "Pro",
+      "cumulative_xp": 651.8,
+      "expected_level": 0
+    },
+    {
+      "test": "Pro L1: exactly at threshold",
+      "tier": "Pro",
+      "cumulative_xp": 651.9,
+      "expected_level": 1
+    },
+    {
+      "test": "Pro L1: 1 XP above threshold",
+      "tier": "Pro",
+      "cumulative_xp": 652.0,
+      "expected_level": 1
+    },
+    {
+      "test": "Pro L10: 1 XP below threshold",
+      "tier": "Pro",
+      "cumulative_xp": 15520.5,
+      "expected_level": 9
+    },
+    {
+      "test": "Pro L10: exactly at threshold",
+      "tier": "Pro",
+      "cumulative_xp": 15520.6,
+      "expected_level": 10
+    },
+    {
+      "test": "Pro L10: 1 XP above threshold",
+      "tier": "Pro",
+      "cumulative_xp": 15520.7,
+      "expected_level": 10
+    },
+    {
+      "test": "Pro L25: 1 XP below threshold",
+      "tier": "Pro",
+      "cumulative_xp": 60909.4,
+      "expected_level": 24
+    },
+    {
+      "test": "Pro L25: exactly at threshold",
+      "tier": "Pro",
+      "cumulative_xp": 60909.5,
+      "expected_level": 25
+    },
+    {
+      "test": "Pro L25: 1 XP above threshold",
+      "tier": "Pro",
+      "cumulative_xp": 60909.6,
+      "expected_level": 25
+    },
+    {
+      "test": "Pro L50: 1 XP below threshold",
+      "tier": "Pro",
+      "cumulative_xp": 173948.1,
+      "expected_level": 49
+    },
+    {
+      "test": "Pro L50: exactly at threshold",
+      "tier": "Pro",
+      "cumulative_xp": 173948.2,
+      "expected_level": 50
+    },
+    {
+      "test": "Pro L50: 1 XP above threshold",
+      "tier": "Pro",
+      "cumulative_xp": 173948.3,
+      "expected_level": 50
+    },
+    {
+      "test": "Pro L75: 1 XP below threshold",
+      "tier": "Pro",
+      "cumulative_xp": 322432.9,
+      "expected_level": 74
+    },
+    {
+      "test": "Pro L75: exactly at threshold",
+      "tier": "Pro",
+      "cumulative_xp": 322433.0,
+      "expected_level": 75
+    },
+    {
+      "test": "Pro L75: 1 XP above threshold",
+      "tier": "Pro",
+      "cumulative_xp": 322433.1,
+      "expected_level": 75
+    },
+    {
+      "test": "Pro L99: 1 XP below threshold",
+      "tier": "Pro",
+      "cumulative_xp": 492440.8,
+      "expected_level": 98
+    },
+    {
+      "test": "Pro L99: exactly at threshold",
+      "tier": "Pro",
+      "cumulative_xp": 492440.9,
+      "expected_level": 99
+    },
+    {
+      "test": "Pro L99: 1 XP above threshold",
+      "tier": "Pro",
+      "cumulative_xp": 492441.0,
+      "expected_level": 99
+    }
+  ],
+  "prestige_tests": [
+    {
+      "test": "Rookie L100 prestige to Beginner L1",
+      "before": {
+        "tier": "Rookie",
+        "level": 100,
+        "cumulative_xp": 35000,
+        "total_combos": 5000,
+        "earned_badges": [
+          "First Blood",
+          "Day One"
+        ],
+        "streak": 14
+      },
+      "after": {
+        "tier": "Beginner",
+        "level": 1,
+        "cumulative_xp": 0,
+        "total_combos": 5000,
+        "earned_badges": [
+          "First Blood",
+          "Day One"
+        ],
+        "streak": 14
+      },
+      "next_level_cost": 149.3,
+      "note": "XP resets, stats and badges persist, streak persists, new tier curve"
+    },
+    {
+      "test": "Beginner L100 prestige to Intermediate L1",
+      "before": {
+        "tier": "Beginner",
+        "level": 100,
+        "cumulative_xp": 80000
+      },
+      "after": {
+        "tier": "Intermediate",
+        "level": 1,
+        "cumulative_xp": 0
+      },
+      "next_level_cost": 243.9
+    },
+    {
+      "test": "Pro L100 cannot prestige",
+      "before": {
+        "tier": "Pro",
+        "level": 100,
+        "cumulative_xp": 550000
+      },
+      "after": {
+        "tier": "Pro",
+        "level": 100,
+        "cumulative_xp": 550000
+      },
+      "prestige_available": false,
+      "note": "Pro is max tier, no prestige button shown"
+    },
+    {
+      "test": "L99 user cannot prestige",
+      "before": {
+        "tier": "Rookie",
+        "level": 99
+      },
+      "prestige_available": false,
+      "note": "Must be L100 to prestige"
+    }
+  ],
+  "test_counts": {
+    "combo_xp": 214,
+    "exercise_duration": 55,
+    "championship": 5,
+    "streak_table": 105,
+    "streak_reset": 5,
+    "level_boundary": 90,
+    "prestige": 4,
+    "total": 478
+  }
+}
