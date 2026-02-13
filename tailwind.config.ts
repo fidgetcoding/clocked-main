@@ -69,6 +69,7 @@ export default {
         "surface-1": "hsl(var(--surface-1))",
         "surface-2": "hsl(var(--surface-2))",
         "surface-3": "hsl(var(--surface-3))",
+        "championship-gold": "hsl(var(--championship-gold))",
       },
       borderRadius: {
         lg: "var(--radius)",
@@ -124,6 +125,10 @@ export default {
           "0%": { transform: "translateY(0)", opacity: "1" },
           "100%": { transform: "translateY(-30px)", opacity: "0" },
         },
+        "gold-shimmer": {
+          "0%, 100%": { textShadow: "0 0 10px hsl(43 96% 56% / 0.6), 0 0 20px hsl(43 96% 56% / 0.3)" },
+          "50%": { textShadow: "0 0 20px hsl(43 96% 56% / 0.8), 0 0 40px hsl(43 96% 56% / 0.4)" },
+        },
         // Metaball blob animations
         "blob-1": {
           "0%, 100%": { transform: "translate(0, 0) scale(1)" },
@@ -169,6 +174,7 @@ export default {
         "fade-in": "fade-in 0.2s ease-out",
         "scale-in": "scale-in 0.2s ease-out",
         "xp-bubble": "xp-bubble 2s ease-out forwards",
+        "gold-shimmer": "gold-shimmer 2s ease-in-out infinite",
         // Metaball blob animations
         "blob-1": "blob-1 18s ease-in-out infinite",
         "blob-2": "blob-2 22s ease-in-out infinite",
