@@ -352,7 +352,10 @@ const WorkoutSession = () => {
   const nextSegment = flatSegments[currentSegmentIndex + 1];
   const totalSegments = flatSegments.length;
   const progressPercent = totalSegments > 0 ? (currentSegmentIndex / totalSegments) * 100 : 0;
-  const isChampionship = !isPreparation && currentSegment?.cumulativeRound && currentSegment.cumulativeRound > 10;
+  // For rest segments, check the previous segment's round to keep championship styling
+  const championshipRound = currentSegment?.cumulativeRound 
+    || (currentSegmentIndex > 0 ? flatSegments[currentSegmentIndex - 1]?.cumulativeRound : undefined);
+  const isChampionship = !isPreparation && championshipRound && championshipRound > 10;
   
   // Get streak multiplier from profile
   const streakMultiplier = getStreakMultiplier(profile?.current_streak || 0);
