@@ -1,5 +1,6 @@
 // =====================================================
-// Get Clocked XP System - Core Calculation Utilities
+// Get Clocked XP System v1.0 — Complete Architecture
+// All values from XP System Architecture v1.0 document
 // =====================================================
 
 // Prestige Tiers (5 total)
@@ -40,7 +41,6 @@ export const RANKING_NAMES: Record<Ranking, string> = {
   champion: 'Champion',
 };
 
-// Order for iteration
 export const PRESTIGE_ORDER: Prestige[] = ['rookie', 'beginner', 'intermediate', 'advanced', 'pro'];
 export const RANKING_ORDER: Ranking[] = [
   'prospect', 'scrapper', 'fighter', 'warrior', 'gladiator',
@@ -48,141 +48,113 @@ export const RANKING_ORDER: Ranking[] = [
 ];
 
 // =====================================================
-// XP Per Level Formulas (per prestige tier)
+// Level System — V1 Power Curves (Document Section 7)
+// Formula: cost(level) = A × level^B
 // =====================================================
 
+interface TierCurve {
+  A: number;
+  B: number;
+  totalL100: number; // Total XP for L1-L100
+}
+
+const TIER_CURVES: Record<Prestige, TierCurve> = {
+  rookie:       { A: 142.70, B: 0.2000, totalL100: 30_000 },
+  beginner:     { A: 149.31, B: 0.4261, totalL100: 75_000 },
+  intermediate: { A: 243.88, B: 0.5139, totalL100: 173_000 },
+  advanced:     { A: 443.04, B: 0.5185, totalL100: 320_000 },
+  pro:          { A: 651.85, B: 0.5337, totalL100: 500_000 },
+};
+
 /**
- * Calculate XP required to reach a specific level within a prestige
- * Formula: base + (level * multiplier)
+ * XP cost for a single level within a prestige tier.
+ * Uses power curve: cost = A × level^B, rounded to nearest integer.
  */
 export function getXPRequiredForLevel(prestige: Prestige, level: number): number {
-  const formulas: Record<Prestige, { base: number; multiplier: number }> = {
-    rookie: { base: 220, multiplier: 8.8 },
-    beginner: { base: 1100, multiplier: 1.5 },
-    intermediate: { base: 1260, multiplier: 2.5 },
-    advanced: { base: 2517.5, multiplier: 5 },
-    pro: { base: 4156.5, multiplier: 4 },
-  };
-  
-  const { base, multiplier } = formulas[prestige];
-  return Math.round(base + (level * multiplier));
+  const { A, B } = TIER_CURVES[prestige];
+  return Math.round(A * Math.pow(level, B));
 }
 
 /**
- * Calculate total XP needed to complete all levels in a prestige (1-100)
+ * Total XP needed to complete all 100 levels in a tier.
  */
 export function getTotalXPForPrestige(prestige: Prestige): number {
+  return TIER_CURVES[prestige].totalL100;
+}
+
+/**
+ * Cumulative XP cost from level 1 through endLevel.
+ */
+function cumulativeXP(prestige: Prestige, endLevel: number): number {
   let total = 0;
-  for (let level = 1; level <= 100; level++) {
-    total += getXPRequiredForLevel(prestige, level);
+  for (let l = 1; l <= endLevel; l++) {
+    total += getXPRequiredForLevel(prestige, l);
   }
   return total;
 }
 
 /**
- * Get cumulative XP thresholds for each prestige tier
+ * Calculate current level from total XP within a prestige tier.
+ * Level is capped at 100.
  */
-export function getPrestigeThresholds(): Record<Prestige, number> {
-  const thresholds: Record<Prestige, number> = {
-    rookie: 0,
-    beginner: getTotalXPForPrestige('rookie'),
-    intermediate: 0,
-    advanced: 0,
-    pro: 0,
-  };
-  
-  thresholds.intermediate = thresholds.beginner + getTotalXPForPrestige('beginner');
-  thresholds.advanced = thresholds.intermediate + getTotalXPForPrestige('intermediate');
-  thresholds.pro = thresholds.advanced + getTotalXPForPrestige('advanced');
-  
-  return thresholds;
+export function getLevelFromXP(prestige: Prestige, totalXP: number): number {
+  let cumulative = 0;
+  for (let level = 1; level <= 100; level++) {
+    cumulative += getXPRequiredForLevel(prestige, level);
+    if (totalXP < cumulative) return level;
+  }
+  return 100;
+}
+
+/**
+ * Get XP progress within the current level (for progress bars).
+ */
+export function getXPWithinCurrentLevel(prestige: Prestige, totalXP: number): { current: number; required: number } {
+  let cumulative = 0;
+  for (let level = 1; level <= 100; level++) {
+    const cost = getXPRequiredForLevel(prestige, level);
+    if (totalXP < cumulative + cost) {
+      return { current: totalXP - cumulative, required: cost };
+    }
+    cumulative += cost;
+  }
+  const lastCost = getXPRequiredForLevel(prestige, 100);
+  return { current: lastCost, required: lastCost };
+}
+
+/**
+ * Progress percentage to next level (0-100).
+ */
+export function getLevelProgress(prestige: Prestige, level: number, totalXP: number): number {
+  const { current, required } = getXPWithinCurrentLevel(prestige, totalXP);
+  return Math.min(100, (current / required) * 100);
+}
+
+/**
+ * Display string: "450 / 1,200 XP"
+ */
+export function getXPProgressString(prestige: Prestige, level: number, totalXP: number): string {
+  const { current, required } = getXPWithinCurrentLevel(prestige, totalXP);
+  return `${Math.floor(current).toLocaleString()} / ${required.toLocaleString()} XP`;
 }
 
 // =====================================================
-// Ranking Calculation (from level)
+// Ranking Calculation
 // =====================================================
 
-/**
- * Get ranking from level (1-100)
- * Levels 1-10: Prospect, 11-20: Scrapper, etc.
- */
 export function getRankingFromLevel(level: number): Ranking {
-  const clampedLevel = Math.max(1, Math.min(100, level));
-  const rankingIndex = Math.floor((clampedLevel - 1) / 10);
-  return RANKING_ORDER[rankingIndex];
+  const clamped = Math.max(1, Math.min(100, level));
+  const idx = Math.floor((clamped - 1) / 10);
+  return RANKING_ORDER[idx];
 }
 
-/**
- * Get level range for a ranking
- */
 export function getLevelRangeForRanking(ranking: Ranking): { min: number; max: number } {
   const index = RANKING_ORDER.indexOf(ranking);
-  return {
-    min: index * 10 + 1,
-    max: (index + 1) * 10,
-  };
+  return { min: index * 10 + 1, max: (index + 1) * 10 };
 }
 
 // =====================================================
-// Current Status Calculation
-// =====================================================
-
-export interface UserGamificationStatus {
-  prestige: Prestige;
-  ranking: Ranking;
-  level: number;
-  xpInCurrentLevel: number;
-  xpRequiredForNextLevel: number;
-  levelProgress: number; // 0-100%
-  displayString: string; // "Beginner - Prospect - Level 1"
-}
-
-/**
- * Calculate full gamification status from prestige, level, and XP
- */
-export function getGamificationStatus(
-  prestige: Prestige, 
-  level: number, 
-  totalXP: number
-): UserGamificationStatus {
-  const clampedLevel = Math.max(1, Math.min(100, level));
-  const ranking = getRankingFromLevel(clampedLevel);
-  
-  // Calculate XP progress within current level
-  const xpForCurrentLevel = getXPRequiredForLevel(prestige, clampedLevel);
-  const xpForPreviousLevels = calculateXPForLevels(prestige, 1, clampedLevel - 1);
-  
-  // XP within this prestige tier
-  const xpInPrestige = totalXP; // totalXP is tracked per-prestige in our system
-  const xpSpentOnPreviousLevels = xpForPreviousLevels;
-  const xpInCurrentLevel = Math.max(0, xpInPrestige - xpSpentOnPreviousLevels);
-  
-  const levelProgress = Math.min(100, (xpInCurrentLevel / xpForCurrentLevel) * 100);
-  
-  return {
-    prestige,
-    ranking,
-    level: clampedLevel,
-    xpInCurrentLevel,
-    xpRequiredForNextLevel: xpForCurrentLevel,
-    levelProgress,
-    displayString: `${PRESTIGE_NAMES[prestige]} - ${RANKING_NAMES[ranking]} - Level ${clampedLevel}`,
-  };
-}
-
-/**
- * Calculate total XP needed to reach a specific level from level 1
- */
-function calculateXPForLevels(prestige: Prestige, startLevel: number, endLevel: number): number {
-  let total = 0;
-  for (let level = startLevel; level <= endLevel; level++) {
-    total += getXPRequiredForLevel(prestige, level);
-  }
-  return total;
-}
-
-// =====================================================
-// Experience Level to Prestige Mapping (Onboarding)
+// Prestige ↔ Experience Level Mapping
 // =====================================================
 
 export function experienceLevelToPrestige(experienceLevel: string): Prestige {
@@ -197,284 +169,282 @@ export function experienceLevelToPrestige(experienceLevel: string): Prestige {
 }
 
 // =====================================================
-// Activity XP Rates (per second) - From Document
+// Gamification Status
 // =====================================================
 
-export type ActivityType = 
-  | 'shadowboxing' 
-  | 'combo' 
-  | 'jump_rope' 
-  | 'running' 
-  | 'rest' 
-  | 'active'
-  | 'pushups'
-  | 'curlups'
-  | 'situps'
-  | 'burpees'
-  | 'squats'
-  | 'pullups'
-  | 'planks'
-  | 'walking'
-  | 'cycling'
-  | 'jogging'
-  | 'sparring'
-  | 'stretching'
-  | 'mitt_work';
+export interface UserGamificationStatus {
+  prestige: Prestige;
+  ranking: Ranking;
+  level: number;
+  xpInCurrentLevel: number;
+  xpRequiredForNextLevel: number;
+  levelProgress: number;
+  displayString: string;
+}
 
-// XP per second for each activity type (from documentation)
-export const ACTIVITY_XP_RATES: Record<ActivityType, number> = {
-  // Boxing-specific activities
-  shadowboxing: 0.33,
-  combo: 0.33,
-  mitt_work: 0.30,
-  sparring: 2.5, // Base rate - can go up to 5.0 for higher prestiges
+export function getGamificationStatus(
+  prestige: Prestige, 
+  level: number, 
+  totalXP: number
+): UserGamificationStatus {
+  const clamped = Math.max(1, Math.min(100, level));
+  const ranking = getRankingFromLevel(clamped);
+  const { current, required } = getXPWithinCurrentLevel(prestige, totalXP);
   
-  // Cardio activities
-  jump_rope: 0.20,
-  running: 0.25,
-  jogging: 0.18,
-  walking: 0.12,
-  cycling: 0.20,
-  
-  // Strength/conditioning activities
-  pushups: 0.22,
-  curlups: 0.18,
-  situps: 0.18,
-  burpees: 0.22,
-  squats: 0.22,
-  pullups: 0.30,
-  planks: 0.15,
-  
-  // Recovery
-  rest: 0.01,
-  stretching: 0.05, // 5 XP flat per stretch = ~0.05/sec for 100s
-  
-  // Default active rate
-  active: 0.25,
-};
-
-/**
- * Get sparring XP rate adjusted by prestige tier
- * Sparring earns more XP at higher prestige levels
- */
-export function getSparringXPRate(prestige: Prestige): number {
-  const sparringRates: Record<Prestige, number> = {
-    rookie: 2.5,
-    beginner: 3.0,
-    intermediate: 3.5,
-    advanced: 4.0,
-    pro: 5.0,
+  return {
+    prestige,
+    ranking,
+    level: clamped,
+    xpInCurrentLevel: current,
+    xpRequiredForNextLevel: required,
+    levelProgress: Math.min(100, (current / required) * 100),
+    displayString: `${PRESTIGE_NAMES[prestige]} - ${RANKING_NAMES[ranking]} - Level ${clamped}`,
   };
-  return sparringRates[prestige];
 }
 
 // =====================================================
-// Combo XP Calculation (From Document)
+// Punch XP Values (Document Section 2.1) — 8 punches
 // =====================================================
 
-// Punch XP values
 export const PUNCH_XP_VALUES: Record<string, number> = {
-  '1': 5,      // Jab
-  '2': 6.5,    // Cross
-  '3': 8,      // Lead Hook
-  '4': 8,      // Rear Hook
-  '5': 9,      // Lead Uppercut
-  '6': 9,      // Rear Uppercut
-  '7': 10,     // Lead Body Hook
-  '8': 10,     // Rear Body Hook
-  '9': 11,     // Lead Body Uppercut
-  '10': 11,    // Rear Body Uppercut
+  '1': 5.5,   // Jab
+  '2': 6.5,   // Cross
+  '3': 7.5,   // Lead Hook
+  '4': 8.0,   // Rear Hook
+  '5': 8.5,   // Lead Uppercut
+  '6': 9.5,   // Rear Uppercut
+  '7': 11.0,  // Lead Body Hook
+  '8': 11.0,  // Rear Body Hook
 };
 
-// Defense move XP values
+// =====================================================
+// Defense XP Values (Document Section 2.2)
+// =====================================================
+
 export const DEFENSE_XP_VALUES: Record<string, number> = {
-  'SLIP L': 7.25,
-  'SLIP R': 7.25,
-  'SLIP': 7.25,
-  'DUCK': 8.5,
-  'ROLL L': 9.5,
-  'ROLL R': 9.5,
-  'ROLL': 9.5,
-  'PULL': 6.5,
-  'BLOCK': 5.5,
-  'PARRY': 7,
+  'slip left': 4.5,
+  'slip right': 4.5,
+  'roll': 5.5,
+  'pullback': 5.0,
+  'circle left': 4.0,
+  'circle right': 4.0,
 };
 
-// Movement XP values
-export const MOVEMENT_XP_VALUES: Record<string, number> = {
-  'STEP IN': 4,
-  'STEP OUT': 4,
-  'CIRCLE L': 5,
-  'CIRCLE R': 5,
-  'PIVOT': 6,
+// Lookup helpers for partial matching
+const DEFENSE_KEYS = Object.keys(DEFENSE_XP_VALUES);
+
+// =====================================================
+// Exercise / Activity XP Rates (Document Section 2.3)
+// =====================================================
+
+export type ActivityType = 
+  | 'pushups' | 'burpees' | 'curlups'
+  | 'jump_rope' | 'treadmill'
+  | 'jog_in_place' | 'jog'
+  | 'rest' | 'freestyle' | 'bag_freestyle' | 'bag_combo_bonus'
+  | 'shadowboxing' | 'combo'
+  | 'active';
+
+export const ACTIVITY_XP_RATES: Record<ActivityType, number> = {
+  pushups:         0.22,
+  burpees:         0.28,
+  curlups:         0.18,
+  jump_rope:       0.25,
+  treadmill:       0.20,
+  jog_in_place:    0.15,
+  jog:             0.15,
+  rest:            0.00,
+  freestyle:       0.35,
+  bag_freestyle:   0.40,
+  bag_combo_bonus: 0.20,
+  shadowboxing:    0.35, // Same as freestyle for shadow segments
+  combo:           0.00, // Combos use the combo formula, not per-second
+  active:          0.25, // Generic fallback
 };
+
+// =====================================================
+// Combo XP Formula (Document Section 2.4)
+// XP = (Sum of move base XP) × Length Bonus × Defense Bonus × (Duration / 30)
+// =====================================================
 
 /**
- * Get length multiplier based on combo length
+ * Length Bonus multiplier table.
  */
-export function getComboLengthMultiplier(length: number): number {
-  if (length >= 6) return 1.35;
-  if (length >= 5) return 1.2;
-  if (length >= 4) return 1.1;
+export function getComboLengthMultiplier(moveCount: number): number {
+  if (moveCount >= 6) return 1.35;
+  if (moveCount >= 5) return 1.20;
+  if (moveCount >= 4) return 1.10;
   return 1.0;
 }
 
 /**
- * Get defense bonus multiplier based on number of defense moves in combo
+ * Defense Bonus multiplier table.
  */
 export function getDefenseBonusMultiplier(defenseCount: number): number {
   if (defenseCount >= 3) return 1.45;
-  if (defenseCount >= 2) return 1.3;
+  if (defenseCount >= 2) return 1.30;
   if (defenseCount >= 1) return 1.15;
   return 1.0;
 }
 
 /**
- * Check if a move is a defense move
+ * Classify a move string and return its base XP + whether it's a defense move.
  */
-export function isDefenseMove(move: string): boolean {
-  const upperMove = move.toUpperCase();
-  return Object.keys(DEFENSE_XP_VALUES).some(defense => 
-    upperMove.includes(defense.split(' ')[0]) // Match base defense name
-  );
+function classifyMove(move: string): { xp: number; isDefense: boolean } {
+  const lower = move.toLowerCase().trim();
+  
+  // Check punch numbers first
+  if (PUNCH_XP_VALUES[lower]) {
+    return { xp: PUNCH_XP_VALUES[lower], isDefense: false };
+  }
+  
+  // Check exact defense matches
+  for (const key of DEFENSE_KEYS) {
+    if (lower === key || lower.includes(key)) {
+      return { xp: DEFENSE_XP_VALUES[key], isDefense: true };
+    }
+  }
+  
+  // Partial defense matches (e.g., "slip l" → "slip left")
+  if (lower.startsWith('slip')) return { xp: 4.5, isDefense: true };
+  if (lower.startsWith('roll')) return { xp: 5.5, isDefense: true };
+  if (lower.startsWith('pull')) return { xp: 5.0, isDefense: true };
+  if (lower.startsWith('circle')) return { xp: 4.0, isDefense: true };
+  
+  return { xp: 0, isDefense: false };
 }
 
 /**
- * Calculate XP earned from completing a combo
- * Formula: XP = (Base Move Sum) × (Length Bonus) × (Defense Bonus) × (Duration ÷ 30)
+ * Calculate XP from a single combo execution.
  */
 export function calculateComboXP(combo: string[], durationSeconds: number = 30): number {
   if (!combo || combo.length === 0) return 0;
   
-  // Calculate base move sum
   let baseMoveSum = 0;
   let defenseCount = 0;
   
-  combo.forEach(move => {
-    const upperMove = move.toUpperCase().trim();
-    
-    // Check punches first (1-8)
-    if (PUNCH_XP_VALUES[upperMove]) {
-      baseMoveSum += PUNCH_XP_VALUES[upperMove];
-    }
-    // Check defense moves
-    else if (DEFENSE_XP_VALUES[upperMove]) {
-      baseMoveSum += DEFENSE_XP_VALUES[upperMove];
-      defenseCount++;
-    }
-    // Check movement
-    else if (MOVEMENT_XP_VALUES[upperMove]) {
-      baseMoveSum += MOVEMENT_XP_VALUES[upperMove];
-    }
-    // Partial match for defense (e.g., "SLIP L" matches "SLIP")
-    else {
-      for (const [defense, value] of Object.entries(DEFENSE_XP_VALUES)) {
-        if (upperMove.includes(defense.split(' ')[0])) {
-          baseMoveSum += value;
-          defenseCount++;
-          break;
-        }
-      }
-      for (const [movement, value] of Object.entries(MOVEMENT_XP_VALUES)) {
-        if (upperMove.includes(movement.split(' ')[0])) {
-          baseMoveSum += value;
-          break;
-        }
-      }
-    }
-  });
+  for (const move of combo) {
+    const { xp, isDefense } = classifyMove(move);
+    baseMoveSum += xp;
+    if (isDefense) defenseCount++;
+  }
   
-  // Apply multipliers
-  const lengthMultiplier = getComboLengthMultiplier(combo.length);
-  const defenseMultiplier = getDefenseBonusMultiplier(defenseCount);
-  const durationMultiplier = durationSeconds / 30;
+  const lengthBonus = getComboLengthMultiplier(combo.length);
+  const defenseBonus = getDefenseBonusMultiplier(defenseCount);
+  const durationFactor = durationSeconds / 30;
   
-  const totalXP = baseMoveSum * lengthMultiplier * defenseMultiplier * durationMultiplier;
-  
-  return Math.round(totalXP);
+  return baseMoveSum * lengthBonus * defenseBonus * durationFactor;
 }
 
 /**
- * Calculate XP for an activity segment
+ * Classify combo properties for badge tracking.
  */
-export function calculateActivityXP(
-  activityType: ActivityType,
-  durationSeconds: number,
-  combosLanded?: number,
-  combo?: string[]
-): number {
-  let baseXP = ACTIVITY_XP_RATES[activityType] * durationSeconds;
+export function classifyCombo(combo: string[]): {
+  isComplex: boolean;    // 6+ moves
+  isDefense: boolean;    // 2+ defense moves
+  isCounter: boolean;    // Starts with a defense move
+} {
+  if (!combo || combo.length === 0) return { isComplex: false, isDefense: false, isCounter: false };
   
-  // If it's a combo segment and we have combo data, use the combo formula
-  if (activityType === 'combo' && combo && combo.length > 0) {
-    baseXP = calculateComboXP(combo, durationSeconds);
+  let defenseCount = 0;
+  const firstIsDefense = classifyMove(combo[0]).isDefense;
+  
+  for (const move of combo) {
+    if (classifyMove(move).isDefense) defenseCount++;
   }
   
-  // Bonus XP for combos landed (legacy support)
-  if (combosLanded && combosLanded > 0) {
-    baseXP += combosLanded * 0.5;
-  }
-  
-  return Math.round(baseXP);
+  return {
+    isComplex: combo.length >= 6,
+    isDefense: defenseCount >= 2,
+    isCounter: firstIsDefense,
+  };
+}
+
+/**
+ * Calculate XP for a timed activity segment.
+ */
+export function calculateActivityXP(activityType: ActivityType, durationSeconds: number): number {
+  return ACTIVITY_XP_RATES[activityType] * durationSeconds;
 }
 
 // =====================================================
-// Streak Multipliers (From Document - Exact Values)
+// Championship Multiplier (Document Section 2.5)
+// Final 2 rounds get 2x on boxing segments only
 // =====================================================
 
-export function getStreakMultiplier(streakDays: number): number {
-  // Exact values from documentation
-  if (streakDays >= 365) return 3.0;
-  if (streakDays >= 300) return 2.75;
-  if (streakDays >= 200) return 2.5;
-  if (streakDays >= 150) return 2.25;
-  if (streakDays >= 100) return 2.0;
-  if (streakDays >= 60) return 1.8;
-  if (streakDays >= 30) return 1.6;
-  if (streakDays >= 14) return 1.4;
-  if (streakDays >= 7) return 1.25;
-  if (streakDays >= 3) return 1.1;
+export const CHAMPIONSHIP_MULTIPLIER = 2;
+
+/**
+ * Check if a round is a championship round.
+ * Championship = final 2 rounds of the workout.
+ */
+export function isChampionshipRound(roundNumber: number, totalRounds: number): boolean {
+  return roundNumber > totalRounds - 2;
+}
+
+// =====================================================
+// Streak Multiplier System (Document Section 6)
+// Applies to base session XP only, NOT badge XP
+// =====================================================
+
+export function getStreakMultiplier(consecutiveDays: number): number {
+  if (consecutiveDays >= 100) return 2.0;
+  if (consecutiveDays >= 60)  return 1.8;
+  if (consecutiveDays >= 30)  return 1.6;
+  if (consecutiveDays >= 14)  return 1.4;
+  if (consecutiveDays >= 7)   return 1.25;
+  if (consecutiveDays >= 3)   return 1.1;
   return 1.0;
 }
 
+export const STREAK_TIERS = [
+  { min: 0,   max: 2,   multiplier: 1.0,  label: 'No Bonus' },
+  { min: 3,   max: 6,   multiplier: 1.1,  label: '1.1x' },
+  { min: 7,   max: 13,  multiplier: 1.25, label: '1.25x' },
+  { min: 14,  max: 29,  multiplier: 1.4,  label: '1.4x' },
+  { min: 30,  max: 59,  multiplier: 1.6,  label: '1.6x' },
+  { min: 60,  max: 99,  multiplier: 1.8,  label: '1.8x' },
+  { min: 100, max: 999, multiplier: 2.0,  label: '2.0x' },
+];
+
 // =====================================================
-// Streak Milestone Bonuses (From Document - Exact Values)
+// Session XP Calculation Pipeline (Document Section 11.1)
 // =====================================================
 
-export const STREAK_MILESTONES: Record<number, number> = {
-  5: 500,
-  10: 1500,
-  15: 3000,
-  20: 4000,      // Fixed: was 5000
-  25: 6000,      // Added
-  30: 10000,
-  45: 20000,
-  50: 25000,     // Added
-  60: 35000,
-  75: 50000,     // Added
-  90: 60000,
-  100: 35000,    // Fixed: was 100000 - doc says 35000
-  120: 100000,
-  150: 150000,   // Added
-  180: 175000,
-  200: 250000,   // Added
-  250: 400000,   // Added
-  365: 500000,
-};
-
-export function getStreakMilestoneBonus(streakDays: number): number {
-  return STREAK_MILESTONES[streakDays] || 0;
+export interface SessionXPResult {
+  baseXP: number;          // Raw workout segment XP
+  streakMultiplier: number;
+  streakBonus: number;     // baseXP × (mult - 1)
+  effectiveBase: number;   // baseXP × streakMultiplier
+  badgeXP: number;         // Sum of triggered badge XP rewards
+  sessionTotal: number;    // effectiveBase + badgeXP
 }
 
-// =====================================================
-// Workout Completion Bonus
-// =====================================================
-
 /**
- * Calculate completion bonus (+10% for full workout with no skips)
+ * Calculate final session XP given raw base XP, streak, and badge XP.
+ * Order per doc Section 11.1:
+ * 1. Calculate raw base XP
+ * 2. Apply streak multiplier: effective_base = base × streak_mult
+ * 3-5. (Badge checking happens externally)
+ * 6. session_total = effective_base + badge_xp
  */
-export function getCompletionBonus(baseXP: number, completedFully: boolean): number {
-  return completedFully ? Math.round(baseXP * 0.1) : 0;
+export function calculateSessionXP(
+  baseXP: number,
+  streakDays: number,
+  badgeXP: number = 0
+): SessionXPResult {
+  const mult = getStreakMultiplier(streakDays);
+  const streakBonus = Math.round(baseXP * (mult - 1));
+  const effectiveBase = Math.round(baseXP * mult);
+  
+  return {
+    baseXP: Math.round(baseXP),
+    streakMultiplier: mult,
+    streakBonus,
+    effectiveBase,
+    badgeXP,
+    sessionTotal: effectiveBase + badgeXP,
+  };
 }
 
 // =====================================================
@@ -489,148 +459,83 @@ export interface LevelUpResult {
   prestigeComplete: boolean;
 }
 
-/**
- * Check if user leveled up based on XP gained
- */
 export function checkLevelUp(
   prestige: Prestige,
   currentLevel: number,
   currentXP: number,
   xpGained: number
 ): LevelUpResult {
-  const totalXP = currentXP + xpGained;
-  let level = currentLevel;
-  let xpRemaining = totalXP;
-  
-  // Calculate XP needed to reach next level from current
-  while (level < 100) {
-    const xpForLevel = getXPRequiredForLevel(prestige, level);
-    const xpToNextLevel = calculateXPForLevels(prestige, 1, level);
-    
-    if (xpRemaining >= xpToNextLevel) {
-      level++;
-    } else {
-      break;
-    }
-  }
-  
-  const newRanking = getRankingFromLevel(level);
+  const newTotalXP = currentXP + xpGained;
+  const newLevel = getLevelFromXP(prestige, newTotalXP);
+  const newRanking = getRankingFromLevel(newLevel);
   const oldRanking = getRankingFromLevel(currentLevel);
   
   return {
-    didLevelUp: level > currentLevel,
-    newLevel: level,
+    didLevelUp: newLevel > currentLevel,
+    newLevel,
     newRanking,
     didRankUp: newRanking !== oldRanking,
-    prestigeComplete: level >= 100,
+    prestigeComplete: newLevel >= 100,
   };
 }
 
 // =====================================================
-// Calculate Level from Total XP
+// Activity Name → ActivityType Mapper
 // =====================================================
 
-/**
- * Calculate current level based on total XP earned within a prestige tier.
- * This is the inverse of the XP calculation - given XP, find the level.
- */
-export function getLevelFromXP(prestige: Prestige, totalXP: number): number {
-  let cumulativeXP = 0;
-  
-  for (let level = 1; level <= 100; level++) {
-    cumulativeXP += getXPRequiredForLevel(prestige, level);
-    if (totalXP < cumulativeXP) {
-      return level;
-    }
-  }
-  
-  return 100; // Max level if XP exceeds all level requirements
-}
-
-/**
- * Get the XP earned within the current level (for progress bar calculations)
- */
-export function getXPWithinCurrentLevel(prestige: Prestige, totalXP: number): { current: number; required: number } {
-  let cumulativeXP = 0;
-  
-  for (let level = 1; level <= 100; level++) {
-    const xpForThisLevel = getXPRequiredForLevel(prestige, level);
-    if (totalXP < cumulativeXP + xpForThisLevel) {
-      return {
-        current: totalXP - cumulativeXP,
-        required: xpForThisLevel,
-      };
-    }
-    cumulativeXP += xpForThisLevel;
-  }
-  
-  // At max level
-  const xpForLevel100 = getXPRequiredForLevel(prestige, 100);
-  return { current: xpForLevel100, required: xpForLevel100 };
-}
-
-// =====================================================
-// Simple Level/XP Display Helpers
-// =====================================================
-
-/**
- * Get progress to next level as percentage (0-100)
- * Uses total XP to calculate position within current level
- */
-export function getLevelProgress(prestige: Prestige, level: number, totalXP: number): number {
-  const { current, required } = getXPWithinCurrentLevel(prestige, totalXP);
-  return Math.min(100, (current / required) * 100);
-}
-
-/**
- * Get XP progress display string (e.g., "45 / 120 XP")
- */
-export function getXPProgressString(prestige: Prestige, level: number, totalXP: number): string {
-  const { current, required } = getXPWithinCurrentLevel(prestige, totalXP);
-  return `${Math.floor(current).toLocaleString()} / ${required.toLocaleString()} XP`;
-}
-
-// =====================================================
-// Activity Name to Type Mapping Helper
-// =====================================================
-
-/**
- * Map segment/activity name to ActivityType for XP calculation
- */
 export function getActivityTypeFromName(name: string, segmentType?: string): ActivityType {
-  const lowerName = name.toLowerCase();
+  const lower = name.toLowerCase();
   
-  // Check segment type first
-  if (segmentType === 'rest') return 'rest';
+  if (segmentType === 'rest' || lower.includes('rest')) return 'rest';
+  if (segmentType === 'combo' || lower.includes('combo')) return 'combo';
   if (segmentType === 'shadowboxing') return 'shadowboxing';
-  if (segmentType === 'combo') return 'combo';
   
-  // Boxing activities
-  if (lowerName.includes('shadow')) return 'shadowboxing';
-  if (lowerName.includes('combo')) return 'combo';
-  if (lowerName.includes('mitt') || lowerName.includes('pad')) return 'mitt_work';
-  if (lowerName.includes('spar')) return 'sparring';
+  if (lower.includes('shadow') || lower.includes('freestyle')) return 'freestyle';
+  if (lower.includes('bag freestyle') || lower.includes('bag work')) return 'bag_freestyle';
+  if (lower.includes('jump rope') || lower.includes('skipping')) return 'jump_rope';
+  if (lower.includes('treadmill')) return 'treadmill';
+  if (lower.includes('jog in place')) return 'jog_in_place';
+  if (lower.includes('jog') || lower.includes('run')) return 'jog';
+  if (lower.includes('pushup') || lower.includes('push-up') || lower.includes('push up')) return 'pushups';
+  if (lower.includes('curlup') || lower.includes('curl-up') || lower.includes('curl up') || lower.includes('sit-up') || lower.includes('situp')) return 'curlups';
+  if (lower.includes('burpee')) return 'burpees';
   
-  // Cardio
-  if (lowerName.includes('jump rope') || lowerName.includes('skipping')) return 'jump_rope';
-  if (lowerName.includes('running') || lowerName.includes('treadmill') || lowerName.includes('run')) return 'running';
-  if (lowerName.includes('jog')) return 'jogging';
-  if (lowerName.includes('walk')) return 'walking';
-  if (lowerName.includes('cycl') || lowerName.includes('bike')) return 'cycling';
-  
-  // Strength/conditioning
-  if (lowerName.includes('pushup') || lowerName.includes('push-up') || lowerName.includes('push up')) return 'pushups';
-  if (lowerName.includes('curlup') || lowerName.includes('curl-up') || lowerName.includes('curl up')) return 'curlups';
-  if (lowerName.includes('situp') || lowerName.includes('sit-up') || lowerName.includes('sit up')) return 'situps';
-  if (lowerName.includes('burpee')) return 'burpees';
-  if (lowerName.includes('squat')) return 'squats';
-  if (lowerName.includes('pullup') || lowerName.includes('pull-up') || lowerName.includes('pull up') || lowerName.includes('chin')) return 'pullups';
-  if (lowerName.includes('plank')) return 'planks';
-  
-  // Recovery
-  if (lowerName.includes('rest')) return 'rest';
-  if (lowerName.includes('stretch')) return 'stretching';
-  
-  // Default
   return 'active';
 }
+
+// =====================================================
+// Prestige Thresholds (for reference)
+// =====================================================
+
+export function getPrestigeThresholds(): Record<Prestige, number> {
+  return {
+    rookie: 30_000,
+    beginner: 75_000,
+    intermediate: 173_000,
+    advanced: 320_000,
+    pro: 500_000,
+  };
+}
+
+// =====================================================
+// Per-Session Cumulative Stats (Document Section 3.4)
+// Conservative estimates for badge progress tracking
+// =====================================================
+
+export const PER_SESSION_ESTIMATES = {
+  combosLanded: 150,
+  pushups: 120,
+  burpees: 15,
+  curlups: 60,
+  jogRunMinutes: 13,
+  workoutDurationHours: 0.667,
+};
+
+// Tier-specific combo complexity stats per session (Section 3.5)
+export const TIER_COMBO_STATS: Record<Prestige, { complex: number; defense: number; counter: number }> = {
+  rookie:       { complex: 0,   defense: 0,   counter: 0 },
+  beginner:     { complex: 0,   defense: 75,  counter: 15 },
+  intermediate: { complex: 30,  defense: 105, counter: 30 },
+  advanced:     { complex: 120, defense: 120, counter: 45 },
+  pro:          { complex: 150, defense: 150, counter: 75 },
+};

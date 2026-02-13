@@ -14,6 +14,7 @@ import { PrestigeBadge } from '@/components/ui/PrestigeDisplay';
 import { Prestige, getRankingFromLevel } from '@/lib/xpSystem';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
+import { BadgeCollection } from '@/components/BadgeCollection';
 import { SharedWorkoutsModal } from '@/components/SharedWorkoutsModal';
 
 function formatDuration(seconds: number): string {
@@ -284,6 +285,12 @@ const Profile = () => {
           </div>
         </div>
 
+        {/* Badge Collection */}
+        {isOwnProfile && (
+          <div className="px-4 mb-6">
+            <BadgeCollection />
+          </div>
+        )}
 
 
       </div>

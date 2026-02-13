@@ -254,9 +254,12 @@ export type Database = {
           avatar_url: string | null
           bio: string | null
           combos_landed: number | null
+          complex_combos: number
+          counter_combos: number
           created_at: string
           current_level: number | null
           current_streak: number
+          defense_combos: number
           equipment: Json | null
           experience_level: string | null
           goals: string[] | null
@@ -272,6 +275,10 @@ export type Database = {
           role: string
           sessions_completed_this_year: number | null
           streak_multiplier: number | null
+          total_burpees: number
+          total_curlups: number
+          total_jog_run_minutes: number
+          total_pushups: number
           total_training_seconds: number | null
           total_xp: number
           updated_at: string
@@ -283,9 +290,12 @@ export type Database = {
           avatar_url?: string | null
           bio?: string | null
           combos_landed?: number | null
+          complex_combos?: number
+          counter_combos?: number
           created_at?: string
           current_level?: number | null
           current_streak?: number
+          defense_combos?: number
           equipment?: Json | null
           experience_level?: string | null
           goals?: string[] | null
@@ -301,6 +311,10 @@ export type Database = {
           role?: string
           sessions_completed_this_year?: number | null
           streak_multiplier?: number | null
+          total_burpees?: number
+          total_curlups?: number
+          total_jog_run_minutes?: number
+          total_pushups?: number
           total_training_seconds?: number | null
           total_xp?: number
           updated_at?: string
@@ -312,9 +326,12 @@ export type Database = {
           avatar_url?: string | null
           bio?: string | null
           combos_landed?: number | null
+          complex_combos?: number
+          counter_combos?: number
           created_at?: string
           current_level?: number | null
           current_streak?: number
+          defense_combos?: number
           equipment?: Json | null
           experience_level?: string | null
           goals?: string[] | null
@@ -330,6 +347,10 @@ export type Database = {
           role?: string
           sessions_completed_this_year?: number | null
           streak_multiplier?: number | null
+          total_burpees?: number
+          total_curlups?: number
+          total_jog_run_minutes?: number
+          total_pushups?: number
           total_training_seconds?: number | null
           total_xp?: number
           updated_at?: string

@@ -36,6 +36,14 @@ export interface Profile {
   streak_multiplier: number;
   weight_kg: number | null;
   height_cm: number | null;
+  // Lifetime stats for badge tracking
+  total_pushups: number;
+  total_burpees: number;
+  total_curlups: number;
+  total_jog_run_minutes: number;
+  complex_combos: number;
+  defense_combos: number;
+  counter_combos: number;
 }
 
 // Helper to generate handle from name
@@ -95,6 +103,13 @@ export function useProfile() {
           streak_multiplier: Number(data.streak_multiplier) || 1.0,
           weight_kg: data.weight_kg ? Number(data.weight_kg) : null,
           height_cm: data.height_cm ? Number(data.height_cm) : null,
+          total_pushups: (data as any).total_pushups || 0,
+          total_burpees: (data as any).total_burpees || 0,
+          total_curlups: (data as any).total_curlups || 0,
+          total_jog_run_minutes: (data as any).total_jog_run_minutes || 0,
+          complex_combos: (data as any).complex_combos || 0,
+          defense_combos: (data as any).defense_combos || 0,
+          counter_combos: (data as any).counter_combos || 0,
         } as Profile;
       }
       return null;
