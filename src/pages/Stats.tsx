@@ -7,6 +7,7 @@ import { useProfile } from '@/hooks/useProfile';
 import { useWorkoutStats, WeeklyChange } from '@/hooks/useWorkoutStats';
 import { 
   Prestige, 
+  PRESTIGE_NAMES,
   RANKING_NAMES, 
   RANKING_ORDER,
   getRankingFromLevel,
@@ -97,8 +98,13 @@ const Stats = () => {
                 <div className="w-16 h-16 rounded-2xl bg-volt/20 flex items-center justify-center">
                   <Trophy className="w-8 h-8 text-volt" />
                 </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Current Status</p>
+              <div className="flex-1">
+                  <div className="flex items-center justify-between">
+                    <p className="text-sm text-muted-foreground">Current Status</p>
+                    <span className="text-xs font-bold text-volt uppercase tracking-wide">
+                      {PRESTIGE_NAMES[prestige]}
+                    </span>
+                  </div>
                   <PrestigeDisplay 
                     prestige={prestige}
                     ranking={ranking}
@@ -173,7 +179,12 @@ const Stats = () => {
 
           {/* Ranking Ladder */}
           <div className="card-workout">
-            <h3 className="font-semibold text-foreground mb-4">Ranking Ladder</h3>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-semibold text-foreground">Ranking Ladder</h3>
+              <span className="text-xs font-bold text-volt uppercase tracking-wide">
+                {PRESTIGE_NAMES[prestige]}
+              </span>
+            </div>
             <div className="space-y-2">
               {RANKING_ORDER.map((rankItem) => {
                 const isCurrentRanking = rankItem === ranking;
