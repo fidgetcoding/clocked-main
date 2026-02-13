@@ -926,8 +926,11 @@ const WorkoutSession = () => {
 
   // Check if current segment is rest (for rest screen preview)
   const isRestSegment = currentSegment?.type === 'rest' && !isPreparation;
-  // Get the combo from the next segment to preview during rest
-  const restComboPreview = nextSegment?.combo;
+  // Only show combo preview for segments that actually use combos (shadowboxing, combo, bag types)
+  const nextSegmentUsesCombos = nextSegment?.type === 'active' && 
+    (nextSegment?.segmentType === 'combo' || nextSegment?.segmentType === 'shadowboxing' || 
+     nextSegment?.segmentType === 'speedbag' || nextSegment?.segmentType === 'doubleend');
+  const restComboPreview = nextSegmentUsesCombos && nextSegment?.combo && nextSegment.combo.length > 0 ? nextSegment.combo : undefined;
 
   // Helper function to convert move names to display format
   const getDisplayMove = (move: string): { display: string; type: 'punch' | 'defense' | 'movement' } => {
