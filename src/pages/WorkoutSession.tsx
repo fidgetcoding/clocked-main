@@ -24,7 +24,7 @@ import { useUserRole } from '@/hooks/useUserRole';
 import { useSpeechSynthesis } from '@/hooks/useSpeechSynthesis';
 import { useSoundEffects } from '@/hooks/useSoundEffects';
 import { cn } from '@/lib/utils';
-import { ACTIVITY_XP_RATES, ActivityType, getStreakMultiplier, getActivityTypeFromName, calculateComboXP, getSparringXPRate, getLevelFromXP } from '@/lib/xpSystem';
+import { ACTIVITY_XP_RATES, ActivityType, getStreakMultiplier, getActivityTypeFromName, calculateComboXP, getLevelFromXP } from '@/lib/xpSystem';
 import { computePostLogStats } from '@/lib/workoutTracking';
 import { LevelUpOverlay } from '@/components/ui/LevelUpOverlay';
 import { usePostWorkoutComplete } from '@/hooks/useCommunityPosts';
@@ -392,9 +392,7 @@ const WorkoutSession = () => {
     const activityType = getActivityTypeFromSegment(segment);
     let xpPerSecond = ACTIVITY_XP_RATES[activityType];
     
-    if (activityType === 'sparring' && profile?.prestige) {
-      xpPerSecond = getSparringXPRate(profile.prestige as any);
-    }
+    // Sparring removed from v1.0 activity types - use active fallback
     
     if (activityType === 'combo' && segment.combo && segment.combo.length > 0) {
       const totalComboXP = calculateComboXP(segment.combo, segment.duration);
