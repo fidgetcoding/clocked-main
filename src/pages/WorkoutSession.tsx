@@ -1071,10 +1071,9 @@ const WorkoutSession = () => {
             )}
           </div>
           
-          {/* Right side - XP bar with bubble and championship badge */}
+          {/* Right side - XP bubble only (bar moved to timer area) */}
           <div className="flex items-center relative">
-            {/* 2x XP badge removed — indicator now in championship banner */}
-            {/* XP Bubble - positioned to left of bar, vertically centered */}
+            {/* XP Bubble */}
             {xpBubble && (
               <div 
                 key={xpBubble.id}
@@ -1083,7 +1082,6 @@ const WorkoutSession = () => {
                 +{xpBubble.amount} XP
               </div>
             )}
-            <VerticalXPBar prestige={profile?.prestige || 'beginner'} level={liveLevel} totalXP={(profile?.total_xp || 0) + currentXP} badgeStats={currentStats} earnedBadgeIds={earnedBadgeIds} />
           </div>
         </header>
 
@@ -1132,73 +1130,76 @@ const WorkoutSession = () => {
                 </h2>
 
 
-                {/* Timer with 270° arc ring */}
-                <div className="relative flex items-center justify-center" style={{ width: 220, height: 220 }}>
-                  {/* SVG Arc Ring — 270° open at bottom */}
-                  <svg className="absolute inset-0" viewBox="0 0 220 220">
-                    {(() => {
-                      const r = 100;
-                      const circumference = 2 * Math.PI * r;
-                      const arcFrac = 0.75; // 270°
-                      const arcLen = circumference * arcFrac;
-                      const gapLen = circumference - arcLen;
-                      // Rotate so arc starts at bottom-left (135°) going clockwise to bottom-right
-                      const startAngle = 135;
-                      const segDuration = isPreparation ? 10 : (currentSegment?.duration || 1);
-                      const progress = Math.min(1, Math.max(0, timeRemaining / segDuration));
-                      const filledLen = arcLen * progress;
-                      return (
-                        <>
-                          {/* Background track */}
-                          <circle
-                            cx="110" cy="110" r={r}
-                            fill="none"
-                            stroke="hsl(var(--surface-3))"
-                            strokeWidth="4"
-                            strokeDasharray={`${arcLen} ${gapLen}`}
-                            strokeDashoffset={-circumference * (startAngle / 360)}
-                            strokeLinecap="round"
-                          />
-                          {/* Glow layer */}
-                          <circle
-                            cx="110" cy="110" r={r}
-                            fill="none"
-                            stroke={isChampionship ? 'hsl(var(--championship-gold))' : 'hsl(var(--electric-volt))'}
-                            strokeWidth="8"
-                            strokeDasharray={`${filledLen} ${circumference - filledLen}`}
-                            strokeDashoffset={-circumference * (startAngle / 360)}
-                            strokeLinecap="round"
-                            opacity="0.3"
-                            filter="blur(4px)"
-                            className="animate-[pulse_2s_ease-in-out_infinite]"
-                          />
-                          {/* Filled progress */}
-                          <circle
-                            cx="110" cy="110" r={r}
-                            fill="none"
-                            stroke={isChampionship ? 'hsl(var(--championship-gold))' : 'hsl(var(--electric-volt))'}
-                            strokeWidth="4"
-                            strokeDasharray={`${filledLen} ${circumference - filledLen}`}
-                            strokeDashoffset={-circumference * (startAngle / 360)}
-                            strokeLinecap="round"
-                          />
-                        </>
-                      );
-                    })()}
-                  </svg>
-                  {/* Timer text centered */}
-                  <span className={cn(
-                    "timer-display text-6xl font-black",
-                    isChampionship 
-                      ? "text-championship-gold animate-gold-shimmer" 
-                      : "text-volt text-glow-volt"
-                  )}>
-                    {formatTime(timeRemaining)}
-                  </span>
-                  {/* Combo XP Pop — floats above timer */}
-                  <div className="absolute -top-2 left-1/2 -translate-x-1/2">
-                    <ComboXPPop pop={comboXPPop} />
+                {/* Timer with 270° arc ring + Vertical XP Bar */}
+                <div className="relative flex items-center justify-center gap-3">
+                  <div className="relative flex items-center justify-center" style={{ width: 220, height: 220 }}>
+                    {/* SVG Arc Ring — 270° open at bottom */}
+                    <svg className="absolute inset-0" viewBox="0 0 220 220">
+                      {(() => {
+                        const r = 100;
+                        const circumference = 2 * Math.PI * r;
+                        const arcFrac = 0.75; // 270°
+                        const arcLen = circumference * arcFrac;
+                        const gapLen = circumference - arcLen;
+                        const startAngle = 135;
+                        const segDuration = isPreparation ? 10 : (currentSegment?.duration || 1);
+                        const progress = Math.min(1, Math.max(0, timeRemaining / segDuration));
+                        const filledLen = arcLen * progress;
+                        return (
+                          <>
+                            {/* Background track */}
+                            <circle
+                              cx="110" cy="110" r={r}
+                              fill="none"
+                              stroke="hsl(var(--surface-3))"
+                              strokeWidth="4"
+                              strokeDasharray={`${arcLen} ${gapLen}`}
+                              strokeDashoffset={-circumference * (startAngle / 360)}
+                              strokeLinecap="round"
+                            />
+                            {/* Glow layer */}
+                            <circle
+                              cx="110" cy="110" r={r}
+                              fill="none"
+                              stroke={isChampionship ? 'hsl(var(--championship-gold))' : 'hsl(var(--electric-volt))'}
+                              strokeWidth="8"
+                              strokeDasharray={`${filledLen} ${circumference - filledLen}`}
+                              strokeDashoffset={-circumference * (startAngle / 360)}
+                              strokeLinecap="round"
+                              opacity="0.3"
+                              filter="blur(4px)"
+                              className="animate-[pulse_2s_ease-in-out_infinite]"
+                            />
+                            {/* Filled progress */}
+                            <circle
+                              cx="110" cy="110" r={r}
+                              fill="none"
+                              stroke={isChampionship ? 'hsl(var(--championship-gold))' : 'hsl(var(--electric-volt))'}
+                              strokeWidth="4"
+                              strokeDasharray={`${filledLen} ${circumference - filledLen}`}
+                              strokeDashoffset={-circumference * (startAngle / 360)}
+                              strokeLinecap="round"
+                            />
+                          </>
+                        );
+                      })()}
+                    </svg>
+                    {/* Timer text centered */}
+                    <span className={cn(
+                      "timer-display text-6xl font-black",
+                      isChampionship 
+                        ? "text-championship-gold animate-gold-shimmer" 
+                        : "text-volt text-glow-volt"
+                    )}>
+                      {formatTime(timeRemaining)}
+                    </span>
+                    {/* Combo XP Pop — floats above timer */}
+                    <div className="absolute -top-2 left-1/2 -translate-x-1/2">
+                      <ComboXPPop pop={comboXPPop} />
+                    </div>
                   </div>
+                  {/* Vertical XP Bar — right of timer */}
+                  <VerticalXPBar prestige={profile?.prestige || 'beginner'} level={liveLevel} totalXP={(profile?.total_xp || 0) + currentXP} badgeStats={currentStats} earnedBadgeIds={earnedBadgeIds} />
                 </div>
               </>
 
@@ -1210,22 +1211,6 @@ const WorkoutSession = () => {
                currentSegment?.segmentType?.toUpperCase() || 'WORK'}
             </span>
             <div className="h-px w-12 bg-surface-3" />
-          </div>
-
-          {/* Time Modification Buttons */}
-          <div className="flex gap-3 mb-4">
-            <button 
-              onClick={halveTime}
-              className="px-5 py-2 rounded-full bg-surface-1 border border-surface-3 text-foreground text-sm font-bold hover:bg-surface-2 transition-colors"
-            >
-              50%
-            </button>
-            <button 
-              onClick={doubleTime}
-              className="px-5 py-2 rounded-full bg-surface-1 border border-surface-3 text-foreground text-sm font-bold hover:bg-surface-2 transition-colors"
-            >
-              2X
-            </button>
           </div>
 
           {/* Fine-tune buttons */}
@@ -1425,13 +1410,7 @@ const WorkoutSession = () => {
             </span>
           </div>
 
-          {/* Timer XP Bar — continuous level progress */}
-          <TimerXPBar
-            prestige={(profile?.prestige || 'beginner') as any}
-            level={liveLevel}
-            totalXP={(profile?.total_xp || 0) + currentXP}
-            className="mb-3"
-          />
+
 
           {/* Controls */}
           <div className="flex items-center justify-center gap-4">
