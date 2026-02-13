@@ -353,11 +353,9 @@ const WorkoutSession = () => {
   const nextSegment = flatSegments[currentSegmentIndex + 1];
   const totalSegments = flatSegments.length;
   const progressPercent = totalSegments > 0 ? (currentSegmentIndex / totalSegments) * 100 : 0;
-  // Championship visual: any segment in round 11+ gets gold styling
-  // For rest segments, check adjacent segments to keep gold between championship segments
-  const championshipRound = currentSegment?.cumulativeRound 
-    || (currentSegmentIndex > 0 ? flatSegments[currentSegmentIndex - 1]?.cumulativeRound : undefined);
-  const isChampionship = !isPreparation && !!championshipRound && championshipRound > 10;
+  // Championship visual: only segments with their OWN cumulativeRound > 10
+  // cumulativeRound is only set for grind sections, so conditioning/cooldown never get it
+  const isChampionship = !isPreparation && !!currentSegment?.cumulativeRound && currentSegment.cumulativeRound > 10;
   const isCooldown = !isPreparation && currentSegment?.section === 'cooldown';
   
   // Accent color helper — championship gold > cooldown blue > volt green
