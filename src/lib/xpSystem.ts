@@ -59,11 +59,11 @@ interface TierCurve {
 }
 
 const TIER_CURVES: Record<Prestige, TierCurve> = {
-  rookie:       { A: 142.70, B: 0.2000, totalL100: 30_000 },
-  beginner:     { A: 149.31, B: 0.4261, totalL100: 75_000 },
-  intermediate: { A: 243.88, B: 0.5139, totalL100: 173_000 },
-  advanced:     { A: 443.04, B: 0.5185, totalL100: 320_000 },
-  pro:          { A: 651.85, B: 0.5337, totalL100: 500_000 },
+  rookie:       { A: 180.50, B: 0.1376, totalL100: 30_000 },
+  beginner:     { A: 170.05, B: 0.3928, totalL100: 75_000 },
+  intermediate: { A: 290.30, B: 0.4697, totalL100: 173_000 },
+  advanced:     { A: 608.83, B: 0.4377, totalL100: 320_000 },
+  pro:          { A: 986.19, B: 0.4285, totalL100: 500_000 },
 };
 
 /**
