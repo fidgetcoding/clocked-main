@@ -6,6 +6,8 @@ import { RoundFeedback } from '@/types';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
 import { VerticalXPBar } from '@/components/ui/VerticalXPBar';
+import { TimerXPBar } from '@/components/ui/TimerXPBar';
+import { ComboXPPop } from '@/components/ui/ComboXPPop';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -318,6 +320,7 @@ const WorkoutSession = () => {
   const [accumulatedXP, setAccumulatedXP] = useState(0);
   const [showExitConfirm, setShowExitConfirm] = useState(false);
   const [showRestartConfirm, setShowRestartConfirm] = useState(false);
+  const [comboXPPop, setComboXPPop] = useState<{ amount: number; id: number; isChampionship?: boolean } | null>(null);
   const [levelUpLevel, setLevelUpLevel] = useState<number | null>(null);
   const [sessionResult, setSessionResult] = useState<SessionXPBreakdown | null>(null);
   
@@ -535,6 +538,8 @@ const WorkoutSession = () => {
   const prevSegmentIndexRef = useRef<number>(-1);
   // Track if XP has already been awarded
   const xpAwardedRef = useRef(false);
+  // Track previous segment for combo XP pops
+  const prevComboSegRef = useRef<number>(-1);
 
   // Voice countdown at 3 seconds - respects voiceCountdown preference
   useEffect(() => {
@@ -607,25 +612,30 @@ const WorkoutSession = () => {
       if (isPreparation) {
         setIsPreparation(false);
         const firstDuration = flatSegments[0]?.duration || 60;
-        // If we overshot (e.g. backgrounded past prep), account for overflow
-        setTimeRemaining(firstDuration + timeRemaining); // timeRemaining is negative, so this subtracts overshoot
+        setTimeRemaining(firstDuration + timeRemaining);
       } else if (currentSegmentIndex < flatSegments.length - 1) {
+        // Fire combo XP pop for the segment that just ended
+        const endingSegment = flatSegments[currentSegmentIndex];
+        if (endingSegment && endingSegment.combo && endingSegment.combo.length > 0 && prevComboSegRef.current !== currentSegmentIndex) {
+          prevComboSegRef.current = currentSegmentIndex;
+          const comboXP = calculateComboXP(endingSegment.combo, endingSegment.duration);
+          const isChamp = endingSegment.cumulativeRound ? endingSegment.cumulativeRound > 10 && isBoxingSegment(endingSegment) : false;
+          const finalXP = isChamp ? comboXP * 2 : comboXP;
+          if (finalXP > 0) {
+            setComboXPPop({ amount: finalXP * streakMultiplier, id: Date.now(), isChampionship: isChamp });
+          }
+        }
+        
         const nextIdx = currentSegmentIndex + 1;
         const nextDuration = flatSegments[nextIdx]?.duration || 60;
         setCurrentSegmentIndex(nextIdx);
-        // Carry over any overshoot into the next segment
         setTimeRemaining(nextDuration + timeRemaining);
       } else if (!isComplete && !xpAwardedRef.current) {
-        // Mark as complete FIRST to prevent re-entry
         xpAwardedRef.current = true;
-        
-        // Workout complete - stop timer, show journal
-        // XP is NOT persisted here — only when user logs the workout
         cancelSpeech();
         setIsComplete(true);
         setIsRunning(false);
         
-        // Mark workout as used
         if (dbWorkout) {
           updateWorkout.mutate({
             id: dbWorkout.id,
@@ -635,7 +645,7 @@ const WorkoutSession = () => {
         }
       }
     }
-  }, [timeRemaining, isRunning, isPreparation, currentSegmentIndex, flatSegments, dbWorkout, updateWorkout, cancelSpeech, isComplete, accumulatedXP]);
+  }, [timeRemaining, isRunning, isPreparation, currentSegmentIndex, flatSegments, dbWorkout, updateWorkout, cancelSpeech, isComplete, accumulatedXP, streakMultiplier, isBoxingSegment]);
 
 
   const showXpBubble = (amount: number) => {
@@ -1086,6 +1096,11 @@ const WorkoutSession = () => {
                 )}>
                   {formatTime(timeRemaining)}
                 </span>
+
+                {/* Combo XP Pop — floats above timer */}
+                <div className="relative h-0 w-full flex justify-center">
+                  <ComboXPPop pop={comboXPPop} className="bottom-2" />
+                </div>
               </>
             );
           })()}
@@ -1337,6 +1352,13 @@ const WorkoutSession = () => {
             <p className="text-[10px] text-center text-muted-foreground mt-1">
               {Math.round(progressPercent)}% COMPLETE
             </p>
+            {/* Horizontal XP bar — ticks in real-time */}
+            <TimerXPBar 
+              prestige={(profile?.prestige || 'beginner') as Prestige}
+              level={liveLevel}
+              totalXP={(profile?.total_xp || 0) + currentXP}
+              className="mt-2"
+            />
           </div>
 
           {/* Controls */}
