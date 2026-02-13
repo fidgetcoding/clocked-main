@@ -1188,7 +1188,7 @@ const WorkoutSession = () => {
                   </svg>
                   {/* Timer text centered */}
                   <span className={cn(
-                    "timer-display text-7xl font-black",
+                    "timer-display text-6xl font-black",
                     isChampionship 
                       ? "text-championship-gold animate-gold-shimmer" 
                       : "text-volt text-glow-volt"
