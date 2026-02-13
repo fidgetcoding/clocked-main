@@ -13,6 +13,8 @@ import { XPBar } from '@/components/ui/XPBar';
 import { PrestigeBadge } from '@/components/ui/PrestigeDisplay';
 import { Prestige, getRankingFromLevel, isPrestigeEligible } from '@/lib/xpSystem';
 import { PrestigeAvailableBanner, PrestigePrompt } from '@/components/workout/PrestigePrompt';
+import { LevelUpOverlay } from '@/components/ui/LevelUpOverlay';
+import { useUserRole } from '@/hooks/useUserRole';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { BadgeCollection } from '@/components/BadgeCollection';
@@ -39,7 +41,9 @@ const Profile = () => {
   const [listModal, setListModal] = useState<ListModalType>(null);
   const [showSharedWorkouts, setShowSharedWorkouts] = useState(false);
   const [showPrestigePrompt, setShowPrestigePrompt] = useState(false);
+  const [showLevelUpOverlay, setShowLevelUpOverlay] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const { isAdmin } = useUserRole();
   const { results: searchResults, isLoading: isSearching, hasQuery } = useUserSearch(searchQuery);
 
   // Determine if viewing own profile or someone else's
@@ -325,11 +329,43 @@ const Profile = () => {
           </div>
         )}
 
+        {/* Admin Debug: Test Prestige Animations */}
+        {isAdmin && isOwnProfile && (
+          <div className="px-4 mb-4">
+            <div className="card-workout border border-volt/20 space-y-2">
+              <p className="text-xs font-bold text-volt uppercase tracking-wider">⚡ Admin Tools</p>
+              <div className="flex gap-2">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setShowLevelUpOverlay(true)}
+                  className="flex-1 text-xs bg-surface-2 border-surface-3"
+                >
+                  🎮 Level Up Animation
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setShowPrestigePrompt(true)}
+                  className="flex-1 text-xs bg-surface-2 border-surface-3"
+                >
+                  🏆 Prestige Prompt
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Badge Collection */}
         {isOwnProfile && (
           <div className="px-4 mb-6">
             <BadgeCollection />
           </div>
+        )}
+
+        {/* Level Up Overlay (admin test) */}
+        {showLevelUpOverlay && (
+          <LevelUpOverlay level={currentLevel} onComplete={() => setShowLevelUpOverlay(false)} />
         )}
 
 
