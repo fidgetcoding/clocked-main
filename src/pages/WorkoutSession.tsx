@@ -1339,7 +1339,7 @@ const WorkoutSession = () => {
           )}
           
           {/* Combo Display for combo segments - always show the current combo */}
-          {!isShadowboxing && displayCombo && displayCombo.length > 0 && !isPreparation && (
+          {!isShadowboxing && displayCombo && displayCombo.length > 0 && !isPreparation && (currentSegment?.segmentType === 'combo' || currentSegment?.segmentType === 'speedbag' || currentSegment?.segmentType === 'doubleend') && (
             <div className="w-full max-w-xs bg-surface-1 rounded-xl p-3 border border-surface-3">
               <div className="flex items-center justify-center gap-2 flex-wrap">
                 {displayCombo.map((move, idx) => {
