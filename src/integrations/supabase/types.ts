@@ -251,110 +251,218 @@ export type Database = {
       }
       profiles: {
         Row: {
+          advanced_sessions_to_l100: number
           avatar_url: string | null
+          beginner_sessions_to_l100: number
+          best_session_xp: number
           bio: string | null
+          birthday_workout: boolean
+          circles_count: number
           combos_landed: number | null
+          comeback_count: number
           complex_combos: number
           counter_combos: number
           created_at: string
           current_level: number | null
           current_streak: number
           defense_combos: number
+          double_days: number
           equipment: Json | null
           experience_level: string | null
+          friday_workouts: number
           goals: string[] | null
           handle: string | null
           height_cm: number | null
+          holiday_workouts: number
           id: string
+          intermediate_sessions_to_l100: number
           last_active_at: string | null
           last_workout_date: string | null
           longest_streak: number
+          monday_workouts: number
+          morning_workouts: number
           name: string
+          new_years_workout: boolean
+          night_workouts: number
+          overflow_xp: number
+          perfect_months: number
+          post_l100_sessions: number
           preferences: Json | null
           prestige: string | null
+          pro_sessions_to_l100: number
+          pullbacks_count: number
+          punch_1_count: number
+          punch_2_count: number
+          punch_3_count: number
+          punch_4_count: number
+          punch_5_count: number
+          punch_6_count: number
+          punch_7_count: number
+          punch_8_count: number
           role: string
+          rolls_count: number
+          rookie_sessions_to_l100: number
           sessions_completed_this_year: number | null
+          slips_count: number
           streak_multiplier: number | null
+          streak_recoveries: number
+          sunday_workouts: number
+          tiers_completed: number
           total_burpees: number
           total_curlups: number
           total_jog_run_minutes: number
+          total_levels_earned: number
           total_pushups: number
           total_training_seconds: number | null
           total_xp: number
           updated_at: string
           user_id: string
+          weekday_workouts: number
+          weekend_workouts: number
           weight_kg: number | null
           workouts_completed: number
         }
         Insert: {
+          advanced_sessions_to_l100?: number
           avatar_url?: string | null
+          beginner_sessions_to_l100?: number
+          best_session_xp?: number
           bio?: string | null
+          birthday_workout?: boolean
+          circles_count?: number
           combos_landed?: number | null
+          comeback_count?: number
           complex_combos?: number
           counter_combos?: number
           created_at?: string
           current_level?: number | null
           current_streak?: number
           defense_combos?: number
+          double_days?: number
           equipment?: Json | null
           experience_level?: string | null
+          friday_workouts?: number
           goals?: string[] | null
           handle?: string | null
           height_cm?: number | null
+          holiday_workouts?: number
           id?: string
+          intermediate_sessions_to_l100?: number
           last_active_at?: string | null
           last_workout_date?: string | null
           longest_streak?: number
+          monday_workouts?: number
+          morning_workouts?: number
           name?: string
+          new_years_workout?: boolean
+          night_workouts?: number
+          overflow_xp?: number
+          perfect_months?: number
+          post_l100_sessions?: number
           preferences?: Json | null
           prestige?: string | null
+          pro_sessions_to_l100?: number
+          pullbacks_count?: number
+          punch_1_count?: number
+          punch_2_count?: number
+          punch_3_count?: number
+          punch_4_count?: number
+          punch_5_count?: number
+          punch_6_count?: number
+          punch_7_count?: number
+          punch_8_count?: number
           role?: string
+          rolls_count?: number
+          rookie_sessions_to_l100?: number
           sessions_completed_this_year?: number | null
+          slips_count?: number
           streak_multiplier?: number | null
+          streak_recoveries?: number
+          sunday_workouts?: number
+          tiers_completed?: number
           total_burpees?: number
           total_curlups?: number
           total_jog_run_minutes?: number
+          total_levels_earned?: number
           total_pushups?: number
           total_training_seconds?: number | null
           total_xp?: number
           updated_at?: string
           user_id: string
+          weekday_workouts?: number
+          weekend_workouts?: number
           weight_kg?: number | null
           workouts_completed?: number
         }
         Update: {
+          advanced_sessions_to_l100?: number
           avatar_url?: string | null
+          beginner_sessions_to_l100?: number
+          best_session_xp?: number
           bio?: string | null
+          birthday_workout?: boolean
+          circles_count?: number
           combos_landed?: number | null
+          comeback_count?: number
           complex_combos?: number
           counter_combos?: number
           created_at?: string
           current_level?: number | null
           current_streak?: number
           defense_combos?: number
+          double_days?: number
           equipment?: Json | null
           experience_level?: string | null
+          friday_workouts?: number
           goals?: string[] | null
           handle?: string | null
           height_cm?: number | null
+          holiday_workouts?: number
           id?: string
+          intermediate_sessions_to_l100?: number
           last_active_at?: string | null
           last_workout_date?: string | null
           longest_streak?: number
+          monday_workouts?: number
+          morning_workouts?: number
           name?: string
+          new_years_workout?: boolean
+          night_workouts?: number
+          overflow_xp?: number
+          perfect_months?: number
+          post_l100_sessions?: number
           preferences?: Json | null
           prestige?: string | null
+          pro_sessions_to_l100?: number
+          pullbacks_count?: number
+          punch_1_count?: number
+          punch_2_count?: number
+          punch_3_count?: number
+          punch_4_count?: number
+          punch_5_count?: number
+          punch_6_count?: number
+          punch_7_count?: number
+          punch_8_count?: number
           role?: string
+          rolls_count?: number
+          rookie_sessions_to_l100?: number
           sessions_completed_this_year?: number | null
+          slips_count?: number
           streak_multiplier?: number | null
+          streak_recoveries?: number
+          sunday_workouts?: number
+          tiers_completed?: number
           total_burpees?: number
           total_curlups?: number
           total_jog_run_minutes?: number
+          total_levels_earned?: number
           total_pushups?: number
           total_training_seconds?: number | null
           total_xp?: number
           updated_at?: string
           user_id?: string
+          weekday_workouts?: number
+          weekend_workouts?: number
           weight_kg?: number | null
           workouts_completed?: number
         }

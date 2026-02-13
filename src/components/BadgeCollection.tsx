@@ -1,9 +1,23 @@
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
 import { useBadges } from '@/hooks/useBadges';
-import { Badge, BadgeCategory, BADGE_CATEGORY_COLORS, BADGE_CATEGORY_NAMES, getBadgeProgress, BadgeStats } from '@/data/badges';
+import { Badge, BadgeCategory, BADGE_CATEGORY_COLORS, BADGE_CATEGORY_NAMES, BadgeStats } from '@/data/badges';
+import { PostL100Badge, PostL100Category, POST_L100_CATEGORY_COLORS, POST_L100_CATEGORY_NAMES } from '@/data/postL100Badges';
 import { Progress } from '@/components/ui/progress';
 import { X } from 'lucide-react';
+
+type AnyBadgeCategory = BadgeCategory | PostL100Category;
+type AnyBadge = (Badge | PostL100Badge) & { earned: boolean; earnedAt?: string; progress: number };
+
+function getCategoryColors(cat: AnyBadgeCategory) {
+  if (cat in BADGE_CATEGORY_COLORS) return BADGE_CATEGORY_COLORS[cat as BadgeCategory];
+  return POST_L100_CATEGORY_COLORS[cat as PostL100Category];
+}
+
+function getCategoryName(cat: AnyBadgeCategory) {
+  if (cat in BADGE_CATEGORY_NAMES) return BADGE_CATEGORY_NAMES[cat as BadgeCategory];
+  return POST_L100_CATEGORY_NAMES[cat as PostL100Category];
+}
 
 // Badge shape components
 function BadgeShapeIcon({ shape, earned, categoryColor }: { shape: string; earned: boolean; categoryColor: string }) {
@@ -28,13 +42,13 @@ function BadgeShapeIcon({ shape, earned, categoryColor }: { shape: string; earne
 }
 
 interface BadgeDetailModalProps {
-  badge: Badge & { earned: boolean; earnedAt?: string; progress: number };
+  badge: AnyBadge;
   stats: BadgeStats;
   onClose: () => void;
 }
 
 function BadgeDetailModal({ badge, stats, onClose }: BadgeDetailModalProps) {
-  const colors = BADGE_CATEGORY_COLORS[badge.category];
+  const colors = getCategoryColors(badge.category as AnyBadgeCategory);
   const progressPct = Math.round(badge.progress * 100);
 
   return (
@@ -53,7 +67,7 @@ function BadgeDetailModal({ badge, stats, onClose }: BadgeDetailModalProps) {
             {badge.name}
           </h3>
           <p className="text-xs text-muted-foreground uppercase tracking-wider mt-1">
-            {BADGE_CATEGORY_NAMES[badge.category]}
+            {getCategoryName(badge.category as AnyBadgeCategory)}
           </p>
         </div>
 
@@ -82,8 +96,8 @@ function BadgeDetailModal({ badge, stats, onClose }: BadgeDetailModalProps) {
 
 export function BadgeCollection() {
   const { getBadgesByCategory, earnedCount, totalBadgeCount, currentStats } = useBadges();
-  const [selectedBadge, setSelectedBadge] = useState<(Badge & { earned: boolean; earnedAt?: string; progress: number }) | null>(null);
-  const [activeCategory, setActiveCategory] = useState<BadgeCategory | 'all'>('all');
+  const [selectedBadge, setSelectedBadge] = useState<AnyBadge | null>(null);
+  const [activeCategory, setActiveCategory] = useState<AnyBadgeCategory | 'all'>('all');
 
   const categories = getBadgesByCategory();
   const filteredCategories = activeCategory === 'all' 
@@ -114,7 +128,7 @@ export function BadgeCollection() {
           All
         </button>
         {categories.map(({ category }) => {
-          const colors = BADGE_CATEGORY_COLORS[category];
+          const colors = getCategoryColors(category);
           const count = categories.find(c => c.category === category)?.badges.filter(b => b.earned).length || 0;
           return (
             <button
@@ -125,7 +139,7 @@ export function BadgeCollection() {
                 activeCategory === category ? `${colors.bg} ${colors.text}` : 'bg-surface-2 text-muted-foreground'
               )}
             >
-              {BADGE_CATEGORY_NAMES[category]} ({count})
+              {getCategoryName(category)} ({count})
             </button>
           );
         })}
@@ -135,13 +149,13 @@ export function BadgeCollection() {
       {filteredCategories.map(({ category, badges }) => (
         <div key={category} className="mb-6">
           {activeCategory === 'all' && (
-            <h4 className={cn('text-xs font-semibold uppercase tracking-wider mb-2', BADGE_CATEGORY_COLORS[category].text)}>
-              {BADGE_CATEGORY_NAMES[category]}
+            <h4 className={cn('text-xs font-semibold uppercase tracking-wider mb-2', getCategoryColors(category).text)}>
+              {getCategoryName(category)}
             </h4>
           )}
           <div className="grid grid-cols-5 gap-2">
             {badges.map((badge) => {
-              const colors = BADGE_CATEGORY_COLORS[badge.category];
+              const colors = getCategoryColors(badge.category as AnyBadgeCategory);
               return (
                 <button
                   key={badge.id}
