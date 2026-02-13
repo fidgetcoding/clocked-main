@@ -538,6 +538,7 @@ const Build = () => {
   const presets = getAllPresets(difficulty);
   const presetCategories = getPresetCategories(difficulty);
   const [presetSearch, setPresetSearch] = useState('');
+  const [selectedPresetCategory, setSelectedPresetCategory] = useState<string | null>(null);
 
   const getSegmentTypeInfo = (segType?: SegmentType) => {
     // Map legacy 'work' to 'exercise'
@@ -862,6 +863,7 @@ const Build = () => {
                                     setEditingComboIndex(null);
                                     setComboMode('presets');
                                     setPresetSearch('');
+                                    setSelectedPresetCategory(null);
                                     setShowComboBuilder(true);
                                   }
                                   // Auto-expand when adding
@@ -1145,102 +1147,100 @@ const Build = () => {
                         className="pl-9 bg-surface-2 border-surface-3 text-foreground text-sm h-9"
                       />
                     </div>
-                    {/* Category sections */}
+                    {/* Category filter pills */}
+                    <div className="flex flex-wrap gap-1.5 mb-3">
+                      {presetCategories.map((cat, catIdx) => {
+                        const isActive = selectedPresetCategory === cat.name;
+                        return (
+                          <button
+                            key={catIdx}
+                            onClick={() => setSelectedPresetCategory(isActive ? null : cat.name)}
+                            className={cn(
+                              'px-2.5 py-1 rounded-full text-[11px] font-medium border transition-colors',
+                              isActive
+                                ? 'bg-volt text-background border-volt'
+                                : 'bg-surface-2 text-muted-foreground border-surface-3 hover:border-foreground/30'
+                            )}
+                          >
+                            {cat.name}
+                          </button>
+                        );
+                      })}
+                    </div>
+                    {/* Flat combo list */}
                     {(() => {
                       const existingCombos = editingPhaseId ? getPhaseCombos(editingPhaseId) : [];
                       const isComboAdded = (combo: string[]) =>
                         existingCombos.some(ec => ec.length === combo.length && ec.every((m, i) => m === combo[i]));
                       const searchLower = presetSearch.toLowerCase();
-                      const filteredCategories = presetCategories.map(cat => ({
-                        ...cat,
-                        combos: searchLower
-                          ? cat.combos.filter(c => c.some(m => m.toLowerCase().includes(searchLower)))
-                          : cat.combos,
-                      })).filter(cat => cat.combos.length > 0);
+                      
+                      const visibleCombos: { combo: string[]; catName: string; idx: number }[] = [];
+                      presetCategories.forEach((cat) => {
+                        if (selectedPresetCategory && cat.name !== selectedPresetCategory) return;
+                        cat.combos.forEach((combo, idx) => {
+                          if (searchLower && !combo.some(m => m.toLowerCase().includes(searchLower))) return;
+                          visibleCombos.push({ combo, catName: cat.name, idx });
+                        });
+                      });
 
-                      if (filteredCategories.length === 0) {
-                        return <p className="text-muted-foreground text-sm text-center py-8">No combos match &quot;{presetSearch}&quot;</p>;
+                      if (visibleCombos.length === 0) {
+                        return <p className="text-muted-foreground text-sm text-center py-8">No combos found</p>;
                       }
 
-                      return filteredCategories.map((cat, catIdx) => {
-                        const catKey = `preset-${difficulty}-${catIdx}`;
-                        const isExpanded = expandedLibraries.get(catKey);
-                        const defaultExpanded = presetSearch.length > 0 || cat.combos.length <= 5;
-                        const expanded = isExpanded !== undefined ? isExpanded : defaultExpanded;
-
-                        return (
-                          <div key={catKey} className="mb-3">
-                            <button
-                              onClick={() => {
-                                setExpandedLibraries(prev => {
-                                  const next = new Map(prev);
-                                  next.set(catKey, !expanded);
-                                  return next;
-                                });
-                              }}
-                              className="w-full flex items-center justify-between py-2 px-1"
-                            >
-                              <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                                {cat.name} ({cat.combos.length})
-                              </span>
-                              {expanded ? <ChevronUp className="w-4 h-4 text-muted-foreground" /> : <ChevronDown className="w-4 h-4 text-muted-foreground" />}
-                            </button>
-                            {expanded && (
-                              <div className="space-y-1.5">
-                                {cat.combos.map((combo, cIdx) => {
-                                  const added = isComboAdded(combo);
-                                  return (
-                                    <button
-                                      key={cIdx}
-                                      onClick={() => {
-                                        if (!added) {
-                                          addPresetCombo({ id: `${catKey}-${cIdx}`, name: combo.join('-'), combo, difficulty });
-                                        }
-                                      }}
-                                      disabled={added}
-                                      className={cn(
-                                        'w-full flex items-center gap-3 rounded-lg p-2.5 border transition-colors text-left',
-                                        added
-                                          ? 'bg-surface-1/50 border-surface-3/50 opacity-60'
-                                          : 'bg-surface-1 border-surface-3 hover:border-volt'
-                                      )}
-                                    >
-                                      <div className="flex-1">
-                                        <div className="flex flex-wrap gap-1">
-                                          {combo.map((move, idx) => {
-                                            const isDefense = move.includes('SLIP') || move.includes('ROLL') || move.includes('PULL');
-                                            const isMovement = move.includes('CIRCLE');
-                                            const isBody = ['7', '8', '9', '10'].includes(move);
-                                            return (
-                                              <span
-                                                key={idx}
-                                                className={cn(
-                                                  'px-1.5 py-0.5 rounded text-[10px] font-medium',
-                                                  isDefense ? 'bg-yellow-500/20 text-yellow-500'
-                                                    : isMovement ? 'bg-blue-500/20 text-blue-400'
-                                                    : isBody ? 'bg-orange-500/20 text-orange-400'
-                                                    : 'bg-volt/20 text-volt'
-                                                )}
-                                              >
-                                                {move}
-                                              </span>
-                                            );
-                                          })}
-                                        </div>
-                                      </div>
-                                      {added ? (
-                                        <Check className="w-4 h-4 text-muted-foreground" />
-                                      ) : (
-                                        <Plus className="w-4 h-4 text-volt" />
-                                      )}
-                                    </button>
-                                  );
-                                })}
-                              </div>
-                            )}
-                          </div>
-                        );
-                      });
+                      return (
+                        <div className="space-y-1.5">
+                          {visibleCombos.map(({ combo, catName, idx }) => {
+                            const added = isComboAdded(combo);
+                            const comboKey = `${difficulty}-${catName}-${idx}`;
+                            return (
+                              <button
+                                key={comboKey}
+                                onClick={() => {
+                                  if (!added) {
+                                    addPresetCombo({ id: comboKey, name: combo.join('-'), combo, difficulty });
+                                  }
+                                }}
+                                disabled={added}
+                                className={cn(
+                                  'w-full flex items-center gap-3 rounded-lg p-2.5 border transition-colors text-left',
+                                  added
+                                    ? 'bg-surface-1/50 border-surface-3/50 opacity-60'
+                                    : 'bg-surface-1 border-surface-3 hover:border-volt'
+                                )}
+                              >
+                                <div className="flex-1">
+                                  <div className="flex flex-wrap gap-1">
+                                    {combo.map((move, mIdx) => {
+                                      const isDefense = move.includes('SLIP') || move.includes('ROLL') || move.includes('PULL');
+                                      const isMovement = move.includes('CIRCLE');
+                                      const isBody = ['7', '8', '9', '10'].includes(move);
+                                      return (
+                                        <span
+                                          key={mIdx}
+                                          className={cn(
+                                            'px-1.5 py-0.5 rounded text-[10px] font-medium',
+                                            isDefense ? 'bg-yellow-500/20 text-yellow-500'
+                                              : isMovement ? 'bg-blue-500/20 text-blue-400'
+                                              : isBody ? 'bg-orange-500/20 text-orange-400'
+                                              : 'bg-volt/20 text-volt'
+                                          )}
+                                        >
+                                          {move}
+                                        </span>
+                                      );
+                                    })}
+                                  </div>
+                                </div>
+                                {added ? (
+                                  <Check className="w-4 h-4 text-muted-foreground" />
+                                ) : (
+                                  <Plus className="w-4 h-4 text-volt" />
+                                )}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      );
                     })()}
                   </>
                 )}
