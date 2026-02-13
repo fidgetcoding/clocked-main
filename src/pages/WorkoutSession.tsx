@@ -1122,11 +1122,7 @@ const WorkoutSession = () => {
               <>
                 {/* Phase Name — context of where you are */}
                 {isPreparation ? (
-                  <div className="flex items-center gap-3 mb-2">
-                    <div className="h-px w-10 bg-muted-foreground/30" />
-                    <p className="text-xs text-muted-foreground uppercase tracking-widest">GET READY</p>
-                    <div className="h-px w-10 bg-muted-foreground/30" />
-                  </div>
+                  <p className="text-xs text-muted-foreground uppercase tracking-widest mb-2">GET READY</p>
                 ) : isChampionship ? (
                   <div className="flex items-center gap-3 mb-2 px-5 py-1.5 rounded-full bg-championship-gold/15 border border-championship-gold/40 animate-[pulse_3s_ease-in-out_infinite]">
                     <Zap className="w-4 h-4 text-championship-gold" />
@@ -1134,16 +1130,12 @@ const WorkoutSession = () => {
                     <Zap className="w-4 h-4 text-championship-gold" />
                   </div>
                 ) : (
-                  <div className="flex items-center gap-3 mb-2">
-                    <div className={cn("h-px w-10", isCooldown ? "bg-cooldown-blue/30" : "bg-muted-foreground/30")} />
-                    <p className={cn(
-                      "text-xs uppercase tracking-widest",
-                      isCooldown ? "text-cooldown-blue/70" : "text-muted-foreground"
-                    )}>
-                      {currentSegment?.phaseName || 'WARMUP'}
-                    </p>
-                    <div className={cn("h-px w-10", isCooldown ? "bg-cooldown-blue/30" : "bg-muted-foreground/30")} />
-                  </div>
+                  <p className={cn(
+                    "text-xs uppercase tracking-widest mb-2",
+                    isCooldown ? "text-cooldown-blue/70" : "text-muted-foreground"
+                  )}>
+                    {currentSegment?.phaseName || 'WARMUP'}
+                  </p>
                 )}
 
 
