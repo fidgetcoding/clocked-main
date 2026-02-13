@@ -1103,7 +1103,20 @@ const WorkoutSession = () => {
                             strokeDashoffset={-circumference * (startAngle / 360)}
                             strokeLinecap="round"
                           />
-                          {/* Filled progress — same start, shorter dash */}
+                          {/* Glow layer */}
+                          <circle
+                            cx="110" cy="110" r={r}
+                            fill="none"
+                            stroke={isChampionship ? 'hsl(var(--championship-gold))' : 'hsl(var(--electric-volt))'}
+                            strokeWidth="8"
+                            strokeDasharray={`${filledLen} ${circumference - filledLen}`}
+                            strokeDashoffset={-circumference * (startAngle / 360)}
+                            strokeLinecap="round"
+                            opacity="0.3"
+                            filter="blur(4px)"
+                            className="animate-[pulse_2s_ease-in-out_infinite]"
+                          />
+                          {/* Filled progress */}
                           <circle
                             cx="110" cy="110" r={r}
                             fill="none"
