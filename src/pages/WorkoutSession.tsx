@@ -1215,39 +1215,13 @@ const WorkoutSession = () => {
             ))}
           </div>
 
-          {/* Rest Screen - Compact Next Preview */}
+          {/* Rest Screen - Clean Next Preview */}
           {isRestSegment && (
             <div className={cn("w-full max-w-xs rounded-xl p-3 border", isChampionship ? "bg-championship-gold/5 border-championship-gold/30" : isCooldown ? "bg-cooldown-blue/5 border-cooldown-blue/30" : "bg-surface-1 border-surface-3")}>
               <p className={cn("text-[10px] uppercase tracking-wider mb-1 text-center", isChampionship ? "text-championship-gold/60" : isCooldown ? "text-cooldown-blue/60" : "text-muted-foreground")}>UP NEXT</p>
               <p className={cn("text-lg font-black text-center uppercase", isChampionship ? "text-championship-gold" : isCooldown ? "text-cooldown-blue" : "text-foreground")}>
                 {nextSegment?.name || 'FINISH'}
               </p>
-              {nextSegment?.duration && (
-                <p className="text-xs text-muted-foreground text-center">{formatTime(nextSegment.duration)}</p>
-              )}
-              {restComboPreview && restComboPreview.length > 0 && (
-                <div className="mt-2 pt-2 border-t border-surface-3">
-                  <p className={cn("text-[10px] font-bold mb-1.5 text-center animate-pulse", accentText)}>INCOMING COMBO</p>
-                  <div className="flex items-center justify-center gap-1.5 flex-wrap">
-                    {restComboPreview.map((move, idx) => {
-                      const { display, type } = getDisplayMove(move);
-                      return (
-                        <div key={idx} className="flex items-center gap-0.5">
-                          <span className={cn(
-                            'text-xl font-black',
-                            accentText
-                          )}>
-                            {display}
-                          </span>
-                          {idx < restComboPreview.length - 1 && (
-                            <ChevronRight className="w-2.5 h-2.5 text-muted-foreground" />
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
             </div>
           )}
 
