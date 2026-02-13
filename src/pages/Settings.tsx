@@ -192,14 +192,6 @@ const Settings = () => {
                 >
                   🏆 Prestige
                 </Button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => setShowBadgeOverlay(true)}
-                  className="flex-1 text-xs bg-surface-2 border-surface-3"
-                >
-                  🎖️ Badge Earn
-                </Button>
               </div>
             </div>
           )}
@@ -226,13 +218,6 @@ const Settings = () => {
           </div>
         )}
 
-        {/* Badge Earn Overlay (admin test) */}
-        {showBadgeOverlay && (
-          <BadgeEarnOverlay
-            badge={ALL_BADGES[Math.floor(Math.random() * ALL_BADGES.length)]}
-            onComplete={() => setShowBadgeOverlay(false)}
-          />
-        )}
       </div>
     </AppLayout>
   );
