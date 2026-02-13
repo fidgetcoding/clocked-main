@@ -1162,7 +1162,7 @@ const WorkoutSession = () => {
                     </svg>
                     <span className={cn(
                       "timer-display font-black",
-                      timeRemaining >= 600 ? "text-6xl" : "text-8xl",
+                      timeRemaining >= 600 ? "text-7xl" : "text-8xl",
                       isChampionship 
                         ? "text-championship-gold animate-gold-shimmer" 
                         : isCooldown ? "text-cooldown-blue" : "text-volt text-glow-volt"
