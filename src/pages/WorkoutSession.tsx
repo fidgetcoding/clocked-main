@@ -997,18 +997,6 @@ const WorkoutSession = () => {
               <span className="timer-display text-2xl font-black text-volt/60">
                 {formatTimeCompact(totalElapsed)}
               </span>
-              {isAdmin && (
-              <button
-                onClick={() => {
-                  playLevelUpSound();
-                  setLevelUpLevel(2);
-                }}
-                className="p-1.5 rounded-full border border-dashed border-volt/30 text-volt/40 hover:text-volt hover:border-volt transition-colors"
-                title="DEV: Test Level Up"
-              >
-                <Zap className="w-3 h-3" />
-              </button>
-            )}
             </div>
             {/* Streak indicator */}
             {(profile?.current_streak || 0) > 0 && (
