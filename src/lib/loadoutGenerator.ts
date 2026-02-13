@@ -78,7 +78,7 @@ export function generateLoadoutWorkout(
   const allCombos: string[][] = [];
 
   // ─── WARMUP ────────────────────────────────────────
-  const warmupExercise = equipment.jumpRope ? 'Jump Rope' : 'High Knees';
+  const warmupExercise = equipment.jumpRope ? 'Jump Rope' : 'Jog in Place';
   phases.push({
     id: generateId(),
     name: 'Warmup',
@@ -189,7 +189,7 @@ export function generateLoadoutWorkout(
   });
 
   // ─── COOLDOWN ──────────────────────────────────────
-  const cooldownExercise = equipment.treadmill ? 'Treadmill' : 'Jog in Place';
+  const cooldownExercise = equipment.treadmill ? 'Treadmill' : 'Jog';
   phases.push({
     id: generateId(),
     name: 'Cooldown',
