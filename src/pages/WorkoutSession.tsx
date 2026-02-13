@@ -1089,14 +1089,15 @@ const WorkoutSession = () => {
                       fill="none"
                       stroke={isChampionship ? 'hsl(var(--championship-gold))' : 'hsl(var(--electric-volt))'}
                       strokeWidth="4"
-                      strokeDasharray={`${2 * Math.PI * 100 * 0.75} ${2 * Math.PI * 100 * 0.25}`}
-                      strokeDashoffset={(() => {
+                      strokeDasharray={(() => {
+                        const circumference = 2 * Math.PI * 100;
+                        const arcLength = circumference * 0.75;
                         const segDuration = isPreparation ? 10 : (currentSegment?.duration || 1);
                         const progress = Math.min(1, Math.max(0, timeRemaining / segDuration));
-                        return 2 * Math.PI * 100 * 0.75 * (1 - progress);
+                        const filled = arcLength * progress;
+                        return `${filled} ${circumference - filled}`;
                       })()}
                       strokeLinecap="round"
-                      className="transition-all duration-300 ease-linear"
                     />
                   </svg>
                   {/* Timer text centered */}
