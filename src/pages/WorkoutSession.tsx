@@ -1166,44 +1166,33 @@ const WorkoutSession = () => {
             ))}
           </div>
 
-          {/* Rest Screen - Next Segment Preview */}
+          {/* Rest Screen - Compact Next Preview */}
           {isRestSegment && (
-            <div className="w-full max-w-sm space-y-4">
-              {/* Next Segment Card */}
-              <div className="bg-surface-2 rounded-xl p-4 border border-surface-3">
-                <p className="text-xs text-muted-foreground uppercase tracking-wider mb-2 text-center">
-                  UP NEXT
-                </p>
-                <p className="text-xl font-black text-foreground text-center uppercase">
-                  {nextSegment?.name || 'FINISH'}
-                </p>
-                {nextSegment?.duration && (
-                  <p className="text-sm text-muted-foreground text-center mt-1">
-                    {formatTime(nextSegment.duration)}
-                  </p>
-                )}
-              </div>
-              
-              {/* Incoming Combo Preview (if next segment has a combo) */}
+            <div className="w-full max-w-xs bg-surface-1 rounded-xl p-3 border border-surface-3">
+              <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1 text-center">UP NEXT</p>
+              <p className="text-lg font-black text-foreground text-center uppercase">
+                {nextSegment?.name || 'FINISH'}
+              </p>
+              {nextSegment?.duration && (
+                <p className="text-xs text-muted-foreground text-center">{formatTime(nextSegment.duration)}</p>
+              )}
               {restComboPreview && restComboPreview.length > 0 && (
-                <div className="bg-surface-1 rounded-xl p-4 border border-surface-3">
-                  <p className="text-xs text-alert-red font-bold mb-3 text-center animate-pulse">
-                    INCOMING COMBO
-                  </p>
-                  <div className="flex items-center justify-center gap-2 flex-wrap">
+                <div className="mt-2 pt-2 border-t border-surface-3">
+                  <p className="text-[10px] text-alert-red font-bold mb-1.5 text-center animate-pulse">INCOMING COMBO</p>
+                  <div className="flex items-center justify-center gap-1.5 flex-wrap">
                     {restComboPreview.map((move, idx) => {
                       const { display, type } = getDisplayMove(move);
                       return (
-                        <div key={idx} className="flex items-center gap-1">
+                        <div key={idx} className="flex items-center gap-0.5">
                           <span className={cn(
-                            'text-2xl font-black',
+                            'text-xl font-black',
                             type === 'defense' ? 'text-purple-400' : 
                             type === 'movement' ? 'text-blue-400' : isChampionship ? 'text-championship-gold' : 'text-volt'
                           )}>
                             {display}
                           </span>
                           {idx < restComboPreview.length - 1 && (
-                            <ChevronRight className="w-3 h-3 text-muted-foreground" />
+                            <ChevronRight className="w-2.5 h-2.5 text-muted-foreground" />
                           )}
                         </div>
                       );
@@ -1216,7 +1205,7 @@ const WorkoutSession = () => {
 
           {/* Combo Display - for shadowboxing: show incoming combo OR freestyle */}
           {isShadowboxing && !isPreparation && (
-            <div className="w-full max-w-sm bg-surface-1 rounded-xl p-4 border border-surface-3">
+            <div className="w-full max-w-xs bg-surface-1 rounded-xl p-3 border border-surface-3">
               {displayCombo && displayCombo.length > 0 ? (
                 <>
                   {/* Incoming combo label for shadowboxing */}
@@ -1276,7 +1265,7 @@ const WorkoutSession = () => {
           
           {/* Combo Display for combo segments - always show the current combo */}
           {!isShadowboxing && displayCombo && displayCombo.length > 0 && !isPreparation && (
-            <div className="w-full max-w-sm bg-surface-1 rounded-xl p-4 border border-surface-3">
+            <div className="w-full max-w-xs bg-surface-1 rounded-xl p-3 border border-surface-3">
               <div className="flex items-center justify-center gap-2 flex-wrap">
                 {displayCombo.map((move, idx) => {
                   // Convert punch names to numbers if they're stored as words
@@ -1330,50 +1319,35 @@ const WorkoutSession = () => {
           {!isShadowboxing && !isPreparation && currentSegment?.type === 'active' && 
            (currentSegment?.segmentType === 'combo' || currentSegment?.segmentType === 'speedbag' || currentSegment?.segmentType === 'doubleend') &&
            (!displayCombo || displayCombo.length === 0) && (
-            <div className="w-full max-w-sm bg-surface-1 rounded-xl p-4 border border-surface-3">
+            <div className="w-full max-w-xs bg-surface-1 rounded-xl p-3 border border-surface-3">
               <p className={cn("text-2xl font-black text-center", isChampionship ? "text-championship-gold" : "text-volt")}>FREESTYLE</p>
             </div>
           )}
         </div>
 
         {/* Bottom Section */}
-        <div className="px-4 pb-8 safe-bottom">
-          {/* Phase Info */}
-          <div className="flex items-center justify-between mb-2 text-sm">
-            <div>
-              <p className="text-xs text-muted-foreground uppercase tracking-wider">Current</p>
-              <p className="font-bold text-foreground uppercase text-sm">
-                {isPreparation ? 'PREP' : currentSegment?.phaseName || 'WARMUP'}
-              </p>
-            </div>
-            <div className="text-right">
-              <p className="text-xs text-muted-foreground uppercase tracking-wider">Next</p>
-              <div className="flex items-center gap-1">
-                <span className={cn("w-2 h-2 rounded-full", isChampionship ? "bg-championship-gold" : "bg-volt")} />
-                <p className="font-bold text-foreground uppercase text-sm">
-                  {isPreparation ? flatSegments[0]?.name : nextSegment?.name || 'FINISH'}
-                </p>
-              </div>
+        <div className="px-4 pb-6 safe-bottom">
+          {/* Compact Phase + Progress */}
+          <div className="flex items-center justify-between text-[10px] text-muted-foreground uppercase tracking-wider mb-1">
+            <span className="font-bold text-foreground text-xs">
+              {isPreparation ? 'PREP' : currentSegment?.phaseName || 'WARMUP'}
+            </span>
+            <div className="flex items-center gap-1.5">
+              <span className={cn("w-1.5 h-1.5 rounded-full", isChampionship ? "bg-championship-gold" : "bg-volt")} />
+              <span className="text-xs">{isPreparation ? flatSegments[0]?.name : nextSegment?.name || 'FINISH'}</span>
             </div>
           </div>
-
-          {/* Progress Bar with Phase Indicator */}
-          <div className="mb-4">
-            <div className="flex items-center justify-between text-xs text-muted-foreground mb-1">
-              <span>{isPreparation ? 'PREP' : currentSegment?.section?.toUpperCase() || 'WARMUP'}</span>
-              <span className={cn("font-bold", isChampionship ? "text-championship-gold" : "text-volt")}>
-                {isPreparation ? '0' : currentSegmentIndex + 1} / {totalSegments}
-              </span>
-            </div>
-            <div className="h-1.5 bg-surface-2 rounded-full overflow-hidden">
-              <div 
-                className={cn("h-full transition-all duration-300", isChampionship ? "bg-championship-gold" : "bg-volt")}
-                style={{ width: `${progressPercent}%` }}
-              />
-            </div>
-            <p className="text-[10px] text-center text-muted-foreground mt-1">
-              {Math.round(progressPercent)}% COMPLETE
-            </p>
+          <div className="h-1 bg-surface-2 rounded-full overflow-hidden mb-1">
+            <div 
+              className={cn("h-full transition-all duration-300", isChampionship ? "bg-championship-gold" : "bg-volt")}
+              style={{ width: `${progressPercent}%` }}
+            />
+          </div>
+          <div className="flex justify-between text-[10px] text-muted-foreground mb-3">
+            <span>{isPreparation ? 'PREP' : currentSegment?.section?.toUpperCase()}</span>
+            <span className={cn("font-bold", isChampionship ? "text-championship-gold" : "text-volt")}>
+              {isPreparation ? '0' : currentSegmentIndex + 1}/{totalSegments}
+            </span>
           </div>
 
           {/* Controls */}
