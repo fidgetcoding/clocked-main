@@ -29,10 +29,31 @@ interface AdminUser {
   role: string;
   profile_role: string;
   experience_level: string | null;
+  prestige: string | null;
+  equipment: Record<string, boolean | string> | null;
+  goals: string[];
   total_xp: number;
   workouts_completed: number;
   current_streak: number;
 }
+
+const equipmentLabels: Record<string, string> = {
+  gloves: '🥊 Gloves',
+  wraps: '🤜 Wraps',
+  heavyBag: '🎯 Heavy Bag',
+  doubleEndBag: '🔴 Double-End Bag',
+  speedBag: '💨 Speed Bag',
+  jumpRope: '🪢 Jump Rope',
+  treadmill: '🏃 Treadmill',
+};
+
+const goalLabels: Record<string, string> = {
+  learn_boxing: 'Learn Boxing',
+  get_fit: 'Get Fit',
+  competition: 'Competition',
+  home_workout: 'Home Workout',
+  supplement_training: 'Supplement Training',
+};
 
 const AdminPortal = () => {
   const navigate = useNavigate();
@@ -60,6 +81,48 @@ const AdminPortal = () => {
     },
     enabled: isAdmin,
   });
+
+
+  const renderOnboardingDetails = (user: AdminUser) => {
+    const selectedEquipment = user.equipment
+      ? Object.entries(user.equipment).filter(([key, val]) => val === true && key !== 'primaryBag').map(([key]) => equipmentLabels[key] || key)
+      : [];
+    const primaryBag = user.equipment?.primaryBag as string | undefined;
+    const userGoals = (user.goals || []).map(g => goalLabels[g] || g);
+
+    return (
+      <div className="mt-2 space-y-1.5 border-t border-surface-3 pt-2">
+        <div className="flex flex-wrap gap-x-3 gap-y-0.5">
+          {user.prestige && (
+            <span className="text-[10px] text-volt/80 uppercase font-bold">Prestige: {user.prestige}</span>
+          )}
+          {user.experience_level && (
+            <span className="text-[10px] text-muted-foreground uppercase">Exp: {user.experience_level.replace(/_/g, ' ')}</span>
+          )}
+        </div>
+        {selectedEquipment.length > 0 && (
+          <div className="flex flex-wrap gap-1">
+            {selectedEquipment.map(eq => (
+              <span key={eq} className="text-[10px] bg-surface-2 px-1.5 py-0.5 rounded text-muted-foreground">{eq}</span>
+            ))}
+            {primaryBag && primaryBag !== 'none' && (
+              <span className="text-[10px] bg-volt/10 text-volt px-1.5 py-0.5 rounded">⭐ {primaryBag === 'heavy' ? 'Heavy Bag' : 'Double-End Bag'}</span>
+            )}
+          </div>
+        )}
+        {userGoals.length > 0 && (
+          <div className="flex flex-wrap gap-1">
+            {userGoals.map(g => (
+              <span key={g} className="text-[10px] bg-surface-2 px-1.5 py-0.5 rounded text-muted-foreground italic">{g}</span>
+            ))}
+          </div>
+        )}
+        {!user.prestige && !user.experience_level && selectedEquipment.length === 0 && userGoals.length === 0 && (
+          <span className="text-[10px] text-muted-foreground italic">No onboarding data</span>
+        )}
+      </div>
+    );
+  };
 
   const addUser = useMutation({
     mutationFn: async () => {
@@ -218,21 +281,24 @@ const AdminPortal = () => {
                     <span className="text-xs text-volt">({users.filter(u => u.role === 'admin').length})</span>
                   </div>
                   {users.filter(u => u.role === 'admin').map((user) => (
-                    <div key={user.id} onClick={() => navigate(`/profile/${user.id}`)} className="card-workout flex items-center gap-3 border border-volt/20 cursor-pointer hover:bg-surface-2 transition-colors">
-                      <div className="flex-1 min-w-0">
-                        <p className="text-foreground font-bold text-sm truncate">
-                          {user.name}
-                          {user.handle && (
-                            <span className="text-muted-foreground font-normal ml-1">@{user.handle}</span>
-                          )}
-                        </p>
-                        <p className="text-xs text-muted-foreground truncate">{user.email}</p>
-                        <div className="flex gap-3 mt-1">
-                          <span className="text-[10px] text-muted-foreground uppercase font-bold">{user.profile_role?.toUpperCase() || 'FIGHTER'}</span>
-                          <span className="text-[10px] text-muted-foreground">{user.total_xp} XP</span>
-                          <span className="text-[10px] text-muted-foreground">{user.workouts_completed} sessions</span>
+                    <div key={user.id} onClick={() => navigate(`/profile/${user.id}`)} className="card-workout cursor-pointer hover:bg-surface-2 transition-colors border border-volt/20">
+                      <div className="flex items-center gap-3">
+                        <div className="flex-1 min-w-0">
+                          <p className="text-foreground font-bold text-sm truncate">
+                            {user.name}
+                            {user.handle && (
+                              <span className="text-muted-foreground font-normal ml-1">@{user.handle}</span>
+                            )}
+                          </p>
+                          <p className="text-xs text-muted-foreground truncate">{user.email}</p>
+                          <div className="flex gap-3 mt-1">
+                            <span className="text-[10px] text-muted-foreground uppercase font-bold">{user.profile_role?.toUpperCase() || 'FIGHTER'}</span>
+                            <span className="text-[10px] text-muted-foreground">{user.total_xp} XP</span>
+                            <span className="text-[10px] text-muted-foreground">{user.workouts_completed} sessions</span>
+                          </div>
                         </div>
                       </div>
+                      {renderOnboardingDetails(user)}
                     </div>
                   ))}
                 </div>
@@ -246,27 +312,30 @@ const AdminPortal = () => {
                   <span className="text-xs text-muted-foreground">({users.filter(u => u.role !== 'admin').length})</span>
                 </div>
                 {users.filter(u => u.role !== 'admin').map((user) => (
-                  <div key={user.id} onClick={() => navigate(`/profile/${user.id}`)} className="card-workout flex items-center gap-3 cursor-pointer hover:bg-surface-2 transition-colors">
-                    <div className="flex-1 min-w-0">
-                      <p className="text-foreground font-bold text-sm truncate">
-                        {user.name}
-                        {user.handle && (
-                          <span className="text-muted-foreground font-normal ml-1">@{user.handle}</span>
-                        )}
-                      </p>
-                      <p className="text-xs text-muted-foreground truncate">{user.email}</p>
-                      <div className="flex gap-3 mt-1">
-                        <span className="text-[10px] text-muted-foreground uppercase">{user.profile_role || 'fighter'}</span>
-                        <span className="text-[10px] text-muted-foreground">{user.total_xp} XP</span>
-                        <span className="text-[10px] text-muted-foreground">{user.workouts_completed} sessions</span>
+                  <div key={user.id} onClick={() => navigate(`/profile/${user.id}`)} className="card-workout cursor-pointer hover:bg-surface-2 transition-colors">
+                    <div className="flex items-center gap-3">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-foreground font-bold text-sm truncate">
+                          {user.name}
+                          {user.handle && (
+                            <span className="text-muted-foreground font-normal ml-1">@{user.handle}</span>
+                          )}
+                        </p>
+                        <p className="text-xs text-muted-foreground truncate">{user.email}</p>
+                        <div className="flex gap-3 mt-1">
+                          <span className="text-[10px] text-muted-foreground uppercase">{user.profile_role || 'fighter'}</span>
+                          <span className="text-[10px] text-muted-foreground">{user.total_xp} XP</span>
+                          <span className="text-[10px] text-muted-foreground">{user.workouts_completed} sessions</span>
+                        </div>
                       </div>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); setUserToDelete(user); }}
+                        className="p-2 text-muted-foreground hover:text-destructive transition-colors shrink-0"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
                     </div>
-                    <button
-                      onClick={(e) => { e.stopPropagation(); setUserToDelete(user); }}
-                      className="p-2 text-muted-foreground hover:text-destructive transition-colors shrink-0"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
+                    {renderOnboardingDetails(user)}
                   </div>
                 ))}
               </div>
