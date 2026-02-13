@@ -1072,33 +1072,44 @@ const WorkoutSession = () => {
 
                 {/* Timer with 270° arc ring */}
                 <div className="relative flex items-center justify-center" style={{ width: 220, height: 220 }}>
-                  {/* SVG Arc Ring — 270° starting from bottom-left, sweeping clockwise */}
-                  <svg className="absolute inset-0 -rotate-[225deg]" viewBox="0 0 220 220">
-                    {/* Background track */}
-                    <circle
-                      cx="110" cy="110" r="100"
-                      fill="none"
-                      stroke="hsl(var(--surface-3))"
-                      strokeWidth="4"
-                      strokeDasharray={`${2 * Math.PI * 100 * 0.75} ${2 * Math.PI * 100 * 0.25}`}
-                      strokeLinecap="round"
-                    />
-                    {/* Progress arc */}
-                    <circle
-                      cx="110" cy="110" r="100"
-                      fill="none"
-                      stroke={isChampionship ? 'hsl(var(--championship-gold))' : 'hsl(var(--electric-volt))'}
-                      strokeWidth="4"
-                      strokeDasharray={(() => {
-                        const circumference = 2 * Math.PI * 100;
-                        const arcLength = circumference * 0.75;
-                        const segDuration = isPreparation ? 10 : (currentSegment?.duration || 1);
-                        const progress = Math.min(1, Math.max(0, timeRemaining / segDuration));
-                        const filled = arcLength * progress;
-                        return `${filled} ${circumference - filled}`;
-                      })()}
-                      strokeLinecap="round"
-                    />
+                  {/* SVG Arc Ring — 270° open at bottom */}
+                  <svg className="absolute inset-0" viewBox="0 0 220 220">
+                    {(() => {
+                      const r = 100;
+                      const circumference = 2 * Math.PI * r;
+                      const arcFrac = 0.75; // 270°
+                      const arcLen = circumference * arcFrac;
+                      const gapLen = circumference - arcLen;
+                      // Rotate so arc starts at bottom-left (135°) going clockwise to bottom-right
+                      const startAngle = 135;
+                      const segDuration = isPreparation ? 10 : (currentSegment?.duration || 1);
+                      const progress = Math.min(1, Math.max(0, timeRemaining / segDuration));
+                      const filledLen = arcLen * progress;
+                      return (
+                        <>
+                          {/* Background track */}
+                          <circle
+                            cx="110" cy="110" r={r}
+                            fill="none"
+                            stroke="hsl(var(--surface-3))"
+                            strokeWidth="4"
+                            strokeDasharray={`${arcLen} ${gapLen}`}
+                            strokeDashoffset={-circumference * (startAngle / 360)}
+                            strokeLinecap="round"
+                          />
+                          {/* Filled progress — same start, shorter dash */}
+                          <circle
+                            cx="110" cy="110" r={r}
+                            fill="none"
+                            stroke={isChampionship ? 'hsl(var(--championship-gold))' : 'hsl(var(--electric-volt))'}
+                            strokeWidth="4"
+                            strokeDasharray={`${filledLen} ${circumference - filledLen}`}
+                            strokeDashoffset={-circumference * (startAngle / 360)}
+                            strokeLinecap="round"
+                          />
+                        </>
+                      );
+                    })()}
                   </svg>
                   {/* Timer text centered */}
                   <span className={cn(
