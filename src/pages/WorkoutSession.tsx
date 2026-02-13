@@ -638,6 +638,15 @@ const WorkoutSession = () => {
     if (prevSegmentIndexRef.current === currentSegmentIndex) return;
     prevSegmentIndexRef.current = currentSegmentIndex;
 
+    // DEBUG: Log XP/sec for every segment transition
+    if (currentSegment) {
+      const baseRate = getXPPerSecond(currentSegment);
+      const effectiveRate = baseRate * streakMultiplier;
+      const isChamp = currentSegment.phaseName.toLowerCase().includes('championship');
+      const isBoxing = isBoxingSegment(currentSegment);
+      console.log(`[XP DEBUG] Segment: "${currentSegment.name}" | type: ${currentSegment.segmentType} | phase: "${currentSegment.phaseName}" | championship: ${isChamp} | boxing: ${isBoxing} | base XP/sec: ${baseRate.toFixed(4)} | streak: ${streakMultiplier}x | effective XP/sec: ${effectiveRate.toFixed(4)}`);
+    }
+
     if (!isPreparation && currentSegment && isRunning && !isPaused) {
       if (preferences?.voiceAnnouncements !== false) {
         let announcement = '';
@@ -1187,7 +1196,15 @@ const WorkoutSession = () => {
             )}
           </h2>
 
-          {/* Fine-tune buttons */}
+          {/* DEBUG: XP/sec overlay — TEMPORARY */}
+          {isChampionship && currentSegment && !isPreparation && (
+            <div className="px-3 py-1 rounded-full bg-championship-gold/20 border border-championship-gold/40 mb-2">
+              <span className="text-[10px] font-mono font-bold text-championship-gold">
+                XP/sec: {(getXPPerSecond(currentSegment) * streakMultiplier).toFixed(2)}
+              </span>
+            </div>
+          )}
+
           <div className="flex gap-2 mb-6">
             {['-30', '-15', '+15', '+30'].map((val) => (
               <button
