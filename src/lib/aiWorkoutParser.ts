@@ -268,9 +268,13 @@ function parseRoundsFromText(text: string): number | null {
 // Step 4: Parse per-round activities
 // =====================================================
 
-function parsePerRoundActivities(text: string): Array<{ name: string; round: number }> {
+function parsePerRoundActivities(text: string, isBoxingActivity: boolean = false): Array<{ name: string; round: number }> {
   const activities: Array<{ name: string; round: number }> = [];
   const lower = text.toLowerCase();
+  
+  // If this is a boxing activity (shadowboxing, heavy bag, etc.), all "Round N:" entries
+  // are combo assignments, not activity names — skip entirely, combos are parsed separately
+  if (isBoxingActivity) return activities;
   
   // Pattern: "First round X. Second round Y." or "Round 1: X. Round 2: Y."
   // Ordinal pattern
@@ -438,6 +442,11 @@ function isConditioningBlock(text: string): boolean {
 function inferActivityName(text: string): string {
   const lower = text.toLowerCase();
   
+  // First, try to extract a specific exercise name from the text
+  // Strip round info, timing info, section labels to isolate the activity
+  const specificActivity = extractSpecificActivityName(text);
+  if (specificActivity) return specificActivity;
+  
   if (/heavy\s*bag/i.test(lower)) return 'Heavy Bag Work';
   if (/speed\s*bag/i.test(lower)) return 'Speed Bag';
   if (/double.?end\s*bag/i.test(lower)) return 'Double End Bag';
@@ -457,6 +466,42 @@ function inferActivityName(text: string): string {
   return 'Training';
 }
 
+/**
+ * Try to extract a specific, named exercise from block text.
+ * Strips away section labels (warmup/cooldown), round counts, timing info,
+ * and "Round N:" patterns to isolate the raw activity name.
+ */
+function extractSpecificActivityName(text: string): string | null {
+  const lower = text.toLowerCase();
+  
+  // Strip section labels, round counts, timing, rest, and "no rest"
+  let stripped = lower
+    .replace(/\b\d+\s*(?:round|rnd|set|lap|cycle|rep)s?\b/gi, '')
+    .replace(/\b(?:warm\s*up|cooldown|cool\s*down)\b/gi, '')
+    .replace(/\d+\s*(?:min(?:ute)?s?|sec(?:ond)?s?)\s*(?:each|per\s*round)?/gi, '')
+    .replace(/\d+\s*(?:sec(?:ond)?s?|min(?:ute)?s?)\s*(?:rest|break|recovery|pause)(?:\s*between\s*rounds?)?/gi, '')
+    .replace(/\bno\s+(?:rest|break|recovery|pause)\b/gi, '')
+    .replace(/\bround\s*\d+\s*[:]\s*[^.]+/gi, '')  // Strip "Round N: ..." patterns
+    .replace(/[.,;:]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+  
+  if (!stripped || stripped.length < 3) return null;
+  
+  // Check if this matches a known exercise in our canonical list
+  const resolved = resolveCanonicalExerciseName(stripped);
+  // Only return if it resolved to something meaningful (not just title-cased gibberish)
+  const normalizedResolved = normalizeForComparison(resolved);
+  const isKnown = CANONICAL_EXERCISES.some(entry => 
+    entry.aliases.some(alias => normalizeForComparison(alias) === normalizedResolved) ||
+    normalizeForComparison(entry.canonical) === normalizedResolved
+  );
+  
+  if (isKnown) return resolved;
+  
+  return null;
+}
+
 // =====================================================
 // Step 6: Parse combos from block text
 // =====================================================
@@ -464,12 +509,18 @@ function inferActivityName(text: string): string {
 function parseCombosFromBlock(text: string): string[][] {
   const combos: string[][] = [];
   
-  // Extract "Round N: combo" patterns specifically
-  const roundComboPattern = /round\s*(\d+)\s*[:\s]+\s*([\d][\d\s-]*[\d])/gi;
+  // Extract "Round N: content" patterns
+  // We collect all round entries, then check if they contain combo notation
+  const roundEntries: Array<{ round: number; content: string }> = [];
+  const roundPattern = /round\s*(\d+)\s*[:\s]+\s*([^.]+)/gi;
   let match;
-  while ((match = roundComboPattern.exec(text)) !== null) {
-    const comboStr = match[2].trim();
-    const parsed = parseComboString(comboStr);
+  while ((match = roundPattern.exec(text)) !== null) {
+    roundEntries.push({ round: parseInt(match[1]), content: match[2].trim() });
+  }
+  
+  // Try parsing each round entry as a combo
+  for (const entry of roundEntries) {
+    const parsed = parseComboString(entry.content);
     if (parsed.length > 0) {
       combos.push(parsed);
     }
@@ -538,13 +589,14 @@ function extractExerciseWithDuration(text: string): { name: string; duration: nu
   return null;
 }
 
-function parseSupersetFromBlock(text: string): { exercises: SupersetExercise[]; restBetween: number | null } | null {
+function parseSupersetFromBlock(text: string): { exercises: SupersetExercise[]; restBetween: number | null; combos: string[][] } | null {
   const lower = text.toLowerCase();
   
-  // Strip round info and rest-between-rounds info to isolate exercise content
+  // Strip round info, rest-between-rounds info, AND per-round combo text to isolate exercise content
   const stripped = lower
     .replace(/\d+\s*(?:round|rnd|set)s?\b/gi, '')
     .replace(/\d+\s*(?:min(?:ute)?s?|sec(?:ond)?s?)\s*(?:rest|break)\s*(?:between\s*rounds?)?/gi, '')
+    .replace(/round\s*\d+\s*[:]\s*[^.]+\.?/gi, '')  // Strip "Round N: combo." patterns
     .trim();
   
   const hasSupersetKeyword = /\bsuperset\b/i.test(lower);
@@ -621,12 +673,16 @@ function parseSupersetFromBlock(text: string): { exercises: SupersetExercise[]; 
   const blockWorkDuration = parseDurationFromText(text);
   const defaultDur = blockWorkDuration ?? DEFAULT_DURATIONS.boxingRound;
   
+  // Parse per-round combos from the original text (before stripping)
+  const supersetCombos = parseCombosFromBlock(text);
+  
   return {
     exercises: [
       { name: ex1.name, duration: ex1.duration ?? defaultDur },
       { name: ex2.name, duration: ex2.duration ?? defaultDur },
     ],
     restBetween,
+    combos: supersetCombos,
   };
 }
 
@@ -634,13 +690,26 @@ function parseSupersetFromBlock(text: string): { exercises: SupersetExercise[]; 
 // Step 7: Parse a single block into structured data
 // =====================================================
 
+/**
+ * Detect if a block describes a boxing activity where "Round N:" patterns
+ * should be treated as combo assignments, not activity names.
+ */
+function isBoxingBlock(text: string): boolean {
+  const lower = text.toLowerCase();
+  return /shadow\s*box|heavy\s*bag|double[\s-]*end\s*bag|sparring|mitt\s*work|bag\s*work/i.test(lower);
+}
+
 function parseBlock(blockText: string): ParsedBlock {
   const section = classifySection(blockText);
   const rounds = parseRoundsFromText(blockText) ?? 1;
   const workDuration = parseDurationFromText(blockText);
   const rest = parseRestFromText(blockText);
   const activityName = inferActivityName(blockText);
-  const perRoundActivities = parsePerRoundActivities(blockText);
+  
+  // Detect if this is a boxing activity (shadowboxing, heavy bag, double end bag, sparring)
+  // Boxing activities route "Round N:" patterns to combo parsing, not per-round activities
+  const isBoxingActivity = isBoxingBlock(blockText);
+  const perRoundActivities = parsePerRoundActivities(blockText, isBoxingActivity);
   const combos = parseCombosFromBlock(blockText);
   
   // Check for superset pattern
@@ -753,14 +822,18 @@ function blockToPhase(block: ParsedBlock): ParsedPhase {
       });
     }
     
+    // Route per-round combos from the superset to the phase's combo library
+    // These combos belong to the boxing segment(s) in the superset
+    const supersetCombos = block.combos.length > 0 ? block.combos : undefined;
+    
     return {
       name: block.activityName,
       phaseType: 'circuit',
       section: block.section,
       repeats: block.rounds,
       segments,
-      // Superset phases do NOT set phase-level combos — each segment's library
-      // is derived independently by the UI based on segment type
+      combos: supersetCombos,
+      comboOrder: supersetCombos ? block.comboOrder : undefined,
     };
   }
   
@@ -853,13 +926,21 @@ function blockToPhase(block: ParsedBlock): ParsedPhase {
     const hasCombos = block.combos.length > 0;
     const bagType = detectBagType(block.rawText);
     const isSpeedBag = bagType === 'speedbag';
+    const isShadowboxing = /shadow\s*box/i.test(block.rawText);
+    
+    // Determine segment type: shadowboxing stays 'shadowboxing' even with combos
+    let segType: ParsedSegment['segmentType'];
+    if (isSpeedBag) segType = 'speedbag';
+    else if (isShadowboxing) segType = 'shadowboxing';
+    else if (hasCombos) segType = 'combo';
+    else segType = inferSegmentType(block.activityName);
     
     segments.push({
       name: block.activityName,
       type: 'active',
-      segmentType: isSpeedBag ? 'speedbag' : (hasCombos ? 'combo' : inferSegmentType(block.activityName)),
+      segmentType: segType,
       duration: block.workDuration,
-      activityType: isSpeedBag ? 'custom' : (hasCombos ? 'combos' : inferActivityType(block.activityName)),
+      activityType: isSpeedBag ? 'custom' : (isShadowboxing ? 'shadowbox' : (hasCombos ? 'combos' : inferActivityType(block.activityName))),
     });
   }
   
