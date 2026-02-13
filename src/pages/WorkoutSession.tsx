@@ -353,9 +353,9 @@ const WorkoutSession = () => {
   const nextSegment = flatSegments[currentSegmentIndex + 1];
   const totalSegments = flatSegments.length;
   const progressPercent = totalSegments > 0 ? (currentSegmentIndex / totalSegments) * 100 : 0;
-  // Championship visual: only segments with their OWN cumulativeRound > 10
-  // cumulativeRound is only set for grind sections, so conditioning/cooldown never get it
-  const isChampionship = !isPreparation && !!currentSegment?.cumulativeRound && currentSegment.cumulativeRound > 10;
+  // Championship visual: only segments within the "Championship Rounds" phase
+  const isChampionship = !isPreparation && !!currentSegment && 
+    currentSegment.phaseName.toLowerCase().includes('championship');
   const isCooldown = !isPreparation && currentSegment?.section === 'cooldown';
   
   // Accent color helper — championship gold > cooldown blue > volt green
@@ -416,8 +416,8 @@ const WorkoutSession = () => {
       xpPerSecond = totalComboXP / segment.duration;
     }
     
-    // 2x XP for boxing segments in round 11+
-    if (segment.cumulativeRound && segment.cumulativeRound > 10 && isBoxingSegment(segment)) {
+    // 2x XP for boxing segments in Championship Rounds phase
+    if (segment.phaseName.toLowerCase().includes('championship') && isBoxingSegment(segment)) {
       xpPerSecond *= 2;
     }
     
@@ -681,7 +681,7 @@ const WorkoutSession = () => {
         if (isComboPopSegment && endingSegment.combo && endingSegment.combo.length > 0 && prevComboSegRef.current !== currentSegmentIndex) {
           prevComboSegRef.current = currentSegmentIndex;
           const comboXP = calculateComboXP(endingSegment.combo, endingSegment.duration);
-          const isChamp = endingSegment.cumulativeRound ? endingSegment.cumulativeRound > 10 && isBoxingSegment(endingSegment) : false;
+          const isChamp = endingSegment.phaseName.toLowerCase().includes('championship') && isBoxingSegment(endingSegment);
           const finalXP = isChamp ? comboXP * 2 : comboXP;
           if (finalXP > 0) {
             const popId = Date.now();
