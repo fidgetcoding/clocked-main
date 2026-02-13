@@ -1148,21 +1148,38 @@ const Build = () => {
                       />
                     </div>
                     {/* Category filter pills */}
-                    <div className="flex flex-wrap gap-1.5 mb-3">
+                    <div className="flex flex-wrap gap-1 mb-3">
                       {presetCategories.map((cat, catIdx) => {
                         const isActive = selectedPresetCategory === cat.name;
+                        // Shorten category names for compact pills
+                        const shortName = cat.name
+                          .replace(/\s*Combos?\s*/gi, ' ')
+                          .replace(/\s*No Defense\s*/gi, '')
+                          .replace(/\s*at End\s*/gi, '')
+                          .replace(/\s*Full Armada\s*/gi, '')
+                          .replace(/True Pro\s*—?\s*/gi, 'Pro ')
+                          .replace(/\s*—\s*9\s*&\s*10/gi, '')
+                          .replace(/Body Uppercuts?/gi, 'Body UC')
+                          .replace(/Counter-Punching/gi, 'Counter')
+                          .replace(/Mastery/gi, '')
+                          .replace(/Patterns/gi, '')
+                          .replace(/Footwork/gi, '')
+                          .replace(/Mixed\s*/gi, '')
+                          .replace(/All Defense Types/gi, 'All Def')
+                          .replace(/\s+/g, ' ')
+                          .trim();
                         return (
                           <button
                             key={catIdx}
                             onClick={() => setSelectedPresetCategory(isActive ? null : cat.name)}
                             className={cn(
-                              'px-2.5 py-1 rounded-full text-[11px] font-medium border transition-colors',
+                              'px-2 py-0.5 rounded-full text-[10px] font-medium border transition-colors whitespace-nowrap',
                               isActive
                                 ? 'bg-volt text-background border-volt'
                                 : 'bg-surface-2 text-muted-foreground border-surface-3 hover:border-foreground/30'
                             )}
                           >
-                            {cat.name}
+                            {shortName}
                           </button>
                         );
                       })}
