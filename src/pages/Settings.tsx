@@ -15,18 +15,23 @@ import { BadgeEarnOverlay } from '@/components/ui/BadgeEarnOverlay';
 import { PrestigePrompt } from '@/components/workout/PrestigePrompt';
 import { Prestige } from '@/lib/xpSystem';
 import { ALL_BADGES } from '@/data/badges';
+import { generateLoadoutWorkout, UserEquipmentConfig } from '@/lib/loadoutGenerator';
+import { supabase } from '@/integrations/supabase/client';
+import { useQueryClient } from '@tanstack/react-query';
 
 const Settings = () => {
   const navigate = useNavigate();
   const user = useUserStore((state) => state.user);
   const updateUser = useUserStore((state) => state.updateUser);
   const setUser = useUserStore((state) => state.setUser);
-  const { signOut } = useAuth();
+  const { signOut, user: authUser } = useAuth();
   const { data: version } = useAppVersion();
   const { isAdmin } = useUserRole();
   const { profile, updateProfile } = useProfile();
+  const queryClient = useQueryClient();
   
   const [isSigningOut, setIsSigningOut] = useState(false);
+  const [isRegenerating, setIsRegenerating] = useState(false);
   const [showLevelUpOverlay, setShowLevelUpOverlay] = useState(false);
   const [showPrestigePrompt, setShowPrestigePrompt] = useState(false);
   const [showBadgeOverlay, setShowBadgeOverlay] = useState(false);
@@ -54,6 +59,59 @@ const Settings = () => {
           [key]: value,
         },
       });
+    }
+  };
+
+  const handleRegenerateLoadout = async () => {
+    if (!authUser?.id || !profile) return;
+    setIsRegenerating(true);
+    try {
+      const eq = (profile.equipment as Record<string, any>) || {};
+      const loadoutEquipment: UserEquipmentConfig = {
+        gloves: !!eq.gloves,
+        wraps: !!eq.wraps,
+        jumpRope: !!eq.jumpRope,
+        heavyBag: !!eq.heavyBag,
+        doubleEndBag: !!eq.doubleEndBag,
+        speedBag: !!eq.speedBag,
+        treadmill: !!eq.treadmill,
+        primaryBag: eq.primaryBag || 'none',
+      };
+      const experienceLevel = profile.experience_level || 'beginner';
+      const loadout = generateLoadoutWorkout(experienceLevel, loadoutEquipment);
+
+      // Delete existing loadout(s)
+      await supabase
+        .from('workouts')
+        .delete()
+        .eq('user_id', authUser.id)
+        .contains('tags', ['loadout']);
+
+      // Insert new one
+      const { error } = await supabase
+        .from('workouts')
+        .insert([{
+          user_id: authUser.id,
+          name: loadout.name,
+          description: loadout.description,
+          duration: loadout.duration,
+          difficulty: loadout.difficulty,
+          phases: loadout.phases as any,
+          combos: loadout.combos as any,
+          tags: loadout.tags,
+          is_preset: loadout.is_preset,
+          is_archived: false,
+          times_completed: 0,
+        }]);
+
+      if (error) throw error;
+      queryClient.invalidateQueries({ queryKey: ['workouts', authUser.id] });
+      toast.success(`Regenerated: ${loadout.name}`);
+    } catch (err) {
+      console.error('Regenerate loadout error:', err);
+      toast.error('Failed to regenerate loadout');
+    } finally {
+      setIsRegenerating(false);
     }
   };
 
@@ -199,6 +257,15 @@ const Settings = () => {
                   className="flex-1 text-xs bg-surface-2 border-surface-3"
                 >
                   🎖️ Badge Earn
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={handleRegenerateLoadout}
+                  disabled={isRegenerating}
+                  className="flex-1 text-xs bg-surface-2 border-surface-3"
+                >
+                  {isRegenerating ? '⏳ ...' : '🔄 Regen Loadout'}
                 </Button>
               </div>
             </div>
