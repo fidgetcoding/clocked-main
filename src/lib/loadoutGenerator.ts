@@ -269,13 +269,11 @@ export function generateLoadoutWorkout(
     }],
   });
 
-  // Calculate total duration
-  const warmupDuration = 180;
-  const roundsDuration = 10 * 120; // 10 structured rounds
-  const champDuration = 2 * 120; // 2 championship rounds
-  const conditioningDuration = 120 + 60; // Curlups (120s) + Rest (60s)
-  const cooldownDuration = 600;
-  const totalDuration = warmupDuration + roundsDuration + champDuration + conditioningDuration + cooldownDuration;
+  // Calculate total duration dynamically from phases
+  const totalDuration = phases.reduce((total, phase) => {
+    const phaseTotal = phase.segments.reduce((acc, seg) => acc + seg.duration, 0);
+    return total + phaseTotal * phase.repeats;
+  }, 0);
 
   const tierLabel = tier.charAt(0).toUpperCase() + tier.slice(1);
 
