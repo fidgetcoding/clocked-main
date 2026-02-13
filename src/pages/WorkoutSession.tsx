@@ -233,20 +233,27 @@ const WorkoutSession = () => {
       return entry.list[entry.cursor++];
     };
     
-    // Assign to combo segments first
-    for (const idx of comboSegmentIndices) {
-      const { phase, repeatIndex } = tempSegments[idx];
-      const phaseKey = `${phase.id}`;
-      const combo = getPhaseCombo(phase, phaseKey);
-      if (combo) comboAssignments.set(idx, combo);
-    }
+    // Round-aware combo assignment: all boxing segments (combo + shadow) in the
+    // same round (phase + repeatIndex) share ONE combo so shadow → bag continuity holds.
+    const allBoxingIndices = [...comboSegmentIndices, ...shadowboxIndices].sort((a, b) => a - b);
+    const roundComboCache: Map<string, string[]> = new Map();
     
-    // Overflow to shadowboxing segments (these use sequential from remaining)
-    for (const idx of shadowboxIndices) {
-      const { phase } = tempSegments[idx];
-      const phaseKey = `${phase.id}`;
-      const combo = getPhaseCombo(phase, phaseKey);
-      if (combo) comboAssignments.set(idx, combo);
+    for (const idx of allBoxingIndices) {
+      const { phase, repeatIndex } = tempSegments[idx];
+      const roundKey = `${phase.id}-${repeatIndex}`;
+      
+      if (roundComboCache.has(roundKey)) {
+        // Reuse the combo already picked for this round
+        comboAssignments.set(idx, roundComboCache.get(roundKey)!);
+      } else {
+        // First boxing segment of this round — pick a new combo
+        const phaseKey = `${phase.id}`;
+        const combo = getPhaseCombo(phase, phaseKey);
+        if (combo) {
+          roundComboCache.set(roundKey, combo);
+          comboAssignments.set(idx, combo);
+        }
+      }
     }
     
     // Second pass: build flat segments with proper next-segment awareness
