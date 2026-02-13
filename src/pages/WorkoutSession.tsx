@@ -1122,7 +1122,11 @@ const WorkoutSession = () => {
               <>
                 {/* Phase Name — context of where you are */}
                 {isPreparation ? (
-                  <p className="text-xs text-muted-foreground uppercase tracking-widest mb-2">GET READY</p>
+                  <div className="flex items-center gap-3 mb-2">
+                    <div className="h-px w-10 bg-muted-foreground/30" />
+                    <p className="text-xs text-muted-foreground uppercase tracking-widest">GET READY</p>
+                    <div className="h-px w-10 bg-muted-foreground/30" />
+                  </div>
                 ) : isChampionship ? (
                   <div className="flex items-center gap-3 mb-2 px-5 py-1.5 rounded-full bg-championship-gold/15 border border-championship-gold/40 animate-[pulse_3s_ease-in-out_infinite]">
                     <Zap className="w-4 h-4 text-championship-gold" />
@@ -1130,12 +1134,16 @@ const WorkoutSession = () => {
                     <Zap className="w-4 h-4 text-championship-gold" />
                   </div>
                 ) : (
-                  <p className={cn(
-                    "text-xs uppercase tracking-widest mb-2",
-                    isCooldown ? "text-cooldown-blue/70" : "text-muted-foreground"
-                  )}>
-                    {currentSegment?.phaseName || 'WARMUP'}
-                  </p>
+                  <div className="flex items-center gap-3 mb-2">
+                    <div className={cn("h-px w-10", isCooldown ? "bg-cooldown-blue/30" : "bg-muted-foreground/30")} />
+                    <p className={cn(
+                      "text-xs uppercase tracking-widest",
+                      isCooldown ? "text-cooldown-blue/70" : "text-muted-foreground"
+                    )}>
+                      {currentSegment?.phaseName || 'WARMUP'}
+                    </p>
+                    <div className={cn("h-px w-10", isCooldown ? "bg-cooldown-blue/30" : "bg-muted-foreground/30")} />
+                  </div>
                 )}
 
 
@@ -1184,17 +1192,21 @@ const WorkoutSession = () => {
               </>
 
           {/* Segment Name — what you're doing right now */}
-          <h2 className={cn(
-            "text-2xl font-black mb-4 uppercase tracking-wider text-center",
-            isChampionship ? "text-championship-gold" : isCooldown ? "text-cooldown-blue" : "text-foreground"
-          )}>
-            {isPreparation ? 'PREPARATION' : (
-              <>
-                {currentSegment?.name || 'WORK'}
-                {isChampionship && <span className="text-championship-gold"> / 2XP</span>}
-              </>
-            )}
-          </h2>
+          <div className="flex items-center gap-3 mb-4">
+            <div className={cn("h-px w-10", isChampionship ? "bg-championship-gold/40" : isCooldown ? "bg-cooldown-blue/40" : "bg-muted-foreground/30")} />
+            <h2 className={cn(
+              "text-2xl font-black uppercase tracking-wider text-center",
+              isChampionship ? "text-championship-gold" : isCooldown ? "text-cooldown-blue" : "text-foreground"
+            )}>
+              {isPreparation ? 'PREPARATION' : (
+                <>
+                  {currentSegment?.name || 'WORK'}
+                  {isChampionship && <span className="text-championship-gold"> / 2XP</span>}
+                </>
+              )}
+            </h2>
+            <div className={cn("h-px w-10", isChampionship ? "bg-championship-gold/40" : isCooldown ? "bg-cooldown-blue/40" : "bg-muted-foreground/30")} />
+          </div>
 
           {/* DEBUG: XP/sec overlay — TEMPORARY */}
           {isChampionship && currentSegment && !isPreparation && (
