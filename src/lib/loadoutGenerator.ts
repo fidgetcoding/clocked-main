@@ -55,9 +55,14 @@ export function mapExperienceToTier(experienceLevel: string): TierName {
 }
 
 function determinePrimaryBag(equipment: UserEquipmentConfig): 'heavy' | 'double_end' | 'none' {
+  // If user explicitly set a primary bag and both bags are present, use it
   if (equipment.primaryBag && equipment.primaryBag !== 'none') {
-    return equipment.primaryBag;
+    // Validate the primary bag is actually available
+    if (equipment.primaryBag === 'heavy' && equipment.heavyBag) return 'heavy';
+    if (equipment.primaryBag === 'double_end' && equipment.doubleEndBag) return 'double_end';
   }
+  // If both bags: default to heavy; if only one bag: use it directly (no "primary" distinction needed)
+  if (equipment.heavyBag && equipment.doubleEndBag) return 'heavy';
   if (equipment.heavyBag) return 'heavy';
   if (equipment.doubleEndBag) return 'double_end';
   return 'none';

@@ -165,10 +165,15 @@ const Onboarding = () => {
           setPrimaryBag(updated.heavyBag ? 'heavy' : 'none');
         }
       }
-      // If turning on a bag and no primary yet, auto-set it
+      // Only set primaryBag when BOTH bags are selected — single bag needs no primary distinction
       if (newVal) {
-        if (id === 'heavyBag' && primaryBag === 'none') setPrimaryBag('heavy');
-        else if (id === 'doubleEndBag' && primaryBag === 'none') setPrimaryBag('double_end');
+        if (id === 'heavyBag' && updated.doubleEndBag) setPrimaryBag(primaryBag === 'none' ? 'heavy' : primaryBag);
+        else if (id === 'doubleEndBag' && updated.heavyBag) setPrimaryBag(primaryBag === 'none' ? 'heavy' : primaryBag);
+        // Single bag selected — no primary needed
+      }
+      // If only one bag remains, reset primaryBag to none
+      if (!(updated.heavyBag && updated.doubleEndBag)) {
+        setPrimaryBag('none');
       }
       return updated;
     });

@@ -90,14 +90,18 @@ const AdminPortal = () => {
     const primaryBag = user.equipment?.primaryBag as string | undefined;
     const userGoals = (user.goals || []).map(g => goalLabels[g] || g);
 
+    // Only show primary bag star when user has BOTH bag types
+    const hasBothBags = user.equipment?.heavyBag === true && user.equipment?.doubleEndBag === true;
+    const showPrimaryStar = hasBothBags && primaryBag && primaryBag !== 'none';
+
     return (
       <div className="mt-2 space-y-1.5 border-t border-surface-3 pt-2">
         <div className="flex flex-wrap gap-x-3 gap-y-0.5">
           {user.prestige && (
-            <span className="text-[10px] text-volt/80 uppercase font-bold">Prestige: {user.prestige}</span>
+            <span className="text-[10px] text-volt/80 uppercase font-bold">{user.prestige}</span>
           )}
-          {user.experience_level && (
-            <span className="text-[10px] text-muted-foreground uppercase">Exp: {user.experience_level.replace(/_/g, ' ')}</span>
+          {user.experience_level && user.experience_level !== user.prestige && (
+            <span className="text-[10px] text-muted-foreground uppercase">{user.experience_level.replace(/_/g, ' ')}</span>
           )}
         </div>
         {selectedEquipment.length > 0 && (
@@ -105,7 +109,7 @@ const AdminPortal = () => {
             {selectedEquipment.map(eq => (
               <span key={eq} className="text-[10px] bg-surface-2 px-1.5 py-0.5 rounded text-muted-foreground">{eq}</span>
             ))}
-            {primaryBag && primaryBag !== 'none' && (
+            {showPrimaryStar && (
               <span className="text-[10px] bg-volt/10 text-volt px-1.5 py-0.5 rounded">⭐ {primaryBag === 'heavy' ? 'Heavy Bag' : 'Double-End Bag'}</span>
             )}
           </div>
