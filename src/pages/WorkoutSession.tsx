@@ -1116,7 +1116,7 @@ const WorkoutSession = () => {
                   <div className="flex items-center gap-3 mb-2 px-5 py-1.5 rounded-full bg-championship-gold/15 border border-championship-gold/40 animate-[pulse_3s_ease-in-out_infinite]">
                     <Zap className="w-4 h-4 text-championship-gold" />
                     <span className="text-xs font-black text-championship-gold uppercase tracking-widest">Championship Rounds</span>
-                    <span className="text-[10px] font-black text-championship-gold/80 uppercase tracking-wider px-1.5 py-0.5 rounded bg-championship-gold/15 border border-championship-gold/30">2× XP</span>
+                    
                     <Zap className="w-4 h-4 text-championship-gold" />
                   </div>
                 )}
