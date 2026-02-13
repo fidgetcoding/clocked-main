@@ -1134,11 +1134,11 @@ const WorkoutSession = () => {
 
                 {/* Timer with 270° arc ring */}
                 <div className="relative w-full flex items-center justify-center">
-                  <div className="relative flex items-center justify-center" style={{ width: 220, height: 220 }}>
+                  <div className="relative flex items-center justify-center" style={{ width: 300, height: 300 }}>
                     {/* SVG Arc Ring — 270° open at bottom */}
-                    <svg className="absolute inset-0" viewBox="0 0 220 220">
+                    <svg className="absolute inset-0" viewBox="0 0 300 300">
                       {(() => {
-                        const r = 100;
+                        const r = 138;
                         const circumference = 2 * Math.PI * r;
                         const arcFrac = 0.75; // 270°
                         const arcLen = circumference * arcFrac;
@@ -1149,15 +1149,15 @@ const WorkoutSession = () => {
                         const filledLen = arcLen * progress;
                         return (
                           <>
-                            <circle cx="110" cy="110" r={r} fill="none" stroke="hsl(var(--surface-3))" strokeWidth="4" strokeDasharray={`${arcLen} ${gapLen}`} strokeDashoffset={-circumference * (startAngle / 360)} strokeLinecap="round" />
-                            <circle cx="110" cy="110" r={r} fill="none" stroke={isChampionship ? 'hsl(var(--championship-gold))' : 'hsl(var(--electric-volt))'} strokeWidth="8" strokeDasharray={`${filledLen} ${circumference - filledLen}`} strokeDashoffset={-circumference * (startAngle / 360)} strokeLinecap="round" filter="blur(4px)" className="animate-arc-glow-pulse" style={{ transition: 'stroke-dasharray 0.3s linear' }} />
-                            <circle cx="110" cy="110" r={r} fill="none" stroke={isChampionship ? 'hsl(var(--championship-gold))' : 'hsl(var(--electric-volt))'} strokeWidth="4" strokeDasharray={`${filledLen} ${circumference - filledLen}`} strokeDashoffset={-circumference * (startAngle / 360)} strokeLinecap="round" style={{ transition: 'stroke-dasharray 0.3s linear' }} />
+                            <circle cx="150" cy="150" r={r} fill="none" stroke="hsl(var(--surface-3))" strokeWidth="5" strokeDasharray={`${arcLen} ${gapLen}`} strokeDashoffset={-circumference * (startAngle / 360)} strokeLinecap="round" />
+                            <circle cx="150" cy="150" r={r} fill="none" stroke={isChampionship ? 'hsl(var(--championship-gold))' : 'hsl(var(--electric-volt))'} strokeWidth="10" strokeDasharray={`${filledLen} ${circumference - filledLen}`} strokeDashoffset={-circumference * (startAngle / 360)} strokeLinecap="round" filter="blur(4px)" className="animate-arc-glow-pulse" style={{ transition: 'stroke-dasharray 0.3s linear' }} />
+                            <circle cx="150" cy="150" r={r} fill="none" stroke={isChampionship ? 'hsl(var(--championship-gold))' : 'hsl(var(--electric-volt))'} strokeWidth="5" strokeDasharray={`${filledLen} ${circumference - filledLen}`} strokeDashoffset={-circumference * (startAngle / 360)} strokeLinecap="round" style={{ transition: 'stroke-dasharray 0.3s linear' }} />
                           </>
                         );
                       })()}
                     </svg>
                     <span className={cn(
-                      "timer-display text-6xl font-black",
+                      "timer-display text-timer-lg font-black",
                       isChampionship 
                         ? "text-championship-gold animate-gold-shimmer" 
                         : "text-volt text-glow-volt"
