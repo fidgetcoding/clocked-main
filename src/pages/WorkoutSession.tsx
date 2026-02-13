@@ -1168,9 +1168,9 @@ const WorkoutSession = () => {
 
           {/* Rest Screen - Compact Next Preview */}
           {isRestSegment && (
-            <div className="w-full max-w-xs bg-surface-1 rounded-xl p-3 border border-surface-3">
-              <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1 text-center">UP NEXT</p>
-              <p className="text-lg font-black text-foreground text-center uppercase">
+            <div className={cn("w-full max-w-xs rounded-xl p-3 border", isChampionship ? "bg-championship-gold/5 border-championship-gold/30" : "bg-surface-1 border-surface-3")}>
+              <p className={cn("text-[10px] uppercase tracking-wider mb-1 text-center", isChampionship ? "text-championship-gold/60" : "text-muted-foreground")}>UP NEXT</p>
+              <p className={cn("text-lg font-black text-center uppercase", isChampionship ? "text-championship-gold" : "text-foreground")}>
                 {nextSegment?.name || 'FINISH'}
               </p>
               {nextSegment?.duration && (
