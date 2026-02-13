@@ -59,7 +59,7 @@ export function VerticalXPBar({ prestige, level, totalXP, className, badgeStats,
         <span className="text-[10px] font-bold text-amber-400">
           🎖️
         </span>
-        <div className="w-2 h-24 rounded-full bg-surface-3 overflow-hidden relative">
+        <div className="w-2.5 h-48 rounded-full bg-surface-3 overflow-hidden relative">
           <div 
             className="absolute bottom-0 left-0 right-0 rounded-full transition-all duration-500 ease-out"
             style={{ 
@@ -85,7 +85,7 @@ export function VerticalXPBar({ prestige, level, totalXP, className, badgeStats,
       </span>
       
       {/* Vertical bar */}
-      <div className="w-2 h-24 rounded-full bg-surface-3 overflow-hidden relative">
+      <div className="w-2.5 h-48 rounded-full bg-surface-3 overflow-hidden relative">
         <div 
           className="absolute bottom-0 left-0 right-0 rounded-full transition-all duration-500 ease-out"
           style={{ 
