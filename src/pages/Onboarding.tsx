@@ -383,7 +383,7 @@ const Onboarding = () => {
                 const isPrimary = (item.id === 'heavyBag' && primaryBag === 'heavy') ||
                                   (item.id === 'doubleEndBag' && primaryBag === 'double_end');
                 const hasGlovesAndWraps = equipment.gloves && equipment.wraps;
-                const showStar = isBag && isSelected && equipment.heavyBag && equipment.doubleEndBag && hasGlovesAndWraps;
+                const showStar = isBag && isSelected && equipment.heavyBag && equipment.doubleEndBag;
                 return (
                   <button
                     key={item.id}
