@@ -15,6 +15,8 @@ interface VerticalXPBarProps {
   badgeStats?: BadgeStats;
   /** Earned badge IDs for next-badge calculation */
   earnedBadgeIds?: string[];
+  /** Championship round gold override */
+  isChampionship?: boolean;
 }
 
 // Prestige tier gradient colors
@@ -42,7 +44,7 @@ function getNextBadgeProgress(
   return best;
 }
 
-export function VerticalXPBar({ prestige, level, totalXP, className, badgeStats, earnedBadgeIds }: VerticalXPBarProps) {
+export function VerticalXPBar({ prestige, level, totalXP, className, badgeStats, earnedBadgeIds, isChampionship }: VerticalXPBarProps) {
   const isAtMax = level >= 100;
   
   // At L100, show next-badge progress
@@ -76,7 +78,7 @@ export function VerticalXPBar({ prestige, level, totalXP, className, badgeStats,
   return (
     <div className={cn('flex flex-col items-center gap-1', className)}>
       {/* Next level at top */}
-      <span className="text-[10px] font-bold text-muted-foreground">
+      <span className={cn("text-[10px] font-bold", isChampionship ? "text-championship-gold/60" : "text-muted-foreground")}>
         Lvl {Math.min(100, level + 1)}
       </span>
       
@@ -86,13 +88,15 @@ export function VerticalXPBar({ prestige, level, totalXP, className, badgeStats,
           className="absolute bottom-0 left-0 right-0 rounded-full transition-all duration-500 ease-out"
           style={{ 
             height: `${progress}%`,
-            background: PRESTIGE_GRADIENTS[prestige],
+            background: isChampionship 
+              ? 'linear-gradient(to top, hsl(var(--championship-gold)), hsl(45 93% 60%))' 
+              : PRESTIGE_GRADIENTS[prestige],
           }}
         />
       </div>
       
       {/* Current level at bottom */}
-      <span className="text-[10px] font-bold text-volt">
+      <span className={cn("text-[10px] font-bold", isChampionship ? "text-championship-gold" : "text-volt")}>
         Lvl {level}
       </span>
     </div>
