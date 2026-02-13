@@ -11,8 +11,10 @@ import { useProfile } from '@/hooks/useProfile';
 import { toast } from 'sonner';
 import { useAppVersion } from '@/hooks/useAppVersion';
 import { LevelUpOverlay } from '@/components/ui/LevelUpOverlay';
+import { BadgeEarnOverlay } from '@/components/ui/BadgeEarnOverlay';
 import { PrestigePrompt } from '@/components/workout/PrestigePrompt';
 import { Prestige } from '@/lib/xpSystem';
+import { ALL_BADGES } from '@/data/badges';
 
 const Settings = () => {
   const navigate = useNavigate();
@@ -27,6 +29,7 @@ const Settings = () => {
   const [isSigningOut, setIsSigningOut] = useState(false);
   const [showLevelUpOverlay, setShowLevelUpOverlay] = useState(false);
   const [showPrestigePrompt, setShowPrestigePrompt] = useState(false);
+  const [showBadgeOverlay, setShowBadgeOverlay] = useState(false);
 
   const handleSignOut = async () => {
     setIsSigningOut(true);
@@ -172,14 +175,14 @@ const Settings = () => {
           {isAdmin && (
             <div className="card-workout border border-volt/20 space-y-2">
               <p className="text-xs font-bold text-volt uppercase tracking-wider">⚡ Admin Tools</p>
-              <div className="flex gap-2">
+              <div className="flex gap-2 flex-wrap">
                 <Button
                   size="sm"
                   variant="outline"
                   onClick={() => setShowLevelUpOverlay(true)}
                   className="flex-1 text-xs bg-surface-2 border-surface-3"
                 >
-                  🎮 Level Up Animation
+                  🎮 Level Up
                 </Button>
                 <Button
                   size="sm"
@@ -187,7 +190,15 @@ const Settings = () => {
                   onClick={() => setShowPrestigePrompt(true)}
                   className="flex-1 text-xs bg-surface-2 border-surface-3"
                 >
-                  🏆 Prestige Prompt
+                  🏆 Prestige
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setShowBadgeOverlay(true)}
+                  className="flex-1 text-xs bg-surface-2 border-surface-3"
+                >
+                  🎖️ Badge Earn
                 </Button>
               </div>
             </div>
@@ -213,6 +224,14 @@ const Settings = () => {
               onDefer={() => setShowPrestigePrompt(false)}
             />
           </div>
+        )}
+
+        {/* Badge Earn Overlay (admin test) */}
+        {showBadgeOverlay && (
+          <BadgeEarnOverlay
+            badge={ALL_BADGES[Math.floor(Math.random() * ALL_BADGES.length)]}
+            onComplete={() => setShowBadgeOverlay(false)}
+          />
         )}
       </div>
     </AppLayout>

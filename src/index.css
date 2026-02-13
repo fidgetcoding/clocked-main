@@ -277,6 +277,30 @@
     100% { opacity: 0; transform: scale(0.8); }
   }
 
+  /* Badge Earn Overlay */
+  @keyframes badge-overlay-in {
+    0% { opacity: 0; }
+    100% { opacity: 1; }
+  }
+  @keyframes badge-overlay-out {
+    0% { opacity: 1; }
+    100% { opacity: 0; }
+  }
+  @keyframes badge-pulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.08); }
+  }
+
+  .animate-badge-overlay-in {
+    animation: badge-overlay-in 0.4s ease-out forwards;
+  }
+  .animate-badge-overlay-out {
+    animation: badge-overlay-out 0.6s ease-out forwards;
+  }
+  .animate-badge-pulse {
+    animation: badge-pulse 1s ease-in-out infinite;
+  }
+
   /* Hide scrollbar but keep functionality */
   .scrollbar-hide {
     -ms-overflow-style: none;
