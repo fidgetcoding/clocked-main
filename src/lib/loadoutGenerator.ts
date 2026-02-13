@@ -224,7 +224,7 @@ export function generateLoadoutWorkout(
     section: 'grind',
     segments: champSegments,
     combos: [['FREESTYLE']], // Freestyle as actual combo entry → COMBOS (1)
-    comboOrder: 'sequential',
+    comboOrder: 'random',
   });
 
   // ─── Conditioning ──────────────────────────────────
