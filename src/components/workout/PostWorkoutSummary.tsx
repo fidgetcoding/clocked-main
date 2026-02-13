@@ -188,63 +188,136 @@ export function PostWorkoutSummary({
         </div>
       </div>
 
-      {/* Level Progress */}
-      <div className="w-full max-w-sm card-workout mb-4">
-        <div className="flex items-center justify-between mb-2">
-          <h3 className="text-xs text-muted-foreground uppercase tracking-wider font-bold">Level Progress</h3>
-          <span className="text-xs font-bold text-foreground">
-            {PRESTIGE_NAMES[result.prestige]} L{result.levelAfter}
-          </span>
-        </div>
-        
-        {/* Level up celebration */}
-        {result.didLevelUp && (
-          <div className={cn(
-            "mb-3 p-3 rounded-xl bg-volt/10 border border-volt/30 text-center transition-all duration-500",
-            animateLevel ? "opacity-100 scale-100" : "opacity-0 scale-95"
-          )}>
+      {/* Level Progress — different view for L100 users */}
+      {result.isMaxLevel || result.levelAfter >= 100 ? (
+        /* L100: Show badges earned this session + prestige banner instead of dead XP bar */
+        <div className="w-full max-w-sm card-workout mb-4">
+          <div className="flex items-center justify-between mb-2">
+            <h3 className="text-xs text-muted-foreground uppercase tracking-wider font-bold">Max Level</h3>
+            <span className="text-xs font-bold text-foreground">
+              {PRESTIGE_NAMES[result.prestige]} L100
+            </span>
+          </div>
+
+          {/* Max level indicator */}
+          <div className="mb-3 p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-center">
             <div className="flex items-center justify-center gap-2 mb-1">
-              <TrendingUp className="w-5 h-5 text-volt" />
-              <span className="text-lg font-black text-volt">LEVEL UP!</span>
-              <TrendingUp className="w-5 h-5 text-volt" />
+              <Star className="w-5 h-5 text-amber-400 fill-amber-400" />
+              <span className="text-lg font-black text-amber-400">MAX LEVEL</span>
+              <Star className="w-5 h-5 text-amber-400 fill-amber-400" />
             </div>
-            <p className="text-sm text-foreground">
-              Level {result.levelBefore} → <span className="font-black text-volt">{result.levelAfter}</span>
+            <p className="text-xs text-muted-foreground">
+              {result.prestigeEligible 
+                ? 'Prestige available — advance to the next tier!' 
+                : 'All XP goes toward earning badges'}
             </p>
-            {didRankUp && (
-              <p className="text-xs text-volt mt-1 font-bold">
-                New Rank: {RANKING_NAMES[rankingAfter]}!
-              </p>
-            )}
           </div>
-        )}
 
-        {/* XP Bar */}
-        <div className="mb-1">
-          <div className="h-3 bg-surface-2 rounded-full overflow-hidden relative">
-            {/* Before bar (faded) */}
-            <div 
-              className="absolute inset-y-0 left-0 bg-volt/30 rounded-full transition-all duration-300"
-              style={{ width: `${result.didLevelUp ? 100 : levelProgressPctBefore}%` }}
-            />
-            {/* After bar (bright) */}
-            <div 
-              className={cn(
-                "absolute inset-y-0 left-0 bg-volt rounded-full transition-all duration-1000",
-                animateLevel ? "opacity-100" : "opacity-0"
-              )}
-              style={{ width: `${levelProgressPctAfter}%` }}
-            />
+          {/* Prestige banner if eligible */}
+          {result.prestigeEligible && (
+            <button
+              onClick={() => setShowPrestigePrompt(true)}
+              className="w-full p-3 rounded-xl bg-volt/10 border border-volt/30 text-center hover:bg-volt/20 transition-colors mb-3"
+            >
+              <div className="flex items-center justify-center gap-2">
+                <Trophy className="w-5 h-5 text-volt" />
+                <span className="text-sm font-black text-volt uppercase tracking-wider">Prestige Ready</span>
+                <Trophy className="w-5 h-5 text-volt" />
+              </div>
+              <p className="text-xs text-muted-foreground mt-1">
+                Tap to advance to the next tier
+              </p>
+            </button>
+          )}
+
+          {/* Badges earned this session — prominent for L100 */}
+          {result.newBadges.length > 0 ? (
+            <div>
+              <p className="text-xs text-muted-foreground mb-2 font-bold">
+                🎖️ {result.newBadges.length} Badge{result.newBadges.length !== 1 ? 's' : ''} Earned This Session
+              </p>
+              <div className="space-y-2">
+                {result.newBadges.map(badge => {
+                  const badgeColors = BADGE_CATEGORY_COLORS[badge.category];
+                  return (
+                    <div 
+                      key={badge.id}
+                      className="flex items-center gap-3 p-2 rounded-lg bg-surface-2/50 border border-surface-3"
+                    >
+                      <BadgeShape shape={badge.shape} category={badge.category} earned size="sm" />
+                      <div className="flex-1 min-w-0">
+                        <p className={cn("text-sm font-bold truncate", badgeColors.text)}>{badge.name}</p>
+                        <p className="text-[10px] text-muted-foreground">{badge.description}</p>
+                      </div>
+                      <span className="text-xs font-bold text-amber-400 whitespace-nowrap">+{badge.xpReward.toLocaleString()}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          ) : (
+            <p className="text-xs text-muted-foreground text-center italic">
+              No new badges this session — keep grinding!
+            </p>
+          )}
+        </div>
+      ) : (
+        /* Normal level progress for sub-L100 users */
+        <div className="w-full max-w-sm card-workout mb-4">
+          <div className="flex items-center justify-between mb-2">
+            <h3 className="text-xs text-muted-foreground uppercase tracking-wider font-bold">Level Progress</h3>
+            <span className="text-xs font-bold text-foreground">
+              {PRESTIGE_NAMES[result.prestige]} L{result.levelAfter}
+            </span>
           </div>
-          <div className="flex justify-between text-[10px] text-muted-foreground mt-1">
-            <span>L{result.levelAfter}</span>
-            <span>{Math.floor(progressAfter.current).toLocaleString()} / {progressAfter.required.toLocaleString()} XP</span>
+          
+          {/* Level up celebration */}
+          {result.didLevelUp && (
+            <div className={cn(
+              "mb-3 p-3 rounded-xl bg-volt/10 border border-volt/30 text-center transition-all duration-500",
+              animateLevel ? "opacity-100 scale-100" : "opacity-0 scale-95"
+            )}>
+              <div className="flex items-center justify-center gap-2 mb-1">
+                <TrendingUp className="w-5 h-5 text-volt" />
+                <span className="text-lg font-black text-volt">LEVEL UP!</span>
+                <TrendingUp className="w-5 h-5 text-volt" />
+              </div>
+              <p className="text-sm text-foreground">
+                Level {result.levelBefore} → <span className="font-black text-volt">{result.levelAfter}</span>
+              </p>
+              {didRankUp && (
+                <p className="text-xs text-volt mt-1 font-bold">
+                  New Rank: {RANKING_NAMES[rankingAfter]}!
+                </p>
+              )}
+            </div>
+          )}
+
+          {/* XP Bar */}
+          <div className="mb-1">
+            <div className="h-3 bg-surface-2 rounded-full overflow-hidden relative">
+              <div 
+                className="absolute inset-y-0 left-0 bg-volt/30 rounded-full transition-all duration-300"
+                style={{ width: `${result.didLevelUp ? 100 : levelProgressPctBefore}%` }}
+              />
+              <div 
+                className={cn(
+                  "absolute inset-y-0 left-0 bg-volt rounded-full transition-all duration-1000",
+                  animateLevel ? "opacity-100" : "opacity-0"
+                )}
+                style={{ width: `${levelProgressPctAfter}%` }}
+              />
+            </div>
+            <div className="flex justify-between text-[10px] text-muted-foreground mt-1">
+              <span>L{result.levelAfter}</span>
+              <span>{Math.floor(progressAfter.current).toLocaleString()} / {progressAfter.required.toLocaleString()} XP</span>
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
-      {/* Badges Earned */}
-      {result.newBadges.length > 0 && (
+      {/* Badges Earned — only show for non-L100 users (L100 shows badges in the level section above) */}
+      {result.newBadges.length > 0 && !(result.isMaxLevel || result.levelAfter >= 100) && (
         <div className="w-full max-w-sm card-workout mb-4">
           <h3 className="text-xs text-muted-foreground uppercase tracking-wider mb-3 font-bold">
             Badges Earned ({result.newBadges.length})
