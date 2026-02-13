@@ -1222,7 +1222,7 @@ const WorkoutSession = () => {
           </div>
 
           {/* Layer 2: Floating card zone — positioned at bottom of middle area, no layout impact on Layer 1 */}
-          <div className="absolute bottom-4 left-4 right-4 flex flex-col items-center">
+          <div className="absolute inset-x-4 flex flex-col items-center justify-center" style={{ top: '55%', bottom: 0 }}>
           {/* Rest Screen - Clean Next Preview */}
           {isRestSegment && (
             <div className={cn("w-full max-w-xs rounded-xl p-3 border", isChampionship ? "bg-championship-gold/5 border-championship-gold/30" : isCooldown ? "bg-cooldown-blue/5 border-cooldown-blue/30" : "bg-surface-1 border-surface-3")}>
