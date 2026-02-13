@@ -1150,8 +1150,8 @@ const WorkoutSession = () => {
                         return (
                           <>
                             <circle cx="110" cy="110" r={r} fill="none" stroke="hsl(var(--surface-3))" strokeWidth="4" strokeDasharray={`${arcLen} ${gapLen}`} strokeDashoffset={-circumference * (startAngle / 360)} strokeLinecap="round" />
-                            <circle cx="110" cy="110" r={r} fill="none" stroke={isChampionship ? 'hsl(var(--championship-gold))' : 'hsl(var(--electric-volt))'} strokeWidth="8" strokeDasharray={`${filledLen} ${circumference - filledLen}`} strokeDashoffset={-circumference * (startAngle / 360)} strokeLinecap="round" opacity="0.3" filter="blur(4px)" className="animate-[pulse_2s_ease-in-out_infinite]" />
-                            <circle cx="110" cy="110" r={r} fill="none" stroke={isChampionship ? 'hsl(var(--championship-gold))' : 'hsl(var(--electric-volt))'} strokeWidth="4" strokeDasharray={`${filledLen} ${circumference - filledLen}`} strokeDashoffset={-circumference * (startAngle / 360)} strokeLinecap="round" />
+                            <circle cx="110" cy="110" r={r} fill="none" stroke={isChampionship ? 'hsl(var(--championship-gold))' : 'hsl(var(--electric-volt))'} strokeWidth="8" strokeDasharray={`${filledLen} ${circumference - filledLen}`} strokeDashoffset={-circumference * (startAngle / 360)} strokeLinecap="round" filter="blur(4px)" className="animate-arc-glow-pulse" style={{ transition: 'stroke-dasharray 0.3s linear' }} />
+                            <circle cx="110" cy="110" r={r} fill="none" stroke={isChampionship ? 'hsl(var(--championship-gold))' : 'hsl(var(--electric-volt))'} strokeWidth="4" strokeDasharray={`${filledLen} ${circumference - filledLen}`} strokeDashoffset={-circumference * (startAngle / 360)} strokeLinecap="round" style={{ transition: 'stroke-dasharray 0.3s linear' }} />
                           </>
                         );
                       })()}
