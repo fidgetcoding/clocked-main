@@ -223,7 +223,7 @@ export function generateLoadoutWorkout(
     repeats: 2,
     section: 'grind',
     segments: champSegments,
-    combos: [], // Empty = freestyle, no combos assigned
+    combos: [['FREESTYLE']], // Freestyle as actual combo entry → COMBOS (1)
     comboOrder: 'sequential',
   });
 

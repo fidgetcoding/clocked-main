@@ -116,15 +116,7 @@ const AdminPortal = () => {
             )}
           </div>
         )}
-        {userGoals.length > 0 && (
-          <div className="flex flex-wrap items-center gap-1">
-            <span className="text-[10px] text-muted-foreground font-bold uppercase mr-0.5">Goals:</span>
-            {userGoals.map(g => (
-              <span key={g} className="text-[10px] bg-surface-2 px-1.5 py-0.5 rounded text-muted-foreground">{g}</span>
-            ))}
-          </div>
-        )}
-        {!user.prestige && !user.experience_level && selectedEquipment.length === 0 && userGoals.length === 0 && (
+        {!user.prestige && !user.experience_level && selectedEquipment.length === 0 && (
           <span className="text-[10px] text-muted-foreground italic">No onboarding data</span>
         )}
       </div>
