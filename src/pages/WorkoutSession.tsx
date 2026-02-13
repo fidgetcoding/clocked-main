@@ -359,7 +359,9 @@ const WorkoutSession = () => {
   const isCooldown = !isPreparation && currentSegment?.section === 'cooldown';
   
   // Accent color helper — championship gold > cooldown blue > volt green
-  const accentColor = isChampionship ? 'championship-gold' : isCooldown ? 'cooldown-blue' : 'volt';
+  // Use full class names so Tailwind can detect them at build time
+  const accentText = isChampionship ? 'text-championship-gold' : isCooldown ? 'text-cooldown-blue' : 'text-volt';
+  const accentText60 = isChampionship ? 'text-championship-gold/60' : isCooldown ? 'text-cooldown-blue/60' : 'text-volt/60';
   const accentHsl = isChampionship ? 'hsl(var(--championship-gold))' : isCooldown ? 'hsl(var(--cooldown-blue))' : 'hsl(var(--electric-volt))';
 
   // Get streak multiplier from profile
@@ -1069,13 +1071,13 @@ const WorkoutSession = () => {
             {xpBubble && (
               <div 
                 key={xpBubble.id}
-                className={cn("absolute right-full mr-2 top-1/2 -translate-y-1/2 font-bold text-sm whitespace-nowrap animate-xp-bubble", `text-${accentColor}`)}
+                className={cn("absolute right-full mr-2 top-1/2 -translate-y-1/2 font-bold text-sm whitespace-nowrap animate-xp-bubble", accentText)}
               >
                 +{xpBubble.amount} XP
               </div>
             )}
             <div className="flex items-center gap-2">
-              <span className={cn("timer-display text-2xl font-black", `text-${accentColor}/60`)}>
+              <span className={cn("timer-display text-2xl font-black", accentText60)}>
                 {formatTimeCompact(totalElapsed)}
               </span>
             </div>
@@ -1118,7 +1120,7 @@ const WorkoutSession = () => {
                        'COOL DOWN'}
                     </p>
                     {(workout?.megasetRepeats || 1) > 1 && currentSegment.megasetIndex !== undefined && (
-                      <span className={cn("inline-flex items-center gap-0.5 text-xs font-black uppercase tracking-wider", `text-${accentColor}/60`)}>
+                      <span className={cn("inline-flex items-center gap-0.5 text-xs font-black uppercase tracking-wider", accentText60)}>
                         <span>{currentSegment.megasetIndex + 1}</span>
                         <span>/</span>
                         <span>{workout?.megasetRepeats}</span>
@@ -1215,7 +1217,7 @@ const WorkoutSession = () => {
               )}
               {restComboPreview && restComboPreview.length > 0 && (
                 <div className="mt-2 pt-2 border-t border-surface-3">
-                  <p className={cn("text-[10px] font-bold mb-1.5 text-center animate-pulse", `text-${accentColor}`)}>INCOMING COMBO</p>
+                  <p className={cn("text-[10px] font-bold mb-1.5 text-center animate-pulse", accentText)}>INCOMING COMBO</p>
                   <div className="flex items-center justify-center gap-1.5 flex-wrap">
                     {restComboPreview.map((move, idx) => {
                       const { display, type } = getDisplayMove(move);
@@ -1223,7 +1225,7 @@ const WorkoutSession = () => {
                         <div key={idx} className="flex items-center gap-0.5">
                           <span className={cn(
                             'text-xl font-black',
-                            `text-${accentColor}`
+                            accentText
                           )}>
                             {display}
                           </span>
@@ -1245,7 +1247,7 @@ const WorkoutSession = () => {
               {displayCombo && displayCombo.length > 0 ? (
                 <>
                   {/* Incoming combo label for shadowboxing */}
-                  <p className={cn("text-xs font-bold mb-3 text-center animate-pulse", `text-${accentColor}`)}>INCOMING COMBO</p>
+                  <p className={cn("text-xs font-bold mb-3 text-center animate-pulse", accentText)}>INCOMING COMBO</p>
                   <div className="flex items-center justify-center gap-2 flex-wrap">
                     {displayCombo.map((move, idx) => {
                       // Convert punch names to numbers if they're stored as words
@@ -1280,7 +1282,7 @@ const WorkoutSession = () => {
                         <div key={idx} className="flex items-center gap-1">
                           <span className={cn(
                             'text-2xl font-black',
-                            `text-${accentColor}`
+                            accentText
                           )}>
                             {displayMove}
                           </span>
@@ -1293,7 +1295,7 @@ const WorkoutSession = () => {
                   </div>
                 </>
               ) : (
-                <p className={cn("text-2xl font-black text-center", `text-${accentColor}`)}>FREESTYLE</p>
+                <p className={cn("text-2xl font-black text-center", accentText)}>FREESTYLE</p>
               )}
             </div>
           )}
@@ -1335,7 +1337,7 @@ const WorkoutSession = () => {
                     <div key={idx} className="flex items-center gap-1">
                           <span className={cn(
                             'text-2xl font-black',
-                            `text-${accentColor}`
+                            accentText
                           )}>
                         {displayMove}
                       </span>
@@ -1354,7 +1356,7 @@ const WorkoutSession = () => {
            (currentSegment?.segmentType === 'combo' || currentSegment?.segmentType === 'speedbag' || currentSegment?.segmentType === 'doubleend') &&
            (!displayCombo || displayCombo.length === 0) && (
             <div className="w-full max-w-xs bg-surface-1 rounded-xl p-3 border border-surface-3">
-              <p className={cn("text-2xl font-black text-center", `text-${accentColor}`)}>FREESTYLE</p>
+              <p className={cn("text-2xl font-black text-center", accentText)}>FREESTYLE</p>
             </div>
           )}
         </div>
