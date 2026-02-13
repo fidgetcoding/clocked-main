@@ -1117,10 +1117,10 @@ const WorkoutSession = () => {
           <LevelUpOverlay level={levelUpLevel} onComplete={() => setLevelUpLevel(null)} />
         )}
 
-        {/* Main Timer */}
-        <div className="flex-1 flex flex-col px-4">
-          {/* Fixed timer zone — anchored, never shifts */}
-          <div className="flex flex-col items-center justify-center" style={{ minHeight: 420 }}>
+        {/* Main Timer — middle area between top bar and bottom bar */}
+        <div className="flex-1 relative px-4">
+          {/* Layer 1: Fixed, vertically centered — phase name, timer, segment, time buttons */}
+          <div className="absolute inset-0 flex flex-col items-center justify-center px-4">
                 {/* Phase Name — context of where you are */}
                 {isPreparation ? (
                   <p className="text-xs text-muted-foreground uppercase tracking-widest mb-2">GET READY</p>
@@ -1138,7 +1138,6 @@ const WorkoutSession = () => {
                     {currentSegment?.phaseName || 'WARMUP'}
                   </p>
                 )}
-
 
                 {/* Timer with 270° arc ring */}
                 <div className="relative w-full flex items-center justify-center">
@@ -1184,7 +1183,7 @@ const WorkoutSession = () => {
                 </div>
 
           {/* Segment Name — what you're doing right now */}
-          <div className="flex items-center gap-3 mb-4 whitespace-nowrap">
+          <div className="flex items-center gap-3 mb-4 whitespace-nowrap w-full">
             <div className={cn("h-px flex-1 min-w-4", isChampionship ? "bg-championship-gold/40" : isCooldown ? "bg-cooldown-blue/40" : "bg-muted-foreground/30")} />
             <h2 className={cn(
               "text-xl font-black uppercase tracking-wider text-center shrink-0",
@@ -1209,7 +1208,7 @@ const WorkoutSession = () => {
             </div>
           )}
 
-          <div className="flex gap-2 mb-6">
+          <div className="flex gap-2">
             {['-30', '-15', '+15', '+30'].map((val) => (
               <button
                 key={val}
@@ -1222,8 +1221,8 @@ const WorkoutSession = () => {
           </div>
           </div>
 
-          {/* Content zone — fills remaining space, cards render here */}
-          <div className="flex-1 flex flex-col items-center justify-start px-0 pt-2">
+          {/* Layer 2: Floating card zone — positioned at bottom of middle area, no layout impact on Layer 1 */}
+          <div className="absolute bottom-4 left-4 right-4 flex flex-col items-center">
           {/* Rest Screen - Clean Next Preview */}
           {isRestSegment && (
             <div className={cn("w-full max-w-xs rounded-xl p-3 border", isChampionship ? "bg-championship-gold/5 border-championship-gold/30" : isCooldown ? "bg-cooldown-blue/5 border-cooldown-blue/30" : "bg-surface-1 border-surface-3")}>
