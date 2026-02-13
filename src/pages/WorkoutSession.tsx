@@ -30,6 +30,7 @@ import { cn } from '@/lib/utils';
 import { ACTIVITY_XP_RATES, ActivityType, getStreakMultiplier, getActivityTypeFromName, calculateComboXP, getLevelFromXP, PER_SESSION_ESTIMATES, TIER_COMBO_STATS, Prestige, isPrestigeEligible as checkPrestigeEligible, isMaxLevel as checkIsMaxLevel } from '@/lib/xpSystem';
 import { computePostLogStats, computePostL100Increments } from '@/lib/workoutTracking';
 import { checkBadges, sumBadgeXP, BadgeStats } from '@/data/badges';
+import { checkPostL100Badges } from '@/data/postL100Badges';
 import { LevelUpOverlay } from '@/components/ui/LevelUpOverlay';
 import { PostWorkoutSummary, SessionXPBreakdown } from '@/components/workout/PostWorkoutSummary';
 import { usePostWorkoutComplete } from '@/hooks/useCommunityPosts';
@@ -465,8 +466,60 @@ const WorkoutSession = () => {
       totalJogRunMinutes: (profile.total_jog_run_minutes || 0) + PER_SESSION_ESTIMATES.jogRunMinutes,
     };
     
-    const newBadges = checkBadges(updatedStats, earnedBadgeIds);
-    const badgeXP = sumBadgeXP(newBadges);
+    // Check core badges
+    const newCoreBadges = checkBadges(updatedStats, earnedBadgeIds);
+    
+    // Check post-L100 badges ONLY if user is at L100
+    const currentLevel = profile.current_level || 1;
+    let newPostL100Badges: any[] = [];
+    if (currentLevel >= 100) {
+      const postL100StatsForCheck = {
+        ...updatedStats,
+        postL100Sessions: ((profile as any)?.post_l100_sessions || 0) + 1,
+        overflowXp: (profile as any)?.overflow_xp || 0,
+        tiersCompleted: (profile as any)?.tiers_completed || 0,
+        totalLevelsEarned: (profile as any)?.total_levels_earned || 0,
+        rookieSessionsToL100: (profile as any)?.rookie_sessions_to_l100 || 0,
+        beginnerSessionsToL100: (profile as any)?.beginner_sessions_to_l100 || 0,
+        intermediateSessionsToL100: (profile as any)?.intermediate_sessions_to_l100 || 0,
+        advancedSessionsToL100: (profile as any)?.advanced_sessions_to_l100 || 0,
+        proSessionsToL100: (profile as any)?.pro_sessions_to_l100 || 0,
+        doubleDays: (profile as any)?.double_days || 0,
+        morningWorkouts: (profile as any)?.morning_workouts || 0,
+        nightWorkouts: (profile as any)?.night_workouts || 0,
+        weekendWorkouts: (profile as any)?.weekend_workouts || 0,
+        weekdayWorkouts: (profile as any)?.weekday_workouts || 0,
+        perfectMonths: (profile as any)?.perfect_months || 0,
+        comebackCount: (profile as any)?.comeback_count || 0,
+        mondayWorkouts: (profile as any)?.monday_workouts || 0,
+        fridayWorkouts: (profile as any)?.friday_workouts || 0,
+        sundayWorkouts: (profile as any)?.sunday_workouts || 0,
+        accountAgeDays: profile?.created_at ? Math.floor((Date.now() - new Date(profile.created_at).getTime()) / 86400000) : 0,
+        newYearsWorkout: (profile as any)?.new_years_workout ? 1 : 0,
+        birthdayWorkout: (profile as any)?.birthday_workout ? 1 : 0,
+        holidayWorkouts: (profile as any)?.holiday_workouts || 0,
+        singleSessionXp: Math.max((profile as any)?.best_session_xp || 0, effectiveBase),
+        totalBadges: earnedBadgeIds.length + newCoreBadges.length,
+        streakRecoveries: (profile as any)?.streak_recoveries || 0,
+        avgXpPerSession: profile?.workouts_completed ? Math.round(((profile?.total_xp || 0) + effectiveBase) / ((profile.workouts_completed || 0) + 1)) : effectiveBase,
+        punch1Count: (profile as any)?.punch_1_count || 0,
+        punch2Count: (profile as any)?.punch_2_count || 0,
+        punch3Count: (profile as any)?.punch_3_count || 0,
+        punch4Count: (profile as any)?.punch_4_count || 0,
+        punch5Count: (profile as any)?.punch_5_count || 0,
+        punch6Count: (profile as any)?.punch_6_count || 0,
+        punch7Count: (profile as any)?.punch_7_count || 0,
+        punch8Count: (profile as any)?.punch_8_count || 0,
+        slipsCount: (profile as any)?.slips_count || 0,
+        rollsCount: (profile as any)?.rolls_count || 0,
+        pullbacksCount: (profile as any)?.pullbacks_count || 0,
+        circlesCount: (profile as any)?.circles_count || 0,
+      };
+      newPostL100Badges = checkPostL100Badges(postL100StatsForCheck, [...earnedBadgeIds, ...newCoreBadges.map(b => b.id)]);
+    }
+    
+    const allNewBadges = [...newCoreBadges, ...newPostL100Badges];
+    const badgeXP = allNewBadges.reduce((sum, b) => sum + b.xpReward, 0);
     const sessionTotal = effectiveBase + badgeXP;
     const totalXPAfter = (profile.total_xp || 0) + sessionTotal;
     const levelBefore = profile.current_level || 1;
@@ -479,7 +532,7 @@ const WorkoutSession = () => {
       effectiveBase,
       badgeXP,
       sessionTotal,
-      newBadges,
+      newBadges: allNewBadges,
       levelBefore,
       levelAfter,
       streakBefore: profile.current_streak || 0,
@@ -620,13 +673,16 @@ const WorkoutSession = () => {
       } else if (currentSegmentIndex < flatSegments.length - 1) {
         // Fire combo XP pop for the segment that just ended
         const endingSegment = flatSegments[currentSegmentIndex];
-        if (endingSegment && endingSegment.combo && endingSegment.combo.length > 0 && prevComboSegRef.current !== currentSegmentIndex) {
+        const isComboPopSegment = endingSegment?.segmentType === 'combo' || endingSegment?.segmentType === 'shadowboxing' || endingSegment?.segmentType === 'speedbag' || endingSegment?.segmentType === 'doubleend';
+        if (isComboPopSegment && endingSegment.combo && endingSegment.combo.length > 0 && prevComboSegRef.current !== currentSegmentIndex) {
           prevComboSegRef.current = currentSegmentIndex;
           const comboXP = calculateComboXP(endingSegment.combo, endingSegment.duration);
           const isChamp = endingSegment.cumulativeRound ? endingSegment.cumulativeRound > 10 && isBoxingSegment(endingSegment) : false;
           const finalXP = isChamp ? comboXP * 2 : comboXP;
           if (finalXP > 0) {
-            setComboXPPop({ amount: finalXP * streakMultiplier, id: Date.now(), isChampionship: isChamp });
+            const popId = Date.now();
+            setComboXPPop({ amount: finalXP * streakMultiplier, id: popId, isChampionship: isChamp });
+            setTimeout(() => setComboXPPop(prev => prev?.id === popId ? null : prev), 1200);
           }
         }
         
@@ -1362,12 +1418,20 @@ const WorkoutSession = () => {
               style={{ width: `${progressPercent}%` }}
             />
           </div>
-          <div className="flex justify-between text-[10px] text-muted-foreground mb-3">
+          <div className="flex justify-between text-[10px] text-muted-foreground mb-2">
             <span>{isPreparation ? 'PREP' : currentSegment?.section?.toUpperCase()}</span>
             <span className={cn("font-bold", isChampionship ? "text-championship-gold" : "text-volt")}>
               {isPreparation ? '0' : currentSegmentIndex + 1}/{totalSegments}
             </span>
           </div>
+
+          {/* Timer XP Bar — continuous level progress */}
+          <TimerXPBar
+            prestige={(profile?.prestige || 'beginner') as any}
+            level={liveLevel}
+            totalXP={(profile?.total_xp || 0) + currentXP}
+            className="mb-3"
+          />
 
           {/* Controls */}
           <div className="flex items-center justify-center gap-4">
