@@ -356,7 +356,10 @@ const WorkoutSession = () => {
   // Championship visual: only segments within the "Championship Rounds" phase
   const isChampionship = !isPreparation && !!currentSegment && 
     currentSegment.phaseName.toLowerCase().includes('championship');
-  const isCooldown = !isPreparation && currentSegment?.section === 'cooldown';
+  const isCooldown = !isPreparation && (
+    currentSegment?.section === 'cooldown' || 
+    currentSegment?.phaseName?.toLowerCase() === 'cooldown'
+  );
   
   // Accent color helper — championship gold > cooldown blue > volt green
   // Use full class names so Tailwind can detect them at build time
