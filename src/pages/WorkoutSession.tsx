@@ -1022,12 +1022,7 @@ const WorkoutSession = () => {
           
           {/* Right side - XP bar with bubble and championship badge */}
           <div className="flex items-center relative">
-            {/* 2x XP badge near XP bar during championship */}
-            {!isPreparation && currentSegment?.cumulativeRound && currentSegment.cumulativeRound > 10 && (
-              <div className="absolute right-full mr-2 top-0 px-2 py-0.5 rounded-full bg-championship-gold/20 border border-championship-gold/40">
-                <span className="text-[10px] font-black text-championship-gold whitespace-nowrap">2x XP</span>
-              </div>
-            )}
+            {/* 2x XP badge removed — indicator now in championship banner */}
             {/* XP Bubble - positioned to left of bar, vertically centered */}
             {xpBubble && (
               <div 
@@ -1052,11 +1047,12 @@ const WorkoutSession = () => {
             const isChampionship = !isPreparation && currentSegment?.cumulativeRound && currentSegment.cumulativeRound > 10;
             return (
               <>
-                {/* Championship Rounds Banner */}
+                {/* Championship Rounds Banner with Double XP */}
                 {isChampionship && (
-                  <div className="flex items-center gap-2 mb-2 px-4 py-1.5 rounded-full bg-championship-gold/15 border border-championship-gold/40">
+                  <div className="flex items-center gap-3 mb-2 px-5 py-1.5 rounded-full bg-championship-gold/15 border border-championship-gold/40 animate-[pulse_3s_ease-in-out_infinite]">
                     <Zap className="w-4 h-4 text-championship-gold" />
                     <span className="text-xs font-black text-championship-gold uppercase tracking-widest">Championship Rounds</span>
+                    <span className="text-[10px] font-black text-championship-gold/80 uppercase tracking-wider px-1.5 py-0.5 rounded bg-championship-gold/15 border border-championship-gold/30">2× XP</span>
                     <Zap className="w-4 h-4 text-championship-gold" />
                   </div>
                 )}
