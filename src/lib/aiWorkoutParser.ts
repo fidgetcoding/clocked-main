@@ -822,9 +822,21 @@ function blockToPhase(block: ParsedBlock): ParsedPhase {
       });
     }
     
-    // Route per-round combos from the superset to the phase's combo library
-    // These combos belong to the boxing segment(s) in the superset
-    const supersetCombos = block.combos.length > 0 ? block.combos : undefined;
+    // Route per-round entries from the superset to the phase's combo library
+    // Priority: punch combos > speed bag drills > conditioning exercises
+    let supersetCombos: string[][] | undefined;
+    let supersetComboOrder: 'sequential' | 'random' | undefined;
+    
+    if (block.combos.length > 0) {
+      supersetCombos = block.combos;
+      supersetComboOrder = block.comboOrder;
+    } else if (block.speedBagDrills.length > 0) {
+      supersetCombos = block.speedBagDrills;
+      supersetComboOrder = block.comboOrder;
+    } else if (block.exerciseSets.length > 0) {
+      supersetCombos = block.exerciseSets;
+      supersetComboOrder = block.comboOrder;
+    }
     
     return {
       name: block.activityName,
@@ -833,7 +845,7 @@ function blockToPhase(block: ParsedBlock): ParsedPhase {
       repeats: block.rounds,
       segments,
       combos: supersetCombos,
-      comboOrder: supersetCombos ? block.comboOrder : undefined,
+      comboOrder: supersetComboOrder,
     };
   }
   
@@ -926,11 +938,13 @@ function blockToPhase(block: ParsedBlock): ParsedPhase {
     const hasCombos = block.combos.length > 0;
     const bagType = detectBagType(block.rawText);
     const isSpeedBag = bagType === 'speedbag';
+    const isDoubleEnd = bagType === 'doubleend';
     const isShadowboxing = /shadow\s*box/i.test(block.rawText);
     
-    // Determine segment type: shadowboxing stays 'shadowboxing' even with combos
+    // Determine segment type: specific bag types take priority over generic combo
     let segType: ParsedSegment['segmentType'];
     if (isSpeedBag) segType = 'speedbag';
+    else if (isDoubleEnd) segType = 'doubleend';
     else if (isShadowboxing) segType = 'shadowboxing';
     else if (hasCombos) segType = 'combo';
     else segType = inferSegmentType(block.activityName);
