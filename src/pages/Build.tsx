@@ -70,6 +70,8 @@ function SortableComboItem({ id, combo, index, onEdit, onDelete }: {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
   const style = { transform: CSS.Transform.toString(transform), transition };
 
+  const isFreestyle = combo.length === 1 && combo[0] === 'FREESTYLE';
+
   return (
     <div
       ref={setNodeRef}
@@ -84,16 +86,22 @@ function SortableComboItem({ id, combo, index, onEdit, onDelete }: {
       </div>
       <span className="text-xs text-muted-foreground w-6">#{index + 1}</span>
       <div className="flex-1 flex flex-wrap gap-1">
-        {combo.map((move, mIdx) => (
-          <span key={mIdx} className="px-2 py-0.5 rounded text-xs font-medium bg-volt/20 text-volt">
-            {move}
+        {isFreestyle ? (
+          <span className="px-2 py-0.5 rounded text-xs font-medium bg-volt/20 text-volt">
+            Freestyle
           </span>
-        ))}
+        ) : (
+          combo.map((move, mIdx) => (
+            <span key={mIdx} className="px-2 py-0.5 rounded text-xs font-medium bg-volt/20 text-volt">
+              {move}
+            </span>
+          ))
+        )}
       </div>
-      <button onClick={() => onEdit(index)} className="text-muted-foreground hover:text-foreground">
+      <button onClick={(e) => { e.stopPropagation(); onEdit(index); }} className="text-muted-foreground hover:text-foreground p-1">
         <Pencil className="w-4 h-4" />
       </button>
-      <button onClick={() => onDelete(index)} className="text-muted-foreground hover:text-destructive">
+      <button onClick={(e) => { e.stopPropagation(); onDelete(index); }} className="text-muted-foreground hover:text-destructive p-1">
         <Trash2 className="w-4 h-4" />
       </button>
     </div>
@@ -1264,15 +1272,23 @@ const Build = () => {
                               <button
                                 key={comboKey}
                                 onClick={() => {
-                                  if (!added) {
+                                  if (added) {
+                                    // Deselect: remove this combo from phase
+                                    if (editingPhaseId) {
+                                      const phaseCombos = getPhaseCombos(editingPhaseId);
+                                      const removeIdx = phaseCombos.findIndex(ec => ec.length === combo.length && ec.every((m, i) => m === combo[i]));
+                                      if (removeIdx !== -1) {
+                                        setPhaseCombos(editingPhaseId, phaseCombos.filter((_, i) => i !== removeIdx));
+                                      }
+                                    }
+                                  } else {
                                     addPresetCombo({ id: comboKey, name: combo.join('-'), combo, difficulty });
                                   }
                                 }}
-                                disabled={added}
                                 className={cn(
                                   'w-full flex items-center gap-3 rounded-lg p-2.5 border transition-colors text-left',
                                   added
-                                    ? 'bg-surface-1/50 border-surface-3/50 opacity-60'
+                                    ? 'bg-volt/10 border-volt/30'
                                     : 'bg-surface-1 border-surface-3 hover:border-volt'
                                 )}
                               >
@@ -1300,7 +1316,7 @@ const Build = () => {
                                   </div>
                                 </div>
                                 {added ? (
-                                  <Check className="w-4 h-4 text-muted-foreground" />
+                                  <Check className="w-4 h-4 text-volt" />
                                 ) : (
                                   <Plus className="w-4 h-4 text-volt" />
                                 )}
