@@ -839,20 +839,33 @@ const Build = () => {
                               } else {
                                 segmentLibrary = [];
                               }
-                            } else {
-                              // Non-E segment in superset (DB, H, etc.): show phase.combos only
-                              // if they contain actual combo notation, not leaked exercise names
+                            } else if (ctx === 'speedbag') {
+                              // SB segment in superset: show phase.combos entries that are drill names (not punch notation)
                               segmentLibrary = (phase.combos || []).filter(combo => 
-                                combo.some(token => /^\d/.test(token) || /^[A-Z]-/.test(token))
+                                combo.some(token => !/^\d/.test(token) && !/^(SLIP|ROLL|DUCK|PULL|BLOCK|PARRY|STEP|CIRCLE|PIVOT)/.test(token))
+                              );
+                            } else {
+                              // Non-E, non-SB segment in superset (H, DB, S): show punch notation combos only
+                              segmentLibrary = (phase.combos || []).filter(combo => 
+                                combo.some(token => /^\d/.test(token) || /^(SLIP|ROLL|DUCK|PULL|BLOCK|PARRY|STEP|CIRCLE|PIVOT)/.test(token))
                               );
                             }
                           } else if (ctx === 'exercises') {
-                            // Non-superset exercise segment: synthesize library from segment name
-                            const generic = ['exercise', 'exercise a', 'exercise b'];
-                            if (segment.name && !generic.includes(segment.name.toLowerCase())) {
-                              segmentLibrary = [[segment.name]];
+                            // Non-superset exercise segment: use phase.combos if they contain exercise names
+                            // Otherwise synthesize from segment name
+                            const phaseCombos = phase.combos || [];
+                            const hasExerciseEntries = phaseCombos.length > 0 && phaseCombos.some(combo =>
+                              combo.some(token => !/^\d$/.test(token) && !/^(SLIP|ROLL|DUCK|PULL|BLOCK|PARRY|STEP|CIRCLE|PIVOT)/.test(token))
+                            );
+                            if (hasExerciseEntries) {
+                              segmentLibrary = phaseCombos;
                             } else {
-                              segmentLibrary = [];
+                              const generic = ['exercise', 'exercise a', 'exercise b'];
+                              if (segment.name && !generic.includes(segment.name.toLowerCase())) {
+                                segmentLibrary = [[segment.name]];
+                              } else {
+                                segmentLibrary = [];
+                              }
                             }
                           } else {
                             segmentLibrary = phase.combos;
