@@ -4,14 +4,19 @@ import {
   PRESTIGE_NAMES,
   RANKING_NAMES,
   getLevelProgress,
-  getRankingFromLevel
+  getRankingFromLevel,
 } from '@/lib/xpSystem';
+import { ALL_BADGES, Badge, getBadgeProgress, BadgeStats } from '@/data/badges';
 
 interface VerticalXPBarProps {
   prestige: Prestige;
   level: number;
   totalXP: number;
   className?: string;
+  /** Badge stats for next-badge progress at L100 */
+  badgeStats?: BadgeStats;
+  /** Earned badge IDs for next-badge calculation */
+  earnedBadgeIds?: string[];
 }
 
 // Prestige tier gradient colors
@@ -23,8 +28,55 @@ const PRESTIGE_GRADIENTS: Record<Prestige, string> = {
   pro: 'linear-gradient(to top, rgb(251 191 36), rgb(253 224 71))',
 };
 
-export function VerticalXPBar({ prestige, level, totalXP, className }: VerticalXPBarProps) {
+function getNextBadgeProgress(
+  badgeStats: BadgeStats,
+  earnedBadgeIds: string[],
+): { badge: Badge; progress: number } | null {
+  let best: { badge: Badge; progress: number } | null = null;
+  for (const badge of ALL_BADGES) {
+    if (earnedBadgeIds.includes(badge.id)) continue;
+    const progress = getBadgeProgress(badge, badgeStats);
+    if (progress >= 1) continue;
+    if (!best || progress > best.progress) {
+      best = { badge, progress };
+    }
+  }
+  return best;
+}
+
+export function VerticalXPBar({ prestige, level, totalXP, className, badgeStats, earnedBadgeIds }: VerticalXPBarProps) {
+  const isAtMax = level >= 100;
   const ranking = getRankingFromLevel(level);
+  
+  // At L100, show next-badge progress
+  if (isAtMax && badgeStats && earnedBadgeIds) {
+    const nextBadge = getNextBadgeProgress(badgeStats, earnedBadgeIds);
+    const progress = nextBadge ? Math.min(100, nextBadge.progress * 100) : 100;
+    
+    return (
+      <div className={cn('flex flex-col items-center gap-1', className)}>
+        <span className="text-[10px] font-bold text-amber-400">
+          🎖️
+        </span>
+        <div className="w-2 h-24 rounded-full bg-surface-3 overflow-hidden relative">
+          <div 
+            className="absolute bottom-0 left-0 right-0 rounded-full transition-all duration-500 ease-out"
+            style={{ 
+              height: `${progress}%`,
+              background: 'linear-gradient(to top, rgb(251 191 36), rgb(253 224 71))',
+            }}
+          />
+        </div>
+        <span className="text-[10px] font-bold text-amber-400">
+          L100
+        </span>
+        <span className="text-[9px] font-semibold text-muted-foreground uppercase tracking-wider mt-0.5">
+          {RANKING_NAMES[ranking]}
+        </span>
+      </div>
+    );
+  }
+  
   const progress = getLevelProgress(prestige, level, totalXP);
 
   return (
