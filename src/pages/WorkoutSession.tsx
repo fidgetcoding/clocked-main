@@ -1111,48 +1111,23 @@ const WorkoutSession = () => {
         {/* Main Timer */}
         <div className="flex-1 flex flex-col items-center justify-center px-4">
               <>
-                {/* Championship Rounds Banner with Double XP */}
-                {isChampionship && (
+                {/* Phase Name — context of where you are */}
+                {isPreparation ? (
+                  <p className="text-xs text-muted-foreground uppercase tracking-widest mb-2">GET READY</p>
+                ) : isChampionship ? (
                   <div className="flex items-center gap-3 mb-2 px-5 py-1.5 rounded-full bg-championship-gold/15 border border-championship-gold/40 animate-[pulse_3s_ease-in-out_infinite]">
                     <Zap className="w-4 h-4 text-championship-gold" />
-                    <span className="text-xs font-black text-championship-gold uppercase tracking-widest">Championship Rounds</span>
-                    
+                    <span className="text-xs font-black text-championship-gold uppercase tracking-widest">{currentSegment?.phaseName || 'CHAMPIONSHIP'}</span>
                     <Zap className="w-4 h-4 text-championship-gold" />
                   </div>
+                ) : (
+                  <p className={cn(
+                    "text-xs uppercase tracking-widest mb-2",
+                    isCooldown ? "text-cooldown-blue/70" : "text-muted-foreground"
+                  )}>
+                    {currentSegment?.phaseName || 'WARMUP'}
+                  </p>
                 )}
-
-                {/* Section Indicator */}
-                {!isPreparation && currentSegment?.section && !isChampionship && (
-                  <div className="flex items-center gap-2 mb-1">
-                    <p className="text-xs text-muted-foreground uppercase tracking-widest">
-                      {currentSegment.section === 'warmup' ? 'WARM-UP' : 
-                       currentSegment.section === 'grind' ? 'ROUNDS' : 
-                       'COOL DOWN'}
-                    </p>
-                    {(workout?.megasetRepeats || 1) > 1 && currentSegment.megasetIndex !== undefined && (
-                      <span className={cn("inline-flex items-center gap-0.5 text-xs font-black uppercase tracking-wider", accentText60)}>
-                        <span>{currentSegment.megasetIndex + 1}</span>
-                        <span>/</span>
-                        <span>{workout?.megasetRepeats}</span>
-                      </span>
-                    )}
-                  </div>
-                )}
-                
-                {/* Phase Title */}
-                <h2 className={cn(
-                  "text-2xl font-black mb-2 uppercase tracking-wider text-center",
-                  isChampionship ? "text-championship-gold" : isCooldown ? "text-cooldown-blue" : "text-foreground"
-                )}>
-                  {isPreparation ? 'GET READY' : (
-                    <>
-                      {currentSegment?.name || 'WORK'}
-                      {isChampionship && (
-                        <span className="text-championship-gold"> / 2XP</span>
-                      )}
-                    </>
-                  )}
-                </h2>
 
 
                 {/* Timer with 270° arc ring */}
@@ -1199,15 +1174,18 @@ const WorkoutSession = () => {
                 </div>
               </>
 
-          {/* Segment Type */}
-          <div className="flex items-center gap-2 mb-6">
-            <div className="h-px w-12 bg-surface-3" />
-            <span className="text-xs text-muted-foreground uppercase tracking-widest">
-              {isPreparation ? 'PREPARATION' : currentSegment?.type === 'rest' ? 'REST' : 
-               currentSegment?.segmentType?.toUpperCase() || 'WORK'}
-            </span>
-            <div className="h-px w-12 bg-surface-3" />
-          </div>
+          {/* Segment Name — what you're doing right now */}
+          <h2 className={cn(
+            "text-2xl font-black mb-4 uppercase tracking-wider text-center",
+            isChampionship ? "text-championship-gold" : isCooldown ? "text-cooldown-blue" : "text-foreground"
+          )}>
+            {isPreparation ? 'PREPARATION' : (
+              <>
+                {currentSegment?.name || 'WORK'}
+                {isChampionship && <span className="text-championship-gold"> / 2XP</span>}
+              </>
+            )}
+          </h2>
 
           {/* Fine-tune buttons */}
           <div className="flex gap-2 mb-6">
