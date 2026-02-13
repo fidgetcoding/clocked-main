@@ -1179,7 +1179,7 @@ const WorkoutSession = () => {
                     </div>
                   </div>
                   {/* Vertical XP Bar — pinned to right wall */}
-                  <div className="absolute right-0 top-1/2 -translate-y-1/2">
+                  <div className="absolute right-0 top-0 bottom-0 flex items-stretch">
                     <VerticalXPBar prestige={profile?.prestige || 'beginner'} level={liveLevel} totalXP={(profile?.total_xp || 0) + currentXP} badgeStats={currentStats} earnedBadgeIds={earnedBadgeIds} isChampionship={isChampionship} isCooldown={isCooldown} />
                   </div>
                 </div>
