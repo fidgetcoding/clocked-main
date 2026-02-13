@@ -1053,8 +1053,17 @@ const WorkoutSession = () => {
             </button>
           </div>
           
-          {/* Elapsed time + streak + dev button */}
-          <div className="flex flex-col items-end gap-1">
+          {/* Elapsed time + streak */}
+          <div className="flex flex-col items-end gap-1 relative">
+            {/* XP Bubble */}
+            {xpBubble && (
+              <div 
+                key={xpBubble.id}
+                className="absolute right-full mr-2 top-1/2 -translate-y-1/2 text-volt font-bold text-sm whitespace-nowrap animate-xp-bubble"
+              >
+                +{xpBubble.amount} XP
+              </div>
+            )}
             <div className="flex items-center gap-2">
               <span className="timer-display text-2xl font-black text-volt/60">
                 {formatTimeCompact(totalElapsed)}
@@ -1067,19 +1076,6 @@ const WorkoutSession = () => {
                 <span className="text-[10px] font-bold text-orange-400">
                   {profile?.current_streak}d — {streakMultiplier}x
                 </span>
-              </div>
-            )}
-          </div>
-          
-          {/* Right side - XP bubble only (bar moved to timer area) */}
-          <div className="flex items-center relative">
-            {/* XP Bubble */}
-            {xpBubble && (
-              <div 
-                key={xpBubble.id}
-                className="absolute right-full mr-2 top-1/2 -translate-y-1/2 text-volt font-bold text-sm whitespace-nowrap animate-xp-bubble"
-              >
-                +{xpBubble.amount} XP
               </div>
             )}
           </div>
