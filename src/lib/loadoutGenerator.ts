@@ -163,6 +163,65 @@ export function generateLoadoutWorkout(
     });
   }
 
+  // ─── CHAMPIONSHIP ROUNDS — Freestyle ─────────────────
+  const champSegments: WorkoutSegment[] = [];
+
+  if (canUseBag) {
+    // 30s Shadow + 30s Bag — both freestyle (no combos)
+    champSegments.push({
+      id: generateId(),
+      name: 'Shadowboxing',
+      type: 'active',
+      segmentType: 'shadowboxing',
+      duration: 30,
+    });
+    champSegments.push({
+      id: generateId(),
+      name: primaryBag === 'heavy' ? 'Heavy Bag' : 'Double End Bag',
+      type: 'active',
+      segmentType: primaryBag === 'heavy' ? 'combo' : 'doubleend',
+      duration: 30,
+    });
+  } else {
+    // No bag: 60s shadowboxing freestyle
+    champSegments.push({
+      id: generateId(),
+      name: 'Shadowboxing',
+      type: 'active',
+      segmentType: 'shadowboxing',
+      duration: 60,
+    });
+  }
+
+  // Burpees instead of Pushups
+  champSegments.push({
+    id: generateId(),
+    name: 'Burpees',
+    type: 'active',
+    segmentType: 'exercise',
+    duration: 30,
+    exercise: 'Burpees',
+  });
+
+  // Rest
+  champSegments.push({
+    id: generateId(),
+    name: 'Rest',
+    type: 'rest',
+    segmentType: 'rest',
+    duration: 30,
+  });
+
+  phases.push({
+    id: generateId(),
+    name: 'Championship Rounds',
+    repeats: 2,
+    section: 'grind',
+    segments: champSegments,
+    combos: [], // Empty = freestyle, no combos assigned
+    comboOrder: 'sequential',
+  });
+
   // ─── Conditioning ──────────────────────────────────
   phases.push({
     id: generateId(),
@@ -175,7 +234,7 @@ export function generateLoadoutWorkout(
         name: 'Curlups',
         type: 'active',
         segmentType: 'exercise',
-        duration: 60,
+        duration: 120,
         exercise: 'Curlups',
       },
       {
@@ -207,9 +266,11 @@ export function generateLoadoutWorkout(
 
   // Calculate total duration
   const warmupDuration = 180;
-  const roundsDuration = 10 * (canUseBag ? 120 : 120) + 120; // 10 rounds + conditioning
+  const roundsDuration = 10 * 120; // 10 structured rounds
+  const champDuration = 2 * 120; // 2 championship rounds
+  const conditioningDuration = 120 + 60; // Curlups (120s) + Rest (60s)
   const cooldownDuration = 600;
-  const totalDuration = warmupDuration + roundsDuration + cooldownDuration;
+  const totalDuration = warmupDuration + roundsDuration + champDuration + conditioningDuration + cooldownDuration;
 
   const tierLabel = tier.charAt(0).toUpperCase() + tier.slice(1);
 

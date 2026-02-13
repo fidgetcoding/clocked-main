@@ -43,6 +43,7 @@ interface FlatSegment {
   reps?: number;
   repeatIndex?: number;
   megasetIndex?: number;
+  cumulativeRound?: number; // Track which round this segment belongs to (1-indexed)
 }
 
 function formatTime(seconds: number): string {
@@ -243,8 +244,23 @@ const WorkoutSession = () => {
     }
     
     // Second pass: build flat segments with proper next-segment awareness
+    // Also track cumulative round number across grind phases
+    let cumulativeRound = 0;
+    let lastPhaseId = '';
+    let lastRepeatIndex = -1;
+    
     tempSegments.forEach((item, idx) => {
       const { segment, sectionName, phase, repeatIndex, megasetIndex } = item;
+      
+      // Track cumulative round: each new repeat of a grind phase = new round
+      if (sectionName === 'grind') {
+        const phaseRepeatKey = `${phase.id}-${repeatIndex}`;
+        if (phaseRepeatKey !== `${lastPhaseId}-${lastRepeatIndex}`) {
+          cumulativeRound++;
+          lastPhaseId = phase.id;
+          lastRepeatIndex = repeatIndex;
+        }
+      }
       
       const combo = comboAssignments.get(idx);
       
@@ -274,6 +290,7 @@ const WorkoutSession = () => {
         reps: segment.reps,
         repeatIndex: phase.repeats > 1 ? repeatIndex + 1 : undefined,
         megasetIndex,
+        cumulativeRound: sectionName === 'grind' ? cumulativeRound : undefined,
       });
     });
     
@@ -364,7 +381,13 @@ const WorkoutSession = () => {
     prevLevelRef.current = liveLevel;
   }, [liveLevel, playLevelUpSound]);
 
-  // Helper: compute XP per second for a given segment
+  // Helper: check if a segment is a boxing segment eligible for 2x XP
+  const isBoxingSegment = useCallback((segment: FlatSegment) => {
+    const st = segment.segmentType;
+    return st === 'shadowboxing' || st === 'combo' || st === 'doubleend';
+  }, []);
+
+  // Helper: compute XP per second for a given segment (includes 2x championship multiplier)
   const getXPPerSecond = useCallback((segment: FlatSegment) => {
     const activityType = getActivityTypeFromSegment(segment);
     let xpPerSecond = ACTIVITY_XP_RATES[activityType];
@@ -378,8 +401,13 @@ const WorkoutSession = () => {
       xpPerSecond = totalComboXP / segment.duration;
     }
     
+    // 2x XP for boxing segments in round 11+
+    if (segment.cumulativeRound && segment.cumulativeRound > 10 && isBoxingSegment(segment)) {
+      xpPerSecond *= 2;
+    }
+    
     return xpPerSecond;
-  }, [profile?.prestige]);
+  }, [profile?.prestige, isBoxingSegment]);
 
 
   // Background-safe timer using wall-clock deltas
@@ -873,7 +901,7 @@ const WorkoutSession = () => {
     if (m.includes('STEP IN')) return { display: '→', type: 'movement' };
     if (m.includes('STEP OUT')) return { display: '←', type: 'movement' };
     // If it's already a number or short code, determine type
-    if (['1', '2', '3', '4', '5', '6', '7', '8'].includes(m)) return { display: m, type: 'punch' };
+    if (['1', '2', '3', '4', '5', '6', '7', '8', '9', '10'].includes(m)) return { display: m, type: 'punch' };
     if (['SL', 'SR', 'RL', 'RR', 'PL', 'BK'].includes(m)) return { display: m, type: 'defense' };
     if (['↺', '↻', '→', '←'].includes(m)) return { display: m, type: 'movement' };
     return { display: move, type: 'punch' };
@@ -976,6 +1004,14 @@ const WorkoutSession = () => {
           <h2 className="text-2xl font-black text-foreground mb-2 uppercase tracking-wider text-center">
             {isPreparation ? 'GET READY' : currentSegment?.name || 'WORK'}
           </h2>
+
+          {/* 2x XP Championship Indicator */}
+          {!isPreparation && currentSegment?.cumulativeRound && currentSegment.cumulativeRound > 10 && isBoxingSegment(currentSegment) && (
+            <div className="flex items-center gap-1.5 mb-2 px-3 py-1 rounded-full bg-volt/20 border border-volt/40">
+              <Zap className="w-3.5 h-3.5 text-volt" />
+              <span className="text-xs font-black text-volt uppercase tracking-wider">2x XP — Championship Round</span>
+            </div>
+          )}
 
 
           {/* Timer */}

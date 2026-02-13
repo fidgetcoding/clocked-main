@@ -282,6 +282,8 @@ export const PUNCH_XP_VALUES: Record<string, number> = {
   '6': 9,      // Rear Uppercut
   '7': 10,     // Lead Body Hook
   '8': 10,     // Rear Body Hook
+  '9': 11,     // Lead Body Uppercut
+  '10': 11,    // Rear Body Uppercut
 };
 
 // Defense move XP values
