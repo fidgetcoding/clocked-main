@@ -28,7 +28,7 @@ import { useSoundEffects } from '@/hooks/useSoundEffects';
 import { useBadges } from '@/hooks/useBadges';
 import { cn } from '@/lib/utils';
 import { ACTIVITY_XP_RATES, ActivityType, getStreakMultiplier, getActivityTypeFromName, calculateComboXP, getLevelFromXP, PER_SESSION_ESTIMATES, TIER_COMBO_STATS, Prestige, isPrestigeEligible as checkPrestigeEligible, isMaxLevel as checkIsMaxLevel } from '@/lib/xpSystem';
-import { computePostLogStats } from '@/lib/workoutTracking';
+import { computePostLogStats, computePostL100Increments } from '@/lib/workoutTracking';
 import { checkBadges, sumBadgeXP, BadgeStats } from '@/data/badges';
 import { LevelUpOverlay } from '@/components/ui/LevelUpOverlay';
 import { PostWorkoutSummary, SessionXPBreakdown } from '@/components/workout/PostWorkoutSummary';
@@ -325,7 +325,7 @@ const WorkoutSession = () => {
   const [sessionResult, setSessionResult] = useState<SessionXPBreakdown | null>(null);
   
   // Badge system
-  const { earnedBadgeIds, awardBadges } = useBadges();
+  const { earnedBadgeIds, awardBadges, currentStats } = useBadges();
   
   // Calculate round count from grind phases
   const roundCount = useMemo(() => {
@@ -843,8 +843,16 @@ const WorkoutSession = () => {
         if (user?.id && profile) {
           const postLogStats = await computePostLogStats(user.id, profile);
           if (postLogStats) {
+            // Compute post-L100 increments from actual workout segments
+            const postL100Increments = computePostL100Increments(
+              profile as any,
+              sessionResult.sessionTotal,
+              flatSegments,
+            );
+            
             updateProfile.mutate({
               ...postLogStats,
+              ...postL100Increments,
               total_xp: (profile.total_xp || 0) + sessionResult.sessionTotal,
               combos_landed: (profile.combos_landed || 0) + PER_SESSION_ESTIMATES.combosLanded,
               total_pushups: (profile.total_pushups || 0) + PER_SESSION_ESTIMATES.pushups,
@@ -1029,7 +1037,7 @@ const WorkoutSession = () => {
                 +{xpBubble.amount} XP
               </div>
             )}
-            <VerticalXPBar prestige={profile?.prestige || 'beginner'} level={liveLevel} totalXP={(profile?.total_xp || 0) + currentXP} />
+            <VerticalXPBar prestige={profile?.prestige || 'beginner'} level={liveLevel} totalXP={(profile?.total_xp || 0) + currentXP} badgeStats={currentStats} earnedBadgeIds={earnedBadgeIds} />
           </div>
         </header>
 

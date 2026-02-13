@@ -113,7 +113,7 @@ function WorkoutCalendar({ workoutDates }: { workoutDates: Date[] }) {
 const Stats = () => {
   const { profile, updateProfile } = useProfile();
   const { stats: workoutStats, history } = useWorkoutStats();
-  const { earnedBadges, earnedCount, totalBadgeCount, getBadgesByCategory } = useBadges();
+  const { earnedBadges, earnedBadgeIds, earnedCount, totalBadgeCount, getBadgesByCategory, currentStats } = useBadges();
   const navigate = useNavigate();
   const [showPrestigePrompt, setShowPrestigePrompt] = useState(false);
 
@@ -245,6 +245,8 @@ const Stats = () => {
                 prestige={prestige}
                 level={currentLevel}
                 totalXP={totalXP}
+                badgeStats={currentStats}
+                earnedBadgeIds={earnedBadgeIds}
               />
             </div>
           </div>
