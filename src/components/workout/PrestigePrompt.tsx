@@ -84,7 +84,7 @@ export function PrestigePrompt({ currentPrestige, onPrestige, onDefer }: Prestig
             </Button>
             <Button 
               onClick={onPrestige}
-              className={cn('flex-1 font-bold text-background', nextColors.bg, 'hover:opacity-90 border', nextColors.border)}
+              className={cn('flex-1 font-bold text-white', nextColors.bg, 'hover:opacity-90 border', nextColors.border)}
             >
               Prestige Now
             </Button>
@@ -158,7 +158,7 @@ export function PrestigePrompt({ currentPrestige, onPrestige, onDefer }: Prestig
         <div className="space-y-3">
           <Button 
             onClick={() => setConfirming(true)}
-            className={cn('w-full font-bold text-lg py-6 text-background', nextColors.bg, 'hover:opacity-90 border', nextColors.border)}
+            className={cn('w-full font-bold text-lg py-6 text-white', nextColors.bg, 'hover:opacity-90 border', nextColors.border)}
           >
             Prestige Now
           </Button>
