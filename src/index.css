@@ -128,6 +128,61 @@
     background: linear-gradient(180deg, hsl(var(--surface-1)) 0%, hsl(var(--tech-black)) 100%);
   }
 
+  .text-cooldown-blue {
+    color: hsl(var(--cooldown-blue));
+  }
+
+  .text-cooldown-blue\/60 {
+    color: hsl(var(--cooldown-blue) / 0.6);
+  }
+
+  .bg-cooldown-blue {
+    background-color: hsl(var(--cooldown-blue));
+  }
+
+  .bg-cooldown-blue\/5 {
+    background-color: hsl(var(--cooldown-blue) / 0.05);
+  }
+
+  .border-cooldown-blue {
+    border-color: hsl(var(--cooldown-blue));
+  }
+
+  .border-cooldown-blue\/30 {
+    border-color: hsl(var(--cooldown-blue) / 0.3);
+  }
+
+  .text-championship-gold {
+    color: hsl(var(--championship-gold));
+  }
+
+  .text-championship-gold\/60 {
+    color: hsl(var(--championship-gold) / 0.6);
+  }
+
+  .bg-championship-gold {
+    background-color: hsl(var(--championship-gold));
+  }
+
+  .bg-championship-gold\/5 {
+    background-color: hsl(var(--championship-gold) / 0.05);
+  }
+
+  .bg-championship-gold\/15 {
+    background-color: hsl(var(--championship-gold) / 0.15);
+  }
+
+  .border-championship-gold\/30 {
+    border-color: hsl(var(--championship-gold) / 0.3);
+  }
+
+  .border-championship-gold\/40 {
+    border-color: hsl(var(--championship-gold) / 0.4);
+  }
+
+  .text-championship-gold\/80 {
+    color: hsl(var(--championship-gold) / 0.8);
+  }
 
   /* Card Variants */
   .card-workout {
