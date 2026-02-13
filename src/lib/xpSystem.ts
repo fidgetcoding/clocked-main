@@ -518,6 +518,56 @@ export function getPrestigeThresholds(): Record<Prestige, number> {
 }
 
 // =====================================================
+// Prestige Promotion System (Document Section 10)
+// =====================================================
+
+/**
+ * Get the next prestige tier, or null if at Pro (max).
+ */
+export function getNextPrestige(current: Prestige): Prestige | null {
+  const idx = PRESTIGE_ORDER.indexOf(current);
+  if (idx < 0 || idx >= PRESTIGE_ORDER.length - 1) return null;
+  return PRESTIGE_ORDER[idx + 1];
+}
+
+/**
+ * Check if a user has reached Level 100 in their current tier.
+ * This makes them eligible to prestige (promote to next tier).
+ * Pro users at L100 are at max — they cannot prestige further.
+ */
+export function isPrestigeEligible(prestige: Prestige, totalXP: number): boolean {
+  if (prestige === 'pro') return false; // Pro is final tier
+  const level = getLevelFromXP(prestige, totalXP);
+  return level >= 100;
+}
+
+/**
+ * Check if a user is at Pro L100 (max level in the game).
+ */
+export function isMaxLevel(prestige: Prestige, totalXP: number): boolean {
+  return prestige === 'pro' && getLevelFromXP(prestige, totalXP) >= 100;
+}
+
+/**
+ * Get what changes on prestige for display purposes.
+ */
+export function getPrestigeChanges(currentPrestige: Prestige): {
+  nextTier: Prestige;
+  nextTierName: string;
+  currentTierName: string;
+  newLevelCurve: TierCurve;
+} | null {
+  const next = getNextPrestige(currentPrestige);
+  if (!next) return null;
+  return {
+    nextTier: next,
+    nextTierName: PRESTIGE_NAMES[next],
+    currentTierName: PRESTIGE_NAMES[currentPrestige],
+    newLevelCurve: TIER_CURVES[next],
+  };
+}
+
+// =====================================================
 // Per-Session Cumulative Stats (Document Section 3.4)
 // Conservative estimates for badge progress tracking
 // =====================================================

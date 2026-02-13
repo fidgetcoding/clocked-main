@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Flame, Trophy, Clock, Zap, TrendingUp, TrendingDown, Target, Dumbbell, Activity } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
@@ -12,7 +13,9 @@ import {
   RANKING_ORDER,
   getRankingFromLevel,
   getLevelRangeForRanking,
+  isPrestigeEligible,
 } from '@/lib/xpSystem';
+import { PrestigeAvailableBanner, PrestigePrompt } from '@/components/workout/PrestigePrompt';
 import { cn } from '@/lib/utils';
 
 interface StatCardProps {
@@ -46,9 +49,10 @@ function StatCard({ icon: Icon, label, value, color, change, onClick }: StatCard
 }
 
 const Stats = () => {
-  const { profile } = useProfile();
+  const { profile, updateProfile } = useProfile();
   const { stats: workoutStats, history } = useWorkoutStats();
   const navigate = useNavigate();
+  const [showPrestigePrompt, setShowPrestigePrompt] = useState(false);
   // Get prestige data from profile
   const prestige: Prestige = profile?.prestige || 'beginner';
   const currentLevel = profile?.current_level || 1;
@@ -58,6 +62,21 @@ const Stats = () => {
   const workoutsCompleted = Math.max(profile?.workouts_completed || 0, historyCount);
   const currentStreak = profile?.current_streak || 0;
   const longestStreak = profile?.longest_streak || 0;
+  const prestigeEligible = isPrestigeEligible(prestige, totalXP);
+
+  const handlePrestige = () => {
+    const order: Prestige[] = ['rookie', 'beginner', 'intermediate', 'advanced', 'pro'];
+    const idx = order.indexOf(prestige);
+    const next = idx < order.length - 1 ? order[idx + 1] : null;
+    if (!next) return;
+    updateProfile.mutate({
+      prestige: next,
+      current_level: 1,
+      total_xp: 0,
+      experience_level: next,
+    } as any);
+    setShowPrestigePrompt(false);
+  };
 
   // Use real data from workout history
   const totalHours = workoutStats.totalTrainingHours || 0;
@@ -81,6 +100,18 @@ const Stats = () => {
     { id: 'intensity', icon: Dumbbell, label: 'Avg Intensity', value: avgIntensity !== null ? `${avgIntensity}/5` : '--', color: 'text-muted-foreground', change: changes.intensity },
   ];
 
+  if (showPrestigePrompt) {
+    return (
+      <AppLayout>
+        <PrestigePrompt
+          currentPrestige={prestige}
+          onPrestige={handlePrestige}
+          onDefer={() => setShowPrestigePrompt(false)}
+        />
+      </AppLayout>
+    );
+  }
+
   return (
     <AppLayout>
       <div className="min-h-screen pb-24">
@@ -90,6 +121,14 @@ const Stats = () => {
         </header>
 
         <div className="px-4 py-6 space-y-6">
+          {/* Prestige Available Banner */}
+          {prestigeEligible && (
+            <PrestigeAvailableBanner 
+              currentPrestige={prestige} 
+              onClick={() => setShowPrestigePrompt(true)} 
+            />
+          )}
+
           {/* Prestige/Ranking Card */}
           <div className="card-workout relative overflow-hidden">
             <div className="absolute inset-0 bg-gradient-to-br from-volt/10 to-transparent" />

@@ -11,7 +11,8 @@ import { useFollows } from '@/hooks/useFollows';
 import { useAuth } from '@/contexts/AuthContext';
 import { XPBar } from '@/components/ui/XPBar';
 import { PrestigeBadge } from '@/components/ui/PrestigeDisplay';
-import { Prestige, getRankingFromLevel } from '@/lib/xpSystem';
+import { Prestige, getRankingFromLevel, isPrestigeEligible } from '@/lib/xpSystem';
+import { PrestigeAvailableBanner, PrestigePrompt } from '@/components/workout/PrestigePrompt';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { BadgeCollection } from '@/components/BadgeCollection';
@@ -31,12 +32,13 @@ type ListModalType = 'followers' | 'following' | 'search' | null;
 const Profile = () => {
   const navigate = useNavigate();
   const { userId } = useParams<{ userId?: string }>();
-  const { profile } = useProfile();
+  const { profile, updateProfile } = useProfile();
   const { user: authUser } = useAuth();
   const { data: publicProfile, isLoading: isLoadingPublic } = usePublicProfile(userId);
   const { followersCount, followingCount, followersList, followingList, isFollowing, follow, unfollow } = useFollows(userId);
   const [listModal, setListModal] = useState<ListModalType>(null);
   const [showSharedWorkouts, setShowSharedWorkouts] = useState(false);
+  const [showPrestigePrompt, setShowPrestigePrompt] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const { results: searchResults, isLoading: isSearching, hasQuery } = useUserSearch(searchQuery);
 
@@ -95,6 +97,34 @@ const Profile = () => {
     setSearchQuery('');
     setListModal('search');
   };
+
+  const prestigeEligible = isOwnProfile && isPrestigeEligible(prestige, totalXP);
+
+  const handlePrestige = () => {
+    const order: Prestige[] = ['rookie', 'beginner', 'intermediate', 'advanced', 'pro'];
+    const idx = order.indexOf(prestige);
+    const next = idx < order.length - 1 ? order[idx + 1] : null;
+    if (!next) return;
+    updateProfile.mutate({
+      prestige: next,
+      current_level: 1,
+      total_xp: 0,
+      experience_level: next,
+    } as any);
+    setShowPrestigePrompt(false);
+  };
+
+  if (showPrestigePrompt) {
+    return (
+      <AppLayout>
+        <PrestigePrompt
+          currentPrestige={prestige}
+          onPrestige={handlePrestige}
+          onDefer={() => setShowPrestigePrompt(false)}
+        />
+      </AppLayout>
+    );
+  }
 
   return (
     <AppLayout>
@@ -284,6 +314,16 @@ const Profile = () => {
             <p className="text-[10px] text-muted-foreground">Total Time</p>
           </div>
         </div>
+
+        {/* Prestige Available Banner */}
+        {prestigeEligible && (
+          <div className="px-4 mb-4">
+            <PrestigeAvailableBanner 
+              currentPrestige={prestige} 
+              onClick={() => setShowPrestigePrompt(true)} 
+            />
+          </div>
+        )}
 
         {/* Badge Collection */}
         {isOwnProfile && (
