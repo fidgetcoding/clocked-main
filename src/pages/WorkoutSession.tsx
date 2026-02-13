@@ -1087,13 +1087,6 @@ const WorkoutSession = () => {
                   {isPreparation ? 'GET READY' : currentSegment?.name || 'WORK'}
                 </h2>
 
-                {/* 2x XP Championship Indicator */}
-                {isChampionship && isBoxingSegment(currentSegment!) && (
-                  <div className="flex items-center gap-1.5 mb-2 px-3 py-1 rounded-full bg-championship-gold/20 border border-championship-gold/40">
-                    <Zap className="w-3.5 h-3.5 text-championship-gold" />
-                    <span className="text-xs font-black text-championship-gold uppercase tracking-wider">2x XP</span>
-                  </div>
-                )}
 
                 {/* Timer */}
                 <span className={cn(
