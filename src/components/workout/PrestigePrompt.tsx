@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
+import { playSoundEffect } from '@/hooks/useSoundEffects';
 import { 
   Prestige, PRESTIGE_NAMES, PRESTIGE_ORDER, 
   getPrestigeChanges, getNextPrestige 
@@ -33,6 +34,10 @@ interface PrestigePromptProps {
 export function PrestigePrompt({ currentPrestige, onPrestige, onDefer }: PrestigePromptProps) {
   const [confirming, setConfirming] = useState(false);
   const changes = getPrestigeChanges(currentPrestige);
+  
+  useEffect(() => {
+    playSoundEffect.prestige();
+  }, []);
   
   if (!changes) return null;
   

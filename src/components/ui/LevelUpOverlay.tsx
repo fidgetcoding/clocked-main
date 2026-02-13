@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { playSoundEffect } from '@/hooks/useSoundEffects';
 
 interface LevelUpOverlayProps {
   level: number;
@@ -7,6 +8,9 @@ interface LevelUpOverlayProps {
 
 export function LevelUpOverlay({ level, onComplete }: LevelUpOverlayProps) {
   useEffect(() => {
+    // Play the level-up celebration sound
+    playSoundEffect.levelUp();
+
     const timer = setTimeout(onComplete, 2500);
     return () => clearTimeout(timer);
   }, [onComplete]);

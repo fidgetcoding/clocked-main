@@ -198,4 +198,95 @@ export const playSoundEffect = {
       console.warn('Failed to play level up sound:', e);
     }
   },
+
+  prestige: () => {
+    try {
+      const ctx = getAudioContext();
+      if (ctx.state === 'suspended') ctx.resume();
+      const now = ctx.currentTime;
+
+      // 1. Deep dramatic drum hit
+      const kickOsc = ctx.createOscillator();
+      const kickGain = ctx.createGain();
+      kickOsc.connect(kickGain);
+      kickGain.connect(ctx.destination);
+      kickOsc.type = 'sine';
+      kickOsc.frequency.setValueAtTime(120, now);
+      kickOsc.frequency.exponentialRampToValueAtTime(30, now + 0.5);
+      kickGain.gain.setValueAtTime(0.5, now);
+      kickGain.gain.exponentialRampToValueAtTime(0.001, now + 0.6);
+      kickOsc.start(now);
+      kickOsc.stop(now + 0.6);
+
+      // 2. Majestic rising fanfare (brass-like sawtooth)
+      const fanfareNotes = [261.63, 329.63, 392.00, 523.25, 659.25, 783.99, 1046.50]; // C4→C6
+      const noteLen = 0.14;
+      fanfareNotes.forEach((freq, i) => {
+        const t = now + 0.15 + i * noteLen;
+        
+        // Sawtooth for brass character
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(freq, t);
+        gain.gain.setValueAtTime(0, t);
+        gain.gain.linearRampToValueAtTime(0.15, t + 0.02);
+        gain.gain.setValueAtTime(0.15, t + noteLen * 0.6);
+        gain.gain.exponentialRampToValueAtTime(0.001, t + noteLen + 0.2);
+        osc.start(t);
+        osc.stop(t + noteLen + 0.2);
+
+        // Sine for body
+        const osc2 = ctx.createOscillator();
+        const gain2 = ctx.createGain();
+        osc2.connect(gain2);
+        gain2.connect(ctx.destination);
+        osc2.type = 'sine';
+        osc2.frequency.setValueAtTime(freq, t);
+        gain2.gain.setValueAtTime(0, t);
+        gain2.gain.linearRampToValueAtTime(0.25, t + 0.02);
+        gain2.gain.setValueAtTime(0.25, t + noteLen * 0.6);
+        gain2.gain.exponentialRampToValueAtTime(0.001, t + noteLen + 0.2);
+        osc2.start(t);
+        osc2.stop(t + noteLen + 0.2);
+      });
+
+      // 3. Grand sustained power chord finale
+      const chordStart = now + 0.15 + fanfareNotes.length * noteLen + 0.1;
+      const chordFreqs = [261.63, 329.63, 392.00, 523.25, 783.99, 1046.50];
+      chordFreqs.forEach((freq) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(freq, chordStart);
+        gain.gain.setValueAtTime(0.2, chordStart);
+        gain.gain.exponentialRampToValueAtTime(0.001, chordStart + 1.5);
+        osc.start(chordStart);
+        osc.stop(chordStart + 1.5);
+      });
+
+      // 4. Shimmer / sparkle effect
+      for (let i = 0; i < 6; i++) {
+        const sparkleTime = chordStart + 0.1 + i * 0.12;
+        const sparkleFreq = 2000 + Math.random() * 2000;
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(sparkleFreq, sparkleTime);
+        gain.gain.setValueAtTime(0, sparkleTime);
+        gain.gain.linearRampToValueAtTime(0.06, sparkleTime + 0.01);
+        gain.gain.exponentialRampToValueAtTime(0.001, sparkleTime + 0.15);
+        osc.start(sparkleTime);
+        osc.stop(sparkleTime + 0.15);
+      }
+    } catch (e) {
+      console.warn('Failed to play prestige sound:', e);
+    }
+  },
 };
