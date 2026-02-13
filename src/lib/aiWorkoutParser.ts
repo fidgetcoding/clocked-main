@@ -225,25 +225,25 @@ function parseRestFromText(text: string): { duration: number | null; noRest: boo
   const lower = text.toLowerCase();
   
   // "no rest"
-  if (/\bno\s+rest\b/i.test(lower)) {
+  if (/\bno\s+(?:rest|break|recovery|pause)\b/i.test(lower)) {
     return { duration: 0, noRest: true };
   }
   
-  // "X sec rest/break"
-  const secRestMatch = lower.match(/(\d+)\s*sec(?:ond)?s?\s*(?:rest|break)/i);
+  // "X sec rest/break/recovery/pause"
+  const secRestMatch = lower.match(/(\d+)\s*sec(?:ond)?s?\s*(?:rest|break|recovery|pause)/i);
   if (secRestMatch) {
     return { duration: parseInt(secRestMatch[1]), noRest: false };
   }
   
-  // "X min rest/break"
-  const minRestMatch = lower.match(/(\d+)\s*min(?:ute)?s?\s*(?:rest|break)/i);
+  // "X min rest/break/recovery/pause"
+  const minRestMatch = lower.match(/(\d+)\s*min(?:ute)?s?\s*(?:rest|break|recovery|pause)/i);
   if (minRestMatch) {
     return { duration: parseInt(minRestMatch[1]) * 60, noRest: false };
   }
   
   // "rest between rounds" with duration nearby
   // "30 sec rest between rounds"
-  const restBetweenMatch = lower.match(/(\d+)\s*(?:sec|min)(?:ond|ute)?s?\s*rest\s*(?:between|after)/i);
+  const restBetweenMatch = lower.match(/(\d+)\s*(?:sec|min)(?:ond|ute)?s?\s*(?:rest|break|recovery|pause)\s*(?:between|after)/i);
   if (restBetweenMatch) {
     const val = parseInt(restBetweenMatch[1]);
     const isMin = /min/i.test(restBetweenMatch[0]);
@@ -255,8 +255,12 @@ function parseRestFromText(text: string): { duration: number | null; noRest: boo
 
 function parseRoundsFromText(text: string): number | null {
   const lower = text.toLowerCase();
-  const match = lower.match(/(\d+)\s*(?:round|rnd|set)s?\b/i);
+  // Aliases: round, rnd, set, lap, cycle, rep (of the circuit)
+  const match = lower.match(/(\d+)\s*(?:round|rnd|set|lap|cycle|rep)s?\b/i);
   if (match) return parseInt(match[1]);
+  // "do this circuit N times" / "do this N times"
+  const circuitTimesMatch = lower.match(/(?:do\s+(?:this|the)\s+(?:circuit|block|routine)?\s*)(\d+)\s*times/i);
+  if (circuitTimesMatch) return parseInt(circuitTimesMatch[1]);
   return null;
 }
 
@@ -607,7 +611,7 @@ function parseSupersetFromBlock(text: string): { exercises: SupersetExercise[]; 
   
   // Check for rest between the exercises in the superset
   let restBetween: number | null = null;
-  const restBetweenMatch = lower.match(/(\d+)\s*(?:sec(?:ond)?s?|min(?:ute)?s?)\s*(?:rest|break)\s*(?:between\s*(?:exercises|them|sets)|in\s*between)/i);
+  const restBetweenMatch = lower.match(/(\d+)\s*(?:sec(?:ond)?s?|min(?:ute)?s?)\s*(?:rest|break|recovery|pause)\s*(?:between\s*(?:exercises|them|sets)|in\s*between)/i);
   if (restBetweenMatch) {
     const val = parseInt(restBetweenMatch[1]);
     restBetween = /min/i.test(restBetweenMatch[0]) ? val * 60 : val;
@@ -1178,6 +1182,11 @@ function parseMegasetRepeats(prompt: string): number {
   const megasetMatch = prompt.match(/(\d+)\s*megaset/i);
   if (megasetMatch) return parseInt(megasetMatch[1]);
   if (/run\s*it\s*back/i.test(prompt)) return 2;
+  // "do this circuit/routine N times" or "N laps/cycles of the whole thing"
+  const circuitMatch = prompt.match(/(?:do\s+(?:this|the)\s+(?:circuit|routine|session|program|class)\s+)(\d+)\s*(?:times|laps?|cycles?)/i);
+  if (circuitMatch) return parseInt(circuitMatch[1]);
+  const lapsMatch = prompt.match(/(\d+)\s*(?:laps?|cycles?)\s*(?:of\s+)?(?:the\s+)?(?:whole|entire|full)/i);
+  if (lapsMatch) return parseInt(lapsMatch[1]);
   return 1;
 }
 
