@@ -1253,7 +1253,7 @@ const WorkoutSession = () => {
               )}
               {restComboPreview && restComboPreview.length > 0 && (
                 <div className="mt-2 pt-2 border-t border-surface-3">
-                  <p className="text-[10px] text-alert-red font-bold mb-1.5 text-center animate-pulse">INCOMING COMBO</p>
+                  <p className="text-[10px] text-volt font-bold mb-1.5 text-center animate-pulse">INCOMING COMBO</p>
                   <div className="flex items-center justify-center gap-1.5 flex-wrap">
                     {restComboPreview.map((move, idx) => {
                       const { display, type } = getDisplayMove(move);
@@ -1284,7 +1284,7 @@ const WorkoutSession = () => {
               {displayCombo && displayCombo.length > 0 ? (
                 <>
                   {/* Incoming combo label for shadowboxing */}
-                  <p className="text-xs text-alert-red font-bold mb-3 text-center animate-pulse">INCOMING COMBO</p>
+                  <p className="text-xs text-volt font-bold mb-3 text-center animate-pulse">INCOMING COMBO</p>
                   <div className="flex items-center justify-center gap-2 flex-wrap">
                     {displayCombo.map((move, idx) => {
                       // Convert punch names to numbers if they're stored as words
