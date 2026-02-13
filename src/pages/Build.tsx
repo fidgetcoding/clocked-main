@@ -853,8 +853,9 @@ const Build = () => {
                                 combo.some(token => !/^\d/.test(token) && !/^(SLIP|ROLL|DUCK|PULL|BLOCK|PARRY|STEP|CIRCLE|PIVOT)/.test(token))
                               );
                             } else {
-                              // Non-E, non-SB segment in superset (H, DB, S): show punch notation combos only
+                              // Non-E, non-SB segment in superset (H, DB, S): show punch notation combos + FREESTYLE
                               segmentLibrary = (phase.combos || []).filter(combo => 
+                                (combo.length === 1 && combo[0] === 'FREESTYLE') ||
                                 combo.some(token => /^\d/.test(token) || /^(SLIP|ROLL|DUCK|PULL|BLOCK|PARRY|STEP|CIRCLE|PIVOT)/.test(token))
                               );
                             }
