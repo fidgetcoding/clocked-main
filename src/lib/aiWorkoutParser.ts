@@ -1503,6 +1503,7 @@ export function parsedResultToWorkout(result: ParsedWorkoutResult): Workout {
       cooldown: cooldownPhases,
     },
     combos: result.combos.length > 0 ? result.combos : undefined,
+    megasetRepeats: result.megasetRepeats,
   };
 }
 
