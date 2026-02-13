@@ -986,7 +986,13 @@ const WorkoutSession = () => {
   const nextSegmentUsesCombos = nextSegment?.type === 'active' && 
     (nextSegment?.segmentType === 'combo' || nextSegment?.segmentType === 'shadowboxing' || 
      nextSegment?.segmentType === 'speedbag' || nextSegment?.segmentType === 'doubleend');
-  const restComboPreview = nextSegmentUsesCombos && nextSegment?.combo && nextSegment.combo.length > 0 ? nextSegment.combo : undefined;
+  const nextSegmentIsShadowboxing = nextSegment?.segmentType === 'shadowboxing';
+  const rawRestCombo = nextSegmentUsesCombos 
+    ? (nextSegmentIsShadowboxing ? nextSegment?.nextCombo : nextSegment?.combo) 
+    : undefined;
+  const restComboPreview = rawRestCombo && rawRestCombo.length > 0 && 
+    !(rawRestCombo.length === 1 && rawRestCombo[0] === 'FREESTYLE') 
+    ? rawRestCombo : undefined;
 
   // Helper function to convert move names to display format
   const getDisplayMove = (move: string): { display: string; type: 'punch' | 'defense' | 'movement' } => {
