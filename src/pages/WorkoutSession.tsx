@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Home, Play, Pause, RotateCcw, SkipForward, SkipBack, ChevronRight, MoreVertical, CheckCircle, Zap } from 'lucide-react';
+import { ArrowLeft, Home, Play, Pause, RotateCcw, SkipForward, SkipBack, ChevronRight, MoreVertical, CheckCircle, Zap, Flame } from 'lucide-react';
 import { RoundFeedbackPanel } from '@/components/workout/RoundFeedbackPanel';
 import { RoundFeedback } from '@/types';
 import { AppLayout } from '@/components/layout/AppLayout';
@@ -23,10 +23,13 @@ import { useProfile } from '@/hooks/useProfile';
 import { useUserRole } from '@/hooks/useUserRole';
 import { useSpeechSynthesis } from '@/hooks/useSpeechSynthesis';
 import { useSoundEffects } from '@/hooks/useSoundEffects';
+import { useBadges } from '@/hooks/useBadges';
 import { cn } from '@/lib/utils';
-import { ACTIVITY_XP_RATES, ActivityType, getStreakMultiplier, getActivityTypeFromName, calculateComboXP, getLevelFromXP } from '@/lib/xpSystem';
+import { ACTIVITY_XP_RATES, ActivityType, getStreakMultiplier, getActivityTypeFromName, calculateComboXP, getLevelFromXP, PER_SESSION_ESTIMATES, TIER_COMBO_STATS, Prestige } from '@/lib/xpSystem';
 import { computePostLogStats } from '@/lib/workoutTracking';
+import { checkBadges, sumBadgeXP, BadgeStats } from '@/data/badges';
 import { LevelUpOverlay } from '@/components/ui/LevelUpOverlay';
+import { PostWorkoutSummary, SessionXPBreakdown } from '@/components/workout/PostWorkoutSummary';
 import { usePostWorkoutComplete } from '@/hooks/useCommunityPosts';
 
 interface FlatSegment {
@@ -312,10 +315,14 @@ const WorkoutSession = () => {
   const [xpBubble, setXpBubble] = useState<{ amount: number; id: number } | null>(null);
   const [hasStartedOnce, setHasStartedOnce] = useState(false);
   const [hasAwardedXP, setHasAwardedXP] = useState(false);
-  const [accumulatedXP, setAccumulatedXP] = useState(0); // Track XP earned during session
+  const [accumulatedXP, setAccumulatedXP] = useState(0);
   const [showExitConfirm, setShowExitConfirm] = useState(false);
   const [showRestartConfirm, setShowRestartConfirm] = useState(false);
   const [levelUpLevel, setLevelUpLevel] = useState<number | null>(null);
+  const [sessionResult, setSessionResult] = useState<SessionXPBreakdown | null>(null);
+  
+  // Badge system
+  const { earnedBadgeIds, awardBadges } = useBadges();
   
   // Calculate round count from grind phases
   const roundCount = useMemo(() => {
@@ -392,8 +399,6 @@ const WorkoutSession = () => {
     const activityType = getActivityTypeFromSegment(segment);
     let xpPerSecond = ACTIVITY_XP_RATES[activityType];
     
-    // Sparring removed from v1.0 activity types - use active fallback
-    
     if (activityType === 'combo' && segment.combo && segment.combo.length > 0) {
       const totalComboXP = calculateComboXP(segment.combo, segment.duration);
       xpPerSecond = totalComboXP / segment.duration;
@@ -407,6 +412,77 @@ const WorkoutSession = () => {
     return xpPerSecond;
   }, [profile?.prestige, isBoxingSegment]);
 
+  // Compute session result when workout completes
+  useEffect(() => {
+    if (!isComplete || sessionResult || !profile) return;
+    
+    const streakMult = getStreakMultiplier(profile.current_streak || 0);
+    const effectiveBase = Math.round(accumulatedXP);
+    const rawBase = streakMult > 1 ? Math.round(effectiveBase / streakMult) : effectiveBase;
+    const streakBonus = effectiveBase - rawBase;
+    
+    // Compute streak for badge checking
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const todayStr = today.toISOString().split('T')[0];
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+    const yesterdayStr = yesterday.toISOString().split('T')[0];
+    const lastDate = profile.last_workout_date;
+    let newStreak: number;
+    let streakBroken = false;
+    if (lastDate === todayStr) {
+      newStreak = profile.current_streak || 1;
+    } else if (lastDate === yesterdayStr) {
+      newStreak = (profile.current_streak || 0) + 1;
+    } else {
+      newStreak = 1;
+      streakBroken = (profile.current_streak || 0) > 1;
+    }
+    
+    const tier = (profile.prestige || 'beginner') as Prestige;
+    const tierStats = TIER_COMBO_STATS[tier];
+    
+    const updatedStats: BadgeStats = {
+      consecutiveDays: newStreak,
+      totalCombos: (profile.combos_landed || 0) + PER_SESSION_ESTIMATES.combosLanded,
+      complexCombos: (profile.complex_combos || 0) + tierStats.complex,
+      defenseCombos: (profile.defense_combos || 0) + tierStats.defense,
+      counterCombos: (profile.counter_combos || 0) + tierStats.counter,
+      totalSessions: (profile.workouts_completed || 0) + 1,
+      totalHours: ((profile.total_training_seconds || 0) + totalElapsed) / 3600,
+      singleSessionMinutes: totalElapsed / 60,
+      totalPushups: (profile.total_pushups || 0) + PER_SESSION_ESTIMATES.pushups,
+      totalBurpees: (profile.total_burpees || 0) + PER_SESSION_ESTIMATES.burpees,
+      totalCurlups: (profile.total_curlups || 0) + PER_SESSION_ESTIMATES.curlups,
+      totalJogRunMinutes: (profile.total_jog_run_minutes || 0) + PER_SESSION_ESTIMATES.jogRunMinutes,
+    };
+    
+    const newBadges = checkBadges(updatedStats, earnedBadgeIds);
+    const badgeXP = sumBadgeXP(newBadges);
+    const sessionTotal = effectiveBase + badgeXP;
+    const totalXPAfter = (profile.total_xp || 0) + sessionTotal;
+    const levelBefore = profile.current_level || 1;
+    const levelAfter = getLevelFromXP(tier, totalXPAfter);
+    
+    setSessionResult({
+      baseXP: rawBase,
+      streakMultiplier: streakMult,
+      streakBonus,
+      effectiveBase,
+      badgeXP,
+      sessionTotal,
+      newBadges,
+      levelBefore,
+      levelAfter,
+      streakBefore: profile.current_streak || 0,
+      streakAfter: newStreak,
+      streakBroken,
+      didLevelUp: levelAfter > levelBefore,
+      prestige: tier,
+      totalXPAfter,
+    });
+  }, [isComplete, sessionResult, profile, accumulatedXP, totalElapsed, earnedBadgeIds]);
 
   // Background-safe timer using wall-clock deltas
   useEffect(() => {
@@ -695,17 +771,22 @@ const WorkoutSession = () => {
     );
   }
 
-  const handleLog = () => {
-    const xpEarned = Math.round(accumulatedXP);
+  const handleLog = async () => {
+    if (!sessionResult) return;
     
-    // Persist XP to database ONLY when user logs the workout
-    if (xpEarned > 0) {
+    const tier = (profile?.prestige || 'beginner') as Prestige;
+    const tierStats = TIER_COMBO_STATS[tier];
+    
+    // Award badges
+    if (sessionResult.newBadges.length > 0) {
       try {
-        addLocalXP(xpEarned, true);
-        addProfileXP.mutate(xpEarned);
-      } catch (error) {
-        console.error('Failed to award XP:', error);
-      }
+        await awardBadges.mutateAsync(sessionResult.newBadges);
+      } catch (e) { console.error('Badge award failed:', e); }
+    }
+    
+    // Update local XP store for immediate UI feedback
+    if (sessionResult.sessionTotal > 0) {
+      try { addLocalXP(sessionResult.sessionTotal, true); } catch {}
     }
     
     addHistoryEntry.mutate({
@@ -713,7 +794,7 @@ const WorkoutSession = () => {
       workout_name: workout?.name || 'Workout',
       completed_at: new Date().toISOString(),
       duration: totalElapsed,
-      xp_earned: xpEarned,
+      xp_earned: sessionResult.sessionTotal,
       difficulty: difficultyRating || null,
       notes: notes || null,
       is_manual_entry: false,
@@ -721,16 +802,26 @@ const WorkoutSession = () => {
     }, {
       onSuccess: async () => {
         setLogged(true);
-        // Auto-post workout completion to feed
         postWorkoutComplete.mutate({
           workoutName: workout?.name || 'Workout',
-          xpEarned: xpEarned,
+          xpEarned: sessionResult.sessionTotal,
           duration: totalElapsed,
         });
         if (user?.id && profile) {
-          const stats = await computePostLogStats(user.id, profile);
-          if (stats) {
-            updateProfile.mutate(stats);
+          const postLogStats = await computePostLogStats(user.id, profile);
+          if (postLogStats) {
+            updateProfile.mutate({
+              ...postLogStats,
+              total_xp: (profile.total_xp || 0) + sessionResult.sessionTotal,
+              combos_landed: (profile.combos_landed || 0) + PER_SESSION_ESTIMATES.combosLanded,
+              total_pushups: (profile.total_pushups || 0) + PER_SESSION_ESTIMATES.pushups,
+              total_burpees: (profile.total_burpees || 0) + PER_SESSION_ESTIMATES.burpees,
+              total_curlups: (profile.total_curlups || 0) + PER_SESSION_ESTIMATES.curlups,
+              total_jog_run_minutes: (profile.total_jog_run_minutes || 0) + PER_SESSION_ESTIMATES.jogRunMinutes,
+              complex_combos: (profile.complex_combos || 0) + tierStats.complex,
+              defense_combos: (profile.defense_combos || 0) + tierStats.defense,
+              counter_combos: (profile.counter_combos || 0) + tierStats.counter,
+            } as any);
           }
         }
       },
@@ -740,117 +831,35 @@ const WorkoutSession = () => {
 
   // Workout complete screen
   if (isComplete) {
-    const xpEarned = Math.round(accumulatedXP);
+    if (!sessionResult) {
+      return (
+        <AppLayout hideNav>
+          <div className="min-h-screen flex items-center justify-center">
+            <p className="text-muted-foreground">Calculating results...</p>
+          </div>
+        </AppLayout>
+      );
+    }
     
     return (
       <AppLayout hideNav>
-        <div className="min-h-screen flex flex-col items-center justify-center px-4 bg-background">
-          <div className="text-6xl mb-6">🏆</div>
-          <h1 className="text-3xl font-black text-foreground mb-2">WORKOUT COMPLETE!</h1>
-          <p className="text-muted-foreground mb-6">{workout.name}</p>
-          
-          <div className="grid grid-cols-2 gap-4 mb-6 w-full max-w-xs">
-            <div className="card-workout text-center">
-              <p className="text-2xl font-bold text-volt">{formatTimeCompact(totalElapsed)}</p>
-              <p className="text-sm text-muted-foreground">Duration</p>
-            </div>
-            <div className="card-workout text-center">
-              <p className="text-2xl font-bold text-volt">+{xpEarned}</p>
-              <p className="text-sm text-muted-foreground">XP Earned</p>
-            </div>
-          </div>
-
-          {/* Workout Log */}
-          {!logged ? (
-            <div className="w-full max-w-xs space-y-4 mb-6">
-              {/* Basic/Advanced Toggle */}
-              {roundCount > 0 && (
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => setFeedbackMode('basic')}
-                    className={cn(
-                      'flex-1 py-2 rounded-lg text-sm font-medium transition-colors',
-                      feedbackMode === 'basic'
-                        ? 'bg-volt text-primary-foreground'
-                        : 'bg-surface-1 text-muted-foreground'
-                    )}
-                  >
-                    Basic
-                  </button>
-                  <button
-                    onClick={() => setFeedbackMode('advanced')}
-                    className={cn(
-                      'flex-1 py-2 rounded-lg text-sm font-medium transition-colors',
-                      feedbackMode === 'advanced'
-                        ? 'bg-volt text-primary-foreground'
-                        : 'bg-surface-1 text-muted-foreground'
-                    )}
-                  >
-                    Advanced
-                  </button>
-                </div>
-              )}
-              
-              <div>
-                <label className="text-sm text-muted-foreground mb-2 block">How did it go?</label>
-                <textarea
-                  value={notes}
-                  onChange={(e) => setNotes(e.target.value)}
-                  placeholder="Add notes about your workout..."
-                  className="w-full h-24 p-3 rounded-xl bg-surface-1 border border-surface-3 text-foreground placeholder:text-muted-foreground text-sm resize-none focus:outline-none focus:ring-2 focus:ring-volt"
-                />
-              </div>
-              
-              {/* Rating */}
-              <div>
-                <label className="text-sm text-muted-foreground mb-2 block">Difficulty</label>
-                <div className="flex gap-2">
-                  {[
-                    { value: 'too_easy', label: 'Too Easy' },
-                    { value: 'just_right', label: 'Just Right' },
-                    { value: 'too_hard', label: 'Too Hard' },
-                  ].map((opt) => (
-                    <button
-                      key={opt.value}
-                      onClick={() => setDifficultyRating(opt.value as typeof difficultyRating)}
-                      className={cn(
-                        'flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-colors',
-                        difficultyRating === opt.value
-                          ? 'bg-volt text-primary-foreground'
-                          : 'bg-surface-1 border border-surface-3 text-muted-foreground hover:bg-surface-2'
-                      )}
-                    >
-                      {opt.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-              
-              {/* Round-by-Round Feedback (Advanced Mode Only) */}
-              {feedbackMode === 'advanced' && roundCount > 0 && (
-                <RoundFeedbackPanel
-                  roundCount={roundCount}
-                  roundFeedback={roundFeedback}
-                  onRoundRating={handleRoundRating}
-                />
-              )}
-              
-              <Button onClick={handleLog} className="btn-primary-glow w-full">
-                Log Workout
-              </Button>
-            </div>
-          ) : (
-            <div className="w-full max-w-xs mb-6">
-              <div className="card-workout text-center">
-                <p className="text-volt font-semibold">Workout Logged!</p>
-              </div>
-            </div>
-          )}
-
-          <Button onClick={() => navigate('/')} variant="outline" className="w-full max-w-xs bg-surface-1 border-surface-3">
-            Back to Home
-          </Button>
-        </div>
+        <PostWorkoutSummary
+          result={sessionResult}
+          workoutName={workout.name}
+          totalElapsed={totalElapsed}
+          notes={notes}
+          setNotes={setNotes}
+          difficultyRating={difficultyRating}
+          setDifficultyRating={setDifficultyRating}
+          feedbackMode={feedbackMode}
+          setFeedbackMode={setFeedbackMode}
+          roundFeedback={roundFeedback}
+          roundCount={roundCount}
+          onRoundRating={handleRoundRating}
+          onLog={handleLog}
+          logged={logged}
+          onNavigateHome={() => navigate('/')}
+        />
       </AppLayout>
     );
   }
@@ -939,12 +948,13 @@ const WorkoutSession = () => {
             </button>
           </div>
           
-          {/* Elapsed time + dev button */}
-          <div className="flex items-center gap-2">
-            <span className="timer-display text-2xl font-black text-volt/60">
-              {formatTimeCompact(totalElapsed)}
-            </span>
-            {isAdmin && (
+          {/* Elapsed time + streak + dev button */}
+          <div className="flex flex-col items-end gap-1">
+            <div className="flex items-center gap-2">
+              <span className="timer-display text-2xl font-black text-volt/60">
+                {formatTimeCompact(totalElapsed)}
+              </span>
+              {isAdmin && (
               <button
                 onClick={() => {
                   playLevelUpSound();
@@ -955,6 +965,16 @@ const WorkoutSession = () => {
               >
                 <Zap className="w-3 h-3" />
               </button>
+            )}
+            </div>
+            {/* Streak indicator */}
+            {(profile?.current_streak || 0) > 0 && (
+              <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-orange-500/10 border border-orange-500/20">
+                <Flame className="w-3 h-3 text-orange-400" />
+                <span className="text-[10px] font-bold text-orange-400">
+                  {profile?.current_streak}d — {streakMultiplier}x
+                </span>
+              </div>
             )}
           </div>
           
