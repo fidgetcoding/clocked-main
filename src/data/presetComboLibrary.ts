@@ -34,10 +34,17 @@ const p = (s: string): string[] =>
 
 const pm = (arr: string[]): string[][] => arr.map(p);
 
+// Universal category that appears first in every tier
+const FREESTYLE_CATEGORY: PresetCategory = {
+  name: 'Freestyle',
+  combos: [['FREESTYLE']],
+};
+
 // ─── ROOKIE (75 combos) ──────────────────────────────
 const ROOKIE: TierPresets = {
   tier: 'rookie',
   categories: [
+    FREESTYLE_CATEGORY,
     {
       name: '2-Punch Combos',
       combos: pm([
@@ -71,6 +78,7 @@ const ROOKIE: TierPresets = {
 const BEGINNER: TierPresets = {
   tier: 'beginner',
   categories: [
+    FREESTYLE_CATEGORY,
     {
       name: '2-Punch Combos',
       combos: pm([
@@ -131,6 +139,7 @@ const BEGINNER: TierPresets = {
 const INTERMEDIATE: TierPresets = {
   tier: 'intermediate',
   categories: [
+    FREESTYLE_CATEGORY,
     {
       name: '2-Punch Warmup',
       combos: pm([
@@ -212,6 +221,7 @@ const INTERMEDIATE: TierPresets = {
 const ADVANCED: TierPresets = {
   tier: 'advanced',
   categories: [
+    FREESTYLE_CATEGORY,
     {
       name: 'Warmup / Foundation',
       combos: pm([
@@ -329,6 +339,7 @@ const ADVANCED: TierPresets = {
 const PRO: TierPresets = {
   tier: 'pro',
   categories: [
+    FREESTYLE_CATEGORY,
     {
       name: 'Warmup / All-Defense Foundation',
       combos: pm([
