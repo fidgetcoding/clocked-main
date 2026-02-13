@@ -71,7 +71,16 @@ const TIER_CURVES: Record<Prestige, TierCurve> = {
  * Uses power curve: cost = A × level^B, rounded to nearest integer.
  */
 export function getXPRequiredForLevel(prestige: Prestige, level: number): number {
-  const { A, B } = TIER_CURVES[prestige];
+  const { A, B, totalL100 } = TIER_CURVES[prestige];
+  // L100 is adjusted so cumulative (rounded) L1-L100 hits exact totalL100 target
+  if (level === 100) {
+    let sum = 0;
+    for (let l = 1; l <= 99; l++) {
+      sum += Math.round(A * Math.pow(l, B));
+    }
+    // Use the raw remainder — the reference rounds to 1 decimal, we round to integer
+    return totalL100 - sum;
+  }
   return Math.round(A * Math.pow(level, B));
 }
 
