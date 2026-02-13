@@ -907,8 +907,13 @@ const Build = () => {
                             {isLibraryExpanded && (
                               <>
                                 {libraryEntries.length === 0 ? (
-                                  <p className="text-xs text-muted-foreground text-center py-2">
-                                    {emptyText}
+                                  <p className={cn(
+                                    "text-xs text-center py-2",
+                                    phase.name?.toLowerCase().includes('championship') 
+                                      ? "text-volt/70 font-medium" 
+                                      : "text-muted-foreground"
+                                  )}>
+                                    {phase.name?.toLowerCase().includes('championship') ? 'Freestyle' : emptyText}
                                   </p>
                                 ) : (
                                   <DndContext
