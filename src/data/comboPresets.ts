@@ -59,6 +59,6 @@ export const MOVEMENT_KEYS_BY_DIFFICULTY: Record<ComboDifficulty, string[]> = {
   rookie: [] as string[],
   beginner: [] as string[],
   intermediate: [] as string[],
-  advanced: [] as string[],
+  advanced: ['CIRCLE L', 'CIRCLE R'],
   pro: ['CIRCLE L', 'CIRCLE R'],
 };
