@@ -1192,10 +1192,10 @@ const WorkoutSession = () => {
               </>
 
           {/* Segment Name — what you're doing right now */}
-          <div className="flex items-center gap-3 mb-4">
-            <div className={cn("h-px w-10", isChampionship ? "bg-championship-gold/40" : isCooldown ? "bg-cooldown-blue/40" : "bg-muted-foreground/30")} />
+          <div className="flex items-center gap-3 mb-4 whitespace-nowrap">
+            <div className={cn("h-px flex-1 min-w-4", isChampionship ? "bg-championship-gold/40" : isCooldown ? "bg-cooldown-blue/40" : "bg-muted-foreground/30")} />
             <h2 className={cn(
-              "text-2xl font-black uppercase tracking-wider text-center",
+              "text-xl font-black uppercase tracking-wider text-center shrink-0",
               isChampionship ? "text-championship-gold" : isCooldown ? "text-cooldown-blue" : "text-foreground"
             )}>
               {isPreparation ? 'PREPARATION' : (
@@ -1205,7 +1205,7 @@ const WorkoutSession = () => {
                 </>
               )}
             </h2>
-            <div className={cn("h-px w-10", isChampionship ? "bg-championship-gold/40" : isCooldown ? "bg-cooldown-blue/40" : "bg-muted-foreground/30")} />
+            <div className={cn("h-px flex-1 min-w-4", isChampionship ? "bg-championship-gold/40" : isCooldown ? "bg-cooldown-blue/40" : "bg-muted-foreground/30")} />
           </div>
 
           {/* DEBUG: XP/sec overlay — TEMPORARY */}
