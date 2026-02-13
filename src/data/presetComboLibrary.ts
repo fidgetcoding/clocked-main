@@ -501,6 +501,46 @@ const PRO: TierPresets = {
         '7-8-9-10-circle left-3-2-pullback',
       ]),
     },
+    {
+      name: '2-Punch Body Uppercuts',
+      combos: pm([
+        '1-9','2-10','9-2','10-1','9-3','10-3','5-10','9-6',
+      ]),
+    },
+    {
+      name: '3-Punch Body Uppercuts',
+      combos: pm([
+        '1-2-9','1-2-10','1-9-2','2-10-3','9-2-3','10-1-2','9-10-3',
+        '10-9-2','1-9-3','2-10-2','7-9-3','8-10-2','9-3-2','10-2-3','9-10-2',
+      ]),
+    },
+    {
+      name: '4-Punch Body Uppercuts',
+      combos: pm([
+        '1-2-9-3','1-2-10-3','1-9-2-3','2-10-3-2','9-10-1-2','10-9-2-3',
+        '1-2-9-10','7-8-9-10','9-3-2-1','10-2-3-2','1-9-10-3','2-10-9-2',
+        '9-2-10-3','7-9-3-2','8-10-2-3',
+      ]),
+    },
+    {
+      name: 'Body Uppercut + Defense',
+      combos: pm([
+        '1-2-9-slip left','2-10-slip right-3','9-slip left-2-3',
+        '10-roll L-3-2','1-9-roll R-3-2','2-10-pullback-1-2',
+        '9-10-slip left-3-2','1-2-9-circle left','2-10-circle right-3',
+        '9-roll L-3-circle right','10-slip right-2-circle left',
+        '1-9-10-roll L-3-2',
+      ]),
+    },
+    {
+      name: '5+ Punch Body Uppercut Combos',
+      combos: pm([
+        '1-2-9-10-3-2','7-8-9-10-1-2','1-9-2-10-3-2',
+        '9-10-slip left-3-2-1','1-2-7-9-3-roll L','2-8-10-slip right-3-2',
+        '9-10-7-8-circle left-3-2','1-2-9-slip left-10-roll R-3',
+        '7-9-8-10-slip left-3-2','1-2-9-10-circle right-3-pullback',
+      ]),
+    },
   ],
 };
 
