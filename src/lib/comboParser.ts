@@ -142,7 +142,7 @@ export function parseComboString(input: string): string[] {
     
     // Check for "double" or "triple" modifier
     if (token === 'double' && i + 1 < tokens.length) {
-      const nextMove = resolveMoveToken(tokens[i + 1], tokens[i + 2]);
+      const nextMove = resolveMoveToken(tokens[i + 1], tokens[i + 2], tokens[i + 3]);
       if (nextMove.move) {
         result.push(nextMove.move, nextMove.move);
         i += 1 + nextMove.consumed;
@@ -151,7 +151,7 @@ export function parseComboString(input: string): string[] {
     }
     
     if (token === 'triple' && i + 1 < tokens.length) {
-      const nextMove = resolveMoveToken(tokens[i + 1], tokens[i + 2]);
+      const nextMove = resolveMoveToken(tokens[i + 1], tokens[i + 2], tokens[i + 3]);
       if (nextMove.move) {
         result.push(nextMove.move, nextMove.move, nextMove.move);
         i += 1 + nextMove.consumed;
@@ -159,8 +159,8 @@ export function parseComboString(input: string): string[] {
       }
     }
     
-    // Try to match multi-word moves first
-    const resolved = resolveMoveToken(token, tokens[i + 1]);
+    // Try to match multi-word moves first (with up to 3-token lookahead for compounds)
+    const resolved = resolveMoveToken(token, tokens[i + 1], tokens[i + 2]);
     if (resolved.move) {
       result.push(resolved.move);
       i += resolved.consumed;
@@ -184,20 +184,54 @@ function tokenizeCombo(input: string): string[] {
     .filter(t => t.length > 0);
 }
 
+// Compound punch terms — checked with longest-match-first strategy
+// These must be matched as a unit before single-word fallback
+const COMPOUND_PUNCHES: Array<{ words: string[]; move: string }> = [
+  { words: ['rear', 'body', 'hook'], move: '8' },
+  { words: ['rear', 'body'], move: '8' },
+  { words: ['right', 'body'], move: '8' },
+  { words: ['body', 'hook'], move: '7' },
+  { words: ['body', 'shot'], move: '7' },
+  { words: ['lead', 'body'], move: '7' },
+  { words: ['lead', 'hook'], move: '3' },
+  { words: ['left', 'hook'], move: '3' },
+  { words: ['rear', 'hook'], move: '4' },
+  { words: ['right', 'hook'], move: '4' },
+  { words: ['lead', 'uppercut'], move: '5' },
+  { words: ['left', 'uppercut'], move: '5' },
+  { words: ['rear', 'uppercut'], move: '6' },
+  { words: ['right', 'uppercut'], move: '6' },
+  { words: ['body', 'uppercut'], move: '5' },
+];
+
 /**
- * Resolve a token (or token pair) to a move
+ * Resolve a token (and subsequent tokens) to a move
  * Returns the move and how many tokens were consumed
+ * Uses longest-match-first for compound terms like "body hook" → 7
  */
 function resolveMoveToken(
   token: string, 
-  nextToken?: string
+  nextToken?: string,
+  thirdToken?: string
 ): { move: string | null; consumed: number } {
-  // Try exact match first
+  // Try compound punch terms first (longest match)
+  for (const compound of COMPOUND_PUNCHES) {
+    if (compound.words.length === 3 && thirdToken &&
+        compound.words[0] === token && compound.words[1] === nextToken && compound.words[2] === thirdToken) {
+      return { move: compound.move, consumed: 3 };
+    }
+    if (compound.words.length === 2 && nextToken &&
+        compound.words[0] === token && compound.words[1] === nextToken) {
+      return { move: compound.move, consumed: 2 };
+    }
+  }
+  
+  // Try exact match in ALL_MOVES
   if (ALL_MOVES[token]) {
     return { move: ALL_MOVES[token], consumed: 1 };
   }
   
-  // Try two-word combo (e.g., "slip left", "step in")
+  // Try two-word combo for defense/movement (e.g., "slip left", "step in")
   if (nextToken) {
     const twoWord = `${token} ${nextToken}`;
     if (ALL_MOVES[twoWord]) {
