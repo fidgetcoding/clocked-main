@@ -353,29 +353,11 @@ const WorkoutSession = () => {
   const nextSegment = flatSegments[currentSegmentIndex + 1];
   const totalSegments = flatSegments.length;
   const progressPercent = totalSegments > 0 ? (currentSegmentIndex / totalSegments) * 100 : 0;
-  // Championship visual: only for segments actually in championship rounds (11+)
-  // For rest segments between championship boxing segments, keep the gold styling
-  const isChampionshipSegment = (() => {
-    if (isPreparation || !currentSegment) return false;
-    const round = currentSegment.cumulativeRound;
-    if (!round || round <= 10) return false;
-    // Boxing segments in round 11+ → always championship
-    const st = currentSegment.segmentType;
-    if (st === 'shadowboxing' || st === 'combo' || st === 'doubleend') return true;
-    // Rest segments in round 11+ → championship if adjacent boxing segments are championship
-    if (currentSegment.type === 'rest') {
-      const prevSeg = currentSegmentIndex > 0 ? flatSegments[currentSegmentIndex - 1] : null;
-      const nextSeg = flatSegments[currentSegmentIndex + 1];
-      const prevIsChampBoxing = prevSeg?.cumulativeRound && prevSeg.cumulativeRound > 10 && 
-        ['shadowboxing', 'combo', 'doubleend'].includes(prevSeg.segmentType || '');
-      const nextIsChampBoxing = nextSeg?.cumulativeRound && nextSeg.cumulativeRound > 10 && 
-        ['shadowboxing', 'combo', 'doubleend'].includes(nextSeg.segmentType || '');
-      return !!(prevIsChampBoxing || nextIsChampBoxing);
-    }
-    // Non-boxing active segments (burpees, exercises) in round 11+ → NOT championship
-    return false;
-  })();
-  const isChampionship = isChampionshipSegment;
+  // Championship visual: any segment in round 11+ gets gold styling
+  // For rest segments, check adjacent segments to keep gold between championship segments
+  const championshipRound = currentSegment?.cumulativeRound 
+    || (currentSegmentIndex > 0 ? flatSegments[currentSegmentIndex - 1]?.cumulativeRound : undefined);
+  const isChampionship = !isPreparation && !!championshipRound && championshipRound > 10;
   const isCooldown = !isPreparation && currentSegment?.section === 'cooldown';
   
   // Accent color helper — championship gold > cooldown blue > volt green
