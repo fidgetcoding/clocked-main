@@ -172,7 +172,7 @@ const Onboarding = () => {
       // Only set primaryBag when BOTH bags are selected — single bag needs no primary distinction
       if (newVal) {
         if (id === 'heavyBag' && updated.doubleEndBag) setPrimaryBag(primaryBag === 'none' ? 'heavy' : primaryBag);
-        else if (id === 'doubleEndBag' && updated.heavyBag) setPrimaryBag(primaryBag === 'none' ? 'heavy' : primaryBag);
+        else if (id === 'doubleEndBag' && updated.heavyBag) setPrimaryBag(primaryBag === 'none' ? 'double_end' : primaryBag);
         // Single bag selected — no primary needed
       }
       // If only one bag remains, reset primaryBag to none
