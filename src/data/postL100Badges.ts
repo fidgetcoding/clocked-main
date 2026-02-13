@@ -89,7 +89,7 @@ export interface PostL100Badge {
 export const POST_L100_CATEGORY_COLORS: Record<PostL100Category, { bg: string; text: string; glow: string }> = {
   mastery:            { bg: 'bg-violet-500/20',  text: 'text-violet-400',  glow: 'shadow-violet-500/30' },
   overflow:           { bg: 'bg-cyan-500/20',    text: 'text-cyan-400',    glow: 'shadow-cyan-500/30' },
-  legacy:             { bg: 'bg-amber-500/20',   text: 'text-amber-400',   glow: 'shadow-amber-500/30' },
+  legacy:             { bg: 'bg-slate-300/20',   text: 'text-slate-200',   glow: 'shadow-slate-300/30' },
   ultra_combo:        { bg: 'bg-blue-600/20',    text: 'text-blue-300',    glow: 'shadow-blue-600/30' },
   ultra_conditioning: { bg: 'bg-rose-500/20',    text: 'text-rose-400',    glow: 'shadow-rose-500/30' },
   ultra_time:         { bg: 'bg-indigo-500/20',  text: 'text-indigo-400',  glow: 'shadow-indigo-500/30' },
