@@ -672,42 +672,48 @@ const Build = () => {
               return (
               <div key={phase.id} className="bg-surface-1 rounded-xl border border-surface-3 overflow-hidden">
                 {/* Phase Header */}
-                <div className="flex items-center gap-3 p-3 border-b border-surface-3">
-                  <GripVertical className="w-4 h-4 text-muted-foreground" />
-                  <Input
-                    value={phase.name}
-                    onChange={(e) => updatePhase(phase.id, { name: e.target.value })}
-                    className="flex-1 bg-transparent border-none font-semibold text-foreground p-0 h-auto focus-visible:ring-0"
-                  />
-                  {isSuperset && (
-                    <span className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-purple-500/20 text-purple-400">
-                      <Layers className="w-3 h-3" />
-                      Superset
-                    </span>
-                  )}
-                  <div className="flex items-center gap-1">
+                <div className="p-3 border-b border-surface-3 space-y-1">
+                  {/* Row 1: drag handle + name + trash */}
+                  <div className="flex items-center gap-3">
+                    <GripVertical className="w-4 h-4 text-muted-foreground" />
+                    <Input
+                      value={phase.name}
+                      onChange={(e) => updatePhase(phase.id, { name: e.target.value })}
+                      className="flex-1 bg-transparent border-none font-semibold text-foreground p-0 h-auto focus-visible:ring-0"
+                    />
                     <button
-                      onClick={() => updatePhase(phase.id, { repeats: Math.max(1, phase.repeats - 1) })}
-                      className="w-6 h-6 rounded bg-surface-2 flex items-center justify-center text-muted-foreground"
+                      onClick={() => removePhase(phase.id)}
+                      className="text-muted-foreground hover:text-destructive"
                     >
-                      <ChevronDown className="w-4 h-4" />
-                    </button>
-                    <span className="w-8 text-center text-sm font-medium text-foreground">
-                      ×{phase.repeats}
-                    </span>
-                    <button
-                      onClick={() => updatePhase(phase.id, { repeats: phase.repeats + 1 })}
-                      className="w-6 h-6 rounded bg-surface-2 flex items-center justify-center text-muted-foreground"
-                    >
-                      <ChevronUp className="w-4 h-4" />
+                      <Trash2 className="w-4 h-4" />
                     </button>
                   </div>
-                  <button
-                    onClick={() => removePhase(phase.id)}
-                    className="text-muted-foreground hover:text-destructive"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
+                  {/* Row 2: superset badge (left) + repeat controls (right) */}
+                  <div className="flex items-center justify-between pl-7">
+                    {isSuperset ? (
+                      <span className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-purple-500/20 text-purple-400">
+                        <Layers className="w-3 h-3" />
+                        Superset
+                      </span>
+                    ) : <span />}
+                    <div className="flex items-center gap-1">
+                      <button
+                        onClick={() => updatePhase(phase.id, { repeats: Math.max(1, phase.repeats - 1) })}
+                        className="w-6 h-6 rounded bg-surface-2 flex items-center justify-center text-muted-foreground"
+                      >
+                        <ChevronDown className="w-4 h-4" />
+                      </button>
+                      <span className="w-8 text-center text-sm font-medium text-foreground">
+                        ×{phase.repeats}
+                      </span>
+                      <button
+                        onClick={() => updatePhase(phase.id, { repeats: phase.repeats + 1 })}
+                        className="w-6 h-6 rounded bg-surface-2 flex items-center justify-center text-muted-foreground"
+                      >
+                        <ChevronUp className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
                 </div>
 
                 {/* Combo/Drill/Exercise Order Toggle */}
