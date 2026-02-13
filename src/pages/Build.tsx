@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { ArrowLeft, Plus, Trash2, GripVertical, Pencil, Play, X, ChevronDown, ChevronUp, Sparkles, Share2, Shuffle, ListOrdered, Repeat, Layers } from 'lucide-react';
+import { ArrowLeft, Plus, Trash2, GripVertical, Pencil, Play, X, ChevronDown, ChevronUp, Sparkles, Share2, Shuffle, ListOrdered, Repeat, Layers, Search, Check } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
@@ -12,6 +12,7 @@ import { Workout, WorkoutPhase, WorkoutSegment, SegmentType } from '@/types';
 import { cn } from '@/lib/utils';
 import { 
   getAllPresets, 
+  getPresetCategories,
   PUNCH_KEYS_BY_DIFFICULTY, 
   DEFENSE_KEYS_BY_DIFFICULTY, 
   MOVEMENT_KEYS_BY_DIFFICULTY,
@@ -535,6 +536,8 @@ const Build = () => {
   const defenseKeys = DEFENSE_KEYS_BY_DIFFICULTY[difficulty];
   const movementKeys = MOVEMENT_KEYS_BY_DIFFICULTY[difficulty];
   const presets = getAllPresets(difficulty);
+  const presetCategories = getPresetCategories(difficulty);
+  const [presetSearch, setPresetSearch] = useState('');
 
   const getSegmentTypeInfo = (segType?: SegmentType) => {
     // Map legacy 'work' to 'exercise'
@@ -858,6 +861,7 @@ const Build = () => {
                                     setCurrentCombo([]);
                                     setEditingComboIndex(null);
                                     setComboMode('presets');
+                                    setPresetSearch('');
                                     setShowComboBuilder(true);
                                   }
                                   // Auto-expand when adding
@@ -1131,43 +1135,113 @@ const Build = () => {
                   </>
                 ) : (
                   <>
-                    <p className="text-xs text-muted-foreground uppercase tracking-wider mb-3">
-                      {difficulty.toUpperCase()} PRESETS
-                    </p>
-                    <div className="space-y-2">
-                      {presets.map((preset) => (
-                        <button
-                          key={preset.id}
-                          onClick={() => {
-                            addPresetCombo(preset);
-                            setShowComboBuilder(false);
-                          }}
-                          className="w-full flex items-center gap-3 bg-surface-1 rounded-lg p-3 border border-surface-3 hover:border-volt transition-colors text-left"
-                        >
-                          <div className="flex-1">
-                            <p className="font-medium text-foreground text-sm">{preset.name}</p>
-                            <div className="flex flex-wrap gap-1 mt-1">
-                              {preset.combo.map((move, idx) => (
-                                <span 
-                                  key={idx} 
-                                  className={cn(
-                                    'px-1.5 py-0.5 rounded text-[10px] font-medium',
-                                    move.includes('SLIP') || move.includes('ROLL') || move.includes('PULL') || move.includes('BLOCK')
-                                      ? 'bg-yellow-500/20 text-yellow-500'
-                                      : move.includes('CIRCLE') || move.includes('STEP')
-                                      ? 'bg-blue-500/20 text-blue-400'
-                                      : 'bg-volt/20 text-volt'
-                                  )}
-                                >
-                                  {move}
-                                </span>
-                              ))}
-                            </div>
-                          </div>
-                          <Plus className="w-5 h-5 text-volt" />
-                        </button>
-                      ))}
+                    {/* Search bar */}
+                    <div className="relative mb-3">
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                      <Input
+                        placeholder="Search combos (e.g. slip, 7, roll)..."
+                        value={presetSearch}
+                        onChange={(e) => setPresetSearch(e.target.value)}
+                        className="pl-9 bg-surface-2 border-surface-3 text-foreground text-sm h-9"
+                      />
                     </div>
+                    {/* Category sections */}
+                    {(() => {
+                      const existingCombos = editingPhaseId ? getPhaseCombos(editingPhaseId) : [];
+                      const isComboAdded = (combo: string[]) =>
+                        existingCombos.some(ec => ec.length === combo.length && ec.every((m, i) => m === combo[i]));
+                      const searchLower = presetSearch.toLowerCase();
+                      const filteredCategories = presetCategories.map(cat => ({
+                        ...cat,
+                        combos: searchLower
+                          ? cat.combos.filter(c => c.some(m => m.toLowerCase().includes(searchLower)))
+                          : cat.combos,
+                      })).filter(cat => cat.combos.length > 0);
+
+                      if (filteredCategories.length === 0) {
+                        return <p className="text-muted-foreground text-sm text-center py-8">No combos match &quot;{presetSearch}&quot;</p>;
+                      }
+
+                      return filteredCategories.map((cat, catIdx) => {
+                        const catKey = `preset-${difficulty}-${catIdx}`;
+                        const isExpanded = expandedLibraries.get(catKey);
+                        const defaultExpanded = presetSearch.length > 0 || cat.combos.length <= 5;
+                        const expanded = isExpanded !== undefined ? isExpanded : defaultExpanded;
+
+                        return (
+                          <div key={catKey} className="mb-3">
+                            <button
+                              onClick={() => {
+                                setExpandedLibraries(prev => {
+                                  const next = new Map(prev);
+                                  next.set(catKey, !expanded);
+                                  return next;
+                                });
+                              }}
+                              className="w-full flex items-center justify-between py-2 px-1"
+                            >
+                              <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                                {cat.name} ({cat.combos.length})
+                              </span>
+                              {expanded ? <ChevronUp className="w-4 h-4 text-muted-foreground" /> : <ChevronDown className="w-4 h-4 text-muted-foreground" />}
+                            </button>
+                            {expanded && (
+                              <div className="space-y-1.5">
+                                {cat.combos.map((combo, cIdx) => {
+                                  const added = isComboAdded(combo);
+                                  return (
+                                    <button
+                                      key={cIdx}
+                                      onClick={() => {
+                                        if (!added) {
+                                          addPresetCombo({ id: `${catKey}-${cIdx}`, name: combo.join('-'), combo, difficulty });
+                                        }
+                                      }}
+                                      disabled={added}
+                                      className={cn(
+                                        'w-full flex items-center gap-3 rounded-lg p-2.5 border transition-colors text-left',
+                                        added
+                                          ? 'bg-surface-1/50 border-surface-3/50 opacity-60'
+                                          : 'bg-surface-1 border-surface-3 hover:border-volt'
+                                      )}
+                                    >
+                                      <div className="flex-1">
+                                        <div className="flex flex-wrap gap-1">
+                                          {combo.map((move, idx) => {
+                                            const isDefense = move.includes('SLIP') || move.includes('ROLL') || move.includes('PULL');
+                                            const isMovement = move.includes('CIRCLE');
+                                            const isBody = ['7', '8', '9', '10'].includes(move);
+                                            return (
+                                              <span
+                                                key={idx}
+                                                className={cn(
+                                                  'px-1.5 py-0.5 rounded text-[10px] font-medium',
+                                                  isDefense ? 'bg-yellow-500/20 text-yellow-500'
+                                                    : isMovement ? 'bg-blue-500/20 text-blue-400'
+                                                    : isBody ? 'bg-orange-500/20 text-orange-400'
+                                                    : 'bg-volt/20 text-volt'
+                                                )}
+                                              >
+                                                {move}
+                                              </span>
+                                            );
+                                          })}
+                                        </div>
+                                      </div>
+                                      {added ? (
+                                        <Check className="w-4 h-4 text-muted-foreground" />
+                                      ) : (
+                                        <Plus className="w-4 h-4 text-volt" />
+                                      )}
+                                    </button>
+                                  );
+                                })}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      });
+                    })()}
                   </>
                 )}
               </div>
