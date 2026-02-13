@@ -1172,7 +1172,7 @@ const WorkoutSession = () => {
                         <div key={idx} className="flex items-center gap-1">
                           <span className={cn(
                             'text-2xl font-black',
-                            type === 'defense' ? 'text-yellow-500' : 
+                            type === 'defense' ? 'text-purple-400' : 
                             type === 'movement' ? 'text-blue-400' : 'text-volt'
                           )}>
                             {display}
@@ -1230,7 +1230,7 @@ const WorkoutSession = () => {
                         <div key={idx} className="flex items-center gap-1">
                           <span className={cn(
                             'text-2xl font-black',
-                            isDefense ? 'text-yellow-500' : 
+                            isDefense ? 'text-purple-400' : 
                             isMovement ? 'text-blue-400' : 'text-volt'
                           )}>
                             {displayMove}
@@ -1286,7 +1286,7 @@ const WorkoutSession = () => {
                     <div key={idx} className="flex items-center gap-1">
                       <span className={cn(
                         'text-2xl font-black',
-                        isDefense ? 'text-yellow-500' : 
+                        isDefense ? 'text-purple-400' : 
                         isMovement ? 'text-blue-400' : 'text-volt'
                       )}>
                         {displayMove}
