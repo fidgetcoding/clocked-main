@@ -1045,8 +1045,14 @@ export function parseWorkoutInput(
     baseDifficulty = getAdjustedDifficulty(baseDifficulty, historyInsights);
   }
   
-  // Split into blocks
-  const blockTexts = splitIntoBlocks(prompt);
+  // Split into blocks, filtering out megaset instruction blocks
+  const blockTexts = splitIntoBlocks(prompt).filter(b => {
+    const lower = b.toLowerCase().trim();
+    // Filter out blocks that are purely megaset instructions (e.g., "Repeat everything twice.")
+    return !/^(?:repeat|do)\s+(?:everything|it\s+all|the\s+whole\s+thing|all)\s+(?:twice|thrice|\d+\s*times?|two\s+times|three\s+times|four\s+times|five\s+times)\.?\s*$/i.test(lower)
+      && !/^(?:twice|thrice|\d+\s*times?)\s+through\.?\s*$/i.test(lower)
+      && !/^run\s+it\s+back\.?\s*$/i.test(lower);
+  });
   const isMultiBlock = blockTexts.length > 1;
   
   // Parse each block
@@ -1272,11 +1278,24 @@ function buildLegacyPhases(
 // =====================================================
 
 function parseMegasetRepeats(prompt: string): number {
+  // Word-to-number patterns
+  if (/(?:repeat|do)\s+(?:everything|it\s+all|the\s+whole\s+thing|all)\s+twice/i.test(prompt)) return 2;
+  if (/(?:repeat|do)\s+(?:everything|it\s+all|the\s+whole\s+thing|all)\s+(?:three\s+times|thrice)/i.test(prompt)) return 3;
+  if (/(?:repeat|do)\s+(?:everything|it\s+all|the\s+whole\s+thing|all)\s+four\s+times/i.test(prompt)) return 4;
+  if (/(?:repeat|do)\s+(?:everything|it\s+all|the\s+whole\s+thing|all)\s+five\s+times/i.test(prompt)) return 5;
+  // "repeat everything X times"
+  const repeatNumMatch = prompt.match(/(?:repeat|do)\s+(?:everything|it\s+all|the\s+whole\s+thing|all)\s+(\d+)\s*times/i);
+  if (repeatNumMatch) return parseInt(repeatNumMatch[1]);
+  // Original patterns
   if (/(?:whole\s*thing|everything|all)\s*(?:twice|2\s*times|two\s*times)/i.test(prompt)) return 2;
   if (/(?:whole\s*thing|everything|all)\s*(?:three\s*times|3\s*times)/i.test(prompt)) return 3;
   const megasetMatch = prompt.match(/(\d+)\s*megaset/i);
   if (megasetMatch) return parseInt(megasetMatch[1]);
   if (/run\s*it\s*back/i.test(prompt)) return 2;
+  // "twice through" / "X times through"
+  if (/twice\s+through/i.test(prompt)) return 2;
+  const timesThrough = prompt.match(/(\d+)\s*times?\s+through/i);
+  if (timesThrough) return parseInt(timesThrough[1]);
   // "do this circuit/routine N times" or "N laps/cycles of the whole thing"
   const circuitMatch = prompt.match(/(?:do\s+(?:this|the)\s+(?:circuit|routine|session|program|class)\s+)(\d+)\s*(?:times|laps?|cycles?)/i);
   if (circuitMatch) return parseInt(circuitMatch[1]);
