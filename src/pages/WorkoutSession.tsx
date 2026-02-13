@@ -352,6 +352,7 @@ const WorkoutSession = () => {
   const nextSegment = flatSegments[currentSegmentIndex + 1];
   const totalSegments = flatSegments.length;
   const progressPercent = totalSegments > 0 ? (currentSegmentIndex / totalSegments) * 100 : 0;
+  const isChampionship = !isPreparation && currentSegment?.cumulativeRound && currentSegment.cumulativeRound > 10;
   
   // Get streak multiplier from profile
   const streakMultiplier = getStreakMultiplier(profile?.current_streak || 0);
@@ -1043,9 +1044,6 @@ const WorkoutSession = () => {
 
         {/* Main Timer */}
         <div className="flex-1 flex flex-col items-center justify-center px-4">
-          {(() => {
-            const isChampionship = !isPreparation && currentSegment?.cumulativeRound && currentSegment.cumulativeRound > 10;
-            return (
               <>
                 {/* Championship Rounds Banner with Double XP */}
                 {isChampionship && (
@@ -1066,7 +1064,7 @@ const WorkoutSession = () => {
                        'COOL DOWN'}
                     </p>
                     {(workout?.megasetRepeats || 1) > 1 && currentSegment.megasetIndex !== undefined && (
-                      <span className="inline-flex items-center gap-0.5 text-xs font-black uppercase tracking-wider text-volt/60">
+                      <span className={cn("inline-flex items-center gap-0.5 text-xs font-black uppercase tracking-wider", isChampionship ? "text-championship-gold/60" : "text-volt/60")}>
                         <span>{currentSegment.megasetIndex + 1}</span>
                         <span>/</span>
                         <span>{workout?.megasetRepeats}</span>
@@ -1128,8 +1126,6 @@ const WorkoutSession = () => {
                   </div>
                 </div>
               </>
-            );
-          })()}
 
           {/* Segment Type */}
           <div className="flex items-center gap-2 mb-6">
@@ -1202,7 +1198,7 @@ const WorkoutSession = () => {
                           <span className={cn(
                             'text-2xl font-black',
                             type === 'defense' ? 'text-purple-400' : 
-                            type === 'movement' ? 'text-blue-400' : 'text-volt'
+                            type === 'movement' ? 'text-blue-400' : isChampionship ? 'text-championship-gold' : 'text-volt'
                           )}>
                             {display}
                           </span>
@@ -1260,7 +1256,7 @@ const WorkoutSession = () => {
                           <span className={cn(
                             'text-2xl font-black',
                             isDefense ? 'text-purple-400' : 
-                            isMovement ? 'text-blue-400' : 'text-volt'
+                            isMovement ? 'text-blue-400' : isChampionship ? 'text-championship-gold' : 'text-volt'
                           )}>
                             {displayMove}
                           </span>
@@ -1273,7 +1269,7 @@ const WorkoutSession = () => {
                   </div>
                 </>
               ) : (
-                <p className="text-2xl font-black text-volt text-center">FREESTYLE</p>
+                <p className={cn("text-2xl font-black text-center", isChampionship ? "text-championship-gold" : "text-volt")}>FREESTYLE</p>
               )}
             </div>
           )}
@@ -1316,7 +1312,7 @@ const WorkoutSession = () => {
                       <span className={cn(
                         'text-2xl font-black',
                         isDefense ? 'text-purple-400' : 
-                        isMovement ? 'text-blue-400' : 'text-volt'
+                        isMovement ? 'text-blue-400' : isChampionship ? 'text-championship-gold' : 'text-volt'
                       )}>
                         {displayMove}
                       </span>
@@ -1335,7 +1331,7 @@ const WorkoutSession = () => {
            (currentSegment?.segmentType === 'combo' || currentSegment?.segmentType === 'speedbag' || currentSegment?.segmentType === 'doubleend') &&
            (!displayCombo || displayCombo.length === 0) && (
             <div className="w-full max-w-sm bg-surface-1 rounded-xl p-4 border border-surface-3">
-              <p className="text-2xl font-black text-volt text-center">FREESTYLE</p>
+              <p className={cn("text-2xl font-black text-center", isChampionship ? "text-championship-gold" : "text-volt")}>FREESTYLE</p>
             </div>
           )}
         </div>
@@ -1353,7 +1349,7 @@ const WorkoutSession = () => {
             <div className="text-right">
               <p className="text-xs text-muted-foreground uppercase tracking-wider">Next</p>
               <div className="flex items-center gap-1">
-                <span className="w-2 h-2 rounded-full bg-volt" />
+                <span className={cn("w-2 h-2 rounded-full", isChampionship ? "bg-championship-gold" : "bg-volt")} />
                 <p className="font-bold text-foreground uppercase text-sm">
                   {isPreparation ? flatSegments[0]?.name : nextSegment?.name || 'FINISH'}
                 </p>
@@ -1365,13 +1361,13 @@ const WorkoutSession = () => {
           <div className="mb-4">
             <div className="flex items-center justify-between text-xs text-muted-foreground mb-1">
               <span>{isPreparation ? 'PREP' : currentSegment?.section?.toUpperCase() || 'WARMUP'}</span>
-              <span className="text-volt font-bold">
+              <span className={cn("font-bold", isChampionship ? "text-championship-gold" : "text-volt")}>
                 {isPreparation ? '0' : currentSegmentIndex + 1} / {totalSegments}
               </span>
             </div>
             <div className="h-1.5 bg-surface-2 rounded-full overflow-hidden">
               <div 
-                className="h-full bg-volt transition-all duration-300"
+                className={cn("h-full transition-all duration-300", isChampionship ? "bg-championship-gold" : "bg-volt")}
                 style={{ width: `${progressPercent}%` }}
               />
             </div>
@@ -1394,7 +1390,7 @@ const WorkoutSession = () => {
             {/* Play/Pause */}
             <button
               onClick={isPaused ? handleStart : handlePauseResume}
-              className="w-20 h-20 rounded-full bg-volt flex items-center justify-center glow-volt"
+              className={cn("w-20 h-20 rounded-full flex items-center justify-center", isChampionship ? "bg-championship-gold glow-gold" : "bg-volt glow-volt")}
             >
               {isPaused ? (
                 <Play className="w-8 h-8 text-primary-foreground ml-1" fill="currentColor" />
