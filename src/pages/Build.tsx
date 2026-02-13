@@ -29,6 +29,12 @@ import { toast } from 'sonner';
 import { DndContext, closestCenter, PointerSensor, TouchSensor, useSensor, useSensors } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy, useSortable, arrayMove } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+// Sortable wrapper for phase cards in the builder
+function SortablePhaseWrapper({ id, children }: { id: string; children: (props: { dragHandleProps: Record<string, any>; style: React.CSSProperties; setNodeRef: (node: HTMLElement | null) => void; isDragging: boolean }) => React.ReactNode }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
+  const style = { transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.5 : 1 };
+  return <>{children({ dragHandleProps: { ...attributes, ...listeners }, style, setNodeRef, isDragging })}</>;
+}
 
 const SEGMENT_TYPES: { key: SegmentType; label: string; color: string }[] = [
   { key: 'shadowboxing', label: 'S', color: 'bg-purple-500/20 text-purple-400' },
@@ -185,11 +191,22 @@ const Build = () => {
   const { myMemberships, clubs } = useClubs();
   const myClubs = clubs.filter(c => myMemberships.some(m => m.club_id === c.id));
 
-  // Combo drag-and-drop
-  const comboSensors = useSensors(
+  // Drag-and-drop sensors (shared for combos and phases)
+  const dndSensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
     useSensor(TouchSensor, { activationConstraint: { delay: 150, tolerance: 5 } })
   );
+
+  // Phase drag-and-drop handler
+  const handlePhaseDragEnd = (event: any) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    const phases = getActivePhases();
+    const oldIndex = phases.findIndex(p => p.id === active.id);
+    const newIndex = phases.findIndex(p => p.id === over.id);
+    if (oldIndex === -1 || newIndex === -1) return;
+    setActivePhases(arrayMove(phases, oldIndex, newIndex));
+  };
   
   // Helper to get/set combos for the currently editing phase
   const getPhaseCombos = (phaseId: string): string[][] => {
@@ -663,19 +680,25 @@ const Build = () => {
           )}
 
           {/* Phases */}
-          <div className="px-4 py-4 space-y-4">
+          <DndContext sensors={dndSensors} collisionDetection={closestCenter} onDragEnd={handlePhaseDragEnd}>
+            <SortableContext items={getActivePhases().map(p => p.id)} strategy={verticalListSortingStrategy}>
+            <div className="px-4 py-4 space-y-4">
             {getActivePhases().map((phase) => {
               const activeSegmentCount = phase.segments.filter(s => s.type === 'active').length;
               const phaseCtx = getPhaseSegmentContext(phase);
               // Superset only when 2+ active segments AND not an exercise-library phase
               const isSuperset = activeSegmentCount >= 2 && phaseCtx !== 'exercises';
               return (
-              <div key={phase.id} className="bg-surface-1 rounded-xl border border-surface-3 overflow-hidden">
+              <SortablePhaseWrapper key={phase.id} id={phase.id}>
+                {({ dragHandleProps, style, setNodeRef, isDragging }) => (
+              <div ref={setNodeRef} style={style} className={cn("bg-surface-1 rounded-xl border border-surface-3 overflow-hidden", isDragging && "opacity-50 shadow-2xl z-50")}>
                 {/* Phase Header */}
                 <div className="p-3 border-b border-surface-3 space-y-1">
                   {/* Row 1: drag handle + name + repeat controls + trash */}
                   <div className="flex items-center gap-2">
-                    <GripVertical className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                    <div {...dragHandleProps} className="cursor-grab active:cursor-grabbing touch-none flex-shrink-0">
+                      <GripVertical className="w-4 h-4 text-muted-foreground" />
+                    </div>
                     <Input
                       value={phase.name}
                       onChange={(e) => updatePhase(phase.id, { name: e.target.value })}
@@ -889,7 +912,7 @@ const Build = () => {
                                   </p>
                                 ) : (
                                   <DndContext
-                                    sensors={comboSensors}
+                                    sensors={dndSensors}
                                     collisionDetection={closestCenter}
                                     onDragEnd={(event) => {
                                       const { active, over } = event;
@@ -951,6 +974,8 @@ const Build = () => {
                   Add Segment
                 </button>
               </div>
+              )}
+              </SortablePhaseWrapper>
               );
             })}
 
@@ -962,7 +987,9 @@ const Build = () => {
               <Plus className="w-5 h-5" />
               Add Phase
             </button>
-          </div>
+            </div>
+            </SortableContext>
+          </DndContext>
 
         </div>
 
