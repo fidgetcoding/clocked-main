@@ -70,6 +70,7 @@ export default {
         "surface-2": "hsl(var(--surface-2))",
         "surface-3": "hsl(var(--surface-3))",
         "championship-gold": "hsl(var(--championship-gold))",
+        "cooldown-blue": "hsl(var(--cooldown-blue))",
       },
       borderRadius: {
         lg: "var(--radius)",

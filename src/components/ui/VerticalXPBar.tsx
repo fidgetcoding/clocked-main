@@ -17,6 +17,8 @@ interface VerticalXPBarProps {
   earnedBadgeIds?: string[];
   /** Championship round gold override */
   isChampionship?: boolean;
+  /** Cooldown blue override */
+  isCooldown?: boolean;
 }
 
 // Prestige tier gradient colors
@@ -44,7 +46,7 @@ function getNextBadgeProgress(
   return best;
 }
 
-export function VerticalXPBar({ prestige, level, totalXP, className, badgeStats, earnedBadgeIds, isChampionship }: VerticalXPBarProps) {
+export function VerticalXPBar({ prestige, level, totalXP, className, badgeStats, earnedBadgeIds, isChampionship, isCooldown }: VerticalXPBarProps) {
   const isAtMax = level >= 100;
   
   // At L100, show next-badge progress
@@ -78,7 +80,7 @@ export function VerticalXPBar({ prestige, level, totalXP, className, badgeStats,
   return (
     <div className={cn('flex flex-col items-center gap-1', className)}>
       {/* Next level at top */}
-      <span className={cn("text-[10px] font-bold", isChampionship ? "text-championship-gold/60" : "text-muted-foreground")}>
+      <span className={cn("text-[10px] font-bold", isChampionship ? "text-championship-gold/60" : isCooldown ? "text-cooldown-blue/60" : "text-muted-foreground")}>
         Lvl {Math.min(100, level + 1)}
       </span>
       
@@ -90,13 +92,15 @@ export function VerticalXPBar({ prestige, level, totalXP, className, badgeStats,
             height: `${progress}%`,
             background: isChampionship 
               ? 'linear-gradient(to top, hsl(var(--championship-gold)), hsl(45 93% 60%))' 
+              : isCooldown
+              ? 'linear-gradient(to top, hsl(var(--cooldown-blue)), hsl(199 89% 65%))'
               : PRESTIGE_GRADIENTS[prestige],
           }}
         />
       </div>
       
       {/* Current level at bottom */}
-      <span className={cn("text-[10px] font-bold", isChampionship ? "text-championship-gold" : "text-volt")}>
+      <span className={cn("text-[10px] font-bold", isChampionship ? "text-championship-gold" : isCooldown ? "text-cooldown-blue" : "text-volt")}>
         Lvl {level}
       </span>
     </div>

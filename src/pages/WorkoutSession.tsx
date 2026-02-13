@@ -357,7 +357,12 @@ const WorkoutSession = () => {
   const championshipRound = currentSegment?.cumulativeRound 
     || (currentSegmentIndex > 0 ? flatSegments[currentSegmentIndex - 1]?.cumulativeRound : undefined);
   const isChampionship = !isPreparation && championshipRound && championshipRound > 10;
+  const isCooldown = !isPreparation && currentSegment?.section === 'cooldown';
   
+  // Accent color helper — championship gold > cooldown blue > volt green
+  const accentColor = isChampionship ? 'championship-gold' : isCooldown ? 'cooldown-blue' : 'volt';
+  const accentHsl = isChampionship ? 'hsl(var(--championship-gold))' : isCooldown ? 'hsl(var(--cooldown-blue))' : 'hsl(var(--electric-volt))';
+
   // Get streak multiplier from profile
   const streakMultiplier = getStreakMultiplier(profile?.current_streak || 0);
   
@@ -1114,7 +1119,7 @@ const WorkoutSession = () => {
                        'COOL DOWN'}
                     </p>
                     {(workout?.megasetRepeats || 1) > 1 && currentSegment.megasetIndex !== undefined && (
-                      <span className={cn("inline-flex items-center gap-0.5 text-xs font-black uppercase tracking-wider", isChampionship ? "text-championship-gold/60" : "text-volt/60")}>
+                      <span className={cn("inline-flex items-center gap-0.5 text-xs font-black uppercase tracking-wider", `text-${accentColor}/60`)}>
                         <span>{currentSegment.megasetIndex + 1}</span>
                         <span>/</span>
                         <span>{workout?.megasetRepeats}</span>
@@ -1126,7 +1131,7 @@ const WorkoutSession = () => {
                 {/* Phase Title */}
                 <h2 className={cn(
                   "text-2xl font-black mb-2 uppercase tracking-wider text-center",
-                  isChampionship ? "text-championship-gold" : "text-foreground"
+                  isChampionship ? "text-championship-gold" : isCooldown ? "text-cooldown-blue" : "text-foreground"
                 )}>
                   {isPreparation ? 'GET READY' : currentSegment?.name || 'WORK'}
                 </h2>
@@ -1150,8 +1155,8 @@ const WorkoutSession = () => {
                         return (
                           <>
                             <circle cx="110" cy="110" r={r} fill="none" stroke="hsl(var(--surface-3))" strokeWidth="4" strokeDasharray={`${arcLen} ${gapLen}`} strokeDashoffset={-circumference * (startAngle / 360)} strokeLinecap="round" />
-                            <circle cx="110" cy="110" r={r} fill="none" stroke={isChampionship ? 'hsl(var(--championship-gold))' : 'hsl(var(--electric-volt))'} strokeWidth="8" strokeDasharray={`${filledLen} ${circumference - filledLen}`} strokeDashoffset={-circumference * (startAngle / 360)} strokeLinecap="round" filter="blur(4px)" className="animate-arc-glow-pulse" style={{ transition: 'stroke-dasharray 0.3s linear' }} />
-                            <circle cx="110" cy="110" r={r} fill="none" stroke={isChampionship ? 'hsl(var(--championship-gold))' : 'hsl(var(--electric-volt))'} strokeWidth="4" strokeDasharray={`${filledLen} ${circumference - filledLen}`} strokeDashoffset={-circumference * (startAngle / 360)} strokeLinecap="round" style={{ transition: 'stroke-dasharray 0.3s linear' }} />
+                            <circle cx="110" cy="110" r={r} fill="none" stroke={accentHsl} strokeWidth="8" strokeDasharray={`${filledLen} ${circumference - filledLen}`} strokeDashoffset={-circumference * (startAngle / 360)} strokeLinecap="round" filter="blur(4px)" className="animate-arc-glow-pulse" style={{ transition: 'stroke-dasharray 0.3s linear' }} />
+                            <circle cx="110" cy="110" r={r} fill="none" stroke={accentHsl} strokeWidth="4" strokeDasharray={`${filledLen} ${circumference - filledLen}`} strokeDashoffset={-circumference * (startAngle / 360)} strokeLinecap="round" style={{ transition: 'stroke-dasharray 0.3s linear' }} />
                           </>
                         );
                       })()}
@@ -1160,7 +1165,7 @@ const WorkoutSession = () => {
                       "timer-display text-6xl font-black",
                       isChampionship 
                         ? "text-championship-gold animate-gold-shimmer" 
-                        : "text-volt text-glow-volt"
+                        : isCooldown ? "text-cooldown-blue" : "text-volt text-glow-volt"
                     )}>
                       {formatTime(timeRemaining)}
                     </span>
@@ -1170,7 +1175,7 @@ const WorkoutSession = () => {
                   </div>
                   {/* Vertical XP Bar — pinned to right wall */}
                   <div className="absolute right-0 top-1/2 -translate-y-1/2">
-                    <VerticalXPBar prestige={profile?.prestige || 'beginner'} level={liveLevel} totalXP={(profile?.total_xp || 0) + currentXP} badgeStats={currentStats} earnedBadgeIds={earnedBadgeIds} isChampionship={isChampionship} />
+                    <VerticalXPBar prestige={profile?.prestige || 'beginner'} level={liveLevel} totalXP={(profile?.total_xp || 0) + currentXP} badgeStats={currentStats} earnedBadgeIds={earnedBadgeIds} isChampionship={isChampionship} isCooldown={isCooldown} />
                   </div>
                 </div>
               </>
@@ -1200,9 +1205,9 @@ const WorkoutSession = () => {
 
           {/* Rest Screen - Compact Next Preview */}
           {isRestSegment && (
-            <div className={cn("w-full max-w-xs rounded-xl p-3 border", isChampionship ? "bg-championship-gold/5 border-championship-gold/30" : "bg-surface-1 border-surface-3")}>
-              <p className={cn("text-[10px] uppercase tracking-wider mb-1 text-center", isChampionship ? "text-championship-gold/60" : "text-muted-foreground")}>UP NEXT</p>
-              <p className={cn("text-lg font-black text-center uppercase", isChampionship ? "text-championship-gold" : "text-foreground")}>
+            <div className={cn("w-full max-w-xs rounded-xl p-3 border", isChampionship ? "bg-championship-gold/5 border-championship-gold/30" : isCooldown ? "bg-cooldown-blue/5 border-cooldown-blue/30" : "bg-surface-1 border-surface-3")}>
+              <p className={cn("text-[10px] uppercase tracking-wider mb-1 text-center", isChampionship ? "text-championship-gold/60" : isCooldown ? "text-cooldown-blue/60" : "text-muted-foreground")}>UP NEXT</p>
+              <p className={cn("text-lg font-black text-center uppercase", isChampionship ? "text-championship-gold" : isCooldown ? "text-cooldown-blue" : "text-foreground")}>
                 {nextSegment?.name || 'FINISH'}
               </p>
               {nextSegment?.duration && (
@@ -1210,7 +1215,7 @@ const WorkoutSession = () => {
               )}
               {restComboPreview && restComboPreview.length > 0 && (
                 <div className="mt-2 pt-2 border-t border-surface-3">
-                  <p className="text-[10px] text-volt font-bold mb-1.5 text-center animate-pulse">INCOMING COMBO</p>
+                  <p className={cn("text-[10px] font-bold mb-1.5 text-center animate-pulse", `text-${accentColor}`)}>INCOMING COMBO</p>
                   <div className="flex items-center justify-center gap-1.5 flex-wrap">
                     {restComboPreview.map((move, idx) => {
                       const { display, type } = getDisplayMove(move);
@@ -1218,7 +1223,7 @@ const WorkoutSession = () => {
                         <div key={idx} className="flex items-center gap-0.5">
                           <span className={cn(
                             'text-xl font-black',
-                            isChampionship ? 'text-championship-gold' : 'text-volt'
+                            `text-${accentColor}`
                           )}>
                             {display}
                           </span>
@@ -1240,7 +1245,7 @@ const WorkoutSession = () => {
               {displayCombo && displayCombo.length > 0 ? (
                 <>
                   {/* Incoming combo label for shadowboxing */}
-                  <p className="text-xs text-volt font-bold mb-3 text-center animate-pulse">INCOMING COMBO</p>
+                  <p className={cn("text-xs font-bold mb-3 text-center animate-pulse", `text-${accentColor}`)}>INCOMING COMBO</p>
                   <div className="flex items-center justify-center gap-2 flex-wrap">
                     {displayCombo.map((move, idx) => {
                       // Convert punch names to numbers if they're stored as words
@@ -1275,7 +1280,7 @@ const WorkoutSession = () => {
                         <div key={idx} className="flex items-center gap-1">
                           <span className={cn(
                             'text-2xl font-black',
-                            isChampionship ? 'text-championship-gold' : 'text-volt'
+                            `text-${accentColor}`
                           )}>
                             {displayMove}
                           </span>
@@ -1288,7 +1293,7 @@ const WorkoutSession = () => {
                   </div>
                 </>
               ) : (
-                <p className={cn("text-2xl font-black text-center", isChampionship ? "text-championship-gold" : "text-volt")}>FREESTYLE</p>
+                <p className={cn("text-2xl font-black text-center", `text-${accentColor}`)}>FREESTYLE</p>
               )}
             </div>
           )}
@@ -1330,7 +1335,7 @@ const WorkoutSession = () => {
                     <div key={idx} className="flex items-center gap-1">
                           <span className={cn(
                             'text-2xl font-black',
-                            isChampionship ? 'text-championship-gold' : 'text-volt'
+                            `text-${accentColor}`
                           )}>
                         {displayMove}
                       </span>
@@ -1349,7 +1354,7 @@ const WorkoutSession = () => {
            (currentSegment?.segmentType === 'combo' || currentSegment?.segmentType === 'speedbag' || currentSegment?.segmentType === 'doubleend') &&
            (!displayCombo || displayCombo.length === 0) && (
             <div className="w-full max-w-xs bg-surface-1 rounded-xl p-3 border border-surface-3">
-              <p className={cn("text-2xl font-black text-center", isChampionship ? "text-championship-gold" : "text-volt")}>FREESTYLE</p>
+              <p className={cn("text-2xl font-black text-center", `text-${accentColor}`)}>FREESTYLE</p>
             </div>
           )}
         </div>
