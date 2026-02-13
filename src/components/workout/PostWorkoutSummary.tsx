@@ -2,10 +2,11 @@ import { useState, useEffect } from 'react';
 import { Badge, BADGE_CATEGORY_COLORS, BADGE_CATEGORY_NAMES, BadgeCategory } from '@/data/badges';
 import { 
   Prestige, PRESTIGE_NAMES, getRankingFromLevel, RANKING_NAMES, 
-  getXPWithinCurrentLevel, getLevelFromXP 
+  getXPWithinCurrentLevel, getLevelFromXP, isPrestigeEligible, isMaxLevel
 } from '@/lib/xpSystem';
 import { Button } from '@/components/ui/button';
 import { RoundFeedbackPanel } from '@/components/workout/RoundFeedbackPanel';
+import { PrestigePrompt, MaxLevelCelebration } from '@/components/workout/PrestigePrompt';
 import { RoundFeedback } from '@/types';
 import { cn } from '@/lib/utils';
 import { Zap, Trophy, Flame, Star, Award, TrendingUp } from 'lucide-react';
@@ -57,6 +58,8 @@ export interface SessionXPBreakdown {
   didLevelUp: boolean;
   prestige: Prestige;
   totalXPAfter: number;
+  prestigeEligible: boolean;
+  isMaxLevel: boolean;
 }
 
 interface PostWorkoutSummaryProps {
@@ -75,6 +78,7 @@ interface PostWorkoutSummaryProps {
   onLog: () => void;
   logged: boolean;
   onNavigateHome: () => void;
+  onPrestige: () => void;
 }
 
 function formatTimeCompact(seconds: number): string {
@@ -87,11 +91,13 @@ export function PostWorkoutSummary({
   result, workoutName, totalElapsed,
   notes, setNotes, difficultyRating, setDifficultyRating,
   feedbackMode, setFeedbackMode, roundFeedback, roundCount, onRoundRating,
-  onLog, logged, onNavigateHome,
+  onLog, logged, onNavigateHome, onPrestige,
 }: PostWorkoutSummaryProps) {
   const [showBadgeDetails, setShowBadgeDetails] = useState<Badge | null>(null);
   const [animateXP, setAnimateXP] = useState(false);
   const [animateLevel, setAnimateLevel] = useState(false);
+  const [showPrestigePrompt, setShowPrestigePrompt] = useState(false);
+  const [showMaxLevel, setShowMaxLevel] = useState(false);
 
   useEffect(() => {
     const t1 = setTimeout(() => setAnimateXP(true), 300);
@@ -109,6 +115,24 @@ export function PostWorkoutSummary({
   const rankingBefore = getRankingFromLevel(result.levelBefore);
   const rankingAfter = getRankingFromLevel(result.levelAfter);
   const didRankUp = rankingBefore !== rankingAfter;
+
+  // Show prestige/max level after logging
+  if (showPrestigePrompt) {
+    return (
+      <PrestigePrompt 
+        currentPrestige={result.prestige}
+        onPrestige={() => {
+          onPrestige();
+          setShowPrestigePrompt(false);
+        }}
+        onDefer={() => setShowPrestigePrompt(false)}
+      />
+    );
+  }
+
+  if (showMaxLevel) {
+    return <MaxLevelCelebration onDismiss={() => setShowMaxLevel(false)} />;
+  }
 
   return (
     <div className="min-h-screen flex flex-col items-center px-4 py-8 bg-background safe-top safe-bottom">
@@ -341,10 +365,27 @@ export function PostWorkoutSummary({
           </Button>
         </div>
       ) : (
-        <div className="w-full max-w-sm mb-6">
+        <div className="w-full max-w-sm mb-6 space-y-3">
           <div className="card-workout text-center">
             <p className="text-volt font-semibold">Workout Logged! ✅</p>
           </div>
+          {/* Show prestige/max level button after logging */}
+          {result.prestigeEligible && (
+            <Button 
+              onClick={() => setShowPrestigePrompt(true)}
+              className="w-full bg-volt/20 text-volt border border-volt/30 hover:bg-volt/30 font-bold"
+            >
+              🏆 Prestige Available — View
+            </Button>
+          )}
+          {result.isMaxLevel && (
+            <Button 
+              onClick={() => setShowMaxLevel(true)}
+              className="w-full bg-amber-500/20 text-amber-400 border border-amber-500/30 hover:bg-amber-500/30 font-bold"
+            >
+              👑 Max Level Reached — View
+            </Button>
+          )}
         </div>
       )}
 

@@ -25,7 +25,7 @@ import { useSpeechSynthesis } from '@/hooks/useSpeechSynthesis';
 import { useSoundEffects } from '@/hooks/useSoundEffects';
 import { useBadges } from '@/hooks/useBadges';
 import { cn } from '@/lib/utils';
-import { ACTIVITY_XP_RATES, ActivityType, getStreakMultiplier, getActivityTypeFromName, calculateComboXP, getLevelFromXP, PER_SESSION_ESTIMATES, TIER_COMBO_STATS, Prestige } from '@/lib/xpSystem';
+import { ACTIVITY_XP_RATES, ActivityType, getStreakMultiplier, getActivityTypeFromName, calculateComboXP, getLevelFromXP, PER_SESSION_ESTIMATES, TIER_COMBO_STATS, Prestige, isPrestigeEligible as checkPrestigeEligible, isMaxLevel as checkIsMaxLevel } from '@/lib/xpSystem';
 import { computePostLogStats } from '@/lib/workoutTracking';
 import { checkBadges, sumBadgeXP, BadgeStats } from '@/data/badges';
 import { LevelUpOverlay } from '@/components/ui/LevelUpOverlay';
@@ -481,6 +481,8 @@ const WorkoutSession = () => {
       didLevelUp: levelAfter > levelBefore,
       prestige: tier,
       totalXPAfter,
+      prestigeEligible: checkPrestigeEligible(tier, totalXPAfter),
+      isMaxLevel: checkIsMaxLevel(tier, totalXPAfter),
     });
   }, [isComplete, sessionResult, profile, accumulatedXP, totalElapsed, earnedBadgeIds]);
 
@@ -771,6 +773,27 @@ const WorkoutSession = () => {
     );
   }
 
+  const handlePrestige = async () => {
+    if (!profile || !sessionResult) return;
+    const nextPrestige = (() => {
+      const order: Prestige[] = ['rookie', 'beginner', 'intermediate', 'advanced', 'pro'];
+      const idx = order.indexOf(sessionResult.prestige);
+      return idx < order.length - 1 ? order[idx + 1] : null;
+    })();
+    if (!nextPrestige) return;
+    
+    try {
+      updateProfile.mutate({
+        prestige: nextPrestige,
+        current_level: 1,
+        total_xp: 0,
+        experience_level: nextPrestige,
+      } as any);
+    } catch (e) {
+      console.error('Prestige failed:', e);
+    }
+  };
+
   const handleLog = async () => {
     if (!sessionResult) return;
     
@@ -859,6 +882,7 @@ const WorkoutSession = () => {
           onLog={handleLog}
           logged={logged}
           onNavigateHome={() => navigate('/')}
+          onPrestige={handlePrestige}
         />
       </AppLayout>
     );
