@@ -1187,7 +1187,7 @@ const WorkoutSession = () => {
                 onClick={() => adjustTime(parseInt(val))}
                 className="px-3 py-1.5 rounded-full border border-surface-3 text-muted-foreground text-xs font-medium hover:bg-surface-1 transition-colors"
               >
-                {val}
+                {val}s
               </button>
             ))}
           </div>
