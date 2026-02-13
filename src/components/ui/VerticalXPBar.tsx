@@ -2,9 +2,7 @@ import { cn } from '@/lib/utils';
 import { 
   Prestige, 
   PRESTIGE_NAMES,
-  RANKING_NAMES,
   getLevelProgress,
-  getRankingFromLevel,
 } from '@/lib/xpSystem';
 import { ALL_BADGES, Badge, getBadgeProgress, BadgeStats } from '@/data/badges';
 
@@ -46,7 +44,6 @@ function getNextBadgeProgress(
 
 export function VerticalXPBar({ prestige, level, totalXP, className, badgeStats, earnedBadgeIds }: VerticalXPBarProps) {
   const isAtMax = level >= 100;
-  const ranking = getRankingFromLevel(level);
   
   // At L100, show next-badge progress
   if (isAtMax && badgeStats && earnedBadgeIds) {
@@ -69,9 +66,6 @@ export function VerticalXPBar({ prestige, level, totalXP, className, badgeStats,
         </div>
         <span className="text-[10px] font-bold text-amber-400">
           L100
-        </span>
-        <span className="text-[9px] font-semibold text-muted-foreground uppercase tracking-wider mt-0.5">
-          {RANKING_NAMES[ranking]}
         </span>
       </div>
     );
@@ -100,11 +94,6 @@ export function VerticalXPBar({ prestige, level, totalXP, className, badgeStats,
       {/* Current level at bottom */}
       <span className="text-[10px] font-bold text-volt">
         Lvl {level}
-      </span>
-
-      {/* Ranking name */}
-      <span className="text-[9px] font-semibold text-muted-foreground uppercase tracking-wider mt-0.5">
-        {RANKING_NAMES[ranking]}
       </span>
     </div>
   );
