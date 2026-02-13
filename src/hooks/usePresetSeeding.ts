@@ -3,44 +3,23 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useProfile } from '@/hooks/useProfile';
 import { useQueryClient } from '@tanstack/react-query';
-import { 
-  COMPLETE_BEGINNER_PRESET_WORKOUTS, 
-  BEGINNER_PRESET_WORKOUTS, 
-  INTERMEDIATE_PRESET_WORKOUTS, 
-  ADVANCED_PRESET_WORKOUTS, 
-  PRO_PRESET_WORKOUTS, 
-  COACH_PRESET_WORKOUTS 
-} from '@/data/presetWorkouts';
-import { Workout } from '@/types';
-
-// Map preset names to their combo data for migration
-const PRESET_COMBOS_MAP: Record<string, string[][]> = {};
-[
-  ...COMPLETE_BEGINNER_PRESET_WORKOUTS,
-  ...BEGINNER_PRESET_WORKOUTS,
-  ...INTERMEDIATE_PRESET_WORKOUTS,
-  ...ADVANCED_PRESET_WORKOUTS,
-  ...PRO_PRESET_WORKOUTS,
-  ...COACH_PRESET_WORKOUTS,
-].forEach(preset => {
-  PRESET_COMBOS_MAP[preset.name] = preset.combos || [];
-});
+import { generateLoadoutWorkout, UserEquipmentConfig } from '@/lib/loadoutGenerator';
 
 /**
- * This hook seeds preset workouts for new users based on their experience level.
- * It also migrates existing preset workouts to add missing combos.
+ * This hook seeds a single loadout workout for new users based on their
+ * experience level and equipment. It runs once — if the user already has
+ * workouts, it does nothing.
  */
 export function usePresetSeeding() {
   const { user } = useAuth();
   const { profile } = useProfile();
   const queryClient = useQueryClient();
   const hasSeededRef = useRef(false);
-  const hasMigratedCombosRef = useRef(false);
 
   useEffect(() => {
     if (!user?.id || !profile || hasSeededRef.current) return;
 
-    const seedPresets = async () => {
+    const seedLoadout = async () => {
       try {
         // Check if user already has workouts
         const { data: existingWorkouts, error: fetchError } = await supabase
@@ -60,127 +39,53 @@ export function usePresetSeeding() {
           return;
         }
 
-        // Determine which presets to load based on role and experience level
-        let presets: Workout[] = [];
-        
-        if (profile.role === 'coach') {
-          presets = COACH_PRESET_WORKOUTS;
-        } else {
-          const level = profile.experience_level;
-          if (level === 'complete_beginner') {
-            presets = COMPLETE_BEGINNER_PRESET_WORKOUTS;
-          } else if (level === 'beginner') {
-            presets = BEGINNER_PRESET_WORKOUTS;
-          } else if (level === 'intermediate') {
-            presets = INTERMEDIATE_PRESET_WORKOUTS;
-          } else if (level === 'advanced') {
-            presets = ADVANCED_PRESET_WORKOUTS;
-          } else if (level === 'pro') {
-            presets = PRO_PRESET_WORKOUTS;
-          } else {
-            // Default to beginner
-            presets = BEGINNER_PRESET_WORKOUTS;
-          }
-        }
+        // Build equipment config from profile
+        const eq = (profile.equipment as Record<string, any>) || {};
+        const loadoutEquipment: UserEquipmentConfig = {
+          gloves: !!eq.gloves,
+          wraps: !!eq.wraps,
+          jumpRope: !!eq.jumpRope,
+          heavyBag: !!eq.heavyBag,
+          doubleEndBag: !!eq.doubleEndBag,
+          speedBag: !!eq.speedBag,
+          treadmill: !!eq.treadmill,
+          primaryBag: eq.primaryBag || 'none',
+        };
 
-        // Convert presets to database format and insert
-        const workoutsToInsert = presets.map(preset => ({
-          user_id: user.id,
-          name: preset.name,
-          description: null,
-          duration: preset.totalDuration,
-          difficulty: preset.difficulty,
-          phases: JSON.parse(JSON.stringify([
-            ...preset.sections.warmup.map(p => ({ ...p, section: 'warmup' })),
-            ...preset.sections.grind.map(p => ({ ...p, section: 'grind' })),
-            ...preset.sections.cooldown.map(p => ({ ...p, section: 'cooldown' })),
-          ])),
-          combos: preset.combos || [],
-          tags: ['boxing', preset.difficulty],
-          is_preset: true,
-          is_archived: false,
-          times_completed: 0,
-        }));
+        const experienceLevel = profile.experience_level || 'beginner';
+        const loadout = generateLoadoutWorkout(experienceLevel, loadoutEquipment);
 
+        // Insert the single loadout workout
         const { error: insertError } = await supabase
           .from('workouts')
-          .insert(workoutsToInsert);
+          .insert([{
+            user_id: user.id,
+            name: loadout.name,
+            description: loadout.description,
+            duration: loadout.duration,
+            difficulty: loadout.difficulty,
+            phases: loadout.phases as any,
+            combos: loadout.combos as any,
+            tags: loadout.tags,
+            is_preset: loadout.is_preset,
+            is_archived: false,
+            times_completed: 0,
+          }]);
 
         if (insertError) {
-          console.error('Error seeding presets:', insertError);
+          console.error('Error seeding loadout:', insertError);
           return;
         }
 
         hasSeededRef.current = true;
-        console.log(`Seeded ${workoutsToInsert.length} preset workouts for user`);
+        console.log(`Seeded ${loadout.name} for user`);
         
-        // Invalidate workouts query so the UI refreshes with seeded workouts
         queryClient.invalidateQueries({ queryKey: ['workouts', user.id] });
       } catch (error) {
-        console.error('Error in preset seeding:', error);
+        console.error('Error in loadout seeding:', error);
       }
     };
 
-    seedPresets();
-  }, [user?.id, profile]);
-
-  // Migrate existing workouts to add missing combos
-  useEffect(() => {
-    if (!user?.id || hasMigratedCombosRef.current) return;
-
-    const migrateCombos = async () => {
-      try {
-        // Fetch preset workouts that might be missing combos
-        const { data: presetWorkouts, error } = await supabase
-          .from('workouts')
-          .select('id, name, combos')
-          .eq('user_id', user.id)
-          .eq('is_preset', true);
-
-        if (error) {
-          console.error('Error fetching workouts for migration:', error);
-          return;
-        }
-
-        if (!presetWorkouts || presetWorkouts.length === 0) {
-          hasMigratedCombosRef.current = true;
-          return;
-        }
-
-        // Find workouts that need combos updated
-        const workoutsToUpdate = presetWorkouts.filter(w => {
-          const existingCombos = w.combos as string[][] | null;
-          const presetCombos = PRESET_COMBOS_MAP[w.name];
-          // Update if no combos or empty combos, and we have preset combos for this workout
-          return presetCombos && presetCombos.length > 0 && (!existingCombos || existingCombos.length === 0);
-        });
-
-        if (workoutsToUpdate.length === 0) {
-          hasMigratedCombosRef.current = true;
-          return;
-        }
-
-        // Update each workout with its combos
-        for (const workout of workoutsToUpdate) {
-          const combos = PRESET_COMBOS_MAP[workout.name];
-          if (combos) {
-            await supabase
-              .from('workouts')
-              .update({ combos })
-              .eq('id', workout.id);
-          }
-        }
-
-        console.log(`Migrated combos for ${workoutsToUpdate.length} preset workouts`);
-        hasMigratedCombosRef.current = true;
-        
-        // Invalidate workouts query to refresh UI
-        queryClient.invalidateQueries({ queryKey: ['workouts', user.id] });
-      } catch (error) {
-        console.error('Error migrating combos:', error);
-      }
-    };
-
-    migrateCombos();
-  }, [user?.id, queryClient]);
+    seedLoadout();
+  }, [user?.id, profile, queryClient]);
 }

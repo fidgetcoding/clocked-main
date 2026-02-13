@@ -4,7 +4,6 @@ import { ArrowRight, User, Users, Dumbbell, Target, Home as HomeIcon, Swords, Tr
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useUserStore } from '@/stores/userStore';
-import { useWorkoutStore } from '@/stores/workoutStore';
 import { useWorkouts } from '@/hooks/useWorkouts';
 import { useAuth } from '@/contexts/AuthContext';
 import { useProfile } from '@/hooks/useProfile';
@@ -58,7 +57,7 @@ const Onboarding = () => {
   const { user } = useAuth();
   const { completeOnboarding } = useUserStore();
   const { profile, updateProfile, setInitialPrestige } = useProfile();
-  const { loadCompleteBeginnerPresets, loadBeginnerPresets, loadIntermediatePresets, loadAdvancedPresets, loadProPresets } = useWorkoutStore();
+  // workoutStore preset methods removed — loadout generator handles everything
   const { addWorkout: addWorkoutToDb } = useWorkouts();
   
   // If user just signed up (has ?continue=true), skip welcome and go to role selection
@@ -99,7 +98,7 @@ const Onboarding = () => {
   const handleComplete = async () => {
     // Coaches are automatically pro level and have all equipment
     const finalExperience = role === 'coach' ? 'pro' : experience;
-    const coachEquip = { gloves: true, wraps: true, heavyBag: true, speedBag: true, doubleEndBag: true, jumpRope: true, weights: true, treadmill: true };
+    const coachEquip = { gloves: true, wraps: true, heavyBag: true, speedBag: true, doubleEndBag: true, jumpRope: true, treadmill: true };
     const finalEquipmentBools = role === 'coach' ? coachEquip : equipment;
     const finalPrimaryBag = role === 'coach' ? 'heavy' as const : primaryBag;
     const finalEquipmentWithBag = { ...finalEquipmentBools, primaryBag: finalPrimaryBag };
@@ -131,7 +130,7 @@ const Onboarding = () => {
       goals: goals as any,
     });
     
-    // Generate loadout workout based on tier + equipment
+    // Generate exactly ONE loadout workout based on tier + equipment
     const loadoutEquipment = {
       gloves: !!finalEquipmentBools.gloves,
       wraps: !!finalEquipmentBools.wraps,
@@ -139,28 +138,16 @@ const Onboarding = () => {
       heavyBag: !!finalEquipmentBools.heavyBag,
       doubleEndBag: !!finalEquipmentBools.doubleEndBag,
       speedBag: !!finalEquipmentBools.speedBag,
-      treadmill: !!(finalEquipmentBools as any).treadmill,
+      treadmill: !!finalEquipmentBools.treadmill,
       primaryBag: finalPrimaryBag,
     };
     const loadout = generateLoadoutWorkout(finalExperience, loadoutEquipment);
     
-    // Save loadout to Supabase
+    // Save the single loadout to database
     try {
       await addWorkoutToDb.mutateAsync(loadout as any);
     } catch (error) {
       console.error('Failed to save loadout workout:', error);
-    }
-    
-    // Load appropriate presets based on experience level
-    if (finalExperience === 'complete_beginner') {
-      loadCompleteBeginnerPresets();
-    } else if (finalExperience === 'beginner') {
-      loadBeginnerPresets();
-      loadIntermediatePresets();
-    } else if (finalExperience === 'advanced') {
-      loadAdvancedPresets();
-    } else if (finalExperience === 'pro') {
-      loadProPresets();
     }
     
     navigate('/');
@@ -576,9 +563,7 @@ const Onboarding = () => {
             <p className="text-muted-foreground mb-8 max-w-sm">
               {role === 'coach' 
                 ? "Your Fight Club is ready. Start building workouts for your athletes."
-                : (experience === 'complete_beginner' || experience === 'beginner') 
-                  ? "We've loaded 3 beginner workouts to get you started."
-                  : "Time to build your first workout and get training."
+                : "Your personalized loadout is ready. Let's get to work."
               }
             </p>
             <Button onClick={handleComplete} className="btn-primary-glow w-full max-w-xs h-14 text-lg">
