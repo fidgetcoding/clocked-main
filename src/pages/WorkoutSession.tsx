@@ -976,7 +976,7 @@ const WorkoutSession = () => {
   // For combo segments, show the current combo
   // Treat ['FREESTYLE'] as no combo — it means freestyle round
   // Speedbag and double end bag are always freestyle (no combo display)
-  const rawCombo = (isSpeedbag || isDoubleend) ? undefined : (isShadowboxing ? currentSegment?.nextCombo : currentSegment?.combo);
+  const rawCombo = (isSpeedbag || isDoubleend) ? undefined : (isShadowboxing ? (currentSegment?.combo || currentSegment?.nextCombo) : currentSegment?.combo);
   const isFreestyleCombo = rawCombo?.length === 1 && rawCombo[0] === 'FREESTYLE';
   const displayCombo = isFreestyleCombo ? undefined : rawCombo;
 
@@ -988,7 +988,7 @@ const WorkoutSession = () => {
      nextSegment?.segmentType === 'speedbag' || nextSegment?.segmentType === 'doubleend');
   const nextSegmentIsShadowboxing = nextSegment?.segmentType === 'shadowboxing';
   const rawRestCombo = nextSegmentUsesCombos 
-    ? (nextSegmentIsShadowboxing ? nextSegment?.nextCombo : nextSegment?.combo) 
+    ? (nextSegmentIsShadowboxing ? (nextSegment?.combo || nextSegment?.nextCombo) : nextSegment?.combo) 
     : undefined;
   const restComboPreview = rawRestCombo && rawRestCombo.length > 0 && 
     !(rawRestCombo.length === 1 && rawRestCombo[0] === 'FREESTYLE') 
