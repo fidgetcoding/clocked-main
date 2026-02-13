@@ -1144,7 +1144,14 @@ const WorkoutSession = () => {
                   "text-2xl font-black mb-2 uppercase tracking-wider text-center",
                   isChampionship ? "text-championship-gold" : isCooldown ? "text-cooldown-blue" : "text-foreground"
                 )}>
-                  {isPreparation ? 'GET READY' : currentSegment?.name || 'WORK'}
+                  {isPreparation ? 'GET READY' : (
+                    <>
+                      {currentSegment?.name || 'WORK'}
+                      {isChampionship && (
+                        <span className="text-championship-gold/70"> / DOUBLE XP</span>
+                      )}
+                    </>
+                  )}
                 </h2>
 
 
