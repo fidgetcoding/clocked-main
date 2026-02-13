@@ -1061,7 +1061,7 @@ const WorkoutSession = () => {
             </button>
             <button
               onClick={handleCompleteEarly}
-              className="px-3 py-2 rounded-full bg-surface-1 border border-surface-3 text-volt hover:text-volt/80 transition-colors"
+              className={cn("px-3 py-2 rounded-full bg-surface-1 border border-surface-3 transition-colors", isChampionship ? "text-championship-gold" : isCooldown ? "text-cooldown-blue" : "text-volt")}
               title="Complete workout early"
             >
               <CheckCircle className="w-4 h-4" />
@@ -1372,19 +1372,19 @@ const WorkoutSession = () => {
               {isPreparation ? 'PREP' : currentSegment?.phaseName || 'WARMUP'}
             </span>
             <div className="flex items-center gap-1.5">
-              <span className={cn("w-1.5 h-1.5 rounded-full", isChampionship ? "bg-championship-gold" : "bg-volt")} />
+              <span className={cn("w-1.5 h-1.5 rounded-full", isChampionship ? "bg-championship-gold" : isCooldown ? "bg-cooldown-blue" : "bg-volt")} />
               <span className="text-xs">{isPreparation ? flatSegments[0]?.name : nextSegment?.name || 'FINISH'}</span>
             </div>
           </div>
           <div className="h-1 bg-surface-2 rounded-full overflow-hidden mb-1">
             <div 
-              className={cn("h-full transition-all duration-300", isChampionship ? "bg-championship-gold" : "bg-volt")}
+              className={cn("h-full transition-all duration-300", isChampionship ? "bg-championship-gold" : isCooldown ? "bg-cooldown-blue" : "bg-volt")}
               style={{ width: `${progressPercent}%` }}
             />
           </div>
           <div className="flex justify-between text-[10px] text-muted-foreground mb-2">
             <span>{isPreparation ? 'PREP' : currentSegment?.section?.toUpperCase()}</span>
-            <span className={cn("font-bold", isChampionship ? "text-championship-gold" : "text-volt")}>
+            <span className={cn("font-bold", isChampionship ? "text-championship-gold" : isCooldown ? "text-cooldown-blue" : "text-volt")}>
               {isPreparation ? '0' : currentSegmentIndex + 1}/{totalSegments}
             </span>
           </div>
@@ -1405,7 +1405,7 @@ const WorkoutSession = () => {
             {/* Play/Pause */}
             <button
               onClick={isPaused ? handleStart : handlePauseResume}
-              className={cn("w-20 h-20 rounded-full flex items-center justify-center", isChampionship ? "bg-championship-gold glow-gold" : "bg-volt glow-volt")}
+              className={cn("w-20 h-20 rounded-full flex items-center justify-center", isChampionship ? "bg-championship-gold glow-gold" : isCooldown ? "bg-cooldown-blue" : "bg-volt glow-volt")}
             >
               {isPaused ? (
                 <Play className="w-8 h-8 text-primary-foreground ml-1" fill="currentColor" />
