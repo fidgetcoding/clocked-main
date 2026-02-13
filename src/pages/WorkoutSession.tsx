@@ -1118,8 +1118,9 @@ const WorkoutSession = () => {
         )}
 
         {/* Main Timer */}
-        <div className="flex-1 flex flex-col items-center justify-center px-4">
-              <>
+        <div className="flex-1 flex flex-col px-4">
+          {/* Fixed timer zone — anchored, never shifts */}
+          <div className="flex flex-col items-center justify-center" style={{ minHeight: 420 }}>
                 {/* Phase Name — context of where you are */}
                 {isPreparation ? (
                   <p className="text-xs text-muted-foreground uppercase tracking-widest mb-2">GET READY</p>
@@ -1181,7 +1182,6 @@ const WorkoutSession = () => {
                     <VerticalXPBar prestige={profile?.prestige || 'beginner'} level={liveLevel} totalXP={(profile?.total_xp || 0) + currentXP} badgeStats={currentStats} earnedBadgeIds={earnedBadgeIds} isChampionship={isChampionship} isCooldown={isCooldown} />
                   </div>
                 </div>
-              </>
 
           {/* Segment Name — what you're doing right now */}
           <div className="flex items-center gap-3 mb-4 whitespace-nowrap">
@@ -1220,7 +1220,10 @@ const WorkoutSession = () => {
               </button>
             ))}
           </div>
+          </div>
 
+          {/* Content zone — fills remaining space, cards render here */}
+          <div className="flex-1 flex flex-col items-center justify-start px-0 pt-2">
           {/* Rest Screen - Clean Next Preview */}
           {isRestSegment && (
             <div className={cn("w-full max-w-xs rounded-xl p-3 border", isChampionship ? "bg-championship-gold/5 border-championship-gold/30" : isCooldown ? "bg-cooldown-blue/5 border-cooldown-blue/30" : "bg-surface-1 border-surface-3")}>
@@ -1349,6 +1352,7 @@ const WorkoutSession = () => {
               <p className={cn("text-2xl font-black text-center", accentText)}>FREESTYLE</p>
             </div>
           )}
+          </div>
         </div>
 
         {/* Bottom Section */}
