@@ -1130,8 +1130,8 @@ const WorkoutSession = () => {
                 </h2>
 
 
-                {/* Timer with 270° arc ring + Vertical XP Bar */}
-                <div className="relative flex items-center justify-center gap-3">
+                {/* Timer with 270° arc ring */}
+                <div className="relative w-full flex items-center justify-center">
                   <div className="relative flex items-center justify-center" style={{ width: 220, height: 220 }}>
                     {/* SVG Arc Ring — 270° open at bottom */}
                     <svg className="absolute inset-0" viewBox="0 0 220 220">
@@ -1147,44 +1147,13 @@ const WorkoutSession = () => {
                         const filledLen = arcLen * progress;
                         return (
                           <>
-                            {/* Background track */}
-                            <circle
-                              cx="110" cy="110" r={r}
-                              fill="none"
-                              stroke="hsl(var(--surface-3))"
-                              strokeWidth="4"
-                              strokeDasharray={`${arcLen} ${gapLen}`}
-                              strokeDashoffset={-circumference * (startAngle / 360)}
-                              strokeLinecap="round"
-                            />
-                            {/* Glow layer */}
-                            <circle
-                              cx="110" cy="110" r={r}
-                              fill="none"
-                              stroke={isChampionship ? 'hsl(var(--championship-gold))' : 'hsl(var(--electric-volt))'}
-                              strokeWidth="8"
-                              strokeDasharray={`${filledLen} ${circumference - filledLen}`}
-                              strokeDashoffset={-circumference * (startAngle / 360)}
-                              strokeLinecap="round"
-                              opacity="0.3"
-                              filter="blur(4px)"
-                              className="animate-[pulse_2s_ease-in-out_infinite]"
-                            />
-                            {/* Filled progress */}
-                            <circle
-                              cx="110" cy="110" r={r}
-                              fill="none"
-                              stroke={isChampionship ? 'hsl(var(--championship-gold))' : 'hsl(var(--electric-volt))'}
-                              strokeWidth="4"
-                              strokeDasharray={`${filledLen} ${circumference - filledLen}`}
-                              strokeDashoffset={-circumference * (startAngle / 360)}
-                              strokeLinecap="round"
-                            />
+                            <circle cx="110" cy="110" r={r} fill="none" stroke="hsl(var(--surface-3))" strokeWidth="4" strokeDasharray={`${arcLen} ${gapLen}`} strokeDashoffset={-circumference * (startAngle / 360)} strokeLinecap="round" />
+                            <circle cx="110" cy="110" r={r} fill="none" stroke={isChampionship ? 'hsl(var(--championship-gold))' : 'hsl(var(--electric-volt))'} strokeWidth="8" strokeDasharray={`${filledLen} ${circumference - filledLen}`} strokeDashoffset={-circumference * (startAngle / 360)} strokeLinecap="round" opacity="0.3" filter="blur(4px)" className="animate-[pulse_2s_ease-in-out_infinite]" />
+                            <circle cx="110" cy="110" r={r} fill="none" stroke={isChampionship ? 'hsl(var(--championship-gold))' : 'hsl(var(--electric-volt))'} strokeWidth="4" strokeDasharray={`${filledLen} ${circumference - filledLen}`} strokeDashoffset={-circumference * (startAngle / 360)} strokeLinecap="round" />
                           </>
                         );
                       })()}
                     </svg>
-                    {/* Timer text centered */}
                     <span className={cn(
                       "timer-display text-6xl font-black",
                       isChampionship 
@@ -1193,13 +1162,14 @@ const WorkoutSession = () => {
                     )}>
                       {formatTime(timeRemaining)}
                     </span>
-                    {/* Combo XP Pop — floats above timer */}
                     <div className="absolute -top-2 left-1/2 -translate-x-1/2">
                       <ComboXPPop pop={comboXPPop} />
                     </div>
                   </div>
-                  {/* Vertical XP Bar — right of timer */}
-                  <VerticalXPBar prestige={profile?.prestige || 'beginner'} level={liveLevel} totalXP={(profile?.total_xp || 0) + currentXP} badgeStats={currentStats} earnedBadgeIds={earnedBadgeIds} />
+                  {/* Vertical XP Bar — pinned to right wall */}
+                  <div className="absolute right-0 top-1/2 -translate-y-1/2">
+                    <VerticalXPBar prestige={profile?.prestige || 'beginner'} level={liveLevel} totalXP={(profile?.total_xp || 0) + currentXP} badgeStats={currentStats} earnedBadgeIds={earnedBadgeIds} />
+                  </div>
                 </div>
               </>
 
