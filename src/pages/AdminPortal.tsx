@@ -8,6 +8,8 @@ import { Input } from '@/components/ui/input';
 import { supabase } from '@/integrations/supabase/client';
 import { useUserRole } from '@/hooks/useUserRole';
 import { toast } from 'sonner';
+import { PrestigeBadge } from '@/components/ui/PrestigeDisplay';
+import { getRankingFromLevel, Prestige } from '@/lib/xpSystem';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -30,6 +32,7 @@ interface AdminUser {
   profile_role: string;
   experience_level: string | null;
   prestige: string | null;
+  current_level: number | null;
   equipment: Record<string, boolean | string> | null;
   goals: string[];
   total_xp: number;
@@ -96,14 +99,13 @@ const AdminPortal = () => {
 
     return (
       <div className="mt-2 space-y-1.5 border-t border-surface-3 pt-2">
-        <div className="flex flex-wrap gap-x-3 gap-y-0.5">
-          {user.prestige && (
-            <span className="text-[10px] text-volt/80 uppercase font-bold">{user.prestige}</span>
-          )}
-          {user.experience_level && user.experience_level !== user.prestige && (
-            <span className="text-[10px] text-muted-foreground uppercase">{user.experience_level.replace(/_/g, ' ')}</span>
-          )}
-        </div>
+        {user.prestige && (
+          <PrestigeBadge 
+            prestige={user.prestige as Prestige} 
+            ranking={getRankingFromLevel(user.current_level || 1)} 
+            level={user.current_level || 1} 
+          />
+        )}
         {selectedEquipment.length > 0 && (
           <div className="flex flex-wrap gap-1">
             {selectedEquipment.map(eq => (
@@ -115,9 +117,10 @@ const AdminPortal = () => {
           </div>
         )}
         {userGoals.length > 0 && (
-          <div className="flex flex-wrap gap-1">
+          <div className="flex flex-wrap items-center gap-1">
+            <span className="text-[10px] text-muted-foreground font-bold uppercase mr-0.5">Goals:</span>
             {userGoals.map(g => (
-              <span key={g} className="text-[10px] bg-surface-2 px-1.5 py-0.5 rounded text-muted-foreground italic">{g}</span>
+              <span key={g} className="text-[10px] bg-surface-2 px-1.5 py-0.5 rounded text-muted-foreground">{g}</span>
             ))}
           </div>
         )}

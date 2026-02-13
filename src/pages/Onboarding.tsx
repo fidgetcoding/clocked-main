@@ -95,7 +95,11 @@ const Onboarding = () => {
     }
   };
 
+  const [isCompleting, setIsCompleting] = useState(false);
+  
   const handleComplete = async () => {
+    if (isCompleting) return;
+    setIsCompleting(true);
     // Coaches are automatically pro level and have all equipment
     const finalExperience = role === 'coach' ? 'pro' : experience;
     const coachEquip = { gloves: true, wraps: true, heavyBag: true, speedBag: true, doubleEndBag: true, jumpRope: true, treadmill: true };
