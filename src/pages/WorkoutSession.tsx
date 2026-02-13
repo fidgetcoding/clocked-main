@@ -960,8 +960,14 @@ const WorkoutSession = () => {
             )}
           </div>
           
-          {/* Right side - XP bar with bubble */}
+          {/* Right side - XP bar with bubble and championship badge */}
           <div className="flex items-center relative">
+            {/* 2x XP badge near XP bar during championship */}
+            {!isPreparation && currentSegment?.cumulativeRound && currentSegment.cumulativeRound > 10 && (
+              <div className="absolute right-full mr-2 top-0 px-2 py-0.5 rounded-full bg-championship-gold/20 border border-championship-gold/40">
+                <span className="text-[10px] font-black text-championship-gold whitespace-nowrap">2x XP</span>
+              </div>
+            )}
             {/* XP Bubble - positioned to left of bar, vertically centered */}
             {xpBubble && (
               <div 
@@ -982,42 +988,65 @@ const WorkoutSession = () => {
 
         {/* Main Timer */}
         <div className="flex-1 flex flex-col items-center justify-center px-4">
-          {/* Section Indicator */}
-          {!isPreparation && currentSegment?.section && (
-            <div className="flex items-center gap-2 mb-1">
-              <p className="text-xs text-muted-foreground uppercase tracking-widest">
-                {currentSegment.section === 'warmup' ? 'WARM-UP' : 
-                 currentSegment.section === 'grind' ? 'ROUNDS' : 
-                 'COOL DOWN'}
-              </p>
-              {(workout?.megasetRepeats || 1) > 1 && currentSegment.megasetIndex !== undefined && (
-                <span className="inline-flex items-center gap-0.5 text-xs font-black uppercase tracking-wider text-volt/60">
-                  <span>{currentSegment.megasetIndex + 1}</span>
-                  <span>/</span>
-                  <span>{workout?.megasetRepeats}</span>
+          {(() => {
+            const isChampionship = !isPreparation && currentSegment?.cumulativeRound && currentSegment.cumulativeRound > 10;
+            return (
+              <>
+                {/* Championship Rounds Banner */}
+                {isChampionship && (
+                  <div className="flex items-center gap-2 mb-2 px-4 py-1.5 rounded-full bg-championship-gold/15 border border-championship-gold/40">
+                    <Zap className="w-4 h-4 text-championship-gold" />
+                    <span className="text-xs font-black text-championship-gold uppercase tracking-widest">Championship Rounds</span>
+                    <Zap className="w-4 h-4 text-championship-gold" />
+                  </div>
+                )}
+
+                {/* Section Indicator */}
+                {!isPreparation && currentSegment?.section && !isChampionship && (
+                  <div className="flex items-center gap-2 mb-1">
+                    <p className="text-xs text-muted-foreground uppercase tracking-widest">
+                      {currentSegment.section === 'warmup' ? 'WARM-UP' : 
+                       currentSegment.section === 'grind' ? 'ROUNDS' : 
+                       'COOL DOWN'}
+                    </p>
+                    {(workout?.megasetRepeats || 1) > 1 && currentSegment.megasetIndex !== undefined && (
+                      <span className="inline-flex items-center gap-0.5 text-xs font-black uppercase tracking-wider text-volt/60">
+                        <span>{currentSegment.megasetIndex + 1}</span>
+                        <span>/</span>
+                        <span>{workout?.megasetRepeats}</span>
+                      </span>
+                    )}
+                  </div>
+                )}
+                
+                {/* Phase Title */}
+                <h2 className={cn(
+                  "text-2xl font-black mb-2 uppercase tracking-wider text-center",
+                  isChampionship ? "text-championship-gold" : "text-foreground"
+                )}>
+                  {isPreparation ? 'GET READY' : currentSegment?.name || 'WORK'}
+                </h2>
+
+                {/* 2x XP Championship Indicator */}
+                {isChampionship && isBoxingSegment(currentSegment!) && (
+                  <div className="flex items-center gap-1.5 mb-2 px-3 py-1 rounded-full bg-championship-gold/20 border border-championship-gold/40">
+                    <Zap className="w-3.5 h-3.5 text-championship-gold" />
+                    <span className="text-xs font-black text-championship-gold uppercase tracking-wider">2x XP</span>
+                  </div>
+                )}
+
+                {/* Timer */}
+                <span className={cn(
+                  "timer-display text-8xl font-black mb-2",
+                  isChampionship 
+                    ? "text-championship-gold animate-gold-shimmer" 
+                    : "text-volt text-glow-volt"
+                )}>
+                  {formatTime(timeRemaining)}
                 </span>
-              )}
-            </div>
-          )}
-          
-          {/* Phase Title */}
-          <h2 className="text-2xl font-black text-foreground mb-2 uppercase tracking-wider text-center">
-            {isPreparation ? 'GET READY' : currentSegment?.name || 'WORK'}
-          </h2>
-
-          {/* 2x XP Championship Indicator */}
-          {!isPreparation && currentSegment?.cumulativeRound && currentSegment.cumulativeRound > 10 && isBoxingSegment(currentSegment) && (
-            <div className="flex items-center gap-1.5 mb-2 px-3 py-1 rounded-full bg-volt/20 border border-volt/40">
-              <Zap className="w-3.5 h-3.5 text-volt" />
-              <span className="text-xs font-black text-volt uppercase tracking-wider">2x XP — Championship Round</span>
-            </div>
-          )}
-
-
-          {/* Timer */}
-          <span className="timer-display text-8xl font-black text-volt text-glow-volt mb-2">
-            {formatTime(timeRemaining)}
-          </span>
+              </>
+            );
+          })()}
 
           {/* Segment Type */}
           <div className="flex items-center gap-2 mb-6">
