@@ -1069,13 +1069,13 @@ const WorkoutSession = () => {
             {xpBubble && (
               <div 
                 key={xpBubble.id}
-                className="absolute right-full mr-2 top-1/2 -translate-y-1/2 text-volt font-bold text-sm whitespace-nowrap animate-xp-bubble"
+                className={cn("absolute right-full mr-2 top-1/2 -translate-y-1/2 font-bold text-sm whitespace-nowrap animate-xp-bubble", `text-${accentColor}`)}
               >
                 +{xpBubble.amount} XP
               </div>
             )}
             <div className="flex items-center gap-2">
-              <span className="timer-display text-2xl font-black text-volt/60">
+              <span className={cn("timer-display text-2xl font-black", `text-${accentColor}/60`)}>
                 {formatTimeCompact(totalElapsed)}
               </span>
             </div>
