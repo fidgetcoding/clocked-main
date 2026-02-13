@@ -3,11 +3,16 @@ import { ArrowLeft, LogOut, Volume2, Timer, Shield } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Switch } from '@/components/ui/switch';
+import { Button } from '@/components/ui/button';
 import { useUserStore } from '@/stores/userStore';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUserRole } from '@/hooks/useUserRole';
+import { useProfile } from '@/hooks/useProfile';
 import { toast } from 'sonner';
 import { useAppVersion } from '@/hooks/useAppVersion';
+import { LevelUpOverlay } from '@/components/ui/LevelUpOverlay';
+import { PrestigePrompt } from '@/components/workout/PrestigePrompt';
+import { Prestige } from '@/lib/xpSystem';
 
 const Settings = () => {
   const navigate = useNavigate();
@@ -17,8 +22,11 @@ const Settings = () => {
   const { signOut } = useAuth();
   const { data: version } = useAppVersion();
   const { isAdmin } = useUserRole();
+  const { profile, updateProfile } = useProfile();
   
   const [isSigningOut, setIsSigningOut] = useState(false);
+  const [showLevelUpOverlay, setShowLevelUpOverlay] = useState(false);
+  const [showPrestigePrompt, setShowPrestigePrompt] = useState(false);
 
   const handleSignOut = async () => {
     setIsSigningOut(true);
@@ -160,11 +168,52 @@ const Settings = () => {
             </button>
           )}
 
+          {/* Admin Tools */}
+          {isAdmin && (
+            <div className="card-workout border border-volt/20 space-y-2">
+              <p className="text-xs font-bold text-volt uppercase tracking-wider">⚡ Admin Tools</p>
+              <div className="flex gap-2">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setShowLevelUpOverlay(true)}
+                  className="flex-1 text-xs bg-surface-2 border-surface-3"
+                >
+                  🎮 Level Up Animation
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setShowPrestigePrompt(true)}
+                  className="flex-1 text-xs bg-surface-2 border-surface-3"
+                >
+                  🏆 Prestige Prompt
+                </Button>
+              </div>
+            </div>
+          )}
+
           {/* Version */}
           <div className="text-center text-xs text-muted-foreground pt-4">
             v{version || '1.0'}
           </div>
         </div>
+
+        {/* Level Up Overlay (admin test) */}
+        {showLevelUpOverlay && (
+          <LevelUpOverlay level={profile?.current_level || 1} onComplete={() => setShowLevelUpOverlay(false)} />
+        )}
+
+        {/* Prestige Prompt (admin test) */}
+        {showPrestigePrompt && (
+          <div className="fixed inset-0 z-50">
+            <PrestigePrompt
+              currentPrestige={(profile?.prestige || 'beginner') as Prestige}
+              onPrestige={() => setShowPrestigePrompt(false)}
+              onDefer={() => setShowPrestigePrompt(false)}
+            />
+          </div>
+        )}
       </div>
     </AppLayout>
   );
