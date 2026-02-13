@@ -1084,19 +1084,48 @@ const WorkoutSession = () => {
                 </h2>
 
 
-                {/* Timer */}
-                <span className={cn(
-                  "timer-display text-8xl font-black mb-2",
-                  isChampionship 
-                    ? "text-championship-gold animate-gold-shimmer" 
-                    : "text-volt text-glow-volt"
-                )}>
-                  {formatTime(timeRemaining)}
-                </span>
-
-                {/* Combo XP Pop — floats above timer */}
-                <div className="relative h-0 w-full flex justify-center">
-                  <ComboXPPop pop={comboXPPop} className="bottom-2" />
+                {/* Timer with 270° arc ring */}
+                <div className="relative flex items-center justify-center" style={{ width: 220, height: 220 }}>
+                  {/* SVG Arc Ring — 270° starting from bottom-left, sweeping clockwise */}
+                  <svg className="absolute inset-0 -rotate-[225deg]" viewBox="0 0 220 220">
+                    {/* Background track */}
+                    <circle
+                      cx="110" cy="110" r="100"
+                      fill="none"
+                      stroke="hsl(var(--surface-3))"
+                      strokeWidth="4"
+                      strokeDasharray={`${2 * Math.PI * 100 * 0.75} ${2 * Math.PI * 100 * 0.25}`}
+                      strokeLinecap="round"
+                    />
+                    {/* Progress arc */}
+                    <circle
+                      cx="110" cy="110" r="100"
+                      fill="none"
+                      stroke={isChampionship ? 'hsl(var(--championship-gold))' : 'hsl(var(--electric-volt))'}
+                      strokeWidth="4"
+                      strokeDasharray={`${2 * Math.PI * 100 * 0.75} ${2 * Math.PI * 100 * 0.25}`}
+                      strokeDashoffset={(() => {
+                        const segDuration = isPreparation ? 10 : (currentSegment?.duration || 1);
+                        const progress = Math.min(1, Math.max(0, timeRemaining / segDuration));
+                        return 2 * Math.PI * 100 * 0.75 * (1 - progress);
+                      })()}
+                      strokeLinecap="round"
+                      className="transition-all duration-300 ease-linear"
+                    />
+                  </svg>
+                  {/* Timer text centered */}
+                  <span className={cn(
+                    "timer-display text-7xl font-black",
+                    isChampionship 
+                      ? "text-championship-gold animate-gold-shimmer" 
+                      : "text-volt text-glow-volt"
+                  )}>
+                    {formatTime(timeRemaining)}
+                  </span>
+                  {/* Combo XP Pop — floats above timer */}
+                  <div className="absolute -top-2 left-1/2 -translate-x-1/2">
+                    <ComboXPPop pop={comboXPPop} />
+                  </div>
                 </div>
               </>
             );
@@ -1349,13 +1378,6 @@ const WorkoutSession = () => {
             <p className="text-[10px] text-center text-muted-foreground mt-1">
               {Math.round(progressPercent)}% COMPLETE
             </p>
-            {/* Horizontal XP bar — ticks in real-time */}
-            <TimerXPBar 
-              prestige={(profile?.prestige || 'beginner') as Prestige}
-              level={liveLevel}
-              totalXP={(profile?.total_xp || 0) + currentXP}
-              className="mt-2"
-            />
           </div>
 
           {/* Controls */}
