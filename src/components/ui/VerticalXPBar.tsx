@@ -100,7 +100,7 @@ export function VerticalXPBar({ prestige, level, totalXP, className, badgeStats,
       </div>
       
       {/* Current level at bottom */}
-      <span className={cn("text-[10px] font-bold", isChampionship ? "text-championship-gold" : isCooldown ? "text-cooldown-blue" : "text-volt")}>
+      <span className="text-[10px] font-bold text-muted-foreground">
         Lvl {level}
       </span>
     </div>
