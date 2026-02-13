@@ -19,7 +19,7 @@ import {
 import clockedTextLogo from '@/assets/clocked-text-logo.png';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { useWorkouts } from '@/hooks/useWorkouts';
-import { usePresetSeeding } from '@/hooks/usePresetSeeding';
+
 import { useUserStore } from '@/stores/userStore';
 import { Button } from '@/components/ui/button';
 import { SortableWorkoutCard } from '@/components/SortableWorkoutCard';
@@ -43,8 +43,6 @@ const Index = () => {
   const [isReorderMode, setIsReorderMode] = useState(false);
   const [localWorkouts, setLocalWorkouts] = useState<typeof workouts | null>(null);
 
-  // Seed presets for new users (runs once per user)
-  usePresetSeeding();
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
