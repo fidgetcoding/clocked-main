@@ -21,7 +21,6 @@ export interface UserProfile {
     doubleEndBag: boolean;
     jumpRope: boolean;
     treadmill: boolean;
-    weights: boolean;
     primaryBag?: 'heavy' | 'double_end' | 'none';
   };
   goals?: Array<'learn_boxing' | 'get_fit' | 'competition' | 'home_workout' | 'supplement_training'>;
