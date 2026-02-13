@@ -1,39 +1,22 @@
 
 
-## Fix: Make the 270-degree Arc Pulse Visibly During Countdown
+## Remove "2x XP" Badge from Championship Rounds Banner
 
-### Problem
-1. The glow circle uses Tailwind's default `pulse` keyframe which oscillates CSS opacity between 1 and 0.5. Combined with the SVG `opacity="0.3"` attribute, the actual visible range is only 0.15-0.3 -- nearly invisible.
-2. The arc has no CSS transition on its stroke properties, so the countdown appears to "jump" rather than smoothly animate.
+### Change
 
-### Solution
+**File: `src/pages/WorkoutSession.tsx` (line 1119)**
 
-**File: `src/pages/WorkoutSession.tsx` (lines 1152-1154)**
+Remove the `<span>` element that displays "2x XP" from the Championship Rounds banner. The banner will keep the two lightning bolt icons and the "Championship Rounds" text.
 
-1. Remove the inline `opacity="0.3"` from the glow circle and instead drive the pulse entirely through a CSS animation with a more visible opacity range (e.g., 0.2 to 0.6).
-2. Add a CSS `transition` style to the filled arc circles so `strokeDasharray` interpolates smoothly as `timeRemaining` ticks down.
-
-**File: `tailwind.config.ts`**
-
-Add a new keyframe `arc-glow-pulse` that animates opacity between 0.2 and 0.6 (visible range):
-
+**Before:**
 ```
-"arc-glow-pulse": {
-  "0%, 100%": { opacity: "0.2" },
-  "50%": { opacity: "0.55" },
-}
+<Zap /> CHAMPIONSHIP ROUNDS [2× XP] <Zap />
 ```
 
-And register the animation:
+**After:**
 ```
-"arc-glow-pulse": "arc-glow-pulse 2s ease-in-out infinite"
+<Zap /> CHAMPIONSHIP ROUNDS <Zap />
 ```
 
-### Changes
-
-**tailwind.config.ts** -- add `arc-glow-pulse` keyframe and animation entry.
-
-**src/pages/WorkoutSession.tsx** (lines 1152-1154):
-- Glow circle (line 1153): Remove `opacity="0.3"`, replace `className="animate-[pulse_2s_ease-in-out_infinite]"` with `className="animate-arc-glow-pulse"`.
-- Both filled circles (lines 1153-1154): Add `style={{ transition: 'stroke-dasharray 0.3s linear' }}` so the arc animates smoothly each tick.
+This is a single line deletion -- no other files are affected.
 
