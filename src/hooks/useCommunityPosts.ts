@@ -74,7 +74,7 @@ export function useCommunityPosts(filter: 'all' | 'following' = 'all', destinati
       if (userIds.length === 0) return [];
 
       const { data: profiles } = await supabase
-        .from('profiles')
+        .from('profiles_public')
         .select('user_id, name, avatar_url')
         .in('user_id', userIds);
 
