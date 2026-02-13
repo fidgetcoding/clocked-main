@@ -1148,7 +1148,7 @@ const WorkoutSession = () => {
                     <>
                       {currentSegment?.name || 'WORK'}
                       {isChampionship && (
-                        <span className="text-championship-gold/70"> / DOUBLE XP</span>
+                        <span className="text-championship-gold/70"> / 2XP</span>
                       )}
                     </>
                   )}
