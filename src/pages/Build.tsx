@@ -178,7 +178,7 @@ const Build = () => {
   const [shareDestination, setShareDestination] = useState<'feed' | 'club'>('feed');
   const [shareTags, setShareTags] = useState<string[]>([]);
   const [shareClubId, setShareClubId] = useState<string | null>(null);
-  const [expandedLibraries, setExpandedLibraries] = useState<Set<string>>(new Set());
+  const [expandedLibraries, setExpandedLibraries] = useState<Map<string, boolean>>(new Map());
   
   const shareWorkout = useShareWorkout();
   const { myMemberships, clubs } = useClubs();
@@ -828,12 +828,12 @@ const Build = () => {
                           const libraryEntries = segmentLibrary || [];
                           
                           const libraryKey = `${phase.id}-${segIdx}`;
-                          const isLibraryExpanded = expandedLibraries.has(libraryKey);
+                          const explicitState = expandedLibraries.get(libraryKey);
+                          const isLibraryExpanded = explicitState !== undefined ? explicitState : libraryEntries.length <= 3;
                           const toggleLibrary = () => {
                             setExpandedLibraries(prev => {
-                              const next = new Set(prev);
-                              if (next.has(libraryKey)) next.delete(libraryKey);
-                              else next.add(libraryKey);
+                              const next = new Map(prev);
+                              next.set(libraryKey, !isLibraryExpanded);
                               return next;
                             });
                           };
@@ -861,7 +861,7 @@ const Build = () => {
                                     setShowComboBuilder(true);
                                   }
                                   // Auto-expand when adding
-                                  setExpandedLibraries(prev => new Set(prev).add(libraryKey));
+                                  setExpandedLibraries(prev => { const next = new Map(prev); next.set(libraryKey, true); return next; });
                                 }}
                                 className="text-xs font-medium text-volt hover:text-volt/80 flex items-center gap-1"
                               >
