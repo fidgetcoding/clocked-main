@@ -125,6 +125,11 @@ export default {
           "0%": { transform: "translateY(0)", opacity: "1" },
           "100%": { transform: "translateY(-30px)", opacity: "0" },
         },
+        "combo-xp-pop": {
+          "0%": { transform: "translateY(0)", opacity: "0.9" },
+          "50%": { opacity: "0.7" },
+          "100%": { transform: "translateY(-24px)", opacity: "0" },
+        },
         "gold-shimmer": {
           "0%, 100%": { textShadow: "0 0 10px hsl(43 96% 56% / 0.6), 0 0 20px hsl(43 96% 56% / 0.3)" },
           "50%": { textShadow: "0 0 20px hsl(43 96% 56% / 0.8), 0 0 40px hsl(43 96% 56% / 0.4)" },
@@ -174,6 +179,7 @@ export default {
         "fade-in": "fade-in 0.2s ease-out",
         "scale-in": "scale-in 0.2s ease-out",
         "xp-bubble": "xp-bubble 2s ease-out forwards",
+        "combo-xp-pop": "combo-xp-pop 1.2s ease-out forwards",
         "gold-shimmer": "gold-shimmer 2s ease-in-out infinite",
         // Metaball blob animations
         "blob-1": "blob-1 18s ease-in-out infinite",
