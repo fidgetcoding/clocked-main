@@ -1223,7 +1223,7 @@ const WorkoutSession = () => {
           {/* END Layer 1 — timer group is now self-contained */}
 
           {/* Layer 2: absolute, lower portion only — combo/UP NEXT cards */}
-          <div className="absolute left-4 right-4 bottom-0 flex flex-col items-center justify-end pointer-events-none" style={{ top: '70%' }}>
+          <div className="absolute left-4 right-4 flex flex-col items-center justify-start pointer-events-none" style={{ top: '80%' }}>
             <div className="pointer-events-auto w-full flex flex-col items-center">
           {/* Rest Screen - Clean Next Preview */}
           {isRestSegment && (
