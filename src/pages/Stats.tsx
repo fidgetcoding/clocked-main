@@ -225,12 +225,7 @@ const Stats = () => {
                   <Trophy className="w-8 h-8 text-volt" />
                 </div>
               <div className="flex-1">
-                  <div className="flex items-center justify-between">
                     <p className="text-sm text-muted-foreground">Current Status</p>
-                    <span className="text-xs font-bold text-volt uppercase tracking-wide">
-                      {PRESTIGE_NAMES[prestige]}
-                    </span>
-                  </div>
                   <PrestigeDisplay 
                     prestige={prestige}
                     ranking={ranking}
