@@ -1118,9 +1118,9 @@ const WorkoutSession = () => {
         )}
 
         {/* Main Timer — middle area between top bar and bottom bar */}
-        <div className="flex-1 flex flex-col px-4">
+        <div className="flex-1 relative px-4">
           {/* Layer 1: Fixed, vertically centered — phase name, timer, segment, time buttons */}
-          <div className="flex flex-col items-center justify-center" style={{ flex: '1 0 0' }}>
+          <div className="absolute inset-0 flex flex-col items-center justify-center px-4">
                 {/* Phase Name — context of where you are */}
                 {isPreparation ? (
                   <p className="text-xs text-muted-foreground uppercase tracking-widest mb-2">GET READY</p>
@@ -1221,8 +1221,8 @@ const WorkoutSession = () => {
           </div>
           </div>
 
-          {/* Layer 2: Card zone — takes equal share of space below timer, card centered within */}
-          <div className="flex flex-col items-center justify-center" style={{ flex: '1 0 0' }}>
+          {/* Layer 2: Floating card zone — positioned at bottom of middle area, no layout impact on Layer 1 */}
+          <div className="absolute inset-x-4 flex flex-col items-center justify-center" style={{ top: '55%', bottom: 0 }}>
           {/* Rest Screen - Clean Next Preview */}
           {isRestSegment && (
             <div className={cn("w-full max-w-xs rounded-xl p-3 border", isChampionship ? "bg-championship-gold/5 border-championship-gold/30" : isCooldown ? "bg-cooldown-blue/5 border-cooldown-blue/30" : "bg-surface-1 border-surface-3")}>
