@@ -230,18 +230,7 @@ const Settings = () => {
             </button>
           )}
 
-          {/* Regen Loadout — available to all users */}
-          <div className="card-workout">
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={handleRegenerateLoadout}
-              disabled={isRegenerating}
-              className="w-full text-xs bg-surface-2 border-surface-3"
-            >
-              {isRegenerating ? '⏳ ...' : '🔄 Regen Loadout'}
-            </Button>
-          </div>
+
 
           {/* Admin Tools */}
           {isAdmin && (
