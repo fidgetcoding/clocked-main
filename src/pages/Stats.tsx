@@ -347,6 +347,9 @@ const Stats = () => {
             )}
           </div>
 
+          {/* Road to BMFK */}
+          <RoadToBMF prestige={prestige} level={currentLevel} totalSessions={workoutsCompleted} longestStreak={longestStreak} />
+
           {/* Ranking Ladder */}
           <div className="card-workout">
             <div className="flex items-center justify-between mb-4">
@@ -395,10 +398,7 @@ const Stats = () => {
             </div>
           </div>
         </div>
-          </div>
-
-          {/* Road to BMF */}
-          <RoadToBMF prestige={prestige} level={currentLevel} totalSessions={workoutsCompleted} longestStreak={longestStreak} />
+      </div>
     </AppLayout>
   );
 };

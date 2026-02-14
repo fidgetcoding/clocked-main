@@ -47,7 +47,7 @@ export function RoadToBMF({ prestige, level, totalSessions, longestStreak }: Roa
   return (
     <div className="card-workout space-y-3">
       <div className="flex items-center justify-between">
-        <h3 className="text-sm font-bold text-muted-foreground uppercase tracking-wider">Road to BMF</h3>
+        <h3 className="text-sm font-bold text-muted-foreground uppercase tracking-wider">Road to BMFK</h3>
         <span className="text-xs font-black text-volt">{overallPercent}%</span>
       </div>
 
@@ -68,7 +68,7 @@ export function RoadToBMF({ prestige, level, totalSessions, longestStreak }: Roa
               )}>
                 {TIER_LABELS[tier]}
               </span>
-              <div className={cn("flex-1 h-3 rounded-full overflow-hidden", colors.bg)}>
+              <div className={cn("flex-1 h-3 rounded-full overflow-hidden", isFuture ? 'bg-surface-2' : colors.bg)}>
                 <div
                   className={cn(
                     "h-full rounded-full transition-all duration-700 ease-out",
