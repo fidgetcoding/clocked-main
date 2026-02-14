@@ -975,11 +975,34 @@ const FightClub = () => {
                       <button
                         key={preset.id}
                         onClick={() => {
-                          // Navigate to workout session with one-off loadout
-                          navigate('/workout/oneoff', { state: { 
-                            oneOffLoadout: preset.generatedLoadout,
-                            workoutName: preset.name,
-                          }});
+                          // Convert tier preset to TrendingWorkout for the preview modal
+                          const loadout = preset.generatedLoadout;
+                          const phases = loadout.phases || [];
+                          const sections = {
+                            warmup: phases.filter((p: any) => p.section === 'warmup').map(({ section, ...rest }: any) => rest),
+                            grind: phases.filter((p: any) => p.section === 'grind').map(({ section, ...rest }: any) => rest),
+                            cooldown: phases.filter((p: any) => p.section === 'cooldown').map(({ section, ...rest }: any) => rest),
+                          };
+                          const asTrending: TrendingWorkout = {
+                            id: preset.id,
+                            name: preset.name,
+                            icon: '🥊',
+                            difficulty: preset.tier as any,
+                            totalDuration: loadout.duration,
+                            isPreset: true,
+                            isArchived: false,
+                            createdAt: new Date(preset.created_at),
+                            timesCompleted: 0,
+                            sections,
+                            combos: loadout.combos,
+                            tags: loadout.tags || [],
+                            author: 'Nate',
+                            authorHandle: '@nate',
+                            rating: 5.0,
+                            ratingCount: preset.userCount,
+                            downloads: preset.userCount,
+                          };
+                          setSelectedWorkout(asTrending);
                         }}
                         className="card-workout w-full text-left"
                       >
