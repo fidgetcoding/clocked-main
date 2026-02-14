@@ -167,7 +167,7 @@ export const LiveStreamModal = ({
   };
 
   return (
-    <div ref={containerRef} className="fixed inset-0 z-50 bg-black flex flex-col overflow-hidden">
+    <div ref={containerRef} className="fixed inset-0 z-[60] bg-black flex flex-col overflow-hidden">
       {/* Video Area */}
       <div className={cn(
         "relative bg-gradient-to-br from-surface-1 to-surface-2 flex items-center justify-center flex-shrink-0",
