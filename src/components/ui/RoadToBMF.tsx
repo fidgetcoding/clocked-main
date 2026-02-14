@@ -1,5 +1,5 @@
 import { cn } from '@/lib/utils';
-import { Prestige, PRESTIGE_NAMES, PRESTIGE_ORDER } from '@/lib/xpSystem';
+import { Prestige, PRESTIGE_ORDER } from '@/lib/xpSystem';
 import { Trophy, Flame } from 'lucide-react';
 
 interface RoadToBMFProps {
@@ -9,6 +9,14 @@ interface RoadToBMFProps {
   longestStreak: number;
 }
 
+const TIER_LABELS: Record<Prestige, string> = {
+  rookie: 'ROOK',
+  beginner: 'BEG',
+  intermediate: 'INT',
+  advanced: 'ADV',
+  pro: 'PRO',
+};
+
 const TIER_COLORS: Record<Prestige, { bg: string; fill: string; text: string }> = {
   rookie: { bg: 'bg-slate-700', fill: 'bg-slate-400', text: 'text-slate-400' },
   beginner: { bg: 'bg-volt/20', fill: 'bg-volt', text: 'text-volt' },
@@ -17,25 +25,30 @@ const TIER_COLORS: Record<Prestige, { bg: string; fill: string; text: string }> 
   pro: { bg: 'bg-amber-500/20', fill: 'bg-amber-400', text: 'text-amber-400' },
 };
 
-// BMF = 250 sessions, BMFK = 365 consecutive days
 const BMF_SESSIONS = 250;
 const BMFK_STREAK = 365;
 
 export function RoadToBMF({ prestige, level, totalSessions, longestStreak }: RoadToBMFProps) {
   const currentIdx = PRESTIGE_ORDER.indexOf(prestige);
 
-  // BMF progress: sessions toward 250
   const bmfPercent = Math.min(100, (totalSessions / BMF_SESSIONS) * 100);
   const bmfDone = totalSessions >= BMF_SESSIONS;
-
-  // BMFK progress: longest streak toward 365
   const bmfkPercent = Math.min(100, (longestStreak / BMFK_STREAK) * 100);
   const bmfkDone = longestStreak >= BMFK_STREAK;
+
+  // Overall completion: 5 tier bars + BMF + BMFK = 7 equal parts
+  const tierProgress = PRESTIGE_ORDER.reduce((sum, _tier, idx) => {
+    if (idx < currentIdx) return sum + 100;
+    if (idx === currentIdx) return sum + Math.min(level, 100);
+    return sum;
+  }, 0);
+  const overallPercent = Math.round((tierProgress + bmfPercent + bmfkPercent) / 7);
 
   return (
     <div className="card-workout space-y-3">
       <div className="flex items-center justify-between">
         <h3 className="text-sm font-bold text-muted-foreground uppercase tracking-wider">Road to BMF</h3>
+        <span className="text-xs font-black text-volt">{overallPercent}%</span>
       </div>
 
       {/* Tier progress bars */}
@@ -53,7 +66,7 @@ export function RoadToBMF({ prestige, level, totalSessions, longestStreak }: Roa
                 "text-[10px] font-bold uppercase w-10 text-right tracking-wide",
                 isActive ? colors.text : isCompleted ? 'text-muted-foreground' : 'text-surface-3'
               )}>
-                {PRESTIGE_NAMES[tier].slice(0, 4)}
+                {TIER_LABELS[tier]}
               </span>
               <div className={cn("flex-1 h-3 rounded-full overflow-hidden", colors.bg)}>
                 <div
@@ -83,7 +96,7 @@ export function RoadToBMF({ prestige, level, totalSessions, longestStreak }: Roa
         <div className="h-px flex-1 bg-surface-3" />
       </div>
 
-      {/* BMF bar — 250 sessions */}
+      {/* BMF + BMFK */}
       <div className="space-y-2">
         <div className="flex items-center gap-2">
           <span className={cn(
@@ -113,7 +126,6 @@ export function RoadToBMF({ prestige, level, totalSessions, longestStreak }: Roa
           250 total sessions — Baddest MF
         </p>
 
-        {/* BMFK bar — 365 consecutive days */}
         <div className="flex items-center gap-2 mt-1">
           <span className={cn(
             "text-[10px] font-bold uppercase w-10 text-right tracking-wide",
