@@ -1,19 +1,28 @@
 import { useEffect } from 'react';
 import { playSoundEffect } from '@/hooks/useSoundEffects';
 
+type LevelUpVariant = 'volt' | 'cooldown' | 'championship';
+
 interface LevelUpOverlayProps {
   level: number;
   onComplete: () => void;
+  variant?: LevelUpVariant;
 }
 
-export function LevelUpOverlay({ level, onComplete }: LevelUpOverlayProps) {
-  useEffect(() => {
-    // Play the level-up celebration sound
-    playSoundEffect.levelUp();
+const variantColors: Record<LevelUpVariant, string> = {
+  volt: 'hsl(var(--electric-volt))',
+  cooldown: 'hsl(var(--cooldown-blue))',
+  championship: 'hsl(var(--championship-gold))',
+};
 
+export function LevelUpOverlay({ level, onComplete, variant = 'volt' }: LevelUpOverlayProps) {
+  useEffect(() => {
+    playSoundEffect.levelUp();
     const timer = setTimeout(onComplete, 2500);
     return () => clearTimeout(timer);
   }, [onComplete]);
+
+  const bg = variantColors[variant];
 
   return (
     <div 
@@ -23,11 +32,11 @@ export function LevelUpOverlay({ level, onComplete }: LevelUpOverlayProps) {
         background: 'transparent',
       }}
     >
-      {/* Volt flash overlay */}
+      {/* Flash overlay */}
       <div 
         className="absolute inset-0"
         style={{
-          background: 'hsl(var(--electric-volt))',
+          background: bg,
           animation: 'level-up-flash 2.5s ease-out forwards',
         }}
       />
