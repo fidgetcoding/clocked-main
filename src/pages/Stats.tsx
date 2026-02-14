@@ -20,6 +20,7 @@ import {
 } from '@/lib/xpSystem';
 import { PrestigeAvailableBanner, PrestigePrompt } from '@/components/workout/PrestigePrompt';
 import { cn } from '@/lib/utils';
+import { RoadToBMF } from '@/components/ui/RoadToBMF';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, parseISO, getDay } from 'date-fns';
 
 interface StatCardProps {
@@ -315,6 +316,9 @@ const Stats = () => {
             </div>
           </div>
 
+
+          {/* Road to BMF */}
+          <RoadToBMF prestige={prestige} level={currentLevel} />
 
           {/* Calendar Heatmap */}
           <WorkoutCalendar workoutDates={workoutDates} />
