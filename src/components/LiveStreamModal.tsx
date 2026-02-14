@@ -167,9 +167,12 @@ export const LiveStreamModal = ({
   };
 
   return (
-    <div ref={containerRef} className="fixed inset-0 z-50 bg-black flex flex-col">
+    <div ref={containerRef} className="fixed inset-0 z-50 bg-black flex flex-col overflow-hidden">
       {/* Video Area */}
-      <div className="relative flex-1 min-h-0 bg-gradient-to-br from-surface-1 to-surface-2 flex items-center justify-center">
+      <div className={cn(
+        "relative bg-gradient-to-br from-surface-1 to-surface-2 flex items-center justify-center flex-shrink-0",
+        showChat ? "h-[40%]" : "flex-1"
+      )}>
         {/* Close Button */}
         <button 
           onClick={onClose}
@@ -250,7 +253,7 @@ export const LiveStreamModal = ({
 
       {/* Chat Section */}
       {showChat && (
-        <div className="h-[35%] bg-surface-1 border-t border-surface-3 flex flex-col">
+        <div className="flex-1 bg-surface-1 border-t border-surface-3 flex flex-col min-h-0">
           <div className="px-4 py-2 border-b border-surface-3">
             <h3 className="font-semibold text-foreground text-sm">Live Chat</h3>
           </div>
