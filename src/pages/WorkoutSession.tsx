@@ -1053,10 +1053,7 @@ const WorkoutSession = () => {
   // Active workout screen
   return (
     <AppLayout hideNav>
-      <div className={cn(
-        'min-h-screen flex flex-col',
-        currentSegment?.type === 'rest' && !isPreparation ? 'bg-surface-1' : 'bg-background'
-      )}>
+      <div className="min-h-screen flex flex-col bg-background">
         {/* Top Bar */}
         <header className="flex items-start justify-between px-4 py-3 safe-top">
           {/* Left side - home and restart buttons */}
