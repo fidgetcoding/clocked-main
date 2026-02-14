@@ -176,7 +176,7 @@ const Stats = () => {
   const progressStats = [
     { id: 'xp', icon: Zap, label: 'Total XP', value: totalXP.toLocaleString(), color: 'text-muted-foreground', change: changes.xp },
     { id: 'workouts', icon: Trophy, label: 'Workouts', value: workoutsCompleted.toString(), color: 'text-muted-foreground', change: changes.workouts, onClick: () => navigate('/history') },
-    { id: 'streak', icon: Flame, label: 'Current Streak', value: `${currentStreak} days`, color: 'text-muted-foreground', change: null },
+    { id: 'streak', icon: Flame, label: 'Current Streak', value: `${currentStreak}d`, color: 'text-muted-foreground', change: null },
   ];
 
   // Training stats
@@ -339,11 +339,11 @@ const Stats = () => {
             <div className="flex items-center justify-between mb-2">
               <div>
                 <p className="text-sm text-muted-foreground">Current Streak</p>
-                <p className="text-xl font-bold text-foreground">{currentStreak} days</p>
+                <p className="text-xl font-bold text-foreground">{currentStreak}d</p>
               </div>
               <div className="text-right">
                 <p className="text-sm text-muted-foreground">Best Ever</p>
-                <p className="text-xl font-bold text-volt">{longestStreak} days</p>
+                <p className="text-xl font-bold text-volt">{longestStreak}d</p>
               </div>
             </div>
             {/* Streak multiplier indicator */}
