@@ -15,5 +15,5 @@ export interface TrendingWorkout extends Workout {
 // No more static trending workouts — they come from tier_presets DB table
 export const TRENDING_WORKOUTS: TrendingWorkout[] = [];
 
-export const WORKOUT_CATEGORIES = ['All', 'Boxing', 'HIIT', 'Conditioning', 'Beginner', 'Advanced', 'Cardio'] as const;
+export const WORKOUT_CATEGORIES = ['All', 'Boxing', 'HIIT', 'Conditioning', 'Rookie', 'Beginner', 'Intermediate', 'Advanced', 'Pro', 'Cardio'] as const;
 export type WorkoutCategory = typeof WORKOUT_CATEGORIES[number];
