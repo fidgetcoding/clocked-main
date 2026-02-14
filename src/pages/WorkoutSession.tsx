@@ -1086,7 +1086,7 @@ const WorkoutSession = () => {
     <AppLayout hideNav>
       <div className="min-h-screen flex flex-col bg-background">
         {/* Top Bar */}
-        <header className="flex items-start justify-between px-4 py-3 safe-top">
+        <header className="flex items-start justify-between px-4 py-3 safe-top relative z-10">
           {/* Left side - home and restart buttons */}
           <div className="flex items-center gap-2">
             <button 
