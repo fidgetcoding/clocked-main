@@ -141,23 +141,17 @@ export const WorkoutPreviewModal = ({ workout, onClose, onSave, onCustomize }: W
           {/* Stats Row */}
           <div className="grid grid-cols-3 gap-3">
             <div className="bg-surface-2 rounded-xl p-3 text-center">
-              <Clock className="w-5 h-5 text-volt mx-auto mb-1" />
-              <p className="text-sm font-semibold text-foreground">{formatDuration(workout.totalDuration)}</p>
+              <p className="text-lg font-bold text-foreground">{formatDuration(workout.totalDuration)}</p>
               <p className="text-xs text-muted-foreground">Duration</p>
             </div>
             <div className="bg-surface-2 rounded-xl p-3 text-center">
-              <p className="text-lg font-bold text-volt">{totalRounds}</p>
+              <p className="text-lg font-bold text-foreground">{totalRounds}</p>
               <p className="text-xs text-muted-foreground">Rounds</p>
             </div>
             <div className="bg-surface-2 rounded-xl p-3 text-center">
-              <span className={cn(
-                'text-sm font-semibold',
-                workout.difficulty === 'beginner' ? 'text-volt' :
-                workout.difficulty === 'intermediate' ? 'text-yellow-500' :
-                'text-alert-red'
-              )}>
+              <p className="text-lg font-bold text-foreground">
                 {workout.difficulty.charAt(0).toUpperCase() + workout.difficulty.slice(1)}
-              </span>
+              </p>
               <p className="text-xs text-muted-foreground">Difficulty</p>
             </div>
           </div>
