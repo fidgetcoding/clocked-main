@@ -43,7 +43,7 @@ export function BadgeEarnOverlay({ badge, onComplete }: BadgeEarnOverlayProps) {
     >
       {/* Dimmed backdrop */}
       <div
-        className="absolute inset-0 bg-background/80"
+        className="absolute inset-0 bg-background/95"
         style={{
           opacity: phase === 'exit' ? 0 : 1,
           transition: 'opacity 0.5s ease-out',
