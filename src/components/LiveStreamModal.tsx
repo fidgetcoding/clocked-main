@@ -169,7 +169,7 @@ export const LiveStreamModal = ({
   return (
     <div ref={containerRef} className="fixed inset-0 z-50 bg-black flex flex-col">
       {/* Video Area */}
-      <div className="relative flex-1 bg-gradient-to-br from-surface-1 to-surface-2 flex items-center justify-center">
+      <div className="relative flex-1 min-h-0 bg-gradient-to-br from-surface-1 to-surface-2 flex items-center justify-center">
         {/* Close Button */}
         <button 
           onClick={onClose}
@@ -205,57 +205,57 @@ export const LiveStreamModal = ({
             Live video streaming coming soon. For now, enjoy the live chat!
           </p>
         </div>
+      </div>
 
-        {/* Controls Overlay */}
-        <div className="absolute bottom-4 left-4 right-4 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <button 
-              onClick={handleMuteToggle}
-              className={cn(
-                "w-10 h-10 rounded-full backdrop-blur-sm flex items-center justify-center transition-colors",
-                isMuted ? "bg-red-500/60 text-white" : "bg-black/50 text-white hover:bg-black/70"
-              )}
-            >
-              {isMuted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
-            </button>
-          </div>
-          <div className="flex items-center gap-2">
-            <button 
-              onClick={() => setShowChat(!showChat)}
-              className="flex items-center gap-2 bg-black/50 backdrop-blur-sm px-4 py-2 rounded-full text-white hover:bg-black/70 transition-colors"
-            >
-              <span className="text-sm font-medium">{showChat ? 'Hide' : 'Show'} Chat</span>
-            </button>
-            <button 
-              onClick={handleFollow}
-              className={cn(
-                "flex items-center gap-2 backdrop-blur-sm px-4 py-2 rounded-full transition-colors",
-                isFollowing 
-                  ? "bg-volt/80 text-primary-foreground" 
-                  : "bg-black/50 text-white hover:bg-black/70"
-              )}
-            >
-              {isFollowing ? <UserCheck className="w-4 h-4" /> : <UserPlus className="w-4 h-4" />}
-              <span className="text-sm font-medium">{isFollowing ? 'Following' : 'Follow'}</span>
-            </button>
-            <button 
-              onClick={toggleFullscreen}
-              className="w-10 h-10 rounded-full bg-black/50 backdrop-blur-sm flex items-center justify-center text-white hover:bg-black/70 transition-colors"
-            >
-              {isFullscreen ? <Minimize2 className="w-5 h-5" /> : <Maximize2 className="w-5 h-5" />}
-            </button>
-          </div>
+      {/* Controls Bar — always visible */}
+      <div className="flex items-center justify-between px-4 py-2 bg-black/80 border-t border-surface-3">
+        <div className="flex items-center gap-2">
+          <button 
+            onClick={handleMuteToggle}
+            className={cn(
+              "w-10 h-10 rounded-full backdrop-blur-sm flex items-center justify-center transition-colors",
+              isMuted ? "bg-red-500/60 text-white" : "bg-surface-2 text-white hover:bg-surface-3"
+            )}
+          >
+            {isMuted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
+          </button>
+        </div>
+        <div className="flex items-center gap-2">
+          <button 
+            onClick={() => setShowChat(!showChat)}
+            className="flex items-center gap-2 bg-surface-2 px-4 py-2 rounded-full text-white hover:bg-surface-3 transition-colors"
+          >
+            <span className="text-sm font-medium">{showChat ? 'Hide' : 'Show'} Chat</span>
+          </button>
+          <button 
+            onClick={handleFollow}
+            className={cn(
+              "flex items-center gap-2 px-4 py-2 rounded-full transition-colors",
+              isFollowing 
+                ? "bg-volt/80 text-primary-foreground" 
+                : "bg-surface-2 text-white hover:bg-surface-3"
+            )}
+          >
+            {isFollowing ? <UserCheck className="w-4 h-4" /> : <UserPlus className="w-4 h-4" />}
+            <span className="text-sm font-medium">{isFollowing ? 'Following' : 'Follow'}</span>
+          </button>
+          <button 
+            onClick={toggleFullscreen}
+            className="w-10 h-10 rounded-full bg-surface-2 flex items-center justify-center text-white hover:bg-surface-3 transition-colors"
+          >
+            {isFullscreen ? <Minimize2 className="w-5 h-5" /> : <Maximize2 className="w-5 h-5" />}
+          </button>
         </div>
       </div>
 
       {/* Chat Section */}
       {showChat && (
-        <div className="h-[40%] bg-surface-1 border-t border-surface-3 flex flex-col">
-          <div className="px-4 py-3 border-b border-surface-3">
+        <div className="h-[35%] bg-surface-1 border-t border-surface-3 flex flex-col">
+          <div className="px-4 py-2 border-b border-surface-3">
             <h3 className="font-semibold text-foreground text-sm">Live Chat</h3>
           </div>
 
-          <div className="flex-1 overflow-y-auto px-4 py-2 space-y-2">
+          <div className="flex-1 overflow-y-auto px-4 py-2 space-y-2 min-h-0">
             {messages.map((msg) => (
               <div 
                 key={msg.id} 
