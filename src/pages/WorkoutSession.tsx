@@ -1117,163 +1117,240 @@ const WorkoutSession = () => {
           <LevelUpOverlay level={levelUpLevel} onComplete={() => setLevelUpLevel(null)} />
         )}
 
-        {/* Main content — absolute zones, NO flexbox redistribution */}
-        <div className="flex-1 relative">
-          {/* Zone A (top 0-5%): Phase name */}
-          <div className="absolute left-4 right-4 flex items-center justify-center" style={{ top: '0%', height: '5%' }}>
-            {isPreparation ? (
-              <p className="text-xs text-muted-foreground uppercase tracking-widest">GET READY</p>
-            ) : isChampionship ? (
-              <div className="flex items-center gap-3 px-5 py-1.5 rounded-full bg-championship-gold/15 border border-championship-gold/40 animate-[pulse_3s_ease-in-out_infinite]">
-                <Zap className="w-4 h-4 text-championship-gold" />
-                <span className="text-xs font-black text-championship-gold uppercase tracking-widest">{currentSegment?.phaseName || 'CHAMPIONSHIP'}</span>
-                <Zap className="w-4 h-4 text-championship-gold" />
-              </div>
-            ) : (
-              <p className={cn("text-xs uppercase tracking-widest", isCooldown ? "text-cooldown-blue/70" : "text-muted-foreground")}>
-                {currentSegment?.phaseName || 'WARMUP'}
-              </p>
-            )}
-          </div>
-
-          {/* Zone B (15%-55%): Timer circle — center at ~35% */}
-          <div className="absolute left-4 right-4 flex items-center justify-center" style={{ top: '15%', height: '40%' }}>
-            <div className="relative w-full flex items-center justify-center">
-              <div className="relative flex items-center justify-center" style={{ width: 280, height: 280 }}>
-                <svg className="absolute inset-0" viewBox="0 0 280 280">
-                  {(() => {
-                    const r = 128;
-                    const circumference = 2 * Math.PI * r;
-                    const arcFrac = 0.75;
-                    const arcLen = circumference * arcFrac;
-                    const gapLen = circumference - arcLen;
-                    const startAngle = 135;
-                    const segDuration = isPreparation ? 10 : (currentSegment?.duration || 1);
-                    const progress = Math.min(1, Math.max(0, timeRemaining / segDuration));
-                    const filledLen = arcLen * progress;
-                    return (
-                      <>
-                        <circle cx="140" cy="140" r={r} fill="none" stroke="hsl(var(--surface-3))" strokeWidth="5" strokeDasharray={`${arcLen} ${gapLen}`} strokeDashoffset={-circumference * (startAngle / 360)} strokeLinecap="round" />
-                        <circle cx="140" cy="140" r={r} fill="none" stroke={accentHsl} strokeWidth="10" strokeDasharray={`${filledLen} ${circumference - filledLen}`} strokeDashoffset={-circumference * (startAngle / 360)} strokeLinecap="round" filter="blur(4px)" className="animate-arc-glow-pulse" style={{ transition: 'stroke-dasharray 0.3s linear' }} />
-                        <circle cx="140" cy="140" r={r} fill="none" stroke={accentHsl} strokeWidth="5" strokeDasharray={`${filledLen} ${circumference - filledLen}`} strokeDashoffset={-circumference * (startAngle / 360)} strokeLinecap="round" style={{ transition: 'stroke-dasharray 0.3s linear' }} />
-                      </>
-                    );
-                  })()}
-                </svg>
-                <span className={cn(
-                  "timer-display text-7xl font-black",
-                  isChampionship ? "text-championship-gold animate-gold-shimmer" : isCooldown ? "text-cooldown-blue" : "text-volt text-glow-volt"
-                )}>
-                  {formatTime(timeRemaining)}
-                </span>
-                <div className="absolute -top-2 left-1/2 -translate-x-1/2">
-                  <ComboXPPop pop={comboXPPop} />
-                </div>
-              </div>
-              <div className="absolute right-0 top-0 bottom-4 flex items-stretch">
-                <VerticalXPBar prestige={profile?.prestige || 'beginner'} level={liveLevel} totalXP={(profile?.total_xp || 0) + currentXP} badgeStats={currentStats} earnedBadgeIds={earnedBadgeIds} isChampionship={isChampionship} isCooldown={isCooldown} />
-              </div>
-            </div>
-          </div>
-
-          {/* Zone C (55%-60%): Segment label */}
-          <div className="absolute left-4 right-4 flex items-center justify-center" style={{ top: '55%', height: '5%' }}>
-            <div className="flex items-center gap-3 whitespace-nowrap w-full">
-              <div className={cn("h-px flex-1 min-w-4", isChampionship ? "bg-championship-gold/40" : isCooldown ? "bg-cooldown-blue/40" : "bg-muted-foreground/30")} />
-              <h2 className={cn(
-                "text-xl font-black uppercase tracking-wider text-center shrink-0",
-                isChampionship ? "text-championship-gold" : isCooldown ? "text-cooldown-blue" : "text-foreground"
-              )}>
-                {isPreparation ? 'PREPARATION' : (
-                  <>
-                    {currentSegment?.name || 'WORK'}
-                    {isChampionship && <span className="text-championship-gold"> / 2XP</span>}
-                  </>
-                )}
-              </h2>
-              <div className={cn("h-px flex-1 min-w-4", isChampionship ? "bg-championship-gold/40" : isCooldown ? "bg-cooldown-blue/40" : "bg-muted-foreground/30")} />
-            </div>
-          </div>
-
-          {/* Zone D (60%-67%): Time adjustment buttons */}
-          <div className="absolute left-4 right-4 flex flex-col items-center justify-center gap-2" style={{ top: '60%', height: '7%' }}>
-            {isChampionship && currentSegment && !isPreparation && (
-              <div className="px-3 py-1 rounded-full bg-championship-gold/20 border border-championship-gold/40">
-                <span className="text-[10px] font-mono font-bold text-championship-gold">
-                  XP/sec: {(getXPPerSecond(currentSegment) * streakMultiplier).toFixed(2)}
-                </span>
-              </div>
-            )}
-            <div className="flex gap-2">
-              {['-30', '-15', '+15', '+30'].map((val) => (
-                <button
-                  key={val}
-                  onClick={() => adjustTime(parseInt(val))}
-                  className="px-3 py-1.5 rounded-full border border-surface-3 text-muted-foreground text-xs font-medium hover:bg-surface-1 transition-colors"
-                >
-                  {val}s
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Zone E (70%-90%): Content card — combo / UP NEXT / empty */}
-          <div className="absolute left-4 right-4 flex items-center justify-center" style={{ top: '70%', height: '20%' }}>
-            {isRestSegment && (
-              <div className={cn("w-full max-w-xs rounded-xl p-3 border", isChampionship ? "bg-championship-gold/5 border-championship-gold/30" : isCooldown ? "bg-cooldown-blue/5 border-cooldown-blue/30" : "bg-surface-1 border-surface-3")}>
-                <p className={cn("text-[10px] uppercase tracking-wider mb-1 text-center", isChampionship ? "text-championship-gold/60" : isCooldown ? "text-cooldown-blue/60" : "text-muted-foreground")}>UP NEXT</p>
-                <p className={cn("text-lg font-black text-center uppercase", isChampionship ? "text-championship-gold" : isCooldown ? "text-cooldown-blue" : "text-foreground")}>
-                  {nextSegment?.name || 'FINISH'}
-                </p>
-              </div>
-            )}
-
-            {isShadowboxing && !isPreparation && (
-              <div className="w-full max-w-xs bg-surface-1 rounded-xl p-3 border border-surface-3">
-                {displayCombo && displayCombo.length > 0 ? (
-                  <>
-                    <p className={cn("text-xs font-bold mb-3 text-center animate-pulse", accentText)}>INCOMING COMBO</p>
-                    <div className="flex items-center justify-center gap-2 flex-wrap">
-                      {displayCombo.map((move, idx) => {
-                        const { display: displayMove } = getDisplayMove(move);
-                        return (
-                          <div key={idx} className="flex items-center gap-1">
-                            <span className={cn('text-2xl font-black', accentText)}>{displayMove}</span>
-                            {idx < displayCombo.length - 1 && <ChevronRight className="w-3 h-3 text-muted-foreground" />}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </>
+        {/* Main Timer — middle area between top bar and bottom bar */}
+        <div className="flex-1 relative px-4">
+          {/* Layer 1: Fixed, vertically centered — phase name, timer, segment, time buttons */}
+          <div className="absolute inset-0 flex flex-col items-center justify-center px-4">
+                {/* Phase Name — context of where you are */}
+                {isPreparation ? (
+                  <p className="text-xs text-muted-foreground uppercase tracking-widest mb-2">GET READY</p>
+                ) : isChampionship ? (
+                  <div className="flex items-center gap-3 mb-2 px-5 py-1.5 rounded-full bg-championship-gold/15 border border-championship-gold/40 animate-[pulse_3s_ease-in-out_infinite]">
+                    <Zap className="w-4 h-4 text-championship-gold" />
+                    <span className="text-xs font-black text-championship-gold uppercase tracking-widest">{currentSegment?.phaseName || 'CHAMPIONSHIP'}</span>
+                    <Zap className="w-4 h-4 text-championship-gold" />
+                  </div>
                 ) : (
-                  <p className={cn("text-2xl font-black text-center", accentText)}>FREESTYLE</p>
+                  <p className={cn(
+                    "text-xs uppercase tracking-widest mb-2",
+                    isCooldown ? "text-cooldown-blue/70" : "text-muted-foreground"
+                  )}>
+                    {currentSegment?.phaseName || 'WARMUP'}
+                  </p>
                 )}
-              </div>
-            )}
-            
-            {!isShadowboxing && displayCombo && displayCombo.length > 0 && !isPreparation && (currentSegment?.segmentType === 'combo' || currentSegment?.segmentType === 'speedbag' || currentSegment?.segmentType === 'doubleend') && (
-              <div className="w-full max-w-xs bg-surface-1 rounded-xl p-3 border border-surface-3">
-                <div className="flex items-center justify-center gap-2 flex-wrap">
-                  {displayCombo.map((move, idx) => {
-                    const { display: displayMove } = getDisplayMove(move);
-                    return (
-                      <div key={idx} className="flex items-center gap-1">
-                        <span className={cn('text-2xl font-black', accentText)}>{displayMove}</span>
-                        {idx < displayCombo.length - 1 && <ChevronRight className="w-3 h-3 text-muted-foreground" />}
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
 
-            {!isShadowboxing && !isPreparation && currentSegment?.type === 'active' && 
-             (currentSegment?.segmentType === 'combo' || currentSegment?.segmentType === 'speedbag' || currentSegment?.segmentType === 'doubleend') &&
-             (!displayCombo || displayCombo.length === 0) && (
-              <div className="w-full max-w-xs bg-surface-1 rounded-xl p-3 border border-surface-3">
+                {/* Timer with 270° arc ring */}
+                <div className="relative w-full flex items-center justify-center">
+                  <div className="relative flex items-center justify-center" style={{ width: 280, height: 280 }}>
+                    {/* SVG Arc Ring — 270° open at bottom */}
+                    <svg className="absolute inset-0" viewBox="0 0 280 280">
+                      {(() => {
+                        const r = 128;
+                        const circumference = 2 * Math.PI * r;
+                        const arcFrac = 0.75; // 270°
+                        const arcLen = circumference * arcFrac;
+                        const gapLen = circumference - arcLen;
+                        const startAngle = 135;
+                        const segDuration = isPreparation ? 10 : (currentSegment?.duration || 1);
+                        const progress = Math.min(1, Math.max(0, timeRemaining / segDuration));
+                        const filledLen = arcLen * progress;
+                        return (
+                          <>
+                            <circle cx="140" cy="140" r={r} fill="none" stroke="hsl(var(--surface-3))" strokeWidth="5" strokeDasharray={`${arcLen} ${gapLen}`} strokeDashoffset={-circumference * (startAngle / 360)} strokeLinecap="round" />
+                            <circle cx="140" cy="140" r={r} fill="none" stroke={accentHsl} strokeWidth="10" strokeDasharray={`${filledLen} ${circumference - filledLen}`} strokeDashoffset={-circumference * (startAngle / 360)} strokeLinecap="round" filter="blur(4px)" className="animate-arc-glow-pulse" style={{ transition: 'stroke-dasharray 0.3s linear' }} />
+                            <circle cx="140" cy="140" r={r} fill="none" stroke={accentHsl} strokeWidth="5" strokeDasharray={`${filledLen} ${circumference - filledLen}`} strokeDashoffset={-circumference * (startAngle / 360)} strokeLinecap="round" style={{ transition: 'stroke-dasharray 0.3s linear' }} />
+                          </>
+                        );
+                      })()}
+                    </svg>
+                    <span className={cn(
+                      "timer-display font-black",
+                      "timer-display text-7xl font-black",
+                      isChampionship 
+                        ? "text-championship-gold animate-gold-shimmer" 
+                        : isCooldown ? "text-cooldown-blue" : "text-volt text-glow-volt"
+                    )}>
+                      {formatTime(timeRemaining)}
+                    </span>
+                    <div className="absolute -top-2 left-1/2 -translate-x-1/2">
+                      <ComboXPPop pop={comboXPPop} />
+                    </div>
+                  </div>
+                  {/* Vertical XP Bar — pinned to right wall */}
+                  <div className="absolute right-0 top-0 bottom-4 flex items-stretch">
+                    <VerticalXPBar prestige={profile?.prestige || 'beginner'} level={liveLevel} totalXP={(profile?.total_xp || 0) + currentXP} badgeStats={currentStats} earnedBadgeIds={earnedBadgeIds} isChampionship={isChampionship} isCooldown={isCooldown} />
+                  </div>
+                </div>
+
+          {/* Segment Name — what you're doing right now */}
+          <div className="flex items-center gap-3 mb-4 whitespace-nowrap w-full">
+            <div className={cn("h-px flex-1 min-w-4", isChampionship ? "bg-championship-gold/40" : isCooldown ? "bg-cooldown-blue/40" : "bg-muted-foreground/30")} />
+            <h2 className={cn(
+              "text-xl font-black uppercase tracking-wider text-center shrink-0",
+              isChampionship ? "text-championship-gold" : isCooldown ? "text-cooldown-blue" : "text-foreground"
+            )}>
+              {isPreparation ? 'PREPARATION' : (
+                <>
+                  {currentSegment?.name || 'WORK'}
+                  {isChampionship && <span className="text-championship-gold"> / 2XP</span>}
+                </>
+              )}
+            </h2>
+            <div className={cn("h-px flex-1 min-w-4", isChampionship ? "bg-championship-gold/40" : isCooldown ? "bg-cooldown-blue/40" : "bg-muted-foreground/30")} />
+          </div>
+
+          {/* DEBUG: XP/sec overlay — TEMPORARY */}
+          {isChampionship && currentSegment && !isPreparation && (
+            <div className="px-3 py-1 rounded-full bg-championship-gold/20 border border-championship-gold/40 mb-2">
+              <span className="text-[10px] font-mono font-bold text-championship-gold">
+                XP/sec: {(getXPPerSecond(currentSegment) * streakMultiplier).toFixed(2)}
+              </span>
+            </div>
+          )}
+
+          <div className="flex gap-2">
+            {['-30', '-15', '+15', '+30'].map((val) => (
+              <button
+                key={val}
+                onClick={() => adjustTime(parseInt(val))}
+                className="px-3 py-1.5 rounded-full border border-surface-3 text-muted-foreground text-xs font-medium hover:bg-surface-1 transition-colors"
+              >
+                {val}s
+              </button>
+            ))}
+          </div>
+          </div>
+
+          {/* Layer 2: Floating card zone — positioned at bottom of middle area, no layout impact on Layer 1 */}
+          <div className="absolute inset-x-4 flex flex-col items-center justify-center" style={{ top: '55%', bottom: 0 }}>
+          {/* Rest Screen - Clean Next Preview */}
+          {isRestSegment && (
+            <div className={cn("w-full max-w-xs rounded-xl p-3 border", isChampionship ? "bg-championship-gold/5 border-championship-gold/30" : isCooldown ? "bg-cooldown-blue/5 border-cooldown-blue/30" : "bg-surface-1 border-surface-3")}>
+              <p className={cn("text-[10px] uppercase tracking-wider mb-1 text-center", isChampionship ? "text-championship-gold/60" : isCooldown ? "text-cooldown-blue/60" : "text-muted-foreground")}>UP NEXT</p>
+              <p className={cn("text-lg font-black text-center uppercase", isChampionship ? "text-championship-gold" : isCooldown ? "text-cooldown-blue" : "text-foreground")}>
+                {nextSegment?.name || 'FINISH'}
+              </p>
+            </div>
+          )}
+
+          {/* Combo Display - for shadowboxing: show incoming combo OR freestyle */}
+          {isShadowboxing && !isPreparation && (
+            <div className="w-full max-w-xs bg-surface-1 rounded-xl p-3 border border-surface-3">
+              {displayCombo && displayCombo.length > 0 ? (
+                <>
+                  {/* Incoming combo label for shadowboxing */}
+                  <p className={cn("text-xs font-bold mb-3 text-center animate-pulse", accentText)}>INCOMING COMBO</p>
+                  <div className="flex items-center justify-center gap-2 flex-wrap">
+                    {displayCombo.map((move, idx) => {
+                      // Convert punch names to numbers if they're stored as words
+                      const displayMove = (() => {
+                        const m = move.toUpperCase();
+                        if (m === 'JAB') return '1';
+                        if (m === 'CROSS' || m === 'STRAIGHT') return '2';
+                        if (m === 'LEAD HOOK' || m === 'LEFT HOOK') return '3';
+                        if (m === 'REAR HOOK' || m === 'RIGHT HOOK') return '4';
+                        if (m === 'LEAD UPPERCUT' || m === 'LEFT UPPERCUT') return '5';
+                        if (m === 'REAR UPPERCUT' || m === 'RIGHT UPPERCUT') return '6';
+                        if (m === 'LEAD BODY HOOK' || m === 'LEFT BODY') return '7';
+                        if (m === 'REAR BODY HOOK' || m === 'RIGHT BODY') return '8';
+                        // Keep defense/movement as short codes
+                        if (m.includes('SLIP L')) return 'SL';
+                        if (m.includes('SLIP R')) return 'SR';
+                        if (m.includes('ROLL L')) return 'RL';
+                        if (m.includes('ROLL R')) return 'RR';
+                        if (m === 'PULL') return 'PL';
+                        if (m === 'BLOCK') return 'BK';
+                        if (m.includes('CIRCLE L')) return '↺';
+                        if (m.includes('CIRCLE R')) return '↻';
+                        if (m.includes('STEP IN')) return '→';
+                        if (m.includes('STEP OUT')) return '←';
+                        return move; // Return original if already a number
+                      })();
+                      
+                      const isDefense = ['SL', 'SR', 'RL', 'RR', 'PL', 'BK'].includes(displayMove);
+                      const isMovement = ['↺', '↻', '→', '←'].includes(displayMove);
+                      
+                      return (
+                        <div key={idx} className="flex items-center gap-1">
+                          <span className={cn(
+                            'text-2xl font-black',
+                            accentText
+                          )}>
+                            {displayMove}
+                          </span>
+                          {idx < displayCombo.length - 1 && (
+                            <ChevronRight className="w-3 h-3 text-muted-foreground" />
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </>
+              ) : (
                 <p className={cn("text-2xl font-black text-center", accentText)}>FREESTYLE</p>
+              )}
+            </div>
+          )}
+          
+          {/* Combo Display for combo segments - always show the current combo */}
+          {!isShadowboxing && displayCombo && displayCombo.length > 0 && !isPreparation && (currentSegment?.segmentType === 'combo' || currentSegment?.segmentType === 'speedbag' || currentSegment?.segmentType === 'doubleend') && (
+            <div className="w-full max-w-xs bg-surface-1 rounded-xl p-3 border border-surface-3">
+              <div className="flex items-center justify-center gap-2 flex-wrap">
+                {displayCombo.map((move, idx) => {
+                  // Convert punch names to numbers if they're stored as words
+                  const displayMove = (() => {
+                    const m = move.toUpperCase();
+                    if (m === 'JAB') return '1';
+                    if (m === 'CROSS' || m === 'STRAIGHT') return '2';
+                    if (m === 'LEAD HOOK' || m === 'LEFT HOOK') return '3';
+                    if (m === 'REAR HOOK' || m === 'RIGHT HOOK') return '4';
+                    if (m === 'LEAD UPPERCUT' || m === 'LEFT UPPERCUT') return '5';
+                    if (m === 'REAR UPPERCUT' || m === 'RIGHT UPPERCUT') return '6';
+                    if (m === 'LEAD BODY HOOK' || m === 'LEFT BODY') return '7';
+                    if (m === 'REAR BODY HOOK' || m === 'RIGHT BODY') return '8';
+                    // Keep defense/movement as short codes
+                    if (m.includes('SLIP L')) return 'SL';
+                    if (m.includes('SLIP R')) return 'SR';
+                    if (m.includes('ROLL L')) return 'RL';
+                    if (m.includes('ROLL R')) return 'RR';
+                    if (m === 'PULL') return 'PL';
+                    if (m === 'BLOCK') return 'BK';
+                    if (m.includes('CIRCLE L')) return '↺';
+                    if (m.includes('CIRCLE R')) return '↻';
+                    if (m.includes('STEP IN')) return '→';
+                    if (m.includes('STEP OUT')) return '←';
+                    return move; // Return original if already a number
+                  })();
+                  
+                  const isDefense = ['SL', 'SR', 'RL', 'RR', 'PL', 'BK'].includes(displayMove);
+                  const isMovement = ['↺', '↻', '→', '←'].includes(displayMove);
+                  
+                  return (
+                    <div key={idx} className="flex items-center gap-1">
+                          <span className={cn(
+                            'text-2xl font-black',
+                            accentText
+                          )}>
+                        {displayMove}
+                      </span>
+                      {idx < displayCombo.length - 1 && (
+                        <ChevronRight className="w-3 h-3 text-muted-foreground" />
+                      )}
+                    </div>
+                  );
+                })}
               </div>
-            )}
+            </div>
+          )}
+
+          {/* Freestyle Display - for combo-type or speedbag segments with no combos assigned */}
+          {!isShadowboxing && !isPreparation && currentSegment?.type === 'active' && 
+           (currentSegment?.segmentType === 'combo' || currentSegment?.segmentType === 'speedbag' || currentSegment?.segmentType === 'doubleend') &&
+           (!displayCombo || displayCombo.length === 0) && (
+            <div className="w-full max-w-xs bg-surface-1 rounded-xl p-3 border border-surface-3">
+              <p className={cn("text-2xl font-black text-center", accentText)}>FREESTYLE</p>
+            </div>
+          )}
           </div>
         </div>
 
