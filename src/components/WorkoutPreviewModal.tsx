@@ -1,9 +1,10 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { X, Clock, Star, Download, Play, Sparkles, Save } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { TrendingWorkout } from '@/data/trendingWorkouts';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
 
 interface WorkoutPreviewModalProps {
   workout: TrendingWorkout;
@@ -21,9 +22,82 @@ export const WorkoutPreviewModal = ({ workout, onClose, onSave, onCustomize }: W
   const [showRating, setShowRating] = useState(false);
   const [hoverStar, setHoverStar] = useState(0);
   const [selectedRating, setSelectedRating] = useState(0);
+  const [avgRating, setAvgRating] = useState(workout.rating);
+  const [ratingCount, setRatingCount] = useState(workout.ratingCount);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const totalPhases = workout.sections.warmup.length + workout.sections.grind.length + workout.sections.cooldown.length;
   const totalRounds = workout.sections.grind.reduce((acc, phase) => acc + phase.repeats, 0);
+
+  // Fetch existing rating data on mount
+  useEffect(() => {
+    async function fetchRatings() {
+      // Get average rating
+      const { data: ratings } = await supabase
+        .from('workout_ratings')
+        .select('rating')
+        .eq('workout_id', workout.id);
+
+      if (ratings && ratings.length > 0) {
+        const avg = ratings.reduce((sum, r) => sum + r.rating, 0) / ratings.length;
+        setAvgRating(Math.round(avg * 10) / 10);
+        setRatingCount(ratings.length);
+      }
+
+      // Get user's existing rating
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data: userRating } = await supabase
+          .from('workout_ratings')
+          .select('rating')
+          .eq('workout_id', workout.id)
+          .eq('user_id', user.id)
+          .maybeSingle();
+
+        if (userRating) {
+          setSelectedRating(userRating.rating);
+        }
+      }
+    }
+    fetchRatings();
+  }, [workout.id]);
+
+  const submitRating = async (stars: number) => {
+    setIsSubmitting(true);
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      toast.error('Sign in to rate workouts');
+      setIsSubmitting(false);
+      return;
+    }
+
+    const { error } = await supabase
+      .from('workout_ratings')
+      .upsert(
+        { user_id: user.id, workout_id: workout.id, rating: stars },
+        { onConflict: 'user_id,workout_id' }
+      );
+
+    if (error) {
+      toast.error('Failed to save rating');
+    } else {
+      setSelectedRating(stars);
+      toast.success(`Rated ${stars} star${stars > 1 ? 's' : ''}!`);
+      
+      // Refresh average
+      const { data: ratings } = await supabase
+        .from('workout_ratings')
+        .select('rating')
+        .eq('workout_id', workout.id);
+      if (ratings && ratings.length > 0) {
+        const avg = ratings.reduce((sum, r) => sum + r.rating, 0) / ratings.length;
+        setAvgRating(Math.round(avg * 10) / 10);
+        setRatingCount(ratings.length);
+      }
+    }
+    setIsSubmitting(false);
+    setShowRating(false);
+  };
 
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
@@ -46,7 +120,7 @@ export const WorkoutPreviewModal = ({ workout, onClose, onSave, onCustomize }: W
             <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground">
               <span className="flex items-center gap-1">
                 <Star className="w-3 h-3 text-yellow-500 fill-yellow-500" />
-                {workout.rating} ({workout.ratingCount})
+                {avgRating} ({ratingCount})
               </span>
               <span className="flex items-center gap-1">
                 <Download className="w-3 h-3" />
@@ -165,11 +239,8 @@ export const WorkoutPreviewModal = ({ workout, onClose, onSave, onCustomize }: W
                     key={star}
                     onMouseEnter={() => setHoverStar(star)}
                     onMouseLeave={() => setHoverStar(0)}
-                    onClick={() => {
-                      setSelectedRating(star);
-                      setShowRating(false);
-                      toast.success(`Rated ${star} star${star > 1 ? 's' : ''}!`);
-                    }}
+                    onClick={() => submitRating(star)}
+                    disabled={isSubmitting}
                     className="p-1 transition-transform hover:scale-125"
                   >
                     <Star
