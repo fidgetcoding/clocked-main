@@ -271,6 +271,15 @@ const Settings = () => {
                 >
                   🎖️ Badge Earn
                 </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={handleRegenerateLoadout}
+                  disabled={isRegenerating}
+                  className="text-xs bg-surface-2 border-surface-3"
+                >
+                  {isRegenerating ? '⏳ ...' : '🔄 Regen Loadout'}
+                </Button>
               </div>
             </div>
           )}
