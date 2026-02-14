@@ -42,23 +42,13 @@ function getUserEquipmentMode(equipment: Record<string, boolean | string> | null
 }
 
 /**
- * Sort presets aspirationally: next tier above user first, then ascending, lower tiers last.
+ * Sort presets by difficulty: highest tier first (Pro → Advanced → … → Rookie).
  */
-function sortAspirational(presets: TierPresetWithLoadout[], userTier: Prestige): TierPresetWithLoadout[] {
-  const userIdx = PRESTIGE_ORDER.indexOf(userTier);
-  
+function sortByDifficultyDesc(presets: TierPresetWithLoadout[]): TierPresetWithLoadout[] {
   return [...presets].sort((a, b) => {
     const aIdx = PRESTIGE_ORDER.indexOf(a.tier as Prestige);
     const bIdx = PRESTIGE_ORDER.indexOf(b.tier as Prestige);
-    const aAbove = aIdx > userIdx;
-    const bAbove = bIdx > userIdx;
-    
-    // Above-user tiers come first, sorted ascending
-    if (aAbove && !bAbove) return -1;
-    if (!aAbove && bAbove) return 1;
-    if (aAbove && bAbove) return aIdx - bIdx;
-    // Below-user tiers sorted ascending
-    return aIdx - bIdx;
+    return bIdx - aIdx; // highest first
   });
 }
 
@@ -115,7 +105,7 @@ export function useTierPresets() {
     };
   });
 
-  const sortedPresets = sortAspirational(enrichedPresets, userTier);
+  const sortedPresets = sortByDifficultyDesc(enrichedPresets);
 
   return {
     presets: sortedPresets,
