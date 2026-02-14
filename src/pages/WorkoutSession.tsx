@@ -1199,14 +1199,6 @@ const WorkoutSession = () => {
             <div className={cn("h-px flex-1 min-w-4", isChampionship ? "bg-championship-gold/40" : isCooldown ? "bg-cooldown-blue/40" : "bg-muted-foreground/30")} />
           </div>
 
-          {/* DEBUG: XP/sec overlay — TEMPORARY */}
-          {isChampionship && currentSegment && !isPreparation && (
-            <div className="px-3 py-1 rounded-full bg-championship-gold/20 border border-championship-gold/40 mb-2">
-              <span className="text-[10px] font-mono font-bold text-championship-gold">
-                XP/sec: {(getXPPerSecond(currentSegment) * streakMultiplier).toFixed(2)}
-              </span>
-            </div>
-          )}
 
           <div className="flex gap-2">
             {['-30', '-15', '+15', '+30'].map((val) => (
