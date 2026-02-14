@@ -139,7 +139,7 @@ export function RoadToBMF({ prestige, level, totalSessions, longestStreak }: Roa
         </div>
         <p className="text-[9px] text-muted-foreground pl-12">
           <Flame className="w-3 h-3 inline mr-1 text-red-400" />
-          365 consecutive days — Baddest MF Known
+          365 consecutive days — Baddest MF Killer
         </p>
       </div>
     </div>
