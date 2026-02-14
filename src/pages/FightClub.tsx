@@ -968,8 +968,8 @@ const FightClub = () => {
                       <button
                         key={preset.id}
                         onClick={() => {
-                          // Navigate to workout session with this preset
-                          navigate('/workout-session', { state: { 
+                          // Navigate to workout session with one-off loadout
+                          navigate('/workout/oneoff', { state: { 
                             oneOffLoadout: preset.generatedLoadout,
                             workoutName: preset.name,
                           }});

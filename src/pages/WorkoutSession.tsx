@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { ArrowLeft, Home, Play, Pause, RotateCcw, SkipForward, SkipBack, ChevronRight, MoreVertical, CheckCircle, Zap, Flame } from 'lucide-react';
 import { RoundFeedbackPanel } from '@/components/workout/RoundFeedbackPanel';
 import { RoundFeedback } from '@/types';
@@ -105,6 +105,7 @@ function dbWorkoutToLocal(dbWorkout: DbWorkout) {
 const WorkoutSession = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
   const { workouts, updateWorkout } = useWorkouts();
   const { addHistoryEntry } = useWorkoutHistory();
   const postWorkoutComplete = usePostWorkoutComplete();
@@ -122,8 +123,38 @@ const WorkoutSession = () => {
     voiceComboCallouts?: boolean;
   } | undefined;
 
+  // Support one-off loadouts passed via navigation state (e.g. tier presets)
+  const oneOffLoadout = (location.state as any)?.oneOffLoadout;
+  const oneOffName = (location.state as any)?.workoutName;
+
   const dbWorkout = workouts.find((w) => w.id === id);
-  const workout = useMemo(() => dbWorkout ? dbWorkoutToLocal(dbWorkout) : null, [dbWorkout]);
+  
+  const workout = useMemo(() => {
+    if (dbWorkout) return dbWorkoutToLocal(dbWorkout);
+    if (oneOffLoadout) {
+      // Convert GeneratedLoadout to session format
+      const rawPhases = oneOffLoadout.phases || [];
+      const metaEntry = rawPhases.find((p: any) => p._meta);
+      const megasetRepeats = metaEntry?.megasetRepeats || metaEntry?.supersetRepeats || 1;
+      const phases = rawPhases.filter((p: any) => !p._meta);
+      const sections = {
+        warmup: phases.filter((p: any) => p.section === 'warmup').map(({ section, ...rest }: any) => rest),
+        grind: phases.filter((p: any) => p.section === 'grind').map(({ section, ...rest }: any) => rest),
+        cooldown: phases.filter((p: any) => p.section === 'cooldown').map(({ section, ...rest }: any) => rest),
+      };
+      return {
+        id: 'oneoff',
+        name: oneOffName || oneOffLoadout.name || 'Preset Workout',
+        duration: oneOffLoadout.duration || 0,
+        difficulty: oneOffLoadout.difficulty || 'beginner',
+        sections,
+        combos: oneOffLoadout.combos || [],
+        is_preset: true,
+        megasetRepeats,
+      };
+    }
+    return null;
+  }, [dbWorkout, oneOffLoadout, oneOffName]);
 
   // Flatten workout into segments
   const flatSegments = useMemo(() => {
