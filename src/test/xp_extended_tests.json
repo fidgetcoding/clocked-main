@@ -3417,541 +3417,541 @@
     {
       "test": "Rookie L1: 1 XP below threshold",
       "tier": "Rookie",
-      "cumulative_xp": 142.6,
+      "cumulative_xp": -1,
       "expected_level": 0
     },
     {
       "test": "Rookie L1: exactly at threshold",
       "tier": "Rookie",
-      "cumulative_xp": 142.7,
+      "cumulative_xp": 0,
       "expected_level": 1
     },
     {
       "test": "Rookie L1: 1 XP above threshold",
       "tier": "Rookie",
-      "cumulative_xp": 142.8,
+      "cumulative_xp": 1,
       "expected_level": 1
     },
     {
       "test": "Rookie L10: 1 XP below threshold",
       "tier": "Rookie",
-      "cumulative_xp": 1948.2,
+      "cumulative_xp": 1983,
       "expected_level": 9
     },
     {
       "test": "Rookie L10: exactly at threshold",
       "tier": "Rookie",
-      "cumulative_xp": 1948.3,
+      "cumulative_xp": 1984,
       "expected_level": 10
     },
     {
       "test": "Rookie L10: 1 XP above threshold",
       "tier": "Rookie",
-      "cumulative_xp": 1948.4,
+      "cumulative_xp": 1985,
       "expected_level": 10
     },
     {
       "test": "Rookie L25: 1 XP below threshold",
       "tier": "Rookie",
-      "cumulative_xp": 5745.5,
+      "cumulative_xp": 5967,
       "expected_level": 24
     },
     {
       "test": "Rookie L25: exactly at threshold",
       "tier": "Rookie",
-      "cumulative_xp": 5745.6,
+      "cumulative_xp": 5968,
       "expected_level": 25
     },
     {
       "test": "Rookie L25: 1 XP above threshold",
       "tier": "Rookie",
-      "cumulative_xp": 5745.7,
+      "cumulative_xp": 5969,
       "expected_level": 25
     },
     {
       "test": "Rookie L50: 1 XP below threshold",
       "tier": "Rookie",
-      "cumulative_xp": 13108.2,
+      "cumulative_xp": 13369,
       "expected_level": 49
     },
     {
       "test": "Rookie L50: exactly at threshold",
       "tier": "Rookie",
-      "cumulative_xp": 13108.3,
+      "cumulative_xp": 13370,
       "expected_level": 50
     },
     {
       "test": "Rookie L50: 1 XP above threshold",
       "tier": "Rookie",
-      "cumulative_xp": 13108.4,
+      "cumulative_xp": 13371,
       "expected_level": 50
     },
     {
       "test": "Rookie L75: 1 XP below threshold",
       "tier": "Rookie",
-      "cumulative_xp": 21269.8,
+      "cumulative_xp": 21326,
       "expected_level": 74
     },
     {
       "test": "Rookie L75: exactly at threshold",
       "tier": "Rookie",
-      "cumulative_xp": 21269.9,
+      "cumulative_xp": 21327,
       "expected_level": 75
     },
     {
       "test": "Rookie L75: 1 XP above threshold",
       "tier": "Rookie",
-      "cumulative_xp": 21270.0,
+      "cumulative_xp": 21328,
       "expected_level": 75
     },
     {
       "test": "Rookie L99: 1 XP below threshold",
       "tier": "Rookie",
-      "cumulative_xp": 29641.6,
+      "cumulative_xp": 29326,
       "expected_level": 98
     },
     {
       "test": "Rookie L99: exactly at threshold",
       "tier": "Rookie",
-      "cumulative_xp": 29641.7,
+      "cumulative_xp": 29327,
       "expected_level": 99
     },
     {
       "test": "Rookie L99: 1 XP above threshold",
       "tier": "Rookie",
-      "cumulative_xp": 29641.8,
+      "cumulative_xp": 29328,
       "expected_level": 99
     },
     {
       "test": "Beginner L1: 1 XP below threshold",
       "tier": "Beginner",
-      "cumulative_xp": 149.2,
+      "cumulative_xp": -1,
       "expected_level": 0
     },
     {
       "test": "Beginner L1: exactly at threshold",
       "tier": "Beginner",
-      "cumulative_xp": 149.3,
+      "cumulative_xp": 0,
       "expected_level": 1
     },
     {
       "test": "Beginner L1: 1 XP above threshold",
       "tier": "Beginner",
-      "cumulative_xp": 149.4,
+      "cumulative_xp": 1,
       "expected_level": 1
     },
     {
       "test": "Beginner L10: 1 XP below threshold",
       "tier": "Beginner",
-      "cumulative_xp": 2957.9,
+      "cumulative_xp": 2764,
       "expected_level": 9
     },
     {
       "test": "Beginner L10: exactly at threshold",
       "tier": "Beginner",
-      "cumulative_xp": 2958.0,
+      "cumulative_xp": 2765,
       "expected_level": 10
     },
     {
       "test": "Beginner L10: 1 XP above threshold",
       "tier": "Beginner",
-      "cumulative_xp": 2958.1,
+      "cumulative_xp": 2766,
       "expected_level": 10
     },
     {
       "test": "Beginner L25: 1 XP below threshold",
       "tier": "Beginner",
-      "cumulative_xp": 10576.5,
+      "cumulative_xp": 10464,
       "expected_level": 24
     },
     {
       "test": "Beginner L25: exactly at threshold",
       "tier": "Beginner",
-      "cumulative_xp": 10576.6,
+      "cumulative_xp": 10465,
       "expected_level": 25
     },
     {
       "test": "Beginner L25: 1 XP above threshold",
       "tier": "Beginner",
-      "cumulative_xp": 10576.7,
+      "cumulative_xp": 10466,
       "expected_level": 25
     },
     {
       "test": "Beginner L50: 1 XP below threshold",
       "tier": "Beginner",
-      "cumulative_xp": 28083.4,
+      "cumulative_xp": 27941,
       "expected_level": 49
     },
     {
       "test": "Beginner L50: exactly at threshold",
       "tier": "Beginner",
-      "cumulative_xp": 28083.5,
+      "cumulative_xp": 27942,
       "expected_level": 50
     },
     {
       "test": "Beginner L50: 1 XP above threshold",
       "tier": "Beginner",
-      "cumulative_xp": 28083.6,
+      "cumulative_xp": 27943,
       "expected_level": 50
     },
     {
       "test": "Beginner L75: 1 XP below threshold",
       "tier": "Beginner",
-      "cumulative_xp": 49861.4,
+      "cumulative_xp": 49413,
       "expected_level": 74
     },
     {
       "test": "Beginner L75: exactly at threshold",
       "tier": "Beginner",
-      "cumulative_xp": 49861.5,
+      "cumulative_xp": 49414,
       "expected_level": 75
     },
     {
       "test": "Beginner L75: 1 XP above threshold",
       "tier": "Beginner",
-      "cumulative_xp": 49861.6,
+      "cumulative_xp": 49415,
       "expected_level": 75
     },
     {
       "test": "Beginner L99: 1 XP below threshold",
       "tier": "Beginner",
-      "cumulative_xp": 73930.5,
+      "cumulative_xp": 72927,
       "expected_level": 98
     },
     {
       "test": "Beginner L99: exactly at threshold",
       "tier": "Beginner",
-      "cumulative_xp": 73930.6,
+      "cumulative_xp": 72928,
       "expected_level": 99
     },
     {
       "test": "Beginner L99: 1 XP above threshold",
       "tier": "Beginner",
-      "cumulative_xp": 73930.7,
+      "cumulative_xp": 72929,
       "expected_level": 99
     },
     {
       "test": "Intermediate L1: 1 XP below threshold",
       "tier": "Intermediate",
-      "cumulative_xp": 243.8,
+      "cumulative_xp": -1,
       "expected_level": 0
     },
     {
       "test": "Intermediate L1: exactly at threshold",
       "tier": "Intermediate",
-      "cumulative_xp": 243.9,
+      "cumulative_xp": 0,
       "expected_level": 1
     },
     {
       "test": "Intermediate L1: 1 XP above threshold",
       "tier": "Intermediate",
-      "cumulative_xp": 244.0,
+      "cumulative_xp": 1,
       "expected_level": 1
     },
     {
       "test": "Intermediate L10: 1 XP below threshold",
       "tier": "Intermediate",
-      "cumulative_xp": 5611.8,
+      "cumulative_xp": 5336,
       "expected_level": 9
     },
     {
       "test": "Intermediate L10: exactly at threshold",
       "tier": "Intermediate",
-      "cumulative_xp": 5611.9,
+      "cumulative_xp": 5337,
       "expected_level": 10
     },
     {
       "test": "Intermediate L10: 1 XP above threshold",
       "tier": "Intermediate",
-      "cumulative_xp": 5612.0,
+      "cumulative_xp": 5338,
       "expected_level": 10
     },
     {
       "test": "Intermediate L25: 1 XP below threshold",
       "tier": "Intermediate",
-      "cumulative_xp": 21648.1,
+      "cumulative_xp": 21675,
       "expected_level": 24
     },
     {
       "test": "Intermediate L25: exactly at threshold",
       "tier": "Intermediate",
-      "cumulative_xp": 21648.2,
+      "cumulative_xp": 21676,
       "expected_level": 25
     },
     {
       "test": "Intermediate L25: 1 XP above threshold",
       "tier": "Intermediate",
-      "cumulative_xp": 21648.3,
+      "cumulative_xp": 21677,
       "expected_level": 25
     },
     {
       "test": "Intermediate L50: 1 XP below threshold",
       "tier": "Intermediate",
-      "cumulative_xp": 61000.6,
+      "cumulative_xp": 61055,
       "expected_level": 49
     },
     {
       "test": "Intermediate L50: exactly at threshold",
       "tier": "Intermediate",
-      "cumulative_xp": 61000.7,
+      "cumulative_xp": 61056,
       "expected_level": 50
     },
     {
       "test": "Intermediate L50: 1 XP above threshold",
       "tier": "Intermediate",
-      "cumulative_xp": 61000.8,
+      "cumulative_xp": 61057,
       "expected_level": 50
     },
     {
       "test": "Intermediate L75: 1 XP below threshold",
       "tier": "Intermediate",
-      "cumulative_xp": 112178.5,
+      "cumulative_xp": 111396,
       "expected_level": 74
     },
     {
       "test": "Intermediate L75: exactly at threshold",
       "tier": "Intermediate",
-      "cumulative_xp": 112178.6,
+      "cumulative_xp": 111397,
       "expected_level": 75
     },
     {
       "test": "Intermediate L75: 1 XP above threshold",
       "tier": "Intermediate",
-      "cumulative_xp": 112178.7,
+      "cumulative_xp": 111398,
       "expected_level": 75
     },
     {
       "test": "Intermediate L99: 1 XP below threshold",
       "tier": "Intermediate",
-      "cumulative_xp": 170394.7,
+      "cumulative_xp": 167958,
       "expected_level": 98
     },
     {
       "test": "Intermediate L99: exactly at threshold",
       "tier": "Intermediate",
-      "cumulative_xp": 170394.8,
+      "cumulative_xp": 167959,
       "expected_level": 99
     },
     {
       "test": "Intermediate L99: 1 XP above threshold",
       "tier": "Intermediate",
-      "cumulative_xp": 170394.9,
+      "cumulative_xp": 167960,
       "expected_level": 99
     },
     {
       "test": "Advanced L1: 1 XP below threshold",
       "tier": "Advanced",
-      "cumulative_xp": 442.9,
+      "cumulative_xp": -1,
       "expected_level": 0
     },
     {
       "test": "Advanced L1: exactly at threshold",
       "tier": "Advanced",
-      "cumulative_xp": 443.0,
+      "cumulative_xp": 0,
       "expected_level": 1
     },
     {
       "test": "Advanced L1: 1 XP above threshold",
       "tier": "Advanced",
-      "cumulative_xp": 443.1,
+      "cumulative_xp": 1,
       "expected_level": 1
     },
     {
       "test": "Advanced L10: 1 XP below threshold",
       "tier": "Advanced",
-      "cumulative_xp": 10275.8,
+      "cumulative_xp": 10634,
       "expected_level": 9
     },
     {
       "test": "Advanced L10: exactly at threshold",
       "tier": "Advanced",
-      "cumulative_xp": 10275.9,
+      "cumulative_xp": 10635,
       "expected_level": 10
     },
     {
       "test": "Advanced L10: 1 XP above threshold",
       "tier": "Advanced",
-      "cumulative_xp": 10276.0,
+      "cumulative_xp": 10636,
       "expected_level": 10
     },
     {
       "test": "Advanced L25: 1 XP below threshold",
       "tier": "Advanced",
-      "cumulative_xp": 39797.9,
+      "cumulative_xp": 41934,
       "expected_level": 24
     },
     {
       "test": "Advanced L25: exactly at threshold",
       "tier": "Advanced",
-      "cumulative_xp": 39798.0,
+      "cumulative_xp": 41935,
       "expected_level": 25
     },
     {
       "test": "Advanced L25: 1 XP above threshold",
       "tier": "Advanced",
-      "cumulative_xp": 39798.1,
+      "cumulative_xp": 41936,
       "expected_level": 25
     },
     {
       "test": "Advanced L50: 1 XP below threshold",
       "tier": "Advanced",
-      "cumulative_xp": 112492.7,
+      "cumulative_xp": 115511,
       "expected_level": 49
     },
     {
       "test": "Advanced L50: exactly at threshold",
       "tier": "Advanced",
-      "cumulative_xp": 112492.8,
+      "cumulative_xp": 115512,
       "expected_level": 50
     },
     {
       "test": "Advanced L50: 1 XP above threshold",
       "tier": "Advanced",
-      "cumulative_xp": 112492.9,
+      "cumulative_xp": 115513,
       "expected_level": 50
     },
     {
       "test": "Advanced L75: 1 XP below threshold",
       "tier": "Advanced",
-      "cumulative_xp": 207252.6,
+      "cumulative_xp": 208032,
       "expected_level": 74
     },
     {
       "test": "Advanced L75: exactly at threshold",
       "tier": "Advanced",
-      "cumulative_xp": 207252.7,
+      "cumulative_xp": 208033,
       "expected_level": 75
     },
     {
       "test": "Advanced L75: 1 XP above threshold",
       "tier": "Advanced",
-      "cumulative_xp": 207252.8,
+      "cumulative_xp": 208034,
       "expected_level": 75
     },
     {
       "test": "Advanced L99: 1 XP below threshold",
       "tier": "Advanced",
-      "cumulative_xp": 315208.3,
+      "cumulative_xp": 310883,
       "expected_level": 98
     },
     {
       "test": "Advanced L99: exactly at threshold",
       "tier": "Advanced",
-      "cumulative_xp": 315208.4,
+      "cumulative_xp": 310884,
       "expected_level": 99
     },
     {
       "test": "Advanced L99: 1 XP above threshold",
       "tier": "Advanced",
-      "cumulative_xp": 315208.5,
+      "cumulative_xp": 310885,
       "expected_level": 99
     },
     {
       "test": "Pro L1: 1 XP below threshold",
       "tier": "Pro",
-      "cumulative_xp": 651.8,
+      "cumulative_xp": -1,
       "expected_level": 0
     },
     {
       "test": "Pro L1: exactly at threshold",
       "tier": "Pro",
-      "cumulative_xp": 651.9,
+      "cumulative_xp": 0,
       "expected_level": 1
     },
     {
       "test": "Pro L1: 1 XP above threshold",
       "tier": "Pro",
-      "cumulative_xp": 652.0,
+      "cumulative_xp": 1,
       "expected_level": 1
     },
     {
       "test": "Pro L10: 1 XP below threshold",
       "tier": "Pro",
-      "cumulative_xp": 15520.5,
+      "cumulative_xp": 16969,
       "expected_level": 9
     },
     {
       "test": "Pro L10: exactly at threshold",
       "tier": "Pro",
-      "cumulative_xp": 15520.6,
+      "cumulative_xp": 16970,
       "expected_level": 10
     },
     {
       "test": "Pro L10: 1 XP above threshold",
       "tier": "Pro",
-      "cumulative_xp": 15520.7,
+      "cumulative_xp": 16971,
       "expected_level": 10
     },
     {
       "test": "Pro L25: 1 XP below threshold",
       "tier": "Pro",
-      "cumulative_xp": 60909.4,
+      "cumulative_xp": 66365,
       "expected_level": 24
     },
     {
       "test": "Pro L25: exactly at threshold",
       "tier": "Pro",
-      "cumulative_xp": 60909.5,
+      "cumulative_xp": 66366,
       "expected_level": 25
     },
     {
       "test": "Pro L25: 1 XP above threshold",
       "tier": "Pro",
-      "cumulative_xp": 60909.6,
+      "cumulative_xp": 66367,
       "expected_level": 25
     },
     {
       "test": "Pro L50: 1 XP below threshold",
       "tier": "Pro",
-      "cumulative_xp": 173948.1,
+      "cumulative_xp": 181657,
       "expected_level": 49
     },
     {
       "test": "Pro L50: exactly at threshold",
       "tier": "Pro",
-      "cumulative_xp": 173948.2,
+      "cumulative_xp": 181658,
       "expected_level": 50
     },
     {
       "test": "Pro L50: 1 XP above threshold",
       "tier": "Pro",
-      "cumulative_xp": 173948.3,
+      "cumulative_xp": 181659,
       "expected_level": 50
     },
     {
       "test": "Pro L75: 1 XP below threshold",
       "tier": "Pro",
-      "cumulative_xp": 322432.9,
+      "cumulative_xp": 325939,
       "expected_level": 74
     },
     {
       "test": "Pro L75: exactly at threshold",
       "tier": "Pro",
-      "cumulative_xp": 322433.0,
+      "cumulative_xp": 325940,
       "expected_level": 75
     },
     {
       "test": "Pro L75: 1 XP above threshold",
       "tier": "Pro",
-      "cumulative_xp": 322433.1,
+      "cumulative_xp": 325941,
       "expected_level": 75
     },
     {
       "test": "Pro L99: 1 XP below threshold",
       "tier": "Pro",
-      "cumulative_xp": 492440.8,
+      "cumulative_xp": 485836,
       "expected_level": 98
     },
     {
       "test": "Pro L99: exactly at threshold",
       "tier": "Pro",
-      "cumulative_xp": 492440.9,
+      "cumulative_xp": 485837,
       "expected_level": 99
     },
     {
       "test": "Pro L99: 1 XP above threshold",
       "tier": "Pro",
-      "cumulative_xp": 492441.0,
+      "cumulative_xp": 485838,
       "expected_level": 99
     }
   ],
