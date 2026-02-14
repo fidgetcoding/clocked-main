@@ -1219,9 +1219,12 @@ const WorkoutSession = () => {
               </button>
             ))}
           </div>
+          </div>
+          {/* END Layer 1 — timer group is now self-contained */}
 
-          {/* Combo / UP NEXT cards — directly below time buttons */}
-          <div className="mt-4 flex flex-col items-center w-full">
+          {/* Layer 2: absolute, lower portion only — combo/UP NEXT cards */}
+          <div className="absolute left-4 right-4 flex flex-col items-center justify-start pointer-events-none" style={{ top: '62%', bottom: '0' }}>
+            <div className="pointer-events-auto w-full flex flex-col items-center">
           {/* Rest Screen - Clean Next Preview */}
           {isRestSegment && (
             <div className={cn("w-full max-w-xs rounded-xl p-3 border", isChampionship ? "bg-championship-gold/5 border-championship-gold/30" : isCooldown ? "bg-cooldown-blue/5 border-cooldown-blue/30" : "bg-surface-1 border-surface-3")}>
@@ -1241,7 +1244,6 @@ const WorkoutSession = () => {
                   <p className={cn("text-xs font-bold mb-3 text-center animate-pulse", accentText)}>INCOMING COMBO</p>
                   <div className="flex items-center justify-center gap-2 flex-wrap">
                     {displayCombo.map((move, idx) => {
-                      // Convert punch names to numbers if they're stored as words
                       const displayMove = (() => {
                         const m = move.toUpperCase();
                         if (m === 'JAB') return '1';
@@ -1252,7 +1254,6 @@ const WorkoutSession = () => {
                         if (m === 'REAR UPPERCUT' || m === 'RIGHT UPPERCUT') return '6';
                         if (m === 'LEAD BODY HOOK' || m === 'LEFT BODY') return '7';
                         if (m === 'REAR BODY HOOK' || m === 'RIGHT BODY') return '8';
-                        // Keep defense/movement as short codes
                         if (m.includes('SLIP L')) return 'SL';
                         if (m.includes('SLIP R')) return 'SR';
                         if (m.includes('ROLL L')) return 'RL';
@@ -1263,18 +1264,12 @@ const WorkoutSession = () => {
                         if (m.includes('CIRCLE R')) return '↻';
                         if (m.includes('STEP IN')) return '→';
                         if (m.includes('STEP OUT')) return '←';
-                        return move; // Return original if already a number
+                        return move;
                       })();
-                      
-                      const isDefense = ['SL', 'SR', 'RL', 'RR', 'PL', 'BK'].includes(displayMove);
-                      const isMovement = ['↺', '↻', '→', '←'].includes(displayMove);
                       
                       return (
                         <div key={idx} className="flex items-center gap-1">
-                          <span className={cn(
-                            'text-2xl font-black',
-                            accentText
-                          )}>
+                          <span className={cn('text-2xl font-black', accentText)}>
                             {displayMove}
                           </span>
                           {idx < displayCombo.length - 1 && (
@@ -1291,12 +1286,11 @@ const WorkoutSession = () => {
             </div>
           )}
           
-          {/* Combo Display for combo segments - always show the current combo */}
+          {/* Combo Display for combo segments */}
           {!isShadowboxing && displayCombo && displayCombo.length > 0 && !isPreparation && (currentSegment?.segmentType === 'combo' || currentSegment?.segmentType === 'speedbag' || currentSegment?.segmentType === 'doubleend') && (
             <div className="w-full max-w-xs bg-surface-1 rounded-xl p-3 border border-surface-3">
               <div className="flex items-center justify-center gap-2 flex-wrap">
                 {displayCombo.map((move, idx) => {
-                  // Convert punch names to numbers if they're stored as words
                   const displayMove = (() => {
                     const m = move.toUpperCase();
                     if (m === 'JAB') return '1';
@@ -1307,7 +1301,6 @@ const WorkoutSession = () => {
                     if (m === 'REAR UPPERCUT' || m === 'RIGHT UPPERCUT') return '6';
                     if (m === 'LEAD BODY HOOK' || m === 'LEFT BODY') return '7';
                     if (m === 'REAR BODY HOOK' || m === 'RIGHT BODY') return '8';
-                    // Keep defense/movement as short codes
                     if (m.includes('SLIP L')) return 'SL';
                     if (m.includes('SLIP R')) return 'SR';
                     if (m.includes('ROLL L')) return 'RL';
@@ -1318,18 +1311,12 @@ const WorkoutSession = () => {
                     if (m.includes('CIRCLE R')) return '↻';
                     if (m.includes('STEP IN')) return '→';
                     if (m.includes('STEP OUT')) return '←';
-                    return move; // Return original if already a number
+                    return move;
                   })();
-                  
-                  const isDefense = ['SL', 'SR', 'RL', 'RR', 'PL', 'BK'].includes(displayMove);
-                  const isMovement = ['↺', '↻', '→', '←'].includes(displayMove);
                   
                   return (
                     <div key={idx} className="flex items-center gap-1">
-                          <span className={cn(
-                            'text-2xl font-black',
-                            accentText
-                          )}>
+                          <span className={cn('text-2xl font-black', accentText)}>
                         {displayMove}
                       </span>
                       {idx < displayCombo.length - 1 && (
@@ -1342,7 +1329,7 @@ const WorkoutSession = () => {
             </div>
           )}
 
-          {/* Freestyle Display - for combo-type or speedbag segments with no combos assigned */}
+          {/* Freestyle Display */}
           {!isShadowboxing && !isPreparation && currentSegment?.type === 'active' && 
            (currentSegment?.segmentType === 'combo' || currentSegment?.segmentType === 'speedbag' || currentSegment?.segmentType === 'doubleend') &&
            (!displayCombo || displayCombo.length === 0) && (
@@ -1350,9 +1337,10 @@ const WorkoutSession = () => {
               <p className={cn("text-2xl font-black text-center", accentText)}>FREESTYLE</p>
             </div>
           )}
+            </div>
           </div>
-          </div>
-          </div>
+          {/* END Layer 2 */}
+        </div>
 
         {/* Bottom Section */}
         <div className="px-4 pb-6 safe-bottom">
