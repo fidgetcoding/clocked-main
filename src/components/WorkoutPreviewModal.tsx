@@ -1,7 +1,9 @@
+import { useState } from 'react';
 import { X, Clock, Star, Download, Play, Sparkles, Save } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { TrendingWorkout } from '@/data/trendingWorkouts';
 import { cn } from '@/lib/utils';
+import { toast } from 'sonner';
 
 interface WorkoutPreviewModalProps {
   workout: TrendingWorkout;
@@ -16,6 +18,10 @@ function formatDuration(seconds: number): string {
 }
 
 export const WorkoutPreviewModal = ({ workout, onClose, onSave, onCustomize }: WorkoutPreviewModalProps) => {
+  const [showRating, setShowRating] = useState(false);
+  const [hoverStar, setHoverStar] = useState(0);
+  const [selectedRating, setSelectedRating] = useState(0);
+
   const totalPhases = workout.sections.warmup.length + workout.sections.grind.length + workout.sections.cooldown.length;
   const totalRounds = workout.sections.grind.reduce((acc, phase) => acc + phase.repeats, 0);
 
@@ -149,6 +155,46 @@ export const WorkoutPreviewModal = ({ workout, onClose, onSave, onCustomize }: W
 
         {/* Actions */}
         <div className="p-6 border-t border-surface-3 space-y-3 safe-bottom">
+          {/* Star Rating */}
+          {showRating ? (
+            <div className="flex flex-col items-center gap-2 py-2">
+              <p className="text-xs text-muted-foreground uppercase tracking-wider font-bold">Rate this workout</p>
+              <div className="flex gap-1">
+                {[1, 2, 3, 4, 5].map((star) => (
+                  <button
+                    key={star}
+                    onMouseEnter={() => setHoverStar(star)}
+                    onMouseLeave={() => setHoverStar(0)}
+                    onClick={() => {
+                      setSelectedRating(star);
+                      setShowRating(false);
+                      toast.success(`Rated ${star} star${star > 1 ? 's' : ''}!`);
+                    }}
+                    className="p-1 transition-transform hover:scale-125"
+                  >
+                    <Star
+                      className={cn(
+                        "w-8 h-8 transition-colors",
+                        (hoverStar || selectedRating) >= star
+                          ? "text-yellow-500 fill-yellow-500"
+                          : "text-surface-3"
+                      )}
+                    />
+                  </button>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <Button
+              onClick={() => setShowRating(true)}
+              variant="outline"
+              className="w-full border-surface-3 text-foreground hover:bg-surface-2 h-10 text-sm"
+            >
+              <Star className="w-4 h-4 mr-2 text-yellow-500" />
+              {selectedRating > 0 ? `You rated ${selectedRating}/5` : 'Rate this Workout'}
+            </Button>
+          )}
+
           <Button 
             onClick={() => onSave(workout)}
             className="w-full bg-volt text-primary-foreground hover:bg-volt/90 h-12 text-base font-semibold"
