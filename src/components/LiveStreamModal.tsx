@@ -1,8 +1,9 @@
-import { useState, useEffect } from 'react';
-import { X, Send, Users, Heart, Volume2, VolumeX, Maximize2, Mic, MicOff } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { X, Send, Users, UserPlus, UserCheck, Volume2, VolumeX, Maximize2, Minimize2, Mic, MicOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
+import { toast } from 'sonner';
 
 interface LiveStreamModalProps {
   userName: string;
@@ -42,6 +43,10 @@ export const LiveStreamModal = ({
   const [currentTime, setCurrentTime] = useState(elapsed);
   const [isRecording, setIsRecording] = useState(false);
   const [showChat, setShowChat] = useState(true);
+  const [isFollowing, setIsFollowing] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const chatEndRef = useRef<HTMLDivElement>(null);
 
   // Speech recognition setup
   const [recognition, setRecognition] = useState<any>(null);
@@ -60,7 +65,6 @@ export const LiveStreamModal = ({
           .join('');
         
         if (event.results[0].isFinal) {
-          // Send voice message
           const newMessage: ChatMessage = {
             id: crypto.randomUUID(),
             userName: 'You',
@@ -74,14 +78,8 @@ export const LiveStreamModal = ({
         }
       };
 
-      recognitionInstance.onerror = () => {
-        setIsRecording(false);
-      };
-
-      recognitionInstance.onend = () => {
-        setIsRecording(false);
-      };
-
+      recognitionInstance.onerror = () => setIsRecording(false);
+      recognitionInstance.onend = () => setIsRecording(false);
       setRecognition(recognitionInstance);
     }
   }, []);
@@ -103,14 +101,27 @@ export const LiveStreamModal = ({
   // Simulate viewer count fluctuation
   useEffect(() => {
     const interval = setInterval(() => {
-      setViewerCount(prev => prev + Math.floor(Math.random() * 3) - 1);
+      setViewerCount(prev => Math.max(1, prev + Math.floor(Math.random() * 3) - 1));
     }, 5000);
     return () => clearInterval(interval);
   }, []);
 
+  // Auto-scroll chat
+  useEffect(() => {
+    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
+
+  // Listen for fullscreen changes
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(!!document.fullscreenElement);
+    };
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
+  }, []);
+
   const handleSendMessage = () => {
     if (!chatMessage.trim()) return;
-    
     const newMessage: ChatMessage = {
       id: crypto.randomUUID(),
       userName: 'You',
@@ -118,14 +129,12 @@ export const LiveStreamModal = ({
       message: chatMessage,
       timestamp: new Date(),
     };
-    
     setMessages(prev => [...prev, newMessage]);
     setChatMessage('');
   };
 
   const handleVoiceMessage = () => {
     if (!recognition) return;
-    
     if (isRecording) {
       recognition.stop();
       setIsRecording(false);
@@ -135,9 +144,31 @@ export const LiveStreamModal = ({
     }
   };
 
+  const handleFollow = () => {
+    setIsFollowing(!isFollowing);
+    toast.success(isFollowing ? `Unfollowed ${userName}` : `Following ${userName}!`);
+  };
+
+  const toggleFullscreen = async () => {
+    try {
+      if (!document.fullscreenElement) {
+        await containerRef.current?.requestFullscreen();
+      } else {
+        await document.exitFullscreen();
+      }
+    } catch {
+      toast.error('Fullscreen not supported');
+    }
+  };
+
+  const handleMuteToggle = () => {
+    setIsMuted(!isMuted);
+    toast(isMuted ? '🔊 Unmuted' : '🔇 Muted', { duration: 1500 });
+  };
+
   return (
-    <div className="fixed inset-0 z-50 bg-black flex flex-col">
-      {/* Video Area - Placeholder */}
+    <div ref={containerRef} className="fixed inset-0 z-50 bg-black flex flex-col">
+      {/* Video Area */}
       <div className="relative flex-1 bg-gradient-to-br from-surface-1 to-surface-2 flex items-center justify-center">
         {/* Close Button */}
         <button 
@@ -179,8 +210,11 @@ export const LiveStreamModal = ({
         <div className="absolute bottom-4 left-4 right-4 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <button 
-              onClick={() => setIsMuted(!isMuted)}
-              className="w-10 h-10 rounded-full bg-black/50 backdrop-blur-sm flex items-center justify-center text-white hover:bg-black/70 transition-colors"
+              onClick={handleMuteToggle}
+              className={cn(
+                "w-10 h-10 rounded-full backdrop-blur-sm flex items-center justify-center transition-colors",
+                isMuted ? "bg-red-500/60 text-white" : "bg-black/50 text-white hover:bg-black/70"
+              )}
             >
               {isMuted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
             </button>
@@ -192,12 +226,23 @@ export const LiveStreamModal = ({
             >
               <span className="text-sm font-medium">{showChat ? 'Hide' : 'Show'} Chat</span>
             </button>
-            <button className="flex items-center gap-2 bg-black/50 backdrop-blur-sm px-4 py-2 rounded-full text-white hover:bg-black/70 transition-colors">
-              <Heart className="w-4 h-4" />
-              <span className="text-sm font-medium">Support</span>
+            <button 
+              onClick={handleFollow}
+              className={cn(
+                "flex items-center gap-2 backdrop-blur-sm px-4 py-2 rounded-full transition-colors",
+                isFollowing 
+                  ? "bg-volt/80 text-primary-foreground" 
+                  : "bg-black/50 text-white hover:bg-black/70"
+              )}
+            >
+              {isFollowing ? <UserCheck className="w-4 h-4" /> : <UserPlus className="w-4 h-4" />}
+              <span className="text-sm font-medium">{isFollowing ? 'Following' : 'Follow'}</span>
             </button>
-            <button className="w-10 h-10 rounded-full bg-black/50 backdrop-blur-sm flex items-center justify-center text-white hover:bg-black/70 transition-colors">
-              <Maximize2 className="w-5 h-5" />
+            <button 
+              onClick={toggleFullscreen}
+              className="w-10 h-10 rounded-full bg-black/50 backdrop-blur-sm flex items-center justify-center text-white hover:bg-black/70 transition-colors"
+            >
+              {isFullscreen ? <Minimize2 className="w-5 h-5" /> : <Maximize2 className="w-5 h-5" />}
             </button>
           </div>
         </div>
@@ -206,12 +251,10 @@ export const LiveStreamModal = ({
       {/* Chat Section */}
       {showChat && (
         <div className="h-[40%] bg-surface-1 border-t border-surface-3 flex flex-col">
-          {/* Chat Header */}
           <div className="px-4 py-3 border-b border-surface-3">
             <h3 className="font-semibold text-foreground text-sm">Live Chat</h3>
           </div>
 
-          {/* Messages */}
           <div className="flex-1 overflow-y-auto px-4 py-2 space-y-2">
             {messages.map((msg) => (
               <div 
@@ -236,6 +279,7 @@ export const LiveStreamModal = ({
                 </div>
               </div>
             ))}
+            <div ref={chatEndRef} />
           </div>
 
           {/* Chat Input */}
