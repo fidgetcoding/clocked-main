@@ -1152,7 +1152,7 @@ const WorkoutSession = () => {
         {/* Main Timer — middle area between top bar and bottom bar */}
         <div className="flex-1 relative px-4">
           {/* Layer 1: Fixed, vertically centered — phase name, timer, segment, time buttons */}
-          <div className="absolute inset-0 flex flex-col items-center px-4" style={{ paddingTop: '2%', justifyContent: 'flex-start' }}>
+          <div className="absolute inset-0 flex flex-col items-center justify-center px-4" style={{ marginTop: '-10%' }}>
                 {/* Phase Name — context of where you are */}
                 {isPreparation ? (
                   <p className="text-xs text-muted-foreground uppercase tracking-widest mb-2">GET READY</p>
@@ -1247,7 +1247,7 @@ const WorkoutSession = () => {
           {/* END Layer 1 — timer group is now self-contained */}
 
           {/* Layer 2: absolute, lower portion only — combo/UP NEXT cards */}
-          <div className="absolute left-4 right-4 flex flex-col items-center justify-start pointer-events-none" style={{ top: '72%' }}>
+          <div className="absolute left-4 right-4 bottom-0 flex flex-col items-center justify-end pointer-events-none pb-2">
             <div className="pointer-events-auto w-full flex flex-col items-center">
           {/* Rest Screen - Clean Next Preview */}
           {isRestSegment && (
