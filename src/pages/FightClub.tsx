@@ -1,11 +1,11 @@
 import { useState } from 'react';
-import { ArrowLeft, Users, Newspaper, Trophy, Search, MessageCircle, BarChart3, Send, ChevronRight, Mic, MicOff, Download, X, UserPlus, LogIn, LogOut, Trash2 } from 'lucide-react';
+import { ArrowLeft, Users, Newspaper, Trophy, Search, MessageCircle, BarChart3, Send, ChevronRight, Mic, MicOff, Download, X, UserPlus, LogIn, LogOut, Trash2, Star } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
-import { TRENDING_WORKOUTS, WORKOUT_CATEGORIES, TrendingWorkout, WorkoutCategory } from '@/data/trendingWorkouts';
+import { WORKOUT_CATEGORIES, TrendingWorkout, WorkoutCategory } from '@/data/trendingWorkouts';
 import { WorkoutPreviewModal } from '@/components/WorkoutPreviewModal';
 import { AIBuilderModal } from '@/components/AIBuilderModal';
 import { LiveStreamModal } from '@/components/LiveStreamModal';
@@ -17,6 +17,7 @@ import { useUserSearch } from '@/hooks/useUserSearch';
 import { useFollows } from '@/hooks/useFollows';
 import { useClubs, EARLY_ADOPTERS_CLUB_ID } from '@/hooks/useClubs';
 import { useAuth } from '@/contexts/AuthContext';
+import { useTierPresets, TierPresetWithLoadout } from '@/hooks/useTierPresets';
 
 type Tab = 'feed' | 'clubs' | 'presets';
 type ClubTab = 'feed' | 'chat' | 'leaderboard';
@@ -64,6 +65,9 @@ const FightClub = () => {
   const { clubs, isMemberOf, joinClub, leaveClub, useClubMemberCount } = useClubs();
   const { data: earlyAdoptersMemberCount = 0 } = useClubMemberCount(EARLY_ADOPTERS_CLUB_ID);
   const earlyAdoptersClub = clubs.find(c => c.id === EARLY_ADOPTERS_CLUB_ID);
+  
+  // Tier presets
+  const { presets: tierPresets, isLoading: tierPresetsLoading } = useTierPresets();
 
   const tabs: { id: Tab; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
     { id: 'feed', label: 'Feed', icon: Newspaper },
@@ -74,19 +78,7 @@ const FightClub = () => {
   // Community shared presets (preset_shared posts from the feed)
   const communitySharedPresets = communityPosts?.filter(p => p.type === 'preset_shared' && p.workout_data) || [];
 
-  // Filter trending workouts
-  const filteredWorkouts = TRENDING_WORKOUTS.filter((workout) => {
-    const matchesSearch = workout.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      workout.tags.some(tag => tag.toLowerCase().includes(searchQuery.toLowerCase())) ||
-      workout.authorHandle.toLowerCase().includes(searchQuery.toLowerCase());
-    
-    const matchesCategory = selectedCategory === 'All' || 
-      workout.tags.includes(selectedCategory) ||
-      (selectedCategory === 'Beginner' && workout.difficulty === 'beginner') ||
-      (selectedCategory === 'Advanced' && workout.difficulty === 'advanced');
-    
-    return matchesSearch && matchesCategory;
-  });
+  // Tier presets are now used instead of static TRENDING_WORKOUTS
 
   // Handle saving a workout
   const handleSaveWorkout = (workout: TrendingWorkout) => {
@@ -903,91 +895,114 @@ const FightClub = () => {
                 ))}
               </div>
 
-              {/* Trending - includes community shared presets merged in */}
+              {/* Trending — Tier Presets */}
               <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
-                {selectedCategory === 'All' ? 'Trending 🔥' : selectedCategory}
+                Trending 🔥
               </h3>
 
-              {/* Community shared presets + Trending workout cards */}
-              {filteredWorkouts.length === 0 && communitySharedPresets.length === 0 ? (
+              {/* Community shared presets */}
+              {communitySharedPresets
+                .filter((post) => {
+                  if (!searchQuery) return true;
+                  const pname = (post.custom_name || post.workout_name || '').toLowerCase();
+                  return pname.includes(searchQuery.toLowerCase());
+                })
+                .map((post) => (
+                <button
+                  key={post.id}
+                  onClick={() => handleSaveCommunityWorkout(post)}
+                  className="card-workout w-full text-left"
+                >
+                  <div className="flex items-start gap-3">
+                    <div className="w-12 h-12 rounded-xl bg-volt/20 flex items-center justify-center text-2xl">
+                      {post.workout_data?.icon || '🥊'}
+                    </div>
+                    <div className="flex-1">
+                      <h4 className="font-semibold text-foreground">{post.custom_name || post.workout_name}</h4>
+                      <p className="text-sm text-muted-foreground">by {post.user_name}</p>
+                      <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground">
+                        {post.workout_data?.totalDuration && (
+                          <span>{Math.floor(post.workout_data.totalDuration / 60)} min</span>
+                        )}
+                        <span>❤️ {post.likes}</span>
+                      </div>
+                    </div>
+                    <Download className="w-5 h-5 text-volt mt-1" />
+                  </div>
+                </button>
+              ))}
+
+              {/* Tier Preset Cards */}
+              {tierPresetsLoading ? (
+                <div className="text-center py-8 text-muted-foreground">Loading presets...</div>
+              ) : tierPresets.length === 0 ? (
                 <div className="text-center py-8">
-                  <p className="text-muted-foreground">No workouts found matching your search.</p>
+                  <p className="text-muted-foreground">No presets available.</p>
                 </div>
               ) : (
-                <>
-                  {/* Community shared presets as cards */}
-                  {communitySharedPresets
-                    .filter((post) => {
-                      if (!searchQuery) return true;
-                      const pname = (post.custom_name || post.workout_name || '').toLowerCase();
-                      return pname.includes(searchQuery.toLowerCase());
-                    })
-                    .map((post) => (
-                    <button
-                      key={post.id}
-                      onClick={() => handleSaveCommunityWorkout(post)}
-                      className="card-workout w-full text-left"
-                    >
-                      <div className="flex items-start gap-3">
-                        <div className="w-12 h-12 rounded-xl bg-volt/20 flex items-center justify-center text-2xl">
-                          {post.workout_data?.icon || '🥊'}
-                        </div>
-                        <div className="flex-1">
-                          <h4 className="font-semibold text-foreground">{post.custom_name || post.workout_name}</h4>
-                          <p className="text-sm text-muted-foreground">by {post.user_name}</p>
-                          <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground">
-                            {post.workout_data?.totalDuration && (
-                              <span>{Math.floor(post.workout_data.totalDuration / 60)} min</span>
-                            )}
-                            {post.workout_data?.difficulty && (
-                              <span className={cn(
-                                post.workout_data.difficulty === 'beginner' ? 'text-volt' :
-                                post.workout_data.difficulty === 'intermediate' ? 'text-yellow-500' :
-                                'text-alert-red'
-                              )}>
-                                {post.workout_data.difficulty.charAt(0).toUpperCase() + post.workout_data.difficulty.slice(1)}
-                              </span>
-                            )}
-                            <span>❤️ {post.likes}</span>
-                          </div>
-                        </div>
-                        <Download className="w-5 h-5 text-volt mt-1" />
-                      </div>
-                    </button>
-                  ))}
+                tierPresets
+                  .filter((preset) => {
+                    if (!searchQuery) return true;
+                    return preset.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                      preset.tier.toLowerCase().includes(searchQuery.toLowerCase());
+                  })
+                  .filter((preset) => {
+                    if (selectedCategory === 'All') return true;
+                    if (selectedCategory === 'Beginner') return preset.tier === 'rookie' || preset.tier === 'beginner';
+                    if (selectedCategory === 'Advanced') return preset.tier === 'advanced' || preset.tier === 'pro';
+                    return true;
+                  })
+                  .map((preset) => {
+                    const duration = Math.round(preset.generatedLoadout.duration / 60);
+                    const tierLabel = preset.tier.charAt(0).toUpperCase() + preset.tier.slice(1);
+                    const tierColor = preset.tier === 'rookie' ? 'text-slate-400' :
+                      preset.tier === 'beginner' ? 'text-volt' :
+                      preset.tier === 'intermediate' ? 'text-blue-400' :
+                      preset.tier === 'advanced' ? 'text-purple-400' :
+                      'text-amber-400';
+                    const userCountDisplay = preset.userCount >= 1000 
+                      ? `${(preset.userCount / 1000).toFixed(1)}K` 
+                      : preset.userCount.toString();
 
-                  {/* Static trending workouts */}
-                  {filteredWorkouts.map((workout) => (
-                    <button
-                      key={workout.id}
-                      onClick={() => setSelectedWorkout(workout)}
-                      className="card-workout w-full text-left"
-                    >
-                      <div className="flex items-start gap-3">
-                        <div className="w-12 h-12 rounded-xl bg-volt/20 flex items-center justify-center text-2xl">
-                          {workout.icon}
-                        </div>
-                        <div className="flex-1">
-                          <h4 className="font-semibold text-foreground">{workout.name}</h4>
-                          <p className="text-sm text-muted-foreground">{workout.authorHandle}</p>
-                          <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground">
-                            <span>⭐ {workout.rating} ({workout.ratingCount})</span>
-                            <span>📥 {workout.downloads >= 1000 ? `${(workout.downloads / 1000).toFixed(1)}K` : workout.downloads}</span>
-                            <span>{Math.floor(workout.totalDuration / 60)} min</span>
-                            <span className={cn(
-                              workout.difficulty === 'beginner' ? 'text-volt' :
-                              workout.difficulty === 'intermediate' ? 'text-yellow-500' :
-                              'text-alert-red'
-                            )}>
-                              {workout.difficulty.charAt(0).toUpperCase() + workout.difficulty.slice(1)}
-                            </span>
+                    return (
+                      <button
+                        key={preset.id}
+                        onClick={() => {
+                          // Navigate to workout session with this preset
+                          navigate('/workout-session', { state: { 
+                            oneOffLoadout: preset.generatedLoadout,
+                            workoutName: preset.name,
+                          }});
+                        }}
+                        className="card-workout w-full text-left"
+                      >
+                        <div className="flex items-start gap-3">
+                          <div className="w-12 h-12 rounded-xl bg-volt/20 flex items-center justify-center text-2xl">
+                            🥊
                           </div>
+                          <div className="flex-1">
+                            <h4 className="font-semibold text-foreground">{preset.name}</h4>
+                            <p className="text-sm text-muted-foreground">@KOI</p>
+                            <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground flex-wrap">
+                              <span className="flex items-center gap-0.5">
+                                <Star className="w-3 h-3 text-amber-400 fill-amber-400" />
+                                5.0 ({userCountDisplay})
+                              </span>
+                              <span className="flex items-center gap-0.5">
+                                <Download className="w-3 h-3" />
+                                {userCountDisplay}
+                              </span>
+                              <span>{duration} min</span>
+                              <span className={cn("font-semibold", tierColor)}>
+                                {tierLabel}
+                              </span>
+                            </div>
+                          </div>
+                          <ChevronRight className="w-5 h-5 text-muted-foreground mt-1" />
                         </div>
-                        <ChevronRight className="w-5 h-5 text-muted-foreground mt-1" />
-                      </div>
-                    </button>
-                  ))}
-                </>
+                      </button>
+                    );
+                  })
               )}
             </div>
           )}
