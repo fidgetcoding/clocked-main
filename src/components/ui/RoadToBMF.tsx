@@ -1,10 +1,12 @@
 import { cn } from '@/lib/utils';
 import { Prestige, PRESTIGE_NAMES, PRESTIGE_ORDER } from '@/lib/xpSystem';
-import { Trophy } from 'lucide-react';
+import { Trophy, Flame } from 'lucide-react';
 
 interface RoadToBMFProps {
   prestige: Prestige;
   level: number;
+  totalSessions: number;
+  longestStreak: number;
 }
 
 const TIER_COLORS: Record<Prestige, { bg: string; fill: string; text: string }> = {
@@ -15,21 +17,25 @@ const TIER_COLORS: Record<Prestige, { bg: string; fill: string; text: string }> 
   pro: { bg: 'bg-amber-500/20', fill: 'bg-amber-400', text: 'text-amber-400' },
 };
 
-export function RoadToBMF({ prestige, level }: RoadToBMFProps) {
+// BMF = 250 sessions, BMFK = 365 consecutive days
+const BMF_SESSIONS = 250;
+const BMFK_STREAK = 365;
+
+export function RoadToBMF({ prestige, level, totalSessions, longestStreak }: RoadToBMFProps) {
   const currentIdx = PRESTIGE_ORDER.indexOf(prestige);
-  // Total progress: each tier = 100 levels, 5 tiers = 500 total
-  const totalProgress = currentIdx * 100 + Math.min(level, 100);
-  const totalMax = 500;
-  const overallPercent = (totalProgress / totalMax) * 100;
+
+  // BMF progress: sessions toward 250
+  const bmfPercent = Math.min(100, (totalSessions / BMF_SESSIONS) * 100);
+  const bmfDone = totalSessions >= BMF_SESSIONS;
+
+  // BMFK progress: longest streak toward 365
+  const bmfkPercent = Math.min(100, (longestStreak / BMFK_STREAK) * 100);
+  const bmfkDone = longestStreak >= BMFK_STREAK;
 
   return (
     <div className="card-workout space-y-3">
       <div className="flex items-center justify-between">
         <h3 className="text-sm font-bold text-muted-foreground uppercase tracking-wider">Road to BMF</h3>
-        <div className="flex items-center gap-1.5">
-          <Trophy className="w-3.5 h-3.5 text-amber-400" />
-          <span className="text-xs font-bold text-amber-400">{Math.round(overallPercent)}%</span>
-        </div>
       </div>
 
       {/* Tier progress bars */}
@@ -70,11 +76,71 @@ export function RoadToBMF({ prestige, level }: RoadToBMFProps) {
         })}
       </div>
 
-      {/* BMF label */}
-      <div className="flex items-center justify-center gap-2 pt-1">
+      {/* Divider */}
+      <div className="flex items-center gap-2">
         <div className="h-px flex-1 bg-surface-3" />
-        <span className="text-xs font-black text-amber-400 tracking-widest">🏆 BMF</span>
+        <span className="text-[10px] font-black text-amber-400 tracking-widest uppercase">Final Boss</span>
         <div className="h-px flex-1 bg-surface-3" />
+      </div>
+
+      {/* BMF bar — 250 sessions */}
+      <div className="space-y-2">
+        <div className="flex items-center gap-2">
+          <span className={cn(
+            "text-[10px] font-bold uppercase w-10 text-right tracking-wide",
+            bmfDone ? 'text-amber-400' : bmfPercent > 0 ? 'text-red-400' : 'text-surface-3'
+          )}>
+            BMF
+          </span>
+          <div className="flex-1 h-3 rounded-full overflow-hidden bg-red-500/20">
+            <div
+              className={cn(
+                "h-full rounded-full transition-all duration-700 ease-out",
+                bmfDone ? "bg-amber-400" : "bg-red-400"
+              )}
+              style={{ width: `${bmfPercent}%` }}
+            />
+          </div>
+          <span className={cn(
+            "text-[10px] font-bold w-12 text-right",
+            bmfDone ? 'text-amber-400' : bmfPercent > 0 ? 'text-foreground' : 'text-surface-3'
+          )}>
+            {totalSessions}/{BMF_SESSIONS}
+          </span>
+        </div>
+        <p className="text-[9px] text-muted-foreground pl-12">
+          <Trophy className="w-3 h-3 inline mr-1 text-red-400" />
+          250 total sessions — Baddest MF
+        </p>
+
+        {/* BMFK bar — 365 consecutive days */}
+        <div className="flex items-center gap-2 mt-1">
+          <span className={cn(
+            "text-[10px] font-bold uppercase w-10 text-right tracking-wide",
+            bmfkDone ? 'text-amber-400' : bmfkPercent > 0 ? 'text-red-400' : 'text-surface-3'
+          )}>
+            BMFK
+          </span>
+          <div className="flex-1 h-3 rounded-full overflow-hidden bg-red-500/20">
+            <div
+              className={cn(
+                "h-full rounded-full transition-all duration-700 ease-out",
+                bmfkDone ? "bg-amber-400" : "bg-red-400"
+              )}
+              style={{ width: `${bmfkPercent}%` }}
+            />
+          </div>
+          <span className={cn(
+            "text-[10px] font-bold w-12 text-right",
+            bmfkDone ? 'text-amber-400' : bmfkPercent > 0 ? 'text-foreground' : 'text-surface-3'
+          )}>
+            {longestStreak}/{BMFK_STREAK}
+          </span>
+        </div>
+        <p className="text-[9px] text-muted-foreground pl-12">
+          <Flame className="w-3 h-3 inline mr-1 text-red-400" />
+          365 consecutive days — Baddest MF Known
+        </p>
       </div>
     </div>
   );

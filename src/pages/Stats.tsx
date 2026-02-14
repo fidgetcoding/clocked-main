@@ -318,7 +318,7 @@ const Stats = () => {
 
 
           {/* Road to BMF */}
-          <RoadToBMF prestige={prestige} level={currentLevel} />
+          <RoadToBMF prestige={prestige} level={currentLevel} totalSessions={workoutsCompleted} longestStreak={longestStreak} />
 
           {/* Calendar Heatmap */}
           <WorkoutCalendar workoutDates={workoutDates} />
