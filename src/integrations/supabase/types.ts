@@ -468,6 +468,36 @@ export type Database = {
         }
         Relationships: []
       }
+      tier_presets: {
+        Row: {
+          created_at: string
+          description: string | null
+          equipment_mode: string
+          id: string
+          loadout: Json
+          name: string
+          tier: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          equipment_mode: string
+          id?: string
+          loadout?: Json
+          name: string
+          tier: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          equipment_mode?: string
+          id?: string
+          loadout?: Json
+          name?: string
+          tier?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           id: string
@@ -699,6 +729,13 @@ export type Database = {
           total_xp: number
           user_id: string
           workouts_completed: number
+        }[]
+      }
+      get_tier_user_counts: {
+        Args: never
+        Returns: {
+          tier: string
+          user_count: number
         }[]
       }
       get_total_training_seconds: {
