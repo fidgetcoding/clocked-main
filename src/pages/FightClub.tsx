@@ -948,8 +948,15 @@ const FightClub = () => {
                   })
                   .filter((preset) => {
                     if (selectedCategory === 'All') return true;
-                    if (selectedCategory === 'Beginner') return preset.tier === 'rookie' || preset.tier === 'beginner';
-                    if (selectedCategory === 'Advanced') return preset.tier === 'advanced' || preset.tier === 'pro';
+                    if (selectedCategory === 'Boxing') return true; // All presets are boxing
+                    if (selectedCategory === 'Rookie') return preset.tier === 'rookie';
+                    if (selectedCategory === 'Beginner') return preset.tier === 'beginner';
+                    if (selectedCategory === 'Intermediate') return preset.tier === 'intermediate';
+                    if (selectedCategory === 'Advanced') return preset.tier === 'advanced';
+                    if (selectedCategory === 'Pro') return preset.tier === 'pro';
+                    if (selectedCategory === 'HIIT') return ['intermediate', 'advanced', 'pro'].includes(preset.tier);
+                    if (selectedCategory === 'Conditioning') return true;
+                    if (selectedCategory === 'Cardio') return true;
                     return true;
                   })
                   .map((preset) => {
@@ -997,6 +1004,15 @@ const FightClub = () => {
                                 {tierLabel}
                               </span>
                             </div>
+                            {preset.generatedLoadout.tags && preset.generatedLoadout.tags.length > 0 && (
+                              <div className="flex flex-wrap gap-1 mt-2">
+                                {preset.generatedLoadout.tags.map((tag) => (
+                                  <span key={tag} className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-volt/15 text-volt border border-volt/20">
+                                    {tag}
+                                  </span>
+                                ))}
+                              </div>
+                            )}
                           </div>
                           <ChevronRight className="w-5 h-5 text-muted-foreground mt-1" />
                         </div>
