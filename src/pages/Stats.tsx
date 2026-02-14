@@ -220,29 +220,15 @@ const Stats = () => {
           <div className="card-workout relative overflow-hidden">
             <div className="absolute inset-0 bg-gradient-to-br from-volt/10 to-transparent" />
             <div className="relative">
-              <div className="flex items-center gap-4 mb-4">
-                <div className="w-16 h-16 rounded-2xl bg-volt/20 flex items-center justify-center">
-                  <Trophy className="w-8 h-8 text-volt" />
-                </div>
-              <div className="flex-1">
-                    <p className="text-sm text-muted-foreground">Current Status</p>
-                  <PrestigeDisplay 
-                    prestige={prestige}
-                    ranking={ranking}
-                    level={currentLevel}
-                    totalXP={totalXP}
-                    showProgress={false}
-                    size="md"
-                  />
-                </div>
+              <div className="mb-2">
+                <XPBar 
+                  prestige={prestige}
+                  level={currentLevel}
+                  totalXP={totalXP}
+                  badgeStats={currentStats}
+                  earnedBadgeIds={earnedBadgeIds}
+                />
               </div>
-              <XPBar 
-                prestige={prestige}
-                level={currentLevel}
-                totalXP={totalXP}
-                badgeStats={currentStats}
-                earnedBadgeIds={earnedBadgeIds}
-              />
             </div>
           </div>
 
