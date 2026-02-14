@@ -317,9 +317,6 @@ const Stats = () => {
           </div>
 
 
-          {/* Road to BMF */}
-          <RoadToBMF prestige={prestige} level={currentLevel} totalSessions={workoutsCompleted} longestStreak={longestStreak} />
-
           {/* Calendar Heatmap */}
           <WorkoutCalendar workoutDates={workoutDates} />
 
@@ -398,7 +395,10 @@ const Stats = () => {
             </div>
           </div>
         </div>
-      </div>
+          </div>
+
+          {/* Road to BMF */}
+          <RoadToBMF prestige={prestige} level={currentLevel} totalSessions={workoutsCompleted} longestStreak={longestStreak} />
     </AppLayout>
   );
 };
