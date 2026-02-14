@@ -1152,7 +1152,7 @@ const WorkoutSession = () => {
         {/* Main Timer — middle area between top bar and bottom bar */}
         <div className="flex-1 relative px-4">
           {/* Layer 1: Fixed, vertically centered — phase name, timer, segment, time buttons */}
-          <div className="absolute inset-0 flex flex-col items-center justify-center px-4" style={{ marginTop: '-10%' }}>
+          <div className="absolute inset-0 flex flex-col items-center justify-center px-4" style={{ marginTop: '-18%' }}>
                 {/* Phase Name — context of where you are */}
                 {isPreparation ? (
                   <p className="text-xs text-muted-foreground uppercase tracking-widest mb-2">GET READY</p>
