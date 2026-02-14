@@ -246,12 +246,12 @@ const Settings = () => {
           {isAdmin && (
             <div className="card-workout border border-volt/20 space-y-2">
               <p className="text-xs font-bold text-volt uppercase tracking-wider">⚡ Admin Tools</p>
-              <div className="flex gap-2 flex-wrap">
+              <div className="grid grid-cols-2 gap-2">
                 <Button
                   size="sm"
                   variant="outline"
                   onClick={() => setShowLevelUpOverlay(true)}
-                  className="flex-1 text-xs bg-surface-2 border-surface-3"
+                  className="text-xs bg-surface-2 border-surface-3"
                 >
                   🎮 Level Up
                 </Button>
@@ -259,7 +259,7 @@ const Settings = () => {
                   size="sm"
                   variant="outline"
                   onClick={() => setShowPrestigePrompt(true)}
-                  className="flex-1 text-xs bg-surface-2 border-surface-3"
+                  className="text-xs bg-surface-2 border-surface-3"
                 >
                   🏆 Prestige
                 </Button>
@@ -267,7 +267,7 @@ const Settings = () => {
                   size="sm"
                   variant="outline"
                   onClick={() => setShowBadgeOverlay(true)}
-                  className="flex-1 text-xs bg-surface-2 border-surface-3"
+                  className="text-xs bg-surface-2 border-surface-3"
                 >
                   🎖️ Badge Earn
                 </Button>
