@@ -989,7 +989,7 @@ const FightClub = () => {
                           </div>
                           <div className="flex-1">
                             <h4 className="font-semibold text-foreground">{preset.name}</h4>
-                            <p className="text-sm text-muted-foreground">@KOI</p>
+                            <p className="text-sm text-muted-foreground">@nate</p>
                             <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground flex-wrap">
                               <span className="flex items-center gap-0.5">
                                 <Star className="w-3 h-3 text-amber-400 fill-amber-400" />
