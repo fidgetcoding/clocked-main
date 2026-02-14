@@ -1125,11 +1125,11 @@ const WorkoutSession = () => {
                 {isPreparation ? (
                   <p className="text-xs text-muted-foreground uppercase tracking-widest mb-2">GET READY</p>
                 ) : isChampionship ? (
-                  <div className="flex items-center gap-1.5 mb-2 px-3 py-0.5 rounded-full bg-championship-gold/15 border border-championship-gold/40 animate-[pulse_3s_ease-in-out_infinite]">
+                  <p className="text-xs font-black text-championship-gold uppercase tracking-widest mb-2 flex items-center gap-1.5 animate-[pulse_3s_ease-in-out_infinite]">
                     <Zap className="w-3 h-3 text-championship-gold" />
-                    <span className="text-xs font-black text-championship-gold uppercase tracking-widest">{currentSegment?.phaseName || 'CHAMPIONSHIP'}</span>
+                    {currentSegment?.phaseName || 'CHAMPIONSHIP'}
                     <Zap className="w-3 h-3 text-championship-gold" />
-                  </div>
+                  </p>
                 ) : (
                   <p className={cn(
                     "text-xs uppercase tracking-widest mb-2",
