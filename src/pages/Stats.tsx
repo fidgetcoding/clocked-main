@@ -315,38 +315,6 @@ const Stats = () => {
             </div>
           </div>
 
-          {/* Streak Record */}
-          <div className="card-workout">
-            <div className="flex items-center justify-between mb-2">
-              <div>
-                <p className="text-sm text-muted-foreground">Current Streak</p>
-                <p className="text-xl font-bold text-foreground">{currentStreak}d</p>
-              </div>
-              <div className="text-right">
-                <p className="text-sm text-muted-foreground">Best Ever</p>
-                <p className="text-xl font-bold text-volt">{longestStreak}d</p>
-              </div>
-            </div>
-            {/* Streak multiplier indicator */}
-            {currentStreak >= 3 && (
-              <div className="flex items-center gap-2 mt-2 px-3 py-1.5 rounded-full bg-orange-500/10 border border-orange-500/20 w-fit">
-                <Flame className="w-3.5 h-3.5 text-orange-400" />
-                <span className="text-xs font-bold text-orange-400">{streakMult}x XP Bonus</span>
-              </div>
-            )}
-            <div className="flex items-center gap-1 mt-3">
-              {Array.from({ length: Math.min(7, longestStreak) }).map((_, i) => (
-                <div
-                  key={i}
-                  className={cn(
-                    "w-3 h-3 rounded-full",
-                    i < currentStreak ? "bg-volt" : "bg-surface-3"
-                  )}
-                  style={{ opacity: 0.4 + (i * 0.1) }}
-                />
-              ))}
-            </div>
-          </div>
 
           {/* Calendar Heatmap */}
           <WorkoutCalendar workoutDates={workoutDates} />
