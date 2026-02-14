@@ -33,6 +33,7 @@ const Settings = () => {
   const [isSigningOut, setIsSigningOut] = useState(false);
   const [isRegenerating, setIsRegenerating] = useState(false);
   const [showLevelUpOverlay, setShowLevelUpOverlay] = useState(false);
+  const [levelUpVariant, setLevelUpVariant] = useState<'volt' | 'cooldown' | 'championship'>('volt');
   const [showPrestigePrompt, setShowPrestigePrompt] = useState(false);
   const [showBadgeOverlay, setShowBadgeOverlay] = useState(false);
 
@@ -250,10 +251,12 @@ const Settings = () => {
                 <Button
                   size="sm"
                   variant="outline"
-                  onClick={() => setShowLevelUpOverlay(true)}
+                  onClick={() => {
+                    setShowLevelUpOverlay(true);
+                  }}
                   className="text-xs bg-surface-2 border-surface-3"
                 >
-                  🎮 Level Up
+                  🎮 Level Up ({levelUpVariant === 'volt' ? '🟢' : levelUpVariant === 'cooldown' ? '🔵' : '🟡'})
                 </Button>
                 <Button
                   size="sm"
@@ -297,7 +300,15 @@ const Settings = () => {
 
         {/* Level Up Overlay (admin test) */}
         {showLevelUpOverlay && (
-          <LevelUpOverlay level={profile?.current_level || 1} onComplete={() => setShowLevelUpOverlay(false)} />
+          <LevelUpOverlay
+            level={profile?.current_level || 1}
+            variant={levelUpVariant}
+            onComplete={() => {
+              setShowLevelUpOverlay(false);
+              // Cycle to next variant for next press
+              setLevelUpVariant(prev => prev === 'volt' ? 'cooldown' : prev === 'cooldown' ? 'championship' : 'volt');
+            }}
+          />
         )}
 
         {/* Prestige Prompt (admin test) */}

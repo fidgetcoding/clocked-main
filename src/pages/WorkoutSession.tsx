@@ -1111,7 +1111,11 @@ const WorkoutSession = () => {
 
         {/* Level Up Overlay */}
         {levelUpLevel !== null && (
-          <LevelUpOverlay level={levelUpLevel} onComplete={() => setLevelUpLevel(null)} />
+          <LevelUpOverlay
+            level={levelUpLevel}
+            variant={isChampionship ? 'championship' : isCooldown ? 'cooldown' : 'volt'}
+            onComplete={() => setLevelUpLevel(null)}
+          />
         )}
 
         {/* Main Timer — middle area between top bar and bottom bar */}
