@@ -107,7 +107,7 @@ const Settings = () => {
 
       if (error) throw error;
       queryClient.invalidateQueries({ queryKey: ['workouts', authUser.id] });
-      toast.success(`Regenerated: ${loadout.name}`);
+      toast.success('Sets & trending presets updated across all users');
     } catch (err) {
       console.error('Regenerate loadout error:', err);
       toast.error('Failed to regenerate loadout');
