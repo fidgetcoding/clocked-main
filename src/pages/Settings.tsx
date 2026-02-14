@@ -230,19 +230,6 @@ const Settings = () => {
             </button>
           )}
 
-          {/* Regen Loadout — available to all users */}
-          <div className="card-workout">
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={handleRegenerateLoadout}
-              disabled={isRegenerating}
-              className="w-full text-xs bg-surface-2 border-surface-3"
-            >
-              {isRegenerating ? '⏳ ...' : '🔄 Regen Loadout'}
-            </Button>
-          </div>
-
           {/* Admin Tools */}
           {isAdmin && (
             <div className="card-workout border border-volt/20 space-y-2">
@@ -273,6 +260,15 @@ const Settings = () => {
                   className="text-xs bg-surface-2 border-surface-3"
                 >
                   🎖️ Badge Earn
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={handleRegenerateLoadout}
+                  disabled={isRegenerating}
+                  className="text-xs bg-surface-2 border-surface-3"
+                >
+                  {isRegenerating ? '⏳ ...' : '🔄 Regen Loadout'}
                 </Button>
               </div>
             </div>
