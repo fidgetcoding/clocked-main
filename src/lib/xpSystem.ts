@@ -325,20 +325,51 @@ function classifyMove(move: string): { xp: number; isDefense: boolean } {
 
 /**
  * Calculate XP from a single combo execution.
+ * 
+ * Adjacent defense moves form "compound transitions" that:
+ * - Count as 1 move (not 2+) for length bonus
+ * - Have 0 base XP
+ * - Do NOT count toward defense bonus multiplier
  */
 export function calculateComboXP(combo: string[], durationSeconds: number = 30): number {
   if (!combo || combo.length === 0) return 0;
   
   let baseMoveSum = 0;
   let defenseCount = 0;
+  let effectiveMoveCount = 0;
   
-  for (const move of combo) {
-    const { xp, isDefense } = classifyMove(move);
-    baseMoveSum += xp;
-    if (isDefense) defenseCount++;
+  let i = 0;
+  while (i < combo.length) {
+    const { isDefense } = classifyMove(combo[i]);
+    
+    if (isDefense) {
+      // Check if this starts a run of adjacent defense moves
+      let runLength = 1;
+      while (i + runLength < combo.length && classifyMove(combo[i + runLength]).isDefense) {
+        runLength++;
+      }
+      
+      if (runLength >= 2) {
+        // Compound transition: 1 move, 0 XP, 0 defense count
+        effectiveMoveCount += 1;
+        // No XP or defense count added
+      } else {
+        // Solo defense move: normal scoring
+        const { xp } = classifyMove(combo[i]);
+        baseMoveSum += xp;
+        defenseCount++;
+        effectiveMoveCount++;
+      }
+      i += runLength;
+    } else {
+      const { xp } = classifyMove(combo[i]);
+      baseMoveSum += xp;
+      effectiveMoveCount++;
+      i++;
+    }
   }
   
-  const lengthBonus = getComboLengthMultiplier(combo.length);
+  const lengthBonus = getComboLengthMultiplier(effectiveMoveCount);
   const defenseBonus = getDefenseBonusMultiplier(defenseCount);
   const durationFactor = durationSeconds / 30;
   

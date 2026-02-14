@@ -6,7 +6,7 @@ import { RoundFeedback } from '@/types';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
 import { VerticalXPBar } from '@/components/ui/VerticalXPBar';
-import { TimerXPBar } from '@/components/ui/TimerXPBar';
+
 import { ComboXPPop } from '@/components/ui/ComboXPPop';
 import {
   AlertDialog,
