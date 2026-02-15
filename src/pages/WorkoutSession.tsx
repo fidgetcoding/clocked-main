@@ -1215,7 +1215,7 @@ const WorkoutSession = () => {
                 </div>
 
           {/* Segment Name — what you're doing right now */}
-          <div className="flex items-center gap-3 mb-4 whitespace-nowrap w-full">
+          <div className="flex items-center gap-3 mb-4 whitespace-nowrap w-full max-w-sm mx-auto">
             <div className={cn("h-px flex-1 min-w-4", isChampionship ? "bg-championship-gold/40" : isCooldown ? "bg-cooldown-blue/40" : "bg-muted-foreground/30")} />
             <h2 className={cn(
               "text-xl font-black uppercase tracking-wider text-center shrink-0",
