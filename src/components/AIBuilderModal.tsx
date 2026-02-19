@@ -13,6 +13,7 @@ import { parseWorkoutInput, parsedResultToWorkout, checkPromptQuality } from '@/
 import { analyzeWorkoutHistory, getInsightsSummary, HistoryInsights } from '@/lib/workoutHistoryAnalysis';
 import { detectBagType, detectAllSpeedBagDrills, containsSpeedBagVocabulary } from '@/data/speedBagDrills';
 import { getAllPresets } from '@/data/comboPresets';
+import { supabase } from '@/integrations/supabase/client';
 
 interface AIBuilderModalProps {
   onClose: () => void;
@@ -176,24 +177,53 @@ export function parseWorkoutPrompt(prompt: string, userLevel: string = 'beginner
 }
 
 // Generate a full workout object from parsed prompt
-// Uses new framework-based parser with fallback to legacy logic
-export function generateWorkoutFromPrompt(
-  prompt: string, 
+// Tries AI agent (edge function) first, falls back to regex parser, then legacy logic
+export async function generateWorkoutFromPrompt(
+  prompt: string,
   userLevel: string = 'beginner',
-  historyInsights?: HistoryInsights | null
-): Workout {
-  // Try the new framework-based parser first
+  historyInsights?: HistoryInsights | null,
+  userEquipment?: Record<string, boolean>
+): Promise<Workout> {
+  // --- Layer 1: Try AI agent via edge function ---
+  try {
+    const { data, error } = await supabase.functions.invoke('generate-workout', {
+      body: {
+        prompt,
+        userTier: userLevel,
+        equipment: userEquipment || {},
+        experienceLevel: userLevel,
+        historyInsights: historyInsights ? {
+          averageDifficulty: historyInsights.averageDifficulty,
+          recentTrend: historyInsights.recentTrend,
+          preferredDuration: historyInsights.preferredDuration,
+          suggestedDifficultyAdjust: historyInsights.suggestedDifficultyAdjust,
+          totalWorkouts: historyInsights.totalWorkouts,
+        } : undefined,
+      },
+    });
+
+    if (!error && data && !data.fallback) {
+      console.log('[AI Agent] Success:', data.name);
+      const workout = parsedResultToWorkout(data);
+      if (data.tags?.length > 0) workout.tags = data.tags;
+      return workout;
+    }
+
+    if (data?.fallback) {
+      console.warn('[AI Agent] Fallback requested:', data.error, data.errors);
+    }
+  } catch (e) {
+    console.warn('[AI Agent] Failed, falling back to parser:', e);
+  }
+
+  // --- Layer 2: Regex parser fallback ---
   const parsedResult = parseWorkoutInput(prompt, userLevel, historyInsights ?? undefined);
   
-  // Check if the new parser extracted meaningful data
   const hasSpecificData = parsedResult.parsedRounds || parsedResult.parsedDurations || parsedResult.parsedCombos || parsedResult.hasMultipleBlocks;
   
   if (hasSpecificData) {
-    // Use the new parser's output
     const workout = parsedResultToWorkout(parsedResult);
     
-    // If no combos were parsed, generate them from preset library
-    // BUT only for heavy bag / double end bag — NEVER for speed bag
     const bagType = detectBagType(prompt);
     if (bagType !== 'speedbag' && (!parsedResult.parsedCombos || parsedResult.combos.length === 0)) {
       const presets = getAllPresets(parsedResult.difficulty);
@@ -206,7 +236,6 @@ export function generateWorkoutFromPrompt(
       workout.combos = generatedCombos;
     }
     
-    // Add tags if detected
     if (parsedResult.tags.length > 0) {
       workout.tags = parsedResult.tags;
     }
@@ -214,7 +243,7 @@ export function generateWorkoutFromPrompt(
     return workout;
   }
   
-  // Fallback to legacy parsing for simple/vague prompts
+  // --- Layer 3: Legacy heuristic parser ---
   const parsed = parseWorkoutPrompt(prompt, userLevel);
   const generateId = () => crypto.randomUUID();
   
@@ -406,7 +435,7 @@ export const AIBuilderModal = ({ onClose, onGenerate, baseWorkout, onWorkoutGene
     }
   }, [isListening]);
 
-  const handleGenerate = () => {
+  const handleGenerate = async () => {
     if (!prompt.trim()) return;
     setIsGenerating(true);
     setGenerationProgress(0);
@@ -420,70 +449,67 @@ export const AIBuilderModal = ({ onClose, onGenerate, baseWorkout, onWorkoutGene
     
     // Resolve user level: prefer prestige, fall back to experienceLevel
     const userLevel = user?.prestige || user?.experienceLevel || 'beginner';
-    
-    // Parse the prompt and generate workout
-    const workout = generateWorkoutFromPrompt(
-      prompt, 
-      userLevel,
-      historyInsights
-    );
-    
+    const userEquipment = user?.equipment
+      ? Object.fromEntries(
+          Object.entries(user.equipment).map(([k, v]) => [k, Boolean(v)])
+        ) as Record<string, boolean>
+      : {};
+
+    // Start progress animation that advances while waiting for AI
+    let progressAnimFrame: number;
+    let isCancelled = false;
+    const animateProgress = (target: number, current: number) => {
+      if (isCancelled) return;
+      const next = current + (target - current) * 0.04;
+      setGenerationProgress(next);
+      if (Math.abs(next - target) > 0.5) {
+        progressAnimFrame = requestAnimationFrame(() => animateProgress(target, next));
+      }
+    };
+    // Animate to 85% while waiting for AI
+    animateProgress(85, 0);
+
+    let workout: Workout;
+    try {
+      workout = await generateWorkoutFromPrompt(prompt, userLevel, historyInsights, userEquipment);
+    } catch (e) {
+      console.error('Workout generation failed:', e);
+      isCancelled = true;
+      cancelAnimationFrame(progressAnimFrame);
+      setIsGenerating(false);
+      setGenerationProgress(0);
+      toast.error('Failed to generate workout. Please try again.');
+      return;
+    }
+
+    // Cancel progress animation and complete it
+    isCancelled = true;
+    cancelAnimationFrame(progressAnimFrame);
+    setGenerationProgress(100);
+    setGenerationDone(true);
     
     // If we have a callback, use that (for inline usage)
     if (onWorkoutGenerated) {
-      const duration = 1800; // total animation time in ms
-      const start = performance.now();
-      const animate = (now: number) => {
-        const elapsed = now - start;
-        const t = Math.min(elapsed / duration, 1);
-        // Ease-out cubic for smooth deceleration
-        const eased = 1 - Math.pow(1 - t, 3);
-        const progress = eased * 100;
-        setGenerationProgress(progress);
-        if (t < 1) {
-          requestAnimationFrame(animate);
-        } else {
-          setGenerationProgress(100);
-          setGenerationDone(true);
-          setTimeout(() => {
-            onWorkoutGenerated(workout);
-            setIsGenerating(false);
-            setGenerationProgress(0);
-            setGenerationDone(false);
-            onClose();
-          }, 800);
-        }
-      };
-      requestAnimationFrame(animate);
+      setTimeout(() => {
+        onWorkoutGenerated(workout);
+        setIsGenerating(false);
+        setGenerationProgress(0);
+        setGenerationDone(false);
+        onClose();
+      }, 800);
       return;
     }
     
-    // Animate progress bar then navigate
-    const duration = 1800;
-    const start = performance.now();
-    const animate = (now: number) => {
-      const elapsed = now - start;
-      const t = Math.min(elapsed / duration, 1);
-      const eased = 1 - Math.pow(1 - t, 3);
-      const progress = eased * 100;
-      setGenerationProgress(progress);
-      if (t < 1) {
-        requestAnimationFrame(animate);
-      } else {
-        setGenerationProgress(100);
-        setGenerationDone(true);
-        setTimeout(() => {
-          toast.success(`Generated "${workout.name}" - now customize it!`);
-          const workoutData = encodeURIComponent(JSON.stringify(workout));
-          setIsGenerating(false);
-          setGenerationProgress(0);
-          setGenerationDone(false);
-          onClose();
-          navigate(`/build?ai=${workoutData}`, { replace: true });
-        }, 800);
-      }
-    };
-    requestAnimationFrame(animate);
+    // Navigate to build page
+    setTimeout(() => {
+      toast.success(`Generated "${workout.name}" - now customize it!`);
+      const workoutData = encodeURIComponent(JSON.stringify(workout));
+      setIsGenerating(false);
+      setGenerationProgress(0);
+      setGenerationDone(false);
+      onClose();
+      navigate(`/build?ai=${workoutData}`, { replace: true });
+    }, 800);
   };
 
 
