@@ -57,7 +57,7 @@ Defense: SLIP L, SLIP R, ROLL L, ROLL R, DUCK, PULL, BLOCK, PARRY
 Movement: STEP IN, STEP OUT, CIRCLE L, CIRCLE R, PIVOT
 
 ## TIER RULES
-- Rookie/Beginner: Punches 1-4 only. Max combo length 3-4. No defense moves in combos.
+- Rookie/Beginner: Punches 1-4 ONLY. Max combo length 2-3 tokens. No defense or movement moves in combos.
 - Intermediate: Punches 1-6. Max combo length 4-5. SLIP and ROLL allowed.
 - Advanced/Pro: All punches 1-8. Combos up to 6-8. All defense and movement.
 
@@ -118,12 +118,26 @@ Every phase with segmentType "combo" or "shadowboxing" MUST have combos on the p
 - comboOrder: "sequential"
 - Combos must follow TIER RULES for complexity
 
+### RULE 3B: SPEED BAG FREESTYLE — EMPTY COMBOS
+For speedbag phases where the user specifies NO drills: set combos: [] (empty array).
+Only populate speedbag combos when the user explicitly names drills (e.g., "Round 1: doubles").
+❌ WRONG: Adding drill names when user just says "3 rounds speed bag"
+✅ CORRECT: combos: [] for freestyle speed bag rounds
+
 ### RULE 4: WARMUP & COOLDOWN — DEFAULT ON, SKIP ONLY IF ASKED
 - DEFAULT: Always include a warmup phase (section:"warmup") and cooldown phase (section:"cooldown")
 - SKIP ONLY if user says "no warmup", "skip warmup", "no cooldown", "quick session", etc.
 - Warmup: Jump Rope 120s → High Knees 60s → Shadowboxing 120s (adapt if no equipment)
 - Cooldown: Light Shadowboxing 90s → Static Stretching 120s
 - If user has NO equipment: use High Knees/Jumping Jacks for warmup instead of Jump Rope
+
+### RULE 4B: USER-SPECIFIED WARMUP BLOCKS
+If the user explicitly describes a warm-up block (e.g., "2 rounds jump rope warm up", "1 round warm up"), that block MUST be assigned section:"warmup". Do NOT assign it section:"grind".
+Similarly, if the user explicitly describes a cooldown block, assign section:"cooldown".
+The standard auto-generated warmup/cooldown should NOT be added on top — use the user's block as the warmup/cooldown.
+
+### RULE 4C: HIIT — PRESERVE ROUND COUNT
+For HIIT prompts specifying N rounds: set phase repeats = N. Do not collapse 8 rounds into 2 repeats of a 4-exercise circuit.
 
 ### RULE 5: DURATION FORMAT
 - All durations are in SECONDS
