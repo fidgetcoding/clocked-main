@@ -170,6 +170,34 @@ Default is always megasetRepeats: 1.
 ### RULE 10: DIFFICULTY OVERRIDE
 If user explicitly says "beginner", "advanced", etc. in their prompt, use that — even if their tier is different.
 
+### RULE 11: COMBO VARIETY & QUALITY
+Generate diverse, realistic boxing combinations:
+- Vary combo openers — don't start every combo with the same punch. Mix it up: some start with 1 (jab), some with 2 (cross), some with 3 (lead hook), some with 5 (uppercut), etc. Any punch 1-8 is a valid opener.
+- Vary combo lengths within a workout — not all combos should be the same length. Mix short (2-3) with medium (4-5) and long (5-8) combinations.
+- Include natural punch flows: "1","2" (jab-cross), "3","2" (hook-cross), "5","2" (uppercut-cross), "1","2","3" (jab-cross-hook) are all classic sequences, but don't ONLY use these.
+- For advanced/pro: include creative combinations with angles, level changes (head to body), and defensive transitions mixed into combos.
+- Punch numbering is stance-agnostic. 1 is always lead jab, 2 is always rear cross, regardless of orthodox or southpaw. Do NOT reference stance in combo generation.
+
+### RULE 12: ROUND-BASED STRUCTURE FOR BOXING & CONDITIONING
+When the user requests a boxing, shadowboxing, or conditioning workout:
+- ALWAYS structure it as multiple rounds with rest — never a single long work block
+- "Light 15 minutes" → 4-5 rounds × 90-120s with 30-60s rest, NOT 1 × 900s
+- "Quick 10 minutes" → 3-4 rounds × 60-90s with 20-30s rest, NOT 1 × 600s
+- "Recovery session" → shorter rounds (60-120s), longer rest (30-60s), simpler combos
+- If the user is sore or recovering: fewer rounds, shorter durations, more rest — but still ROUNDS
+
+EXCEPTION — single long segments ARE valid for continuous activities:
+- Treadmill runs (e.g., 30 min jog, 60 min run)
+- Jump rope sessions (e.g., 10 min continuous)
+- Static stretching / foam rolling (e.g., 5-10 min)
+- Plank holds or single exercise endurance (e.g., 3 min plank)
+- Any activity where continuous unbroken duration makes sense
+
+The rule of thumb: if the segment involves combos or boxing technique, it should be rounds. If it's a continuous cardio/stretch/hold activity, long durations are fine.
+
+### RULE 13: ALWAYS INCLUDE A GRIND PHASE
+Every workout MUST have at least one phase with section: "grind". Even if the user only asks for a warmup or cooldown activity, include at least a short shadowboxing or exercise round as the grind. The timer requires a grind phase to function.
+
 ## ═══════════════════════════════════════════════════
 ## COMPLETE EXAMPLE OUTPUT
 ## ═══════════════════════════════════════════════════
@@ -291,6 +319,21 @@ function autoRepair(result: any): any {
     result.hasCooldown = result.phases?.some((p: any) => p.section === 'cooldown') ?? false;
   }
   if (!result.combos) result.combos = [];
+
+  // RULE 13: If no grind phase exists, auto-insert a minimal shadowboxing round
+  const hasGrind = result.phases?.some((p: any) => p.section === 'grind');
+  if (!hasGrind && result.phases && result.phases.length > 0) {
+    result.phases.push({
+      name: "Shadowboxing",
+      phaseType: "continuous",
+      section: "grind",
+      repeats: 1,
+      comboOrder: "sequential",
+      segments: [
+        { name: "Shadowboxing", type: "active", segmentType: "shadowboxing", duration: 60 }
+      ]
+    });
+  }
 
   // Fix top-level combos
   if (result.combos.length > 0) {
