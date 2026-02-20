@@ -169,6 +169,19 @@ const WorkoutSession = () => {
       ...Array.from({ length: megasetCount }, () => ({ sectionName: 'grind' as const })),
       { sectionName: 'cooldown' },
     ];
+
+    const hasWarmup = workout.sections.warmup.length > 0;
+    const hasCooldown = workout.sections.cooldown.length > 0;
+    const hasGrind = workout.sections.grind.length > 0;
+
+    // Synthetic transition rest segment — injected between warmup→grind and grind→cooldown
+    const makeTransitionRest = (name: string, sectionName: 'warmup' | 'grind' | 'cooldown') => ({
+      segment: { id: `transition-${name}`, name, type: 'rest' as const, segmentType: 'rest', duration: 30 },
+      sectionName,
+      phase: { name, repeats: 1, segments: [], comboOrder: 'sequential' },
+      repeatIndex: 0,
+      megasetIndex: undefined,
+    });
     
     // First pass: collect all segments to know what's next
     const tempSegments: { segment: any; sectionName: 'warmup' | 'grind' | 'cooldown'; phase: any; repeatIndex: number; megasetIndex?: number }[] = [];
@@ -176,8 +189,21 @@ const WorkoutSession = () => {
     let grindIterationIndex = 0;
     sectionOrder.forEach(({ sectionName }) => {
       const currentMegasetIndex = sectionName === 'grind' ? grindIterationIndex : undefined;
+      const isFirstGrind = sectionName === 'grind' && grindIterationIndex === 0;
       if (sectionName === 'grind') grindIterationIndex++;
       const phases = workout.sections[sectionName];
+      if (phases.length === 0) return;
+
+      // Inject 30s "Get Ready" rest between warmup → first grind (only once)
+      if (isFirstGrind && hasWarmup && hasGrind) {
+        tempSegments.push(makeTransitionRest('Get Ready', 'grind'));
+      }
+
+      // Inject 30s "Recovery" rest before cooldown
+      if (sectionName === 'cooldown' && hasGrind && hasCooldown) {
+        tempSegments.push(makeTransitionRest('Recovery', 'cooldown'));
+      }
+
       phases.forEach((phase) => {
         for (let r = 0; r < phase.repeats; r++) {
           phase.segments.forEach((segment) => {
@@ -342,7 +368,7 @@ const WorkoutSession = () => {
   }, [workout]);
 
   const [currentSegmentIndex, setCurrentSegmentIndex] = useState(0);
-  const [timeRemaining, setTimeRemaining] = useState(10); // Start with 10s countdown
+  const [timeRemaining, setTimeRemaining] = useState(30); // 30s get ready countdown
   const [totalElapsed, setTotalElapsed] = useState(0);
   const [isRunning, setIsRunning] = useState(false);
   const [isPaused, setIsPaused] = useState(true);
