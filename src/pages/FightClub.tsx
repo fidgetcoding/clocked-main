@@ -9,9 +9,9 @@ import { WORKOUT_CATEGORIES, TrendingWorkout, WorkoutCategory } from '@/data/tre
 import { WorkoutPreviewModal } from '@/components/WorkoutPreviewModal';
 import { AIBuilderModal } from '@/components/AIBuilderModal';
 import { LiveStreamModal } from '@/components/LiveStreamModal';
-import { useWorkoutStore } from '@/stores/workoutStore';
+import { useWorkouts } from '@/hooks/useWorkouts';
 import { useCommunityPosts, CommunityPost, useDeleteCommunityPost } from '@/hooks/useCommunityPosts';
-import { Workout } from '@/types';
+
 import { toast } from 'sonner';
 import { useUserSearch } from '@/hooks/useUserSearch';
 import { useFollows } from '@/hooks/useFollows';
@@ -35,7 +35,7 @@ interface Club {
 
 const FightClub = () => {
   const navigate = useNavigate();
-  const { addWorkout } = useWorkoutStore();
+  const { addWorkout } = useWorkouts();
   const [feedFilter, setFeedFilter] = useState<'all' | 'following'>('all');
   const { data: communityPosts, isLoading: postsLoading } = useCommunityPosts(feedFilter, 'feed');
   const { data: clubPosts, isLoading: clubPostsLoading } = useCommunityPosts('all', 'club', EARLY_ADOPTERS_CLUB_ID);
@@ -82,14 +82,19 @@ const FightClub = () => {
 
   // Handle saving a workout
   const handleSaveWorkout = (workout: TrendingWorkout) => {
-    const newWorkout = {
-      ...workout,
-      id: crypto.randomUUID(),
-      isPreset: false,
-      createdAt: new Date(),
-      timesCompleted: 0,
-    };
-    addWorkout(newWorkout);
+    addWorkout.mutate({
+      name: workout.name,
+      description: null,
+      duration: workout.totalDuration,
+      difficulty: workout.difficulty,
+      phases: [...workout.sections.warmup, ...workout.sections.grind, ...workout.sections.cooldown],
+      combos: workout.combos || [],
+      tags: workout.tags || [],
+      is_preset: false,
+      is_archived: false,
+      times_completed: 0,
+      last_used_at: null,
+    });
     toast.success(`"${workout.name}" saved to your workouts!`);
     setSelectedWorkout(null);
   };
@@ -117,14 +122,20 @@ const FightClub = () => {
       return;
     }
     
-    const workout: Workout = {
-      ...post.workout_data,
-      id: crypto.randomUUID(),
-      isPreset: false,
-      createdAt: new Date(),
-      timesCompleted: 0,
-    };
-    addWorkout(workout);
+    const data = post.workout_data as any;
+    addWorkout.mutate({
+      name: post.workout_name || post.custom_name || 'Shared Workout',
+      description: data.description || null,
+      duration: data.totalDuration || data.duration || 0,
+      difficulty: data.difficulty || null,
+      phases: data.phases || (data.sections ? [...(data.sections.warmup || []), ...(data.sections.grind || []), ...(data.sections.cooldown || [])] : []),
+      combos: data.combos || [],
+      tags: post.tags || [],
+      is_preset: false,
+      is_archived: false,
+      times_completed: 0,
+      last_used_at: null,
+    });
     toast.success(`"${post.workout_name}" saved to your workouts!`);
   };
 
