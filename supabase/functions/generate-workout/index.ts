@@ -267,8 +267,17 @@ function autoRepairCombos(combos: any[]): string[][] {
         return parts;
       }
     }
-    return combo.map(String);
-  });
+    // Strip unknown boxing tokens from combos that look like boxing combos
+    const tokens = combo.map(String);
+    const isBoxingCombo = VALID_BOXING_TOKENS.has(tokens[0]) || /^[1-8]$/.test(tokens[0]);
+    if (isBoxingCombo) {
+      // Keep only valid tokens; skip unknown ones like "PUSH", "CHARGE", etc.
+      const cleaned = tokens.filter((t: string) => VALID_BOXING_TOKENS.has(t));
+      if (cleaned.length >= 2) return cleaned;
+      if (cleaned.length === 1) return ['1', '2']; // fallback to jab-cross
+    }
+    return tokens;
+  }).filter(combo => combo.length > 0);
 }
 
 function autoRepair(result: any): any {
