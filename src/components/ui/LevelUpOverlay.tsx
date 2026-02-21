@@ -32,18 +32,37 @@ export function LevelUpOverlay({ level, onComplete, variant = 'volt' }: LevelUpO
         background: 'transparent',
       }}
     >
-      {/* Flash overlay */}
+      {/* Dark strip at top to prevent browser chrome color bleed */}
+      <div 
+        className="absolute top-0 left-0 right-0 z-10"
+        style={{ 
+          height: 'max(env(safe-area-inset-top, 0px), 50px)', 
+          background: '#0A0A0B',
+        }}
+      />
+      {/* Dark strip at bottom to prevent browser footer color bleed */}
+      <div 
+        className="absolute bottom-0 left-0 right-0 z-10"
+        style={{ 
+          height: 'max(env(safe-area-inset-bottom, 0px), 50px)', 
+          background: '#0A0A0B',
+        }}
+      />
+      
+      {/* Flash overlay — inset from safe areas */}
       <div 
         className="absolute inset-0"
         style={{
           background: bg,
           animation: 'level-up-flash 2.5s ease-out forwards',
+          top: 'max(env(safe-area-inset-top, 0px), 50px)',
+          bottom: 'max(env(safe-area-inset-bottom, 0px), 50px)',
         }}
       />
       
       {/* Level text */}
       <div 
-        className="relative flex flex-col items-center gap-2"
+        className="relative flex flex-col items-center gap-2 z-20"
         style={{ animation: 'level-up-text 2.5s ease-out forwards' }}
       >
         <span className="text-sm font-bold uppercase tracking-[0.3em] text-white/80">
