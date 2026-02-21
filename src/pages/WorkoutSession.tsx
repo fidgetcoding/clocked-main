@@ -1238,21 +1238,6 @@ const WorkoutSession = () => {
 
                 {/* Timer with 270° arc ring */}
                 <div className="relative w-full flex items-center justify-center">
-                  {/* FEATURE 7: Time Adjustment Buttons — vertical stack on left side */}
-                  <div className="absolute left-0 top-0 bottom-4 flex items-stretch">
-                    <div className="flex flex-col items-center justify-between py-1 gap-1">
-                      {['+30', '+15', '-15', '-30'].map((val) => (
-                        <button
-                          key={val}
-                          onClick={() => adjustTime(parseInt(val))}
-                          className="px-2 py-1 rounded-full border border-surface-3 text-muted-foreground text-[10px] font-medium hover:bg-surface-1 transition-colors whitespace-nowrap"
-                        >
-                          {val}s
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
                   <div className="relative flex items-center justify-center" style={{ width: 280, height: 280 }}>
                     {/* SVG Arc Ring — 270° open at bottom */}
                     <svg className="absolute inset-0" viewBox="0 0 280 280">
@@ -1309,6 +1294,18 @@ const WorkoutSession = () => {
               )}
             </h2>
             <div className={cn("h-px flex-1 min-w-4", isChampionship ? "bg-championship-gold/40" : isCooldown ? "bg-cooldown-blue/40" : "bg-muted-foreground/30")} />
+          </div>
+
+          <div className="flex gap-2 relative z-10">
+            {['-30', '-15', '+15', '+30'].map((val) => (
+              <button
+                key={val}
+                onClick={() => adjustTime(parseInt(val))}
+                className="px-3 py-1.5 rounded-full border border-surface-3 text-muted-foreground text-xs font-medium hover:bg-surface-1 transition-colors"
+              >
+                {val}s
+              </button>
+            ))}
           </div>
 
           </div>
