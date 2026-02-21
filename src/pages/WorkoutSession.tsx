@@ -1258,7 +1258,7 @@ const WorkoutSession = () => {
           </div>
 
 
-          <div className="flex gap-2">
+          <div className="flex gap-2 relative z-10">
             {['-30', '-15', '+15', '+30'].map((val) => (
               <button
                 key={val}
@@ -1273,7 +1273,7 @@ const WorkoutSession = () => {
           {/* END Layer 1 — timer group is now self-contained */}
 
           {/* Layer 2: absolute, lower portion only — combo/UP NEXT cards */}
-          <div className="absolute left-4 right-4 flex flex-col items-center justify-start pointer-events-none top-[80%] md:top-[72%]">
+          <div className="absolute left-4 right-4 flex flex-col items-center justify-start pointer-events-none top-[80%] md:top-[78%]">
             <div className="pointer-events-auto w-full flex flex-col items-center">
           {/* Rest Screen - Clean Next Preview */}
           {isRestSegment && (
