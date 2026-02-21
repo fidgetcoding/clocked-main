@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { ArrowLeft, Home, Play, Pause, RotateCcw, SkipForward, SkipBack, ChevronRight, MoreVertical, CheckCircle, Zap, Flame } from 'lucide-react';
+import { ArrowLeft, Home, Play, Pause, RotateCcw, SkipForward, SkipBack, ChevronRight, MoreVertical, CheckCircle, Zap, Flame, Trophy } from 'lucide-react';
 import { RoundFeedbackPanel } from '@/components/workout/RoundFeedbackPanel';
 import { RoundFeedback } from '@/types';
 import { AppLayout } from '@/components/layout/AppLayout';
@@ -49,7 +49,7 @@ interface FlatSegment {
   reps?: number;
   repeatIndex?: number;
   megasetIndex?: number;
-  cumulativeRound?: number; // Track which round this segment belongs to (1-indexed)
+  cumulativeRound?: number;
 }
 
 function formatTime(seconds: number): string {
@@ -67,7 +67,6 @@ function formatTimeCompact(seconds: number): string {
 // Helper to convert DB workout to local format for session
 function dbWorkoutToLocal(dbWorkout: DbWorkout) {
   const rawPhases = dbWorkout.phases as any[];
-  // Extract megaset metadata if present
   const metaEntry = rawPhases?.find((p: any) => p._meta);
   const megasetRepeats = metaEntry?.megasetRepeats || metaEntry?.supersetRepeats || 1;
   const phases = rawPhases?.filter((p: any) => !p._meta) || [];
@@ -78,10 +77,8 @@ function dbWorkoutToLocal(dbWorkout: DbWorkout) {
     cooldown: phases.filter((p: any) => p.section === 'cooldown').map(({ section, ...rest }: any) => rest),
   };
   
-  // Use top-level combos from database (the new column), fallback to extracting from phases for legacy data
   let combos: string[][] = dbWorkout.combos || [];
   
-  // Fallback: try to extract combos from phases if top-level is empty (legacy support)
   if (combos.length === 0) {
     phases?.forEach((phase: any) => {
       if (phase.combos) {
@@ -116,14 +113,12 @@ const WorkoutSession = () => {
   const { initialize: initSpeech, speak, cancel: cancelSpeech } = useSpeechSynthesis();
   const { playWarningBeep } = useSoundEffects();
 
-  // Get user preferences for voice settings
   const preferences = user?.preferences as {
     voiceAnnouncements?: boolean;
     voiceCountdown?: boolean;
     voiceComboCallouts?: boolean;
   } | undefined;
 
-  // Support one-off loadouts passed via navigation state (e.g. tier presets)
   const oneOffLoadout = (location.state as any)?.oneOffLoadout;
   const oneOffName = (location.state as any)?.workoutName;
 
@@ -132,7 +127,6 @@ const WorkoutSession = () => {
   const workout = useMemo(() => {
     if (dbWorkout) return dbWorkoutToLocal(dbWorkout);
     if (oneOffLoadout) {
-      // Convert GeneratedLoadout to session format
       const rawPhases = oneOffLoadout.phases || [];
       const metaEntry = rawPhases.find((p: any) => p._meta);
       const megasetRepeats = metaEntry?.megasetRepeats || metaEntry?.supersetRepeats || 1;
@@ -163,7 +157,6 @@ const WorkoutSession = () => {
     const segments: FlatSegment[] = [];
     const megasetCount = workout.megasetRepeats || 1;
     
-    // Build section order: warmup → grind (×megasetRepeats) → cooldown
     const sectionOrder: { sectionName: 'warmup' | 'grind' | 'cooldown' }[] = [
       { sectionName: 'warmup' },
       ...Array.from({ length: megasetCount }, () => ({ sectionName: 'grind' as const })),
@@ -174,7 +167,6 @@ const WorkoutSession = () => {
     const hasCooldown = workout.sections.cooldown.length > 0;
     const hasGrind = workout.sections.grind.length > 0;
 
-    // Synthetic transition rest segment — injected between warmup→grind and grind→cooldown
     const makeTransitionRest = (name: string, sectionName: 'warmup' | 'grind' | 'cooldown') => ({
       segment: { id: `transition-${name}`, name, type: 'rest' as const, segmentType: 'rest', duration: 30 },
       sectionName,
@@ -183,7 +175,6 @@ const WorkoutSession = () => {
       megasetIndex: undefined,
     });
     
-    // First pass: collect all segments to know what's next
     const tempSegments: { segment: any; sectionName: 'warmup' | 'grind' | 'cooldown'; phase: any; repeatIndex: number; megasetIndex?: number }[] = [];
     
     let grindIterationIndex = 0;
@@ -194,12 +185,10 @@ const WorkoutSession = () => {
       const phases = workout.sections[sectionName];
       if (phases.length === 0) return;
 
-      // Inject 30s "Get Ready" rest between warmup → first grind (only once)
       if (isFirstGrind && hasWarmup && hasGrind) {
         tempSegments.push(makeTransitionRest('Get Ready', 'grind'));
       }
 
-      // Inject 30s "Recovery" rest before cooldown
       if (sectionName === 'cooldown' && hasGrind && hasCooldown) {
         tempSegments.push(makeTransitionRest('Recovery', 'cooldown'));
       }
@@ -213,11 +202,7 @@ const WorkoutSession = () => {
       });
     });
     
-    // Two-pass combo assignment:
-    // 1) Assign combos to combo segments first (in order or random per phase setting)
-    // 2) Leftover combos overflow to shadowboxing segments
-    // 3) When combos run out, remaining segments are freestyle (no combo)
-    
+    // Two-pass combo assignment
     const comboSegmentIndices: number[] = [];
     const shadowboxIndices: number[] = [];
     
@@ -225,20 +210,27 @@ const WorkoutSession = () => {
       const { segment, phase } = item;
       const isSpeedbag = segment.segmentType === 'speedbag';
       const isDoubleend = segment.segmentType === 'doubleend';
-      // Speedbag and double end bag segments are always freestyle — skip combo assignment
       if (isSpeedbag || isDoubleend) return;
       const isComboSegment = segment.segmentType === 'combo' || segment.comboIndex === 'cycle';
       const isShadowboxing = segment.segmentType === 'shadowboxing' || 
                              segment.name.toLowerCase().includes('shadow') || 
                              segment.name.toLowerCase().includes('technique');
-      // Work segments in phases with combos but no combo-capable segments (conditioning/exercise phases)
+      
+      // BUG 2 FIX A: NEVER assign combos to explicit exercise segments
+      const isExplicitExercise = segment.segmentType === 'exercise' || 
+        ['pushups', 'pushup', 'push-ups', 'burpees', 'burpee', 'curlups', 'curlup', 'curl-ups', 'sit-ups', 'situps',
+         'jump rope', 'jog', 'jog in place', 'treadmill', 'high knees', 'plank'].some(
+          ex => segment.name.toLowerCase().includes(ex)
+        );
+      
       const phaseCombos = phase.combos as string[][] | undefined;
       const phaseHasCombos = phaseCombos && phaseCombos.length > 0;
       const phaseHasComboSegments = phase.segments?.some((s: any) => 
         ['combo', 'shadowboxing', 'speedbag', 'doubleend'].includes(s.segmentType || '')
       );
-      const isExerciseSegment = segment.segmentType === 'exercise' || 
-        (segment.type === 'active' && segment.segmentType === 'work' && phaseHasCombos && !phaseHasComboSegments);
+      const isExerciseSegment = !isExplicitExercise && (
+        segment.type === 'active' && segment.segmentType === 'work' && phaseHasCombos && !phaseHasComboSegments
+      );
       
       if (isComboSegment || isExerciseSegment) comboSegmentIndices.push(idx);
       else if (isShadowboxing) shadowboxIndices.push(idx);
@@ -248,9 +240,7 @@ const WorkoutSession = () => {
     const comboAssignments: Map<number, string[]> = new Map();
     let assigned = 0;
     
-    // Helper: get combo list (possibly shuffled) for a phase — phase.combos takes priority
     const getComboListForPhase = (phase: any): string[][] => {
-      // Phase-level combos take priority
       const phaseCombos = phase.combos as string[][] | undefined;
       if (phaseCombos && phaseCombos.length > 0) {
         if (phase.comboOrder === 'random') {
@@ -263,7 +253,6 @@ const WorkoutSession = () => {
         }
         return phaseCombos;
       }
-      // Fallback to workout-level combos for backward compatibility
       if (!workout.combos || workout.combos.length === 0) return [];
       if (phase.comboOrder === 'random') {
         const shuffled = [...workout.combos];
@@ -276,8 +265,6 @@ const WorkoutSession = () => {
       return workout.combos;
     };
     
-    // Group combo segments by phase and assign combos respecting phase order setting
-    // We need per-phase combo pools for random mode
     const phaseComboLists: Map<string, { list: string[][]; cursor: number }> = new Map();
     
     const getPhaseCombo = (phase: any, phaseKey: string): string[] | undefined => {
@@ -286,12 +273,10 @@ const WorkoutSession = () => {
         phaseComboLists.set(phaseKey, { list: getComboListForPhase(phase), cursor: 0 });
       }
       const entry = phaseComboLists.get(phaseKey)!;
-      if (entry.cursor >= entry.list.length) return undefined; // ran out
+      if (entry.cursor >= entry.list.length) return undefined;
       return entry.list[entry.cursor++];
     };
     
-    // Round-aware combo assignment: all boxing segments (combo + shadow) in the
-    // same round (phase + repeatIndex) share ONE combo so shadow → bag continuity holds.
     const allBoxingIndices = [...comboSegmentIndices, ...shadowboxIndices].sort((a, b) => a - b);
     const roundComboCache: Map<string, string[]> = new Map();
     
@@ -300,10 +285,8 @@ const WorkoutSession = () => {
       const roundKey = `${phase.id}-${repeatIndex}`;
       
       if (roundComboCache.has(roundKey)) {
-        // Reuse the combo already picked for this round
         comboAssignments.set(idx, roundComboCache.get(roundKey)!);
       } else {
-        // First boxing segment of this round — pick a new combo
         const phaseKey = `${phase.id}`;
         const combo = getPhaseCombo(phase, phaseKey);
         if (combo) {
@@ -313,8 +296,6 @@ const WorkoutSession = () => {
       }
     }
     
-    // Second pass: build flat segments with proper next-segment awareness
-    // Also track cumulative round number across grind phases
     let cumulativeRound = 0;
     let lastPhaseId = '';
     let lastRepeatIndex = -1;
@@ -322,7 +303,6 @@ const WorkoutSession = () => {
     tempSegments.forEach((item, idx) => {
       const { segment, sectionName, phase, repeatIndex, megasetIndex } = item;
       
-      // Track cumulative round: each new repeat of a grind phase = new round
       if (sectionName === 'grind') {
         const phaseRepeatKey = `${phase.id}-${repeatIndex}`;
         if (phaseRepeatKey !== `${lastPhaseId}-${lastRepeatIndex}`) {
@@ -368,7 +348,7 @@ const WorkoutSession = () => {
   }, [workout]);
 
   const [currentSegmentIndex, setCurrentSegmentIndex] = useState(0);
-  const [timeRemaining, setTimeRemaining] = useState(30); // 30s get ready countdown
+  const [timeRemaining, setTimeRemaining] = useState(30);
   const [totalElapsed, setTotalElapsed] = useState(0);
   const [isRunning, setIsRunning] = useState(false);
   const [isPaused, setIsPaused] = useState(true);
@@ -392,12 +372,22 @@ const WorkoutSession = () => {
   // Badge system
   const { earnedBadgeIds, awardBadges, currentStats } = useBadges();
   
-  // Calculate round count from grind phases
+  // BUG 3: Live badge tracking during workout
+  const [liveBadgesEarned, setLiveBadgesEarned] = useState<Array<{ badge: any; earnedAt: number }>>([]);
+  const liveBadgeIdsRef = useRef<Set<string>>(new Set());
+  const [latestBadgePop, setLatestBadgePop] = useState<{ badge: any; id: number } | null>(null);
+  
+  // BUG 4 FIX: Only count grind phases that have at least one boxing segment
   const roundCount = useMemo(() => {
     if (!workout) return 0;
     let count = 0;
     for (const phase of workout.sections.grind) {
-      count += phase.repeats;
+      const hasBoxingSegment = phase.segments?.some((s: any) => 
+        ['shadowboxing', 'combo', 'doubleend', 'speedbag'].includes(s.segmentType || '')
+      );
+      if (hasBoxingSegment) {
+        count += phase.repeats;
+      }
     }
     return count;
   }, [workout]);
@@ -417,7 +407,6 @@ const WorkoutSession = () => {
   const nextSegment = flatSegments[currentSegmentIndex + 1];
   const totalSegments = flatSegments.length;
   const progressPercent = totalSegments > 0 ? (currentSegmentIndex / totalSegments) * 100 : 0;
-  // Championship visual: only segments within the "Championship Rounds" phase
   const isChampionship = !isPreparation && !!currentSegment && 
     currentSegment.phaseName.toLowerCase().includes('championship');
   const isCooldown = !isPreparation && (
@@ -425,57 +414,50 @@ const WorkoutSession = () => {
     currentSegment?.phaseName?.toLowerCase() === 'cooldown'
   );
   
-  // Accent color helper — championship gold > cooldown blue > volt green
-  // Use full class names so Tailwind can detect them at build time
   const accentText = isChampionship ? 'text-championship-gold' : isCooldown ? 'text-cooldown-blue' : 'text-volt';
   const accentText60 = isChampionship ? 'text-championship-gold/60' : isCooldown ? 'text-cooldown-blue/60' : 'text-volt/60';
   const accentHsl = isChampionship ? 'hsl(var(--championship-gold))' : isCooldown ? 'hsl(var(--cooldown-blue))' : 'hsl(var(--electric-volt))';
 
-  // Get streak multiplier from profile
   const streakMultiplier = getStreakMultiplier(profile?.current_streak || 0);
   
-  // Map segment type to activity type for XP calculation using the comprehensive helper
   const getActivityTypeFromSegment = (segment: FlatSegment | undefined): ActivityType => {
     if (!segment) return 'active';
     return getActivityTypeFromName(segment.name, segment.type === 'rest' ? 'rest' : segment.segmentType);
   };
   
-  // Use accumulated XP for display
   const currentXP = accumulatedXP;
 
   // Wall-clock ref for background-safe timing
   const lastTickTimeRef = useRef<number>(Date.now());
   const prevLevelRef = useRef<number | null>(null);
+  // BUG 1 FIX: Track whether user has pressed play
+  const sessionActiveRef = useRef(false);
 
   const { playLevelUpSound } = useSoundEffects();
 
-  // Compute live level from accumulated XP - use profile (database) as source of truth
   const liveLevel = getLevelFromXP(
     (profile?.prestige || 'beginner') as any,
     (profile?.total_xp || 0) + accumulatedXP
   );
 
-  // Detect level-up during session
+  // BUG 1 FIX: Level-up detection — only fire after play + XP earned
   useEffect(() => {
     if (prevLevelRef.current === null) {
-      // First time we have a valid level — just store it, don't animate
       prevLevelRef.current = liveLevel;
       return;
     }
-    if (liveLevel > prevLevelRef.current) {
+    if (sessionActiveRef.current && accumulatedXP > 0 && liveLevel > prevLevelRef.current) {
       setLevelUpLevel(liveLevel);
       playLevelUpSound();
     }
     prevLevelRef.current = liveLevel;
-  }, [liveLevel, playLevelUpSound]);
+  }, [liveLevel, playLevelUpSound, accumulatedXP]);
 
-  // Helper: check if a segment is a boxing segment eligible for 2x XP
   const isBoxingSegment = useCallback((segment: FlatSegment) => {
     const st = segment.segmentType;
     return st === 'shadowboxing' || st === 'combo' || st === 'doubleend';
   }, []);
 
-  // Helper: compute XP per second for a given segment (includes 2x championship multiplier)
   const getXPPerSecond = useCallback((segment: FlatSegment) => {
     const activityType = getActivityTypeFromSegment(segment);
     let xpPerSecond = ACTIVITY_XP_RATES[activityType];
@@ -485,7 +467,6 @@ const WorkoutSession = () => {
       xpPerSecond = totalComboXP / segment.duration;
     }
     
-    // 2x XP for boxing segments in Championship Rounds phase
     if (segment.phaseName.toLowerCase().includes('championship') && isBoxingSegment(segment)) {
       xpPerSecond *= 2;
     }
@@ -493,16 +474,77 @@ const WorkoutSession = () => {
     return xpPerSecond;
   }, [profile?.prestige, isBoxingSegment]);
 
+  // BUG 3: Live badge checking — runs every ~5 seconds during workout
+  useEffect(() => {
+    if (isComplete || !isRunning || isPaused || !profile) return;
+    
+    const interval = setInterval(() => {
+      const tier = (profile.prestige || 'beginner') as Prestige;
+      const tierStats = TIER_COMBO_STATS[tier];
+      
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const todayStr = today.toISOString().split('T')[0];
+      const yesterday = new Date(today);
+      yesterday.setDate(yesterday.getDate() - 1);
+      const yesterdayStr = yesterday.toISOString().split('T')[0];
+      const lastDate = profile.last_workout_date;
+      let newStreak: number;
+      if (lastDate === todayStr) {
+        newStreak = profile.current_streak || 1;
+      } else if (lastDate === yesterdayStr) {
+        newStreak = (profile.current_streak || 0) + 1;
+      } else {
+        newStreak = 1;
+      }
+      
+      const liveStats: BadgeStats = {
+        consecutiveDays: newStreak,
+        totalCombos: (profile.combos_landed || 0) + PER_SESSION_ESTIMATES.combosLanded,
+        complexCombos: (profile.complex_combos || 0) + tierStats.complex,
+        defenseCombos: (profile.defense_combos || 0) + tierStats.defense,
+        counterCombos: (profile.counter_combos || 0) + tierStats.counter,
+        totalSessions: (profile.workouts_completed || 0) + 1,
+        totalHours: ((profile.total_training_seconds || 0) + totalElapsed) / 3600,
+        singleSessionMinutes: totalElapsed / 60,
+        totalPushups: (profile.total_pushups || 0) + PER_SESSION_ESTIMATES.pushups,
+        totalBurpees: (profile.total_burpees || 0) + PER_SESSION_ESTIMATES.burpees,
+        totalCurlups: (profile.total_curlups || 0) + PER_SESSION_ESTIMATES.curlups,
+        totalJogRunMinutes: (profile.total_jog_run_minutes || 0) + PER_SESSION_ESTIMATES.jogRunMinutes,
+      };
+      
+      const alreadyEarned = [...earnedBadgeIds, ...Array.from(liveBadgeIdsRef.current)];
+      const newBadges = checkBadges(liveStats, alreadyEarned);
+      
+      if (newBadges.length > 0) {
+        for (const badge of newBadges) {
+          if (!liveBadgeIdsRef.current.has(badge.id)) {
+            liveBadgeIdsRef.current.add(badge.id);
+            setLiveBadgesEarned(prev => [...prev, { badge, earnedAt: Date.now() }]);
+            setAccumulatedXP(prev => prev + badge.xpReward);
+            
+            const popId = Date.now();
+            setLatestBadgePop({ badge, id: popId });
+            setTimeout(() => setLatestBadgePop(prev => prev?.id === popId ? null : prev), 3000);
+          }
+        }
+      }
+    }, 5000);
+    
+    return () => clearInterval(interval);
+  }, [isComplete, isRunning, isPaused, profile, totalElapsed, earnedBadgeIds]);
+
   // Compute session result when workout completes
   useEffect(() => {
     if (!isComplete || sessionResult || !profile) return;
     
     const streakMult = getStreakMultiplier(profile.current_streak || 0);
+    const liveBadgeXP = liveBadgesEarned.reduce((s, lb) => s + lb.badge.xpReward, 0);
     const effectiveBase = Math.round(accumulatedXP);
-    const rawBase = streakMult > 1 ? Math.round(effectiveBase / streakMult) : effectiveBase;
-    const streakBonus = effectiveBase - rawBase;
+    const timerOnlyBase = effectiveBase - liveBadgeXP;
+    const rawBase = streakMult > 1 ? Math.round(timerOnlyBase / streakMult) : timerOnlyBase;
+    const streakBonus = timerOnlyBase - rawBase;
     
-    // Compute streak for badge checking
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const todayStr = today.toISOString().split('T')[0];
@@ -539,10 +581,10 @@ const WorkoutSession = () => {
       totalJogRunMinutes: (profile.total_jog_run_minutes || 0) + PER_SESSION_ESTIMATES.jogRunMinutes,
     };
     
-    // Check core badges
-    const newCoreBadges = checkBadges(updatedStats, earnedBadgeIds);
+    // BUG 3 FIX: Exclude live-earned badges from post-workout check to avoid double-counting
+    const liveEarnedIds = Array.from(liveBadgeIdsRef.current);
+    const newCoreBadges = checkBadges(updatedStats, [...earnedBadgeIds, ...liveEarnedIds]);
     
-    // Check post-L100 badges ONLY if user is at L100
     const currentLevel = profile.current_level || 1;
     let newPostL100Badges: any[] = [];
     if (currentLevel >= 100) {
@@ -572,7 +614,7 @@ const WorkoutSession = () => {
         birthdayWorkout: (profile as any)?.birthday_workout ? 1 : 0,
         holidayWorkouts: (profile as any)?.holiday_workouts || 0,
         singleSessionXp: Math.max((profile as any)?.best_session_xp || 0, effectiveBase),
-        totalBadges: earnedBadgeIds.length + newCoreBadges.length,
+        totalBadges: earnedBadgeIds.length + liveEarnedIds.length + newCoreBadges.length,
         streakRecoveries: (profile as any)?.streak_recoveries || 0,
         avgXpPerSession: profile?.workouts_completed ? Math.round(((profile?.total_xp || 0) + effectiveBase) / ((profile.workouts_completed || 0) + 1)) : effectiveBase,
         punch1Count: (profile as any)?.punch_1_count || 0,
@@ -588,12 +630,13 @@ const WorkoutSession = () => {
         pullbacksCount: (profile as any)?.pullbacks_count || 0,
         circlesCount: (profile as any)?.circles_count || 0,
       };
-      newPostL100Badges = checkPostL100Badges(postL100StatsForCheck, [...earnedBadgeIds, ...newCoreBadges.map(b => b.id)]);
+      newPostL100Badges = checkPostL100Badges(postL100StatsForCheck, [...earnedBadgeIds, ...liveEarnedIds, ...newCoreBadges.map(b => b.id)]);
     }
     
-    const allNewBadges = [...newCoreBadges, ...newPostL100Badges];
+    const liveBadges = liveBadgesEarned.map(lb => lb.badge);
+    const allNewBadges = [...liveBadges, ...newCoreBadges, ...newPostL100Badges];
     const badgeXP = allNewBadges.reduce((sum, b) => sum + b.xpReward, 0);
-    const sessionTotal = effectiveBase + badgeXP;
+    const sessionTotal = timerOnlyBase + badgeXP;
     const totalXPAfter = (profile.total_xp || 0) + sessionTotal;
     const levelBefore = profile.current_level || 1;
     const levelAfter = getLevelFromXP(tier, totalXPAfter);
@@ -602,7 +645,7 @@ const WorkoutSession = () => {
       baseXP: rawBase,
       streakMultiplier: streakMult,
       streakBonus,
-      effectiveBase,
+      effectiveBase: timerOnlyBase,
       badgeXP,
       sessionTotal,
       newBadges: allNewBadges,
@@ -617,7 +660,7 @@ const WorkoutSession = () => {
       prestigeEligible: checkPrestigeEligible(tier, totalXPAfter),
       isMaxLevel: checkIsMaxLevel(tier, totalXPAfter),
     });
-  }, [isComplete, sessionResult, profile, accumulatedXP, totalElapsed, earnedBadgeIds]);
+  }, [isComplete, sessionResult, profile, accumulatedXP, totalElapsed, earnedBadgeIds, liveBadgesEarned]);
 
   // Background-safe timer using wall-clock deltas
   useEffect(() => {
@@ -632,18 +675,15 @@ const WorkoutSession = () => {
         if (delta < 1) return;
         lastTickTimeRef.current = now;
 
-        // Advance elapsed time
         setTotalElapsed(prev => prev + delta);
-        // Decrement countdown
         setTimeRemaining(prev => prev - delta);
         
-        // Accumulate XP for `delta` seconds (not during preparation)
         if (!isPreparation && currentSegment) {
           const xpPerSecond = getXPPerSecond(currentSegment);
           const xpGained = xpPerSecond * streakMultiplier * delta;
           setAccumulatedXP(prev => prev + xpGained);
         }
-      }, 250); // Check 4x/sec for smoother catch-up
+      }, 250);
     }
     
     return () => {
@@ -655,23 +695,18 @@ const WorkoutSession = () => {
   useEffect(() => {
     const handleVisibility = () => {
       if (document.visibilityState === 'visible' && isRunning && !isPaused) {
-        // Force the interval logic to fire immediately by updating lastTickTimeRef
         // The next interval tick (every 250ms) will compute the large delta
-        // No need to duplicate logic — just ensure ref is not reset
       }
     };
     document.addEventListener('visibilitychange', handleVisibility);
     return () => document.removeEventListener('visibilitychange', handleVisibility);
   }, [isRunning, isPaused]);
 
-  // Track previous segment to detect transitions
   const prevSegmentIndexRef = useRef<number>(-1);
-  // Track if XP has already been awarded
   const xpAwardedRef = useRef(false);
-  // Track previous segment for combo XP pops
   const prevComboSegRef = useRef<number>(-1);
 
-  // Voice countdown at 3 seconds - respects voiceCountdown preference
+  // Voice countdown at 3 seconds
   useEffect(() => {
     if (timeRemaining === 3 && isRunning && !isPaused) {
       if (preferences?.voiceCountdown !== false && preferences?.voiceAnnouncements !== false) {
@@ -695,7 +730,6 @@ const WorkoutSession = () => {
     if (prevSegmentIndexRef.current === currentSegmentIndex) return;
     prevSegmentIndexRef.current = currentSegmentIndex;
 
-    // DEBUG: Log XP/sec for every segment transition
     if (currentSegment) {
       const baseRate = getXPPerSecond(currentSegment);
       const effectiveRate = baseRate * streakMultiplier;
@@ -712,7 +746,6 @@ const WorkoutSession = () => {
         } else if (currentSegment.segmentType === 'shadowboxing' || currentSegment.name.toLowerCase().includes('shadow')) {
           announcement = 'Shadowboxing';
         } else if (currentSegment.segmentType === 'speedbag') {
-          // Use the segment name which includes the drill (e.g., "Speed Bag Doubles")
           announcement = currentSegment.name.includes('Freestyle') ? 'Speed Bag Freestyle' : currentSegment.name;
         } else if (currentSegment.segmentType === 'doubleend') {
           announcement = currentSegment.name.includes('Freestyle') ? 'Double End Bag Freestyle' : 'Double End Bag';
@@ -723,8 +756,13 @@ const WorkoutSession = () => {
         }
         speak(announcement, { rate: 0.9 });
 
+        // BUG 2 FIX B: Only call out combos for boxing-type segments
+        const isBoxingTypeSegment = currentSegment.segmentType === 'shadowboxing' || 
+                                    currentSegment.segmentType === 'combo' || 
+                                    currentSegment.segmentType === 'doubleend' ||
+                                    currentSegment.segmentType === 'speedbag';
         const combo = currentSegment.combo;
-        if (combo && combo.length > 0 && preferences?.voiceComboCallouts !== false) {
+        if (combo && combo.length > 0 && isBoxingTypeSegment && preferences?.voiceComboCallouts !== false) {
           setTimeout(() => {
             const speakableCombo = combo.map(move => {
               const m = move.toUpperCase();
@@ -753,7 +791,6 @@ const WorkoutSession = () => {
         const firstDuration = flatSegments[0]?.duration || 60;
         setTimeRemaining(firstDuration + timeRemaining);
       } else if (currentSegmentIndex < flatSegments.length - 1) {
-        // Fire combo XP pop for the segment that just ended
         const endingSegment = flatSegments[currentSegmentIndex];
         const isComboPopSegment = endingSegment?.segmentType === 'combo' || endingSegment?.segmentType === 'shadowboxing' || endingSegment?.segmentType === 'speedbag' || endingSegment?.segmentType === 'doubleend';
         if (isComboPopSegment && endingSegment.combo && endingSegment.combo.length > 0 && prevComboSegRef.current !== currentSegmentIndex) {
@@ -799,13 +836,11 @@ const WorkoutSession = () => {
   };
 
   const handleStart = () => {
-    // Initialize speech synthesis on user interaction (required by browsers)
     initSpeech();
-    
+    sessionActiveRef.current = true; // BUG 1 FIX: Mark session as active
     setIsRunning(true);
     setIsPaused(false);
     if (!hasStartedOnce) {
-      // Track start XP locally only — will be persisted on log
       setAccumulatedXP(prev => prev + 10);
       showXpBubble(10);
       setHasStartedOnce(true);
@@ -829,17 +864,13 @@ const WorkoutSession = () => {
     xpAwardedRef.current = false;
   };
 
-  // Confirmation handlers for exit and restart
   const handleConfirmExit = (saveXP: boolean = false) => {
-    // XP is only persisted when the workout is logged via handleLog
-    // Exiting always discards accumulated XP
     cancelSpeech();
     setShowExitConfirm(false);
     navigate('/');
   };
 
   const handleConfirmRestart = () => {
-    // Discard accumulated XP on restart
     cancelSpeech();
     setShowRestartConfirm(false);
     setCurrentSegmentIndex(0);
@@ -855,16 +886,12 @@ const WorkoutSession = () => {
   };
 
   const handleBack = () => {
-    if (isPreparation) {
-      // Can't go back from preparation
-      return;
-    }
+    if (isPreparation) return;
     if (currentSegmentIndex > 0) {
       const prevSegment = flatSegments[currentSegmentIndex - 1];
       setCurrentSegmentIndex((prev) => prev - 1);
       setTimeRemaining(prevSegment.duration);
     } else {
-      // At the first segment, go back to preparation
       setIsPreparation(true);
       setTimeRemaining(10);
     }
@@ -881,15 +908,12 @@ const WorkoutSession = () => {
   };
 
   const handleCompleteEarly = () => {
-    // Cancel any ongoing speech
     cancelSpeech();
-    // Mark workout as complete — XP will only persist when user logs
     setIsComplete(true);
     setIsRunning(false);
     xpAwardedRef.current = true;
     setHasAwardedXP(true);
     
-    // Mark workout as used
     if (dbWorkout) {
       updateWorkout.mutate({
         id: dbWorkout.id,
@@ -903,7 +927,6 @@ const WorkoutSession = () => {
     setTimeRemaining((prev) => Math.max(0, prev + delta));
   };
 
-  // 50% halves the time, 2X doubles it
   const halveTime = () => {
     setTimeRemaining((prev) => Math.max(1, Math.floor(prev / 2)));
   };
@@ -952,14 +975,12 @@ const WorkoutSession = () => {
     const tier = (profile?.prestige || 'beginner') as Prestige;
     const tierStats = TIER_COMBO_STATS[tier];
     
-    // Award badges
     if (sessionResult.newBadges.length > 0) {
       try {
         await awardBadges.mutateAsync(sessionResult.newBadges);
       } catch (e) { console.error('Badge award failed:', e); }
     }
     
-    // Update local XP store for immediate UI feedback
     if (sessionResult.sessionTotal > 0) {
       try { addLocalXP(sessionResult.sessionTotal, true); } catch {}
     }
@@ -985,7 +1006,6 @@ const WorkoutSession = () => {
         if (user?.id && profile) {
           const postLogStats = await computePostLogStats(user.id, profile);
           if (postLogStats) {
-            // Compute post-L100 increments from actual workout segments
             const postL100Increments = computePostL100Increments(
               profile as any,
               sessionResult.sessionTotal,
@@ -1048,23 +1068,16 @@ const WorkoutSession = () => {
     );
   }
 
-  // Check if current segment is shadowboxing (show NEXT combo that's coming)
   const isShadowboxing = currentSegment?.segmentType === 'shadowboxing' || 
                          currentSegment?.name.toLowerCase().includes('shadow') || 
                          currentSegment?.name.toLowerCase().includes('technique');
   const isSpeedbag = currentSegment?.segmentType === 'speedbag';
   const isDoubleend = currentSegment?.segmentType === 'doubleend';
-  // For shadowboxing, show the nextCombo (the upcoming combo to practice)
-  // For combo segments, show the current combo
-  // Treat ['FREESTYLE'] as no combo — it means freestyle round
-  // Speedbag and double end bag are always freestyle (no combo display)
   const rawCombo = (isSpeedbag || isDoubleend) ? undefined : (isShadowboxing ? (currentSegment?.combo || currentSegment?.nextCombo) : currentSegment?.combo);
   const isFreestyleCombo = rawCombo?.length === 1 && rawCombo[0] === 'FREESTYLE';
   const displayCombo = isFreestyleCombo ? undefined : rawCombo;
 
-  // Check if current segment is rest (for rest screen preview)
   const isRestSegment = currentSegment?.type === 'rest' && !isPreparation;
-  // Only show combo preview for segments that actually use combos (shadowboxing, combo, bag types)
   const nextSegmentUsesCombos = nextSegment?.type === 'active' && 
     (nextSegment?.segmentType === 'combo' || nextSegment?.segmentType === 'shadowboxing' || 
      nextSegment?.segmentType === 'speedbag' || nextSegment?.segmentType === 'doubleend');
@@ -1076,10 +1089,8 @@ const WorkoutSession = () => {
     !(rawRestCombo.length === 1 && rawRestCombo[0] === 'FREESTYLE') 
     ? rawRestCombo : undefined;
 
-  // Helper function to convert move names to display format
   const getDisplayMove = (move: string): { display: string; type: 'punch' | 'defense' | 'movement' } => {
     const m = move.toUpperCase();
-    // Punch conversions
     if (m === 'JAB') return { display: '1', type: 'punch' };
     if (m === 'CROSS' || m === 'STRAIGHT') return { display: '2', type: 'punch' };
     if (m === 'LEAD HOOK' || m === 'LEFT HOOK') return { display: '3', type: 'punch' };
@@ -1088,19 +1099,16 @@ const WorkoutSession = () => {
     if (m === 'REAR UPPERCUT' || m === 'RIGHT UPPERCUT') return { display: '6', type: 'punch' };
     if (m === 'LEAD BODY HOOK' || m === 'LEFT BODY') return { display: '7', type: 'punch' };
     if (m === 'REAR BODY HOOK' || m === 'RIGHT BODY') return { display: '8', type: 'punch' };
-    // Defense conversions
     if (m.includes('SLIP L')) return { display: 'SL', type: 'defense' };
     if (m.includes('SLIP R')) return { display: 'SR', type: 'defense' };
     if (m.includes('ROLL L')) return { display: 'RL', type: 'defense' };
     if (m.includes('ROLL R')) return { display: 'RR', type: 'defense' };
     if (m === 'PULL') return { display: 'PL', type: 'defense' };
     if (m === 'BLOCK') return { display: 'BK', type: 'defense' };
-    // Movement conversions
     if (m.includes('CIRCLE L')) return { display: '↺', type: 'movement' };
     if (m.includes('CIRCLE R')) return { display: '↻', type: 'movement' };
     if (m.includes('STEP IN')) return { display: '→', type: 'movement' };
     if (m.includes('STEP OUT')) return { display: '←', type: 'movement' };
-    // If it's already a number or short code, determine type
     if (['1', '2', '3', '4', '5', '6', '7', '8', '9', '10'].includes(m)) return { display: m, type: 'punch' };
     if (['SL', 'SR', 'RL', 'RR', 'PL', 'BK'].includes(m)) return { display: m, type: 'defense' };
     if (['↺', '↻', '→', '←'].includes(m)) return { display: m, type: 'movement' };
@@ -1113,7 +1121,6 @@ const WorkoutSession = () => {
       <div className="min-h-screen flex flex-col bg-background">
         {/* Top Bar */}
         <header className="flex items-start justify-between px-4 py-3 safe-top relative z-10">
-          {/* Left side - home and restart buttons */}
           <div className="flex items-center gap-2">
             <button 
               onClick={() => setShowExitConfirm(true)}
@@ -1138,9 +1145,7 @@ const WorkoutSession = () => {
             </button>
           </div>
           
-          {/* Elapsed time + streak */}
           <div className="flex flex-col items-end gap-1 relative">
-            {/* XP Bubble */}
             {xpBubble && (
               <div 
                 key={xpBubble.id}
@@ -1154,7 +1159,6 @@ const WorkoutSession = () => {
                 {formatTimeCompact(totalElapsed)}
               </span>
             </div>
-            {/* Streak indicator */}
             {(profile?.current_streak || 0) > 0 && (
               <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-orange-500/10 border border-orange-500/20">
                 <Flame className="w-3 h-3 text-orange-400" />
@@ -1175,11 +1179,46 @@ const WorkoutSession = () => {
           />
         )}
 
+        {/* BUG 3: Live Badge Notification — shows earned badges during workout */}
+        {latestBadgePop && (
+          <div 
+            key={latestBadgePop.id}
+            className="flex items-center justify-center gap-2 px-4 py-2 z-20 relative"
+            style={{ animation: 'badge-overlay-in 0.4s ease-out forwards' }}
+          >
+            <div className={cn(
+              "flex items-center gap-2 px-4 py-2 rounded-full border",
+              "bg-championship-gold/15 border-championship-gold/30"
+            )}
+            style={{ animation: 'badge-pulse 1s ease-in-out infinite' }}
+            >
+              <Trophy className="w-4 h-4 text-championship-gold" />
+              <span className="text-xs font-bold text-championship-gold uppercase tracking-wide">
+                {latestBadgePop.badge.name}
+              </span>
+              <span className="text-xs font-black text-volt">
+                +{latestBadgePop.badge.xpReward.toLocaleString()} XP
+              </span>
+            </div>
+          </div>
+        )}
+        {/* Badge tally — persistent count when no pop is active */}
+        {liveBadgesEarned.length > 0 && !latestBadgePop && (
+          <div className="flex items-center justify-center gap-2 px-4 py-1 z-20 relative">
+            <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-championship-gold/15 border border-championship-gold/30">
+              <Trophy className="w-3 h-3 text-championship-gold" />
+              <span className="text-[10px] font-bold text-championship-gold">
+                {liveBadgesEarned.length} badge{liveBadgesEarned.length !== 1 ? 's' : ''} · +{liveBadgesEarned.reduce((s, lb) => s + lb.badge.xpReward, 0).toLocaleString()} XP
+              </span>
+            </div>
+          </div>
+        )}
+
         {/* Main Timer — middle area between top bar and bottom bar */}
         <div className="flex-1 relative px-4">
-          {/* Layer 1: Fixed, vertically centered — phase name, timer, segment, time buttons */}
+          {/* Layer 1: Fixed, vertically centered — phase name, timer, segment */}
           <div className="absolute inset-0 flex flex-col items-center justify-center px-4 -mt-[24%] md:mt-0">
-                {/* Phase Name — context of where you are */}
+                {/* Phase Name */}
                 {isPreparation ? (
                   <p className="text-xs text-muted-foreground uppercase tracking-widest mb-2">GET READY</p>
                 ) : isChampionship ? (
@@ -1199,13 +1238,28 @@ const WorkoutSession = () => {
 
                 {/* Timer with 270° arc ring */}
                 <div className="relative w-full flex items-center justify-center">
+                  {/* FEATURE 7: Time Adjustment Buttons — vertical stack on left side */}
+                  <div className="absolute left-0 top-0 bottom-4 flex items-stretch">
+                    <div className="flex flex-col items-center justify-between py-1 gap-1">
+                      {['+30', '+15', '-15', '-30'].map((val) => (
+                        <button
+                          key={val}
+                          onClick={() => adjustTime(parseInt(val))}
+                          className="px-2 py-1 rounded-full border border-surface-3 text-muted-foreground text-[10px] font-medium hover:bg-surface-1 transition-colors whitespace-nowrap"
+                        >
+                          {val}s
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
                   <div className="relative flex items-center justify-center" style={{ width: 280, height: 280 }}>
                     {/* SVG Arc Ring — 270° open at bottom */}
                     <svg className="absolute inset-0" viewBox="0 0 280 280">
                       {(() => {
                         const r = 128;
                         const circumference = 2 * Math.PI * r;
-                        const arcFrac = 0.75; // 270°
+                        const arcFrac = 0.75;
                         const arcLen = circumference * arcFrac;
                         const gapLen = circumference - arcLen;
                         const startAngle = 135;
@@ -1240,7 +1294,7 @@ const WorkoutSession = () => {
                   </div>
                 </div>
 
-          {/* Segment Name — what you're doing right now */}
+          {/* Segment Name */}
           <div className="flex items-center gap-3 mb-4 whitespace-nowrap w-full max-w-sm mx-auto">
             <div className={cn("h-px flex-1 min-w-4", isChampionship ? "bg-championship-gold/40" : isCooldown ? "bg-cooldown-blue/40" : "bg-muted-foreground/30")} />
             <h2 className={cn(
@@ -1257,20 +1311,8 @@ const WorkoutSession = () => {
             <div className={cn("h-px flex-1 min-w-4", isChampionship ? "bg-championship-gold/40" : isCooldown ? "bg-cooldown-blue/40" : "bg-muted-foreground/30")} />
           </div>
 
-
-          <div className="flex gap-2 relative z-10">
-            {['-30', '-15', '+15', '+30'].map((val) => (
-              <button
-                key={val}
-                onClick={() => adjustTime(parseInt(val))}
-                className="px-3 py-1.5 rounded-full border border-surface-3 text-muted-foreground text-xs font-medium hover:bg-surface-1 transition-colors"
-              >
-                {val}s
-              </button>
-            ))}
           </div>
-          </div>
-          {/* END Layer 1 — timer group is now self-contained */}
+          {/* END Layer 1 */}
 
           {/* Layer 2: absolute, lower portion only — combo/UP NEXT cards */}
           <div className="absolute left-4 right-4 flex flex-col items-center justify-start pointer-events-none top-[80%] md:top-[78%]">
@@ -1285,12 +1327,11 @@ const WorkoutSession = () => {
             </div>
           )}
 
-          {/* Combo Display - for shadowboxing: show incoming combo OR freestyle */}
+          {/* Combo Display - for shadowboxing */}
           {isShadowboxing && !isPreparation && (
             <div className="w-full max-w-xs bg-surface-1 rounded-xl p-3 border border-surface-3">
               {displayCombo && displayCombo.length > 0 ? (
                 <>
-                  {/* Incoming combo label for shadowboxing */}
                   <p className={cn("text-xs font-bold mb-3 text-center animate-pulse", accentText)}>INCOMING COMBO</p>
                   <div className="flex items-center justify-center gap-2 flex-wrap">
                     {displayCombo.map((move, idx) => {
@@ -1417,11 +1458,8 @@ const WorkoutSession = () => {
             </span>
           </div>
 
-
-
           {/* Controls */}
           <div className="flex items-center justify-center gap-4">
-            {/* Back Button */}
             <button
               onClick={handleBack}
               disabled={isPreparation}
@@ -1430,7 +1468,6 @@ const WorkoutSession = () => {
               <SkipBack className="w-5 h-5 text-foreground" />
             </button>
 
-            {/* Play/Pause */}
             <button
               onClick={isPaused ? handleStart : handlePauseResume}
               className={cn("w-20 h-20 rounded-full flex items-center justify-center", isChampionship ? "bg-championship-gold glow-gold" : isCooldown ? "bg-cooldown-blue" : "bg-volt glow-volt")}
@@ -1442,7 +1479,6 @@ const WorkoutSession = () => {
               )}
             </button>
 
-            {/* Skip Forward */}
             <button
               onClick={handleSkip}
               className="w-12 h-12 rounded-full bg-surface-1 border border-surface-3 flex items-center justify-center"
