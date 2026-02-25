@@ -253,7 +253,7 @@ const History = () => {
             onClick={() => setShowCoach(false)}
           />
 
-          <div className="relative w-full max-w-md max-h-[85vh] bg-surface-1 rounded-2xl border border-surface-3 overflow-hidden animate-in zoom-in-95 duration-200 flex flex-col">
+          <div className="relative w-full max-w-md max-h-[75vh] bg-surface-1 rounded-2xl border border-surface-3 overflow-hidden animate-in zoom-in-95 duration-200 flex flex-col">
             {/* Header */}
             <div className="flex items-center justify-between p-4 border-b border-surface-3 flex-shrink-0">
               <div className="flex items-center gap-2">
@@ -288,10 +288,17 @@ const History = () => {
                 </div>
               ) : recommendation ? (
                 <>
-                  {/* Headline */}
-                  <div className="text-center pb-2">
-                    <h3 className="text-xl font-black text-foreground">{recommendation.headline}</h3>
-                    <p className="text-sm text-muted-foreground mt-1">{recommendation.reasoning}</p>
+                  {/* Headline + Reasoning */}
+                  <div className="pb-1">
+                    <h3 className="text-lg font-black text-foreground">{recommendation.headline}</h3>
+                    <ul className="mt-2 space-y-1">
+                      {recommendation.reasoning.split('\n').map((line, i) => (
+                        <li key={i} className="flex items-start gap-2 text-sm text-muted-foreground">
+                          <span className="text-volt mt-0.5">•</span>
+                          <span>{line}</span>
+                        </li>
+                      ))}
+                    </ul>
                   </div>
 
                   {/* Workout Parameters Card */}
