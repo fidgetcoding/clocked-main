@@ -123,7 +123,7 @@ const History = () => {
               className="flex-1 border-volt text-volt hover:bg-volt/10"
             >
               <Brain className="w-4 h-4 mr-2" />
-              KOI Coach
+              AI Coach
             </Button>
             <Button
               onClick={() => setShowAddModal(true)}
@@ -245,7 +245,7 @@ const History = () => {
 
       <AddWorkoutModal isOpen={showAddModal} onClose={() => setShowAddModal(false)} />
 
-      {/* KOI Coach Modal */}
+      {/* AI Coach Modal */}
       {showCoach && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div
@@ -262,7 +262,7 @@ const History = () => {
                 </div>
                 <div>
                   <h2 className="text-lg font-bold text-foreground uppercase tracking-wide">
-                    KOI Coach
+                    AI Coach
                   </h2>
                   {recommendation && (
                     <span className={cn('text-[10px] font-semibold px-1.5 py-0.5 rounded', CONFIDENCE_COLORS[recommendation.confidence])}>
