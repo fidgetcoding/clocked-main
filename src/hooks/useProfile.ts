@@ -44,6 +44,9 @@ export interface Profile {
   complex_combos: number;
   defense_combos: number;
   counter_combos: number;
+  // Gloves
+  equipped_glove: string;
+  unlocked_gloves: string[];
 }
 
 // Helper to generate handle from name
@@ -110,6 +113,8 @@ export function useProfile() {
           complex_combos: (data as any).complex_combos || 0,
           defense_combos: (data as any).defense_combos || 0,
           counter_combos: (data as any).counter_combos || 0,
+          equipped_glove: (data as any).equipped_glove || 'default',
+          unlocked_gloves: (data as any).unlocked_gloves || ['default'],
         } as Profile;
       }
       return null;

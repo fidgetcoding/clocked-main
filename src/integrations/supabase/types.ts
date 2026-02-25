@@ -268,6 +268,7 @@ export type Database = {
           defense_combos: number
           double_days: number
           equipment: Json | null
+          equipped_glove: string | null
           experience_level: string | null
           friday_workouts: number
           goals: string[] | null
@@ -315,6 +316,7 @@ export type Database = {
           total_pushups: number
           total_training_seconds: number | null
           total_xp: number
+          unlocked_gloves: Json | null
           updated_at: string
           user_id: string
           weekday_workouts: number
@@ -340,6 +342,7 @@ export type Database = {
           defense_combos?: number
           double_days?: number
           equipment?: Json | null
+          equipped_glove?: string | null
           experience_level?: string | null
           friday_workouts?: number
           goals?: string[] | null
@@ -387,6 +390,7 @@ export type Database = {
           total_pushups?: number
           total_training_seconds?: number | null
           total_xp?: number
+          unlocked_gloves?: Json | null
           updated_at?: string
           user_id: string
           weekday_workouts?: number
@@ -412,6 +416,7 @@ export type Database = {
           defense_combos?: number
           double_days?: number
           equipment?: Json | null
+          equipped_glove?: string | null
           experience_level?: string | null
           friday_workouts?: number
           goals?: string[] | null
@@ -459,6 +464,7 @@ export type Database = {
           total_pushups?: number
           total_training_seconds?: number | null
           total_xp?: number
+          unlocked_gloves?: Json | null
           updated_at?: string
           user_id?: string
           weekday_workouts?: number

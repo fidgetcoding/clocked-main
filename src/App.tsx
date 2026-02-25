@@ -18,6 +18,7 @@ import Profile from "./pages/Profile";
 import Auth from "./pages/Auth";
 import AdminPortal from "./pages/AdminPortal";
 import BadgeTests from "./pages/BadgeTests";
+import Gloves from "./pages/Gloves";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -46,6 +47,7 @@ const App = () => (
             <Route path="/workout/:id/session" element={<WorkoutSession />} />
             <Route path="/admin" element={<AdminPortal />} />
             <Route path="/test/badges" element={<BadgeTests />} />
+            <Route path="/gloves" element={<Gloves />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
