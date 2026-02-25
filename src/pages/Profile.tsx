@@ -19,6 +19,8 @@ import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { BadgeCollection } from '@/components/BadgeCollection';
 import { SharedWorkoutsModal } from '@/components/SharedWorkoutsModal';
+import { useGloves } from '@/hooks/useGloves';
+import { GLOVES } from '@/data/gloves';
 
 function formatDuration(seconds: number): string {
   const hours = Math.floor(seconds / 3600);
@@ -44,6 +46,7 @@ const Profile = () => {
   const [showLevelUpOverlay, setShowLevelUpOverlay] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const { isAdmin } = useUserRole();
+  const { equippedGlove, unlockedGloves } = useGloves();
   const { results: searchResults, isLoading: isSearching, hasQuery } = useUserSearch(searchQuery);
 
   // Determine if viewing own profile or someone else's
@@ -268,6 +271,25 @@ const Profile = () => {
             <span className="text-sm text-muted-foreground ml-2">{totalXP.toLocaleString()} XP</span>
           </div>
 
+          {/* Equipped Glove + Counter */}
+          {isOwnProfile && (
+            <button
+              onClick={() => navigate('/gloves')}
+              className="flex items-center gap-2 mb-3 group"
+            >
+              <div
+                className="w-6 h-6 rounded-md ring-1 ring-volt/50"
+                style={{ backgroundColor: (GLOVES[equippedGlove] || GLOVES.default).tierThemeColor }}
+              />
+              <span className="text-sm text-muted-foreground group-hover:text-foreground transition-colors">
+                {(GLOVES[equippedGlove] || GLOVES.default).name}
+              </span>
+              <span className="text-xs text-muted-foreground/60 ml-auto">
+                {unlockedGloves.length}/52 🥊
+              </span>
+              <ChevronRight className="w-4 h-4 text-muted-foreground/40" />
+            </button>
+          )}
           {/* Total Workout Time */}
           <div className="flex items-center gap-2 text-sm text-muted-foreground mb-3">
             <Clock className="w-4 h-4" />
