@@ -1,7 +1,8 @@
-import { createContext, useContext, useEffect, useState, ReactNode, useRef } from 'react';
+import { createContext, useContext, useEffect, useState, ReactNode, useRef, useCallback } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
+import { useUserStore } from '@/stores/userStore';
 
 interface AuthContextType {
   user: User | null;
@@ -35,6 +36,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // QueryClient not available yet, will be set later
   }
 
+  // Sync profile from DB to local store when user signs in
+  const syncProfileToStore = useCallback(async (userId: string) => {
+    const { hasCompletedOnboarding, completeOnboarding } = useUserStore.getState();
+    if (hasCompletedOnboarding) return; // Already synced
+
+    try {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('id, name, role, experience_level, prestige, current_level')
+        .eq('user_id', userId)
+        .single();
+
+      if (profile) {
+        completeOnboarding({
+          name: profile.name,
+          role: profile.role as 'fighter' | 'coach',
+          experienceLevel: profile.experience_level as any,
+          prestige: profile.prestige as any,
+          currentLevel: profile.current_level ?? 1,
+        });
+      }
+    } catch {
+      // Profile doesn't exist yet — user needs onboarding
+    }
+  }, []);
+
   useEffect(() => {
     // Set up auth state listener BEFORE checking session
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
@@ -48,6 +75,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           queryClientRef.current?.clear();
         }
         
+        // Sync profile on sign in (covers OAuth redirects)
+        if (event === 'SIGNED_IN' && newUserId) {
+          syncProfileToStore(newUserId);
+        }
+
         previousUserIdRef.current = newUserId;
         setSession(session);
         setUser(session?.user ?? null);
@@ -61,10 +93,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);
+
+      // Also sync on initial load if session exists
+      if (session?.user?.id) {
+        syncProfileToStore(session.user.id);
+      }
     });
 
     return () => subscription.unsubscribe();
-  }, []);
+  }, [syncProfileToStore]);
 
   const signOut = async () => {
     // Clear all user-specific data before signing out
