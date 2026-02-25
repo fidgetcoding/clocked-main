@@ -284,7 +284,7 @@ export function generateLoadoutWorkout(
     difficulty: tier,
     phases,
     combos: allCombos,
-    tags: ['boxing', tier],
+    tags: ['boxing', tier, 'loadout'],
     is_preset: true,
     is_archived: false,
     times_completed: 0,
