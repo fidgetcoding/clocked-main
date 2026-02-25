@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { Flame, Trophy, Clock, Zap, TrendingUp, TrendingDown, Target, Dumbbell, Activity, Award, Calendar as CalendarIcon } from 'lucide-react';
+import { Flame, Trophy, Clock, Zap, TrendingUp, TrendingDown, Target, Dumbbell, Activity, Award, Calendar as CalendarIcon, ChevronRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { XPBar } from '@/components/ui/XPBar';
@@ -7,6 +7,8 @@ import { PrestigeDisplay } from '@/components/ui/PrestigeDisplay';
 import { useProfile } from '@/hooks/useProfile';
 import { useWorkoutStats, WeeklyChange } from '@/hooks/useWorkoutStats';
 import { useBadges } from '@/hooks/useBadges';
+import { useGloves } from '@/hooks/useGloves';
+import { GLOVES } from '@/data/gloves';
 import { BADGE_CATEGORY_COLORS, BADGE_CATEGORY_NAMES } from '@/data/badges';
 import { 
   Prestige, 
@@ -117,6 +119,8 @@ const Stats = () => {
   const { earnedBadges, earnedBadgeIds, earnedCount, totalBadgeCount, getBadgesByCategory, currentStats } = useBadges();
   const navigate = useNavigate();
   const [showPrestigePrompt, setShowPrestigePrompt] = useState(false);
+  const { equippedGlove, unlockedGloves } = useGloves();
+  const equippedGloveData = GLOVES[equippedGlove] || GLOVES.default;
 
   // Get prestige data from profile
   const prestige: Prestige = profile?.prestige || 'beginner';
@@ -232,6 +236,22 @@ const Stats = () => {
               </div>
             </div>
           </div>
+
+          {/* Glove Card */}
+          <button
+            onClick={() => navigate('/gloves')}
+            className="card-workout flex items-center gap-3 w-full text-left"
+          >
+            <div
+              className="w-10 h-10 rounded-lg ring-1 ring-volt/40 shrink-0"
+              style={{ backgroundColor: equippedGloveData.tierThemeColor }}
+            />
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-bold text-foreground">{equippedGloveData.name}</p>
+              <p className="text-xs text-muted-foreground">{unlockedGloves.length}/52 Gloves Unlocked</p>
+            </div>
+            <ChevronRight className="w-4 h-4 text-muted-foreground/40 shrink-0" />
+          </button>
 
           {/* Badge Section */}
           <div>

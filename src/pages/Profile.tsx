@@ -256,6 +256,20 @@ const Profile = () => {
               <span className="text-xs font-bold uppercase text-volt">
                 {profileRole === 'coach' ? 'Coach' : 'Fighter'}
               </span>
+              {isOwnProfile && (
+                <>
+                  <span className="text-muted-foreground/50">•</span>
+                  <button onClick={() => navigate('/gloves')} className="flex items-center gap-1.5 group">
+                    <div
+                      className="w-4 h-4 rounded-sm ring-1 ring-volt/40"
+                      style={{ backgroundColor: (GLOVES[equippedGlove] || GLOVES.default).tierThemeColor }}
+                    />
+                    <span className="text-xs text-muted-foreground group-hover:text-foreground transition-colors">
+                      {(GLOVES[equippedGlove] || GLOVES.default).name}
+                    </span>
+                  </button>
+                </>
+              )}
               <span className="text-muted-foreground/50">•</span>
               <p className="text-sm text-muted-foreground">{profileHandle}</p>
             </div>
@@ -271,23 +285,16 @@ const Profile = () => {
             <span className="text-sm text-muted-foreground ml-2">{totalXP.toLocaleString()} XP</span>
           </div>
 
-          {/* Equipped Glove + Counter */}
+          {/* Glove Counter */}
           {isOwnProfile && (
             <button
               onClick={() => navigate('/gloves')}
               className="flex items-center gap-2 mb-3 group"
             >
-              <div
-                className="w-6 h-6 rounded-md ring-1 ring-volt/50"
-                style={{ backgroundColor: (GLOVES[equippedGlove] || GLOVES.default).tierThemeColor }}
-              />
-              <span className="text-sm text-muted-foreground group-hover:text-foreground transition-colors">
-                {(GLOVES[equippedGlove] || GLOVES.default).name}
+              <span className="text-xs text-muted-foreground/60">
+                {unlockedGloves.length}/52 Gloves
               </span>
-              <span className="text-xs text-muted-foreground/60 ml-auto">
-                {unlockedGloves.length}/52 🥊
-              </span>
-              <ChevronRight className="w-4 h-4 text-muted-foreground/40" />
+              <ChevronRight className="w-3.5 h-3.5 text-muted-foreground/40" />
             </button>
           )}
           {/* Total Workout Time */}
