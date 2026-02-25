@@ -592,25 +592,30 @@ function generateMessaging(
     rec.headline = 'Your next session is ready';
   }
 
-  // Reasoning
+  // Reasoning — stored as array for bullet rendering
   const parts: string[] = [];
   if (insights.averageDifficulty === 'too_easy') {
-    parts.push('Your recent sessions have been feeling too easy');
+    parts.push('Your recent sessions have been feeling too easy — time to push harder');
   } else if (insights.averageDifficulty === 'too_hard') {
-    parts.push('Your last sessions were tough');
+    parts.push('Your last sessions were tough — dialing back for recovery');
   }
   if (rec.punchEmphasis.length > 0) {
-    parts.push(`you're underusing punches ${rec.punchEmphasis.join(', ')}`);
+    const punchNames: Record<number, string> = { 1: 'Jab', 2: 'Cross', 3: 'Lead Hook', 4: 'Rear Hook', 5: 'Lead Uppercut', 6: 'Rear Uppercut', 7: 'Lead Body', 8: 'Rear Body' };
+    const names = rec.punchEmphasis.map(p => punchNames[p] || `Punch ${p}`).join(', ');
+    parts.push(`You're underusing: ${names}`);
   }
   if (rec.focusAreas.includes('defense') && rec.includeDefenseInCombos) {
-    parts.push('adding some defense work into your combos');
+    parts.push('Adding defensive movement into your combos');
   }
   if (rec.focusAreas.includes('variety')) {
-    parts.push('mixing up your routine for better development');
+    parts.push('Mixing up your routine for well-rounded development');
+  }
+  if (rec.focusAreas.includes('recovery')) {
+    parts.push('Keeping intensity manageable to protect your streak');
   }
 
   rec.reasoning = parts.length > 0
-    ? parts.join('. ') + '.'
+    ? parts.join('\n')
     : `Based on your last ${Math.min(history.length, 10)} sessions, this should be a good next step.`;
 
   // Encouragement
