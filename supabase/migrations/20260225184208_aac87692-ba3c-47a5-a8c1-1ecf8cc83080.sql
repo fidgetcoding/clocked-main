@@ -1,0 +1,1 @@
+UPDATE app_config SET value = '1.68', updated_at = now() WHERE key = 'version';
