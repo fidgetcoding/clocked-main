@@ -47,6 +47,25 @@ export interface Profile {
   // Gloves
   equipped_glove: string;
   unlocked_gloves: string[];
+  // Coach-relevant stats
+  comeback_count: number;
+  double_days: number;
+  morning_workouts: number;
+  night_workouts: number;
+  weekend_workouts: number;
+  weekday_workouts: number;
+  punch_1_count: number;
+  punch_2_count: number;
+  punch_3_count: number;
+  punch_4_count: number;
+  punch_5_count: number;
+  punch_6_count: number;
+  punch_7_count: number;
+  punch_8_count: number;
+  slips_count: number;
+  rolls_count: number;
+  pullbacks_count: number;
+  circles_count: number;
 }
 
 // Helper to generate handle from name
@@ -115,6 +134,24 @@ export function useProfile() {
           counter_combos: (data as any).counter_combos || 0,
           equipped_glove: (data as any).equipped_glove || 'default',
           unlocked_gloves: (data as any).unlocked_gloves || ['default'],
+          comeback_count: (data as any).comeback_count || 0,
+          double_days: (data as any).double_days || 0,
+          morning_workouts: (data as any).morning_workouts || 0,
+          night_workouts: (data as any).night_workouts || 0,
+          weekend_workouts: (data as any).weekend_workouts || 0,
+          weekday_workouts: (data as any).weekday_workouts || 0,
+          punch_1_count: (data as any).punch_1_count || 0,
+          punch_2_count: (data as any).punch_2_count || 0,
+          punch_3_count: (data as any).punch_3_count || 0,
+          punch_4_count: (data as any).punch_4_count || 0,
+          punch_5_count: (data as any).punch_5_count || 0,
+          punch_6_count: (data as any).punch_6_count || 0,
+          punch_7_count: (data as any).punch_7_count || 0,
+          punch_8_count: (data as any).punch_8_count || 0,
+          slips_count: (data as any).slips_count || 0,
+          rolls_count: (data as any).rolls_count || 0,
+          pullbacks_count: (data as any).pullbacks_count || 0,
+          circles_count: (data as any).circles_count || 0,
         } as Profile;
       }
       return null;
