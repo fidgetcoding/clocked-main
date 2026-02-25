@@ -13,7 +13,7 @@ export interface Glove {
 
 export const GLOVES: Record<string, Glove> = {
   // === DEFAULT ===
-  default: { id: 'default', name: 'Default Gloves', prestige: 'any', level: 0, description: 'Standard red boxing gloves', tierThemeColor: '#CC0000' },
+  default: { id: 'default', name: 'Standard Red', prestige: 'any', level: 0, description: 'Standard red boxing gloves', tierThemeColor: '#CC0000' },
 
   // === TIER 1: ROOKIE ===
   worn_leather: { id: 'worn_leather', name: 'Worn Leather', prestige: 'rookie', level: 10, description: "Scuffed brown leather — you've started", tierThemeColor: '#8B6914' },
