@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { ArrowLeft, LogOut, Volume2, Timer, Shield } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
@@ -16,6 +16,8 @@ import { PrestigePrompt } from '@/components/workout/PrestigePrompt';
 import { Prestige } from '@/lib/xpSystem';
 import { ALL_BADGES } from '@/data/badges';
 import { generateLoadoutWorkout, UserEquipmentConfig } from '@/lib/loadoutGenerator';
+import { GloveUnlockOverlay } from '@/components/ui/GloveUnlockOverlay';
+import { GLOVES } from '@/data/gloves';
 import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
 
@@ -36,6 +38,9 @@ const Settings = () => {
   const [levelUpVariant, setLevelUpVariant] = useState<'volt' | 'cooldown' | 'championship'>('volt');
   const [showPrestigePrompt, setShowPrestigePrompt] = useState(false);
   const [showBadgeOverlay, setShowBadgeOverlay] = useState(false);
+  const [showGloveOverlay, setShowGloveOverlay] = useState(false);
+  const gloveIndexRef = useRef(0);
+  const sampleGloves = [GLOVES.golden, GLOVES.platinum, GLOVES.emerald, GLOVES.ruby, GLOVES.diamond, GLOVES.bmf];
 
   const handleSignOut = async () => {
     setIsSigningOut(true);
@@ -270,6 +275,14 @@ const Settings = () => {
                 >
                   {isRegenerating ? '⏳ ...' : '🔄 Regen Loadout'}
                 </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setShowGloveOverlay(true)}
+                  className="text-xs bg-surface-2 border-surface-3"
+                >
+                  🥊 Glove Unlock
+                </Button>
               </div>
             </div>
           )}
@@ -277,6 +290,17 @@ const Settings = () => {
           {/* Badge Earn Overlay (admin test) */}
           {showBadgeOverlay && (
             <BadgeEarnOverlay badge={ALL_BADGES[0]} onComplete={() => setShowBadgeOverlay(false)} />
+          )}
+
+          {/* Glove Unlock Overlay (admin test) */}
+          {showGloveOverlay && (
+            <GloveUnlockOverlay
+              glove={sampleGloves[gloveIndexRef.current % sampleGloves.length]}
+              onComplete={() => {
+                setShowGloveOverlay(false);
+                gloveIndexRef.current += 1;
+              }}
+            />
           )}
 
           {/* Version */}
