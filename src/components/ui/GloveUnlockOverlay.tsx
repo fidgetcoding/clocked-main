@@ -29,14 +29,12 @@ export function GloveUnlockOverlay({ glove, onComplete }: GloveUnlockOverlayProp
       <div className="absolute top-0 left-0 right-0 z-10" style={{ height: 'max(env(safe-area-inset-top, 0px), 50px)', background: '#0A0A0B' }} />
       <div className="absolute bottom-0 left-0 right-0 z-10" style={{ height: 'max(env(safe-area-inset-bottom, 0px), 50px)', background: '#0A0A0B' }} />
 
-      {/* Background flash */}
+      {/* Dimmed backdrop — matches badge earn */}
       <div
-        className="absolute inset-0 transition-all duration-500"
+        className="absolute inset-0 bg-background/95"
         style={{
-          top: 'max(env(safe-area-inset-top, 0px), 50px)',
-          bottom: 'max(env(safe-area-inset-bottom, 0px), 50px)',
-          background: phase === 'flash' ? color : phase === 'out' ? 'transparent' : `radial-gradient(ellipse at center, ${color}40 0%, #0A0A0B 70%)`,
           opacity: phase === 'out' ? 0 : 1,
+          transition: 'opacity 0.5s ease-out',
         }}
       />
 
