@@ -31,7 +31,7 @@ import { SortableContext, verticalListSortingStrategy, useSortable, arrayMove } 
 import { CSS } from '@dnd-kit/utilities';
 
 function shouldHandleDragActivation(target: EventTarget | null) {
-  return !(target instanceof HTMLElement && target.closest('[data-no-dnd="true"]'));
+  return !(target instanceof Element && target.closest('[data-no-dnd="true"]'));
 }
 
 class BuilderPointerSensor extends PointerSensor {
@@ -140,7 +140,7 @@ function SortableComboItem({ id, combo, index, onEdit, onDelete }: {
         onTouchStartCapture={stopDndEvent}
         className="text-muted-foreground hover:text-foreground p-1 touch-manipulation"
       >
-        <Pencil className="w-4 h-4" />
+        <Pencil className="w-4 h-4 pointer-events-none" />
       </button>
       <button
         type="button"
@@ -157,7 +157,7 @@ function SortableComboItem({ id, combo, index, onEdit, onDelete }: {
         onTouchStartCapture={stopDndEvent}
         className="text-muted-foreground hover:text-destructive p-1 touch-manipulation"
       >
-        <Trash2 className="w-4 h-4" />
+        <Trash2 className="w-4 h-4 pointer-events-none" />
       </button>
     </div>
   );
