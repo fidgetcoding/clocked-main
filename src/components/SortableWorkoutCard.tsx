@@ -103,13 +103,15 @@ export function SortableWorkoutCard({ workout, onDelete, isReorderMode }: Sortab
             {/* Edit and Delete */}
             <div className="flex items-center gap-3">
               <button
-                onClick={() => navigate(`/build?edit=${workout.id}`)}
+                onClick={(e) => { e.stopPropagation(); navigate(`/build?edit=${workout.id}`); }}
+                onPointerDown={(e) => e.stopPropagation()}
                 className="text-muted-foreground hover:text-foreground transition-colors p-1"
               >
                 <Pencil className="w-4 h-4" />
               </button>
               <button
-                onClick={() => onDelete(workout.id)}
+                onClick={(e) => { e.stopPropagation(); onDelete(workout.id); }}
+                onPointerDown={(e) => e.stopPropagation()}
                 className="text-muted-foreground hover:text-destructive transition-colors p-1"
               >
                 <Trash2 className="w-4 h-4" />
