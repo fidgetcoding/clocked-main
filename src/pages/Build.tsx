@@ -29,6 +29,33 @@ import { toast } from 'sonner';
 import { DndContext, closestCenter, PointerSensor, TouchSensor, useSensor, useSensors } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy, useSortable, arrayMove } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+
+function shouldHandleDragActivation(target: EventTarget | null) {
+  return !(target instanceof HTMLElement && target.closest('[data-no-dnd="true"]'));
+}
+
+class BuilderPointerSensor extends PointerSensor {
+  static activators = [
+    {
+      eventName: 'onPointerDown' as const,
+      handler: ({ nativeEvent }: React.PointerEvent) => shouldHandleDragActivation(nativeEvent.target),
+    },
+  ];
+}
+
+class BuilderTouchSensor extends TouchSensor {
+  static activators = [
+    {
+      eventName: 'onTouchStart' as const,
+      handler: ({ nativeEvent }: React.TouchEvent) => shouldHandleDragActivation(nativeEvent.target),
+    },
+  ];
+}
+
+function stopDndEvent(event: React.SyntheticEvent) {
+  event.stopPropagation();
+}
+
 // Sortable wrapper for phase cards in the builder
 function SortablePhaseWrapper({ id, children }: { id: string; children: (props: { dragHandleProps: Record<string, any>; style: React.CSSProperties; setNodeRef: (node: HTMLElement | null) => void; isDragging: boolean }) => React.ReactNode }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
@@ -100,27 +127,35 @@ function SortableComboItem({ id, combo, index, onEdit, onDelete }: {
       </div>
       <button
         type="button"
+        data-no-dnd="true"
         onClick={(e) => {
           e.stopPropagation();
           onEdit(index);
         }}
-        onPointerDown={(e) => e.stopPropagation()}
-        onMouseDown={(e) => e.stopPropagation()}
-        onTouchStart={(e) => e.stopPropagation()}
-        className="text-muted-foreground hover:text-foreground p-1"
+        onPointerDown={stopDndEvent}
+        onPointerDownCapture={stopDndEvent}
+        onMouseDown={stopDndEvent}
+        onMouseDownCapture={stopDndEvent}
+        onTouchStart={stopDndEvent}
+        onTouchStartCapture={stopDndEvent}
+        className="text-muted-foreground hover:text-foreground p-1 touch-manipulation"
       >
         <Pencil className="w-4 h-4" />
       </button>
       <button
         type="button"
+        data-no-dnd="true"
         onClick={(e) => {
           e.stopPropagation();
           onDelete(index);
         }}
-        onPointerDown={(e) => e.stopPropagation()}
-        onMouseDown={(e) => e.stopPropagation()}
-        onTouchStart={(e) => e.stopPropagation()}
-        className="text-muted-foreground hover:text-destructive p-1"
+        onPointerDown={stopDndEvent}
+        onPointerDownCapture={stopDndEvent}
+        onMouseDown={stopDndEvent}
+        onMouseDownCapture={stopDndEvent}
+        onTouchStart={stopDndEvent}
+        onTouchStartCapture={stopDndEvent}
+        className="text-muted-foreground hover:text-destructive p-1 touch-manipulation"
       >
         <Trash2 className="w-4 h-4" />
       </button>
@@ -221,8 +256,8 @@ const Build = () => {
 
   // Drag-and-drop sensors (shared for combos and phases)
   const dndSensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
-    useSensor(TouchSensor, { activationConstraint: { delay: 150, tolerance: 5 } })
+    useSensor(BuilderPointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(BuilderTouchSensor, { activationConstraint: { delay: 150, tolerance: 5 } })
   );
 
   // Phase drag-and-drop handler
