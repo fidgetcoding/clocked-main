@@ -98,10 +98,30 @@ function SortableComboItem({ id, combo, index, onEdit, onDelete }: {
           ))
         )}
       </div>
-      <button onClick={(e) => { e.stopPropagation(); onEdit(index); }} className="text-muted-foreground hover:text-foreground p-1">
+      <button
+        type="button"
+        onClick={(e) => {
+          e.stopPropagation();
+          onEdit(index);
+        }}
+        onPointerDown={(e) => e.stopPropagation()}
+        onMouseDown={(e) => e.stopPropagation()}
+        onTouchStart={(e) => e.stopPropagation()}
+        className="text-muted-foreground hover:text-foreground p-1"
+      >
         <Pencil className="w-4 h-4" />
       </button>
-      <button onClick={(e) => { e.stopPropagation(); onDelete(index); }} className="text-muted-foreground hover:text-destructive p-1">
+      <button
+        type="button"
+        onClick={(e) => {
+          e.stopPropagation();
+          onDelete(index);
+        }}
+        onPointerDown={(e) => e.stopPropagation()}
+        onMouseDown={(e) => e.stopPropagation()}
+        onTouchStart={(e) => e.stopPropagation()}
+        className="text-muted-foreground hover:text-destructive p-1"
+      >
         <Trash2 className="w-4 h-4" />
       </button>
     </div>
