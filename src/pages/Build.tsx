@@ -56,6 +56,78 @@ function stopDndEvent(event: React.SyntheticEvent) {
   event.stopPropagation();
 }
 
+const EXERCISE_ENTRY_PLACEHOLDERS = new Set(['exercise', 'exercise a', 'exercise b']);
+const DEFENSIVE_MOVE_PATTERN = /^(SLIP|ROLL|DUCK|PULL|BLOCK|PARRY|STEP|CIRCLE|PIVOT)/;
+
+function isComboNotationToken(token: string) {
+  return /^\d/.test(token) || DEFENSIVE_MOVE_PATTERN.test(token);
+}
+
+function isComboLibraryEntry(entry: string[]) {
+  return (entry.length === 1 && entry[0] === 'FREESTYLE') || entry.some(isComboNotationToken);
+}
+
+function isTextLibraryEntry(entry: string[]) {
+  return entry.some((token) => !isComboNotationToken(token));
+}
+
+function findNthMatchingIndex(entries: string[][], matcher: (entry: string[]) => boolean, matchPosition: number) {
+  let seenMatches = -1;
+
+  for (let index = 0; index < entries.length; index += 1) {
+    if (!matcher(entries[index])) continue;
+    seenMatches += 1;
+    if (seenMatches === matchPosition) return index;
+  }
+
+  return -1;
+}
+
+type LibraryEntryTarget =
+  | { kind: 'phaseCombo'; comboIndex: number }
+  | { kind: 'segmentName'; segmentId: string }
+  | { kind: 'none' };
+
+function resolveLibraryEntryTarget({
+  phase,
+  segment,
+  ctx,
+  visibleIndex,
+  isSuperset,
+}: {
+  phase: WorkoutPhase;
+  segment: WorkoutSegment;
+  ctx: 'speedbag' | 'combo' | 'exercises';
+  visibleIndex: number;
+  isSuperset: boolean;
+}): LibraryEntryTarget {
+  const phaseCombos = phase.combos || [];
+
+  if (ctx === 'exercises') {
+    const hasStoredExerciseEntries = phaseCombos.length > 0 && phaseCombos.some(isTextLibraryEntry);
+    const hasSegmentBackedEntry = !!segment.name && !EXERCISE_ENTRY_PLACEHOLDERS.has(segment.name.toLowerCase());
+
+    if (isSuperset || !hasStoredExerciseEntries) {
+      return hasSegmentBackedEntry ? { kind: 'segmentName', segmentId: segment.id } : { kind: 'none' };
+    }
+
+    return visibleIndex < phaseCombos.length
+      ? { kind: 'phaseCombo', comboIndex: visibleIndex }
+      : { kind: 'none' };
+  }
+
+  if (!isSuperset) {
+    return visibleIndex < phaseCombos.length
+      ? { kind: 'phaseCombo', comboIndex: visibleIndex }
+      : { kind: 'none' };
+  }
+
+  const matcher = ctx === 'speedbag' ? isTextLibraryEntry : isComboLibraryEntry;
+  const comboIndex = findNthMatchingIndex(phaseCombos, matcher, visibleIndex);
+
+  return comboIndex === -1 ? { kind: 'none' } : { kind: 'phaseCombo', comboIndex };
+}
+
 // Sortable wrapper for phase cards in the builder
 function SortablePhaseWrapper({ id, children }: { id: string; children: (props: { dragHandleProps: Record<string, any>; style: React.CSSProperties; setNodeRef: (node: HTMLElement | null) => void; isDragging: boolean }) => React.ReactNode }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
@@ -242,6 +314,7 @@ const Build = () => {
   const [showAIBuilder, setShowAIBuilder] = useState(false);
   const [showExercisePicker, setShowExercisePicker] = useState(false);
   const [editingSegmentContext, setEditingSegmentContext] = useState<'speedbag' | 'combo' | 'exercises'>('combo');
+  const [editingExerciseSegmentId, setEditingExerciseSegmentId] = useState<string | null>(null);
   const [showShareDialog, setShowShareDialog] = useState(false);
   const [shareMessage, setShareMessage] = useState('');
   const [shareName, setShareName] = useState('');
@@ -284,6 +357,20 @@ const Build = () => {
     setWarmupPhases(prev => updateFn(prev));
     setGrindPhases(prev => updateFn(prev));
     setCooldownPhases(prev => updateFn(prev));
+  };
+
+  const replaceOrAppendPhaseCombo = (phaseId: string, entry: string[]) => {
+    const phaseCombos = getPhaseCombos(phaseId);
+
+    if (editingComboIndex !== null) {
+      const newCombos = [...phaseCombos];
+      newCombos[editingComboIndex] = entry;
+      setPhaseCombos(phaseId, newCombos);
+      setEditingComboIndex(null);
+      return;
+    }
+
+    setPhaseCombos(phaseId, [...phaseCombos, entry]);
   };
   
   const editingPhaseCombos = editingPhaseId ? getPhaseCombos(editingPhaseId) : [];
@@ -511,14 +598,84 @@ const Build = () => {
 
   const addPresetCombo = (preset: ComboPreset) => {
     if (!editingPhaseId) return;
-    const phaseCombos = getPhaseCombos(editingPhaseId);
-    setPhaseCombos(editingPhaseId, [...phaseCombos, preset.combo]);
+    replaceOrAppendPhaseCombo(editingPhaseId, preset.combo);
   };
 
   const addSpeedBagDrill = (drillName: string) => {
     if (!editingPhaseId) return;
-    const phaseCombos = getPhaseCombos(editingPhaseId);
-    setPhaseCombos(editingPhaseId, [...phaseCombos, [drillName]]);
+    replaceOrAppendPhaseCombo(editingPhaseId, [drillName]);
+  };
+
+  const handleLibraryEntryEdit = ({
+    phase,
+    segment,
+    ctx,
+    visibleIndex,
+    isSuperset,
+  }: {
+    phase: WorkoutPhase;
+    segment: WorkoutSegment;
+    ctx: 'speedbag' | 'combo' | 'exercises';
+    visibleIndex: number;
+    isSuperset: boolean;
+  }) => {
+    const target = resolveLibraryEntryTarget({ phase, segment, ctx, visibleIndex, isSuperset });
+    setEditingPhaseId(phase.id);
+
+    if (ctx === 'exercises') {
+      if (target.kind === 'segmentName') {
+        setEditingExerciseSegmentId(target.segmentId);
+        setEditingComboIndex(null);
+        setShowExercisePicker(true);
+        return;
+      }
+
+      if (target.kind === 'phaseCombo') {
+        setEditingExerciseSegmentId(null);
+        setEditingComboIndex(target.comboIndex);
+        setShowExercisePicker(true);
+      }
+
+      return;
+    }
+
+    if (target.kind !== 'phaseCombo') return;
+
+    setEditingExerciseSegmentId(null);
+    setEditingSegmentContext(ctx);
+    setCurrentCombo((phase.combos || [])[target.comboIndex] || []);
+    setEditingComboIndex(target.comboIndex);
+    setComboMode(ctx === 'speedbag' ? 'presets' : 'custom');
+    setShowComboBuilder(true);
+  };
+
+  const handleLibraryEntryDelete = ({
+    phase,
+    segment,
+    ctx,
+    visibleIndex,
+    isSuperset,
+  }: {
+    phase: WorkoutPhase;
+    segment: WorkoutSegment;
+    ctx: 'speedbag' | 'combo' | 'exercises';
+    visibleIndex: number;
+    isSuperset: boolean;
+  }) => {
+    const target = resolveLibraryEntryTarget({ phase, segment, ctx, visibleIndex, isSuperset });
+
+    if (target.kind === 'segmentName') {
+      removeSegment(phase.id, target.segmentId);
+      return;
+    }
+
+    if (target.kind !== 'phaseCombo') return;
+
+    setPhaseCombos(phase.id, (phase.combos || []).filter((_, comboIndex) => comboIndex !== target.comboIndex));
+
+    if (editingPhaseId === phase.id && editingComboIndex === target.comboIndex) {
+      setEditingComboIndex(null);
+    }
   };
 
   // Determine phase context for library labels (combos vs drills vs exercises)
@@ -961,7 +1118,9 @@ const Build = () => {
                               <button
                                 onClick={() => {
                                   setEditingPhaseId(phase.id);
+                                   setEditingExerciseSegmentId(null);
                                   if (ctx === 'exercises') {
+                                     setEditingComboIndex(null);
                                     setShowExercisePicker(true);
                                   } else {
                                     setEditingSegmentContext(ctx);
@@ -1018,18 +1177,23 @@ const Build = () => {
                                             id={`combo-${phase.id}-${segIdx}-${idx}`}
                                             combo={combo}
                                             index={idx}
-                                            onEdit={(i) => {
-                                              if (isSuperset) return;
-                                              setEditingPhaseId(phase.id);
-                                              setEditingSegmentContext(ctx);
-                                              setCurrentCombo((phase.combos || [])[i]);
-                                              setEditingComboIndex(i);
-                                              setComboMode(ctx === 'speedbag' ? 'presets' : 'custom');
-                                              setShowComboBuilder(true);
+                                            onEdit={() => {
+                                              handleLibraryEntryEdit({
+                                                phase,
+                                                segment,
+                                                ctx,
+                                                visibleIndex: idx,
+                                                isSuperset,
+                                              });
                                             }}
-                                            onDelete={(i) => {
-                                              if (isSuperset) return;
-                                              setPhaseCombos(phase.id, (phase.combos || []).filter((_, ci) => ci !== i));
+                                            onDelete={() => {
+                                              handleLibraryEntryDelete({
+                                                phase,
+                                                segment,
+                                                ctx,
+                                                visibleIndex: idx,
+                                                isSuperset,
+                                              });
                                             }}
                                           />
                                         ))}
@@ -1675,12 +1839,21 @@ const Build = () => {
         {/* Exercise Picker Modal */}
         <ExercisePickerModal
           open={showExercisePicker}
-          onClose={() => setShowExercisePicker(false)}
+          onClose={() => {
+            setShowExercisePicker(false);
+            setEditingExerciseSegmentId(null);
+            setEditingComboIndex(null);
+          }}
           onConfirm={(exercises) => {
             if (editingPhaseId) {
-              const phaseCombos = getPhaseCombos(editingPhaseId);
-              setPhaseCombos(editingPhaseId, [...phaseCombos, exercises]);
+              if (editingExerciseSegmentId) {
+                updateSegment(editingPhaseId, editingExerciseSegmentId, { name: exercises.join(' & ') });
+              } else {
+                replaceOrAppendPhaseCombo(editingPhaseId, exercises);
+              }
             }
+            setEditingExerciseSegmentId(null);
+            setEditingComboIndex(null);
           }}
         />
       </div>
