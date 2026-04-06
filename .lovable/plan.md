@@ -1,58 +1,47 @@
 
 
-## Fix: Restore Two-Layer Layout
+## Problem
 
-The last edit broke things by removing the closing tag for the centered timer container (Layer 1) and merging the combo cards into it. This made the cards part of the vertically-centered flex group, shifting the timer's position.
+This is a remixed project with a fresh database. The migration files created all the **table structures** and **functions**, but:
 
-### What went wrong
+1. **No trigger on `auth.users`** — The `on_auth_user_created` trigger that auto-creates profiles on signup is missing. The trigger targets `auth.users` (a reserved schema), so it likely wasn't applied during the remix. This means new signups don't get a profile row, breaking the entire app.
 
-The timer group (Layer 1) is wrapped in an `absolute inset-0 flex justify-center` container. Previously, the combo cards were in a separate absolute container (Layer 2). The last edit deleted the Layer 1 closing `</div>` and placed the combo cards inside Layer 1, making them affect the centering calculation.
+2. **`clubs` table is empty** — The "Early Adopters" club INSERT was in a migration but didn't carry over.
 
-### The fix (single surgical edit)
+3. **`tier_presets` table is empty** — No seed data was ever inserted via migration (it was likely inserted manually or via admin tools in the original project).
 
-1. **Re-close Layer 1** after the time adjustment buttons (after line 1221) by adding back the `</div>` that was removed.
+4. **No profiles** — Since the trigger is missing, even if you sign up, no profile is created.
 
-2. **Wrap the combo/UP NEXT cards** in a restored Layer 2 container that is absolutely positioned and does NOT affect Layer 1. This container will sit in the lower portion of the middle area, directly below where the time buttons end.
+## Plan
 
-### Exact structure after fix
+### Step 1: Re-create the `auth.users` trigger via migration
+Create a migration to attach `handle_new_user()` to `auth.users`:
+```sql
+CREATE OR REPLACE TRIGGER on_auth_user_created
+  AFTER INSERT ON auth.users
+  FOR EACH ROW
+  EXECUTE FUNCTION public.handle_new_user();
+```
+This ensures new signups automatically get a profile.
 
-```text
-<div className="flex-1 relative px-4">        <!-- Middle area -->
-
-  <!-- Layer 1: absolute inset-0, flex centered -->
-  <div className="absolute inset-0 flex flex-col items-center justify-center px-4">
-    Phase Name
-    Timer Circle + XP Bar
-    Segment Name
-    Time Buttons (-30s, -15s, +15s, +30s)
-  </div>   <!-- Layer 1 CLOSED here — nothing else inside -->
-
-  <!-- Layer 2: absolute, bottom half only, pointer-events-none wrapper -->
-  <div className="absolute left-4 right-4 flex flex-col items-center justify-start pointer-events-none"
-       style={{ top: '62%', bottom: '0' }}>
-    <div className="pointer-events-auto">
-      Combo Card / UP NEXT Card / Freestyle
-    </div>
-  </div>   <!-- Layer 2 CLOSED -->
-
-</div>     <!-- Middle area CLOSED -->
+### Step 2: Seed the Early Adopters club via data insert
+Insert the club row:
+```sql
+INSERT INTO public.clubs (id, name, icon, description, type, member_cap)
+VALUES ('ea000000-0000-0000-0000-000000000001', 'Early Adopters', '🚀',
+        'The first 100 fighters to join CLOCKED. Welcome to the crew!', 'public', 100)
+ON CONFLICT (id) DO NOTHING;
 ```
 
-### Why this works
+### Step 3: Seed tier presets via data insert
+Insert preset rows for each tier × equipment mode (shadow/bag). The `useTierPresets` hook expects rows with `tier`, `equipment_mode`, `name`, `description`, and a `loadout` JSON column. We'll create presets for: rookie, beginner, intermediate, advanced, pro — both shadow and bag modes (10 rows total).
 
-- Layer 1 is self-contained. Its `justify-center` calculation only includes phase name, timer, segment label, and time buttons. Adding or removing cards has zero effect.
-- Layer 2 is a completely separate absolute container. It starts at roughly 62% from the top (just below the time buttons) and extends to the bottom of the middle area. Cards render at the top of this zone — directly below the time buttons — via `justify-start`.
-- `pointer-events-none` on the wrapper prevents it from blocking clicks on Layer 1; `pointer-events-auto` on the inner card restores interactivity for the cards themselves.
+### Step 4: Verify profile creation works
+After the trigger is re-created, signing up or logging in should auto-create a profile. If the current user already exists in `auth.users` but has no profile, we may need to manually insert one or have them re-authenticate.
 
-### What does NOT change
-
-- The timer circle position — untouched
-- The XP bar — untouched
-- The phase/segment text — untouched
-- The time adjustment buttons — untouched
-- Any card content or styling — untouched
-
-### Files modified
-
-- `src/pages/WorkoutSession.tsx` — one edit: re-insert Layer 1 closing div at line 1221, wrap lines 1223-1353 in a new absolute Layer 2 container.
+### Technical Details
+- Step 1 requires a **migration** (it modifies `auth` schema trigger)
+- Steps 2-3 use the **data insert tool** (inserting rows into existing tables)
+- No code changes needed — the hooks (`useClubs`, `useTierPresets`, `usePresetSeeding`) already work correctly, they just need data
+- The tier preset `loadout` JSON needs an `experienceLevel` field matching the tier name, which `generateLoadoutWorkout` uses
 
