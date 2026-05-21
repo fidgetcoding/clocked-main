@@ -138,7 +138,7 @@ const Index = () => {
             <img 
               src={clockedTextLogo} 
               alt="CLOCKED" 
-              className="h-8 object-contain"
+              className="h-24 object-contain"
             />
             <div className="h-px flex-1 bg-volt/40" />
           </div>
