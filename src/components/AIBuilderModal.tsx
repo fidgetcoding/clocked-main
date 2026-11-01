@@ -538,7 +538,7 @@ export const AIBuilderModal = ({ onClose, onWorkoutGenerated, startingPrompt }: 
       />
       
       {/* Modal */}
-      <div className="relative w-full max-w-md bg-surface-1 rounded-2xl border border-surface-3 overflow-hidden animate-in zoom-in-95 duration-200">
+      <div className="relative w-full max-w-md max-h-[calc(100dvh-2rem)] flex flex-col bg-surface-1 rounded-2xl border border-surface-3 overflow-hidden animate-in zoom-in-95 duration-200">
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-surface-3">
           <div className="flex items-center gap-2">
@@ -558,7 +558,7 @@ export const AIBuilderModal = ({ onClose, onWorkoutGenerated, startingPrompt }: 
         </div>
 
         {/* Content */}
-        <div className="p-4 space-y-4">
+        <div className="p-4 space-y-4 overflow-y-auto min-h-0">
           {/* History Insights Banner */}
           {insightsSummary && (
             <div className="bg-surface-2 border border-volt/20 rounded-xl p-3 flex items-start gap-2">

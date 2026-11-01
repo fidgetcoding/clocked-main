@@ -283,3 +283,22 @@ test("onboarding caps the name and treats spaces as no name", async ({ page }) =
   await page.goto(`${NO_BACKEND_URL}/profile`);
   await expect(page.getByText("@fighter")).toBeVisible();
 });
+
+test("nothing covers the workout controls right after Start", async ({ page }) => {
+  await page.goto(`${NO_BACKEND_URL}/build`);
+  await page.getByRole("button", { name: "Add Phase" }).click();
+  await page.getByRole("button", { name: "Start", exact: true }).click();
+  await page.waitForURL("**/session");
+  await expect(page.locator("button:has(svg.lucide-play)").first()).toBeVisible();
+  await expect(page.locator("[data-sonner-toast]")).toHaveCount(0);
+});
+
+test("the AI builder fits a small phone", async ({ page }) => {
+  await page.setViewportSize({ width: 320, height: 568 });
+  await page.goto(`${NO_BACKEND_URL}/build`);
+  await page.getByRole("button", { name: "AI Builder" }).click();
+  await page.locator("textarea").fill("6 rounds heavy bag");
+  await page.getByRole("button", { name: /Generate/ }).last().click();
+  await expect(page.getByPlaceholder("Workout Name")).not.toHaveValue("", { timeout: 15_000 });
+  await expect(page.getByText(/^Total: (?!0m)/)).toBeVisible();
+});

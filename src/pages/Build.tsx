@@ -759,7 +759,6 @@ const Build = () => {
 
     const saveAndNavigate = (savedId: string) => {
       if (andStart) {
-        toast.success(`Starting "${name}"`);
         navigate(`/workout/${savedId}/session`);
       } else {
         toast.success(`Saved "${name}"`);
