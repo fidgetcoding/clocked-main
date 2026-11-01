@@ -22,3 +22,8 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Secrets. .env itself stays tracked for now: the deploy reads it and it holds only the anon key.
+.env*
+*.pem
+*.key
