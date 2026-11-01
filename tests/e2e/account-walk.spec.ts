@@ -455,7 +455,7 @@ test.describe("ratings", () => {
     await test.step("no ratings yet says so", async () => {
       await service.from("workout_ratings").delete().neq("rating", 0);
       await openFightClub(first.page, "Presets");
-      const card = first.page.locator(".card-workout", { hasText: "Pro Loadout" });
+      const card = first.page.getByTestId("listing-row").filter({ hasText: "Pro Loadout" });
       await expect(card).toContainText("No ratings yet");
       await expect(card).not.toContainText("5.0");
       await card.click();
@@ -477,7 +477,7 @@ test.describe("ratings", () => {
       await rate(first, 5);
       await expect(first.page.getByText("4.5 (2)").first()).toBeVisible();
       await openFightClub(second.page, "Presets");
-      await expect(second.page.locator(".card-workout", { hasText: "Pro Loadout" })).toContainText("4.5 (2)");
+      await expect(second.page.getByTestId("listing-row").filter({ hasText: "Pro Loadout" })).toContainText("4.5 (2)");
     });
   });
 });
@@ -502,7 +502,7 @@ test.describe("your own sets", () => {
 
     await test.step("edit it, and the one row changes", async () => {
       const count = (await rows()).length;
-      await page.locator(".card-workout, [class*=card]", { hasText: name }).first().locator("button:has(svg.lucide-pencil)").click();
+      await page.getByRole("button", { name: `Edit ${name}` }).first().click();
       await page.waitForURL("**/build**");
       await expect(page.getByPlaceholder("Workout Name")).toHaveValue(name);
       await page.getByPlaceholder("Workout Name").fill(`${name} v2`);
@@ -528,7 +528,7 @@ test.describe("your own sets", () => {
       .poll(async () => (await service.from("workouts").select("name").eq("user_id", fighter.id).eq("name", "Pro Loadout")).data?.length)
       .toBe(1);
 
-    await page.locator(".card-workout", { hasText: "Pro Loadout" }).first().click();
+    await page.getByTestId("listing-row").filter({ hasText: "Pro Loadout" }).first().click();
     await page.getByRole("button", { name: "Customize in the Builder" }).click();
     await page.waitForURL("**/build**");
     await expect(page.getByPlaceholder("Workout Name")).toHaveValue("Pro Loadout");

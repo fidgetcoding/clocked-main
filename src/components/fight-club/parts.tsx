@@ -123,6 +123,7 @@ export function ListingRow({ minutes, title, meta, tags, action, onClick }: {
   return (
     <button
       type="button"
+      data-testid="listing-row"
       onClick={onClick}
       className="grid w-full grid-cols-[3.25rem_minmax(0,1fr)_auto] items-center gap-2 border-b border-surface-2 px-4 py-2 text-left transition-colors hover:bg-surface-1"
     >
