@@ -1,4 +1,4 @@
-import { BodyTracker, LM, type BodyPose, type Vec3 } from './body';
+import { BodyTracker, dist, LM, type BodyPose, type Vec3 } from './body';
 import { PUNCH_CONFIG, type PunchConfig } from './config';
 import type { Landmark, Stance } from './types';
 
@@ -25,6 +25,8 @@ export interface StartCheckResult {
   guard: { left: Vec3; right: Vec3 } | null;
   /** The check saw too little to say anything about the camera. */
   gaveUp: boolean;
+  /** Still hands looked like they were moving, so tracking won't be reliable from here. */
+  shaky: boolean;
 }
 
 const median = (values: number[]) => {
@@ -155,7 +157,18 @@ export class StartCheck {
     };
     const guard = up.length >= startCheck.minPoses && steady('left') && steady('right') ? { left: point('left'), right: point('right') } : null;
 
+    const handSpeeds = this.poses.slice(1).flatMap((pose, i) => {
+      const previous = this.poses[i];
+      const dt = (pose.t - previous.t) / 1000;
+      return (['left', 'right'] as const).flatMap((side) => {
+        const now = pose[side].wrist;
+        const before = previous[side].wrist;
+        return now && before && dt > 0 ? [dist(now, before) / dt] : [];
+      });
+    });
+
     return {
+      shaky: !gaveUp && median(handSpeeds) >= startCheck.shakySpeed,
       framed: this.framedFrames / frames >= startCheck.framedShare,
       headCut: this.headCutFrames / frames >= startCheck.cutShare,
       legsCut: this.legsCutFrames / frames >= startCheck.cutShare,
@@ -192,6 +205,7 @@ export function describeCamera(result: StartCheckResult): string {
 export function placementAdvice(result: StartCheckResult): string | null {
   if (result.gaveUp || !result.framed) return 'Get your shoulders and hips in the picture, about 6 to 8 feet back.';
   if (result.headCut) return 'Your head is cut off. Tilt the screen back or step back a little.';
+  if (result.shaky) return 'Tracking looks shaky from here. Step back so your head and hands have room, and add some light.';
   if (result.cameraSide === 'side_left' || result.cameraSide === 'side_right') {
     return 'From the side it can only tell you a punch landed on the far arm. For every punch by name, put the camera in front of you or up to about 45° to one side.';
   }

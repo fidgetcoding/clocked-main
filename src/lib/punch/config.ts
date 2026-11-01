@@ -76,6 +76,13 @@ export const PUNCH_CONFIG = {
     /** How far the wrist must move relative to its own shoulder. */
     minArmMove: 0.25,
     minPeakSpeed: 2.5,
+    /**
+     * A shaky picture, like one with the head at the top edge, makes a still hand look fast. A punch
+     * has to beat that hand's own idle speed by this much.
+     */
+    noiseSpeedFactor: 2,
+    noiseTauMs: 1000,
+    noiseSpeedCap: 25,
     minDurationMs: 50,
     maxDurationMs: 900,
     /** Give up on an extension that has run this long. */
@@ -248,6 +255,8 @@ export const PUNCH_CONFIG = {
     /** How far apart front to back, in metres for the feet and shoulder widths for the hands, to call a stance. */
     feetApart: 0.08,
     handsApart: 0.25,
+    /** Median hand speed, in shoulder widths a second, above which tracking counts as shaky. */
+    shakySpeed: 3,
     /** A hand moving more than this, in shoulder widths, isn't resting. */
     guardSteady: 0.2,
   },

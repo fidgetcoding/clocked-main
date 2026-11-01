@@ -81,9 +81,9 @@ export function PunchSetup({ onStart, onBack }: PunchSetupProps) {
         <div className="card-workout space-y-2">
           <p className="text-sm font-bold text-foreground">Set up your camera</p>
           <ul className="text-sm text-muted-foreground space-y-1 list-disc pl-4">
-            <li>Turn a little to one side of it. Dead straight on hides your jab and cross</li>
-            <li>Stand 6 to 8 feet back</li>
-            <li>Keep your head, hands and hips in the picture</li>
+            <li>Put it anywhere, but about 30° to one side reads best. Dead straight on hides your jab and cross, and fully side on hides your far arm</li>
+            <li>Stand 6 to 8 feet back, or further if it's on a desk</li>
+            <li>Leave room above your head, and keep your hands and hips in the picture</li>
             <li>Put the light in front of you, not behind</li>
           </ul>
         </div>

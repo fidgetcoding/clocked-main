@@ -50,6 +50,8 @@ interface HandState {
   fromWindUp: boolean;
   /** The last frame this hand was at rest, the baseline for measuring rotation. */
   restPose: BodyPose | null;
+  /** How fast this hand seems to move while idle, which is how shaky the tracking is right now. */
+  idleSpeed: number;
   /** When this hand last landed a punch. */
   lastPunchT: number;
   /** State of the other hand while this one extends. */
@@ -85,6 +87,7 @@ const newHand = (side: Side, hand: Hand): HandState => ({
   fromDip: false,
   fromWindUp: false,
   restPose: null,
+  idleSpeed: 0,
   lastPunchT: -Infinity,
   otherStartedIdle: false,
   otherStartedLow: false,
@@ -249,6 +252,9 @@ export class PunchDetector {
       state.lowSince = null;
     }
 
+    const noiseAlpha = 1 - Math.exp(-dt / motion.noiseTauMs);
+    state.idleSpeed += noiseAlpha * (Math.min(state.speed, motion.noiseSpeedCap) - state.idleSpeed);
+
     const distance = dist(wrist, state.anchor);
     // Recent, because at low frame rates the fast part of a short punch can land just before the distance does
     const elbow = armOf(pose, state.side).elbow;
@@ -367,7 +373,7 @@ export class PunchDetector {
       windsUp ||
       recoils ||
       !movedEnough ||
-      state.peakSpeed < motion.minPeakSpeed ||
+      state.peakSpeed < Math.max(motion.minPeakSpeed, state.idleSpeed * motion.noiseSpeedFactor) ||
       durationMs < motion.minDurationMs ||
       durationMs > motion.maxDurationMs ||
       startsLow ||

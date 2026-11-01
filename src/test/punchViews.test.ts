@@ -216,12 +216,13 @@ describe('the start check', () => {
 
   it('advises a better spot from the side, with the head cut off, or looking down', () => {
     const base: StartCheckResult = {
-      framed: true, headCut: false, legsCut: false, scale: 0.3, cameraAngle: 0, cameraSide: 'front', cameraHeight: 'level', stance: null, guard: null, gaveUp: false,
+      framed: true, headCut: false, legsCut: false, scale: 0.3, cameraAngle: 0, cameraSide: 'front', cameraHeight: 'level', stance: null, guard: null, gaveUp: false, shaky: false,
     };
     expect(placementAdvice(base)).toBeNull();
     expect(placementAdvice({ ...base, cameraSide: 'side_left', cameraAngle: 85 })).toMatch(/far arm/);
     expect(placementAdvice({ ...base, headCut: true })).toMatch(/head/);
     expect(placementAdvice({ ...base, cameraHeight: 'high' })).toMatch(/looking down/);
+    expect(placementAdvice({ ...base, shaky: true })).toMatch(/shaky/);
   });
 
   it('maps a reading to an angle in both directions', () => {
