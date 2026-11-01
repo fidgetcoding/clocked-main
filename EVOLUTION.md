@@ -8,7 +8,7 @@ Clocked started on January 18, 2026 as a question about beginner boxing drills a
 
 In February I added XP and it hooked me. The first XP math was vibes. It broke the day I measured a real workout (666 XP against curves built for 1,154), so I threw the estimates out and, with Claude, calculated every combo in every tier. February alone took 909 commits, 654 of them in three days.
 
-A move to Replit and a mobile path followed and never shipped. The last Lovable commit landed May 21. On November 1 the app got a guest mode, a security pass and a camera form guide called Punch Check, and it left Lovable for good. It's now a clone developed only in Claude Code, and readers bring their own Supabase and AI key. Then the backend got proven on real hosted Supabase, and rewards stopped paying for things nobody did.
+A move to Replit and a mobile path followed and never shipped. The last Lovable commit landed May 21. On November 1 the app got a guest mode, a security pass and a camera form guide called Punch Check, and it left Lovable for good. It's now a clone developed only in Claude Code, and readers bring their own Supabase and AI key. Then the backend ran on real hosted Supabase, and rewards stopped paying out for a 5-second workout.
 
 The original design documents are in [docs/history/](docs/history/).
 
@@ -137,7 +137,7 @@ History shape: 1,086 commits by Lovable's bot from January 20 to May 21, then my
   - A new account's first workout got a 406 from hosted Supabase, and the live badge check sat on a timer that restarted every second, so it never fired (`54d53ef`).
   - A 5-second test workout earned 13 badges and 1,267 XP (`cc5113c`). Pressing -30 to the end of a run earned +10 XP with nothing trained, and a first 6-minute run earned 7 badges for +430 XP (`9dda0c8`).
   - The feed showed a fake LIVE stream with invented viewers (`0d60eca`).
-- **Fixed:** all of those. Preparation time no longer counts as training, sessions earn credit only for the kinds of training they had, and live training and coach tools now say they're coming soon. The level curve and the combo math stayed as they were.
+- **Fixed:** all of those. Preparation time no longer counts as training, sessions earn credit only for the kinds of training they had, four in-workout badges have real conditions, and live training and coach tools now say they're coming soon. The level curve and the combo math stayed as they were.
 
 ## 5. Feature family tree
 
@@ -156,7 +156,7 @@ beginner drills question
    └─ loadouts → AI builder → parser suite → coach engine
       └─ edge function quota + on-device fallback → guest AI builder
    no account for reviewers → guest mode → Punch Check works with no backend
-   5-second workout, 13 badges → rewards by what a session really did
+   5-second workout, 13 badges → rewards that follow the clock
    leaving Lovable → Claude Code only → bring your own Supabase and AI key → SETUP.md
    "no bag, no hardware" premise + phone camera → Punch Check → form cues in the log
 ```
@@ -188,7 +188,7 @@ beginner drills question
 | Nov 1, `329ca89` | Vitest, lint, build | 3,804 pass in 24 files. Lint and build clean | Fresh clone |
 | Nov 1, `a1b5777` | Guest walk through onboarding, building and running all 7 segment types, manual logs, history, stats, badges, presets and clubs in Chromium at 320x568, 390x844 and 1440x900, on the production build | 0 console errors at the end. 26 browser tests added, covering each bug. Clubs only got their no-backend message, since they need an account. Firefox, WebKit and real phones were not part of this walk | Scripted browser run |
 | Nov 1, `a1b5777` | Timer buttons against the combo card, 253 screen sizes from 320 to 1920 wide and 480 to 932 tall | 0 overlaps. The page scrolls only under 560 px tall | Same run |
-| Nov 1 | Real hosted Supabase | All 40 migrations, the row-level rules, the deployed functions and a real emailed link signing in | `8793b55`, session notes |
+| Nov 1 | Real hosted Supabase, from a local build | The 40 migrations at that point applied in order through SQL. Database tests 23 of 23, no-key function tests 12 of 12. `generate-workout` and `admin-users` deployed, with `generate-workout` proving its fallback when there's no key. A real emailed link signed in | `8793b55`, session notes |
 | Nov 1, `9dda0c8` | CI: lint, typecheck, unit tests, build, then the real local backend | Green. 3,832 unit tests, 43 browser tests, 23 database tests, 46 function tests (34 with an AI key set up, 12 without), all against a fake AI provider | GitHub Actions |
 | Nov 1, fresh clone of `9dda0c8` | `npm ci`, lint, typecheck, build, unit tests, `npm audit --omit=dev` | All pass. 3,832 tests in 28 files. Lint 0 problems. 0 vulnerabilities | Run while writing this |
 

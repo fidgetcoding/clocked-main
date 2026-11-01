@@ -19,8 +19,8 @@
 ## What works today
 
 - **Guest mode:** onboarding, building and running workouts, manual logs, history, stats, XP, badges and presets, all stored in the browser. Nothing reaches a backend unless you add one.
-- **Rewards:** XP and badges go by what a session really did. Short sessions don't count as sessions, and the level curve and combo math stayed as they were.
-- **Backend, on real hosted Supabase:** all 40 migrations, the row-level rules, the deployed functions and a real emailed link signing in. The AI function has run against a fake provider.
+- **Rewards:** XP and badges follow the clock. Preparation doesn't count, sessions under 5 minutes earn no badges, and credit only goes to the kinds of training a session had. The level curve and combo math stayed as they were.
+- **Backend, on real hosted Supabase, from a local build:** the 40 migrations at that point, the row-level rules, two deployed functions and a real emailed link signing in. The AI function has only run against a fake provider.
 - **Punch Check:** live count, combo readout, one cue at a time and a round summary, on your device. On a labeled recording of me, it labeled 24 of 29 held-out reps what the prompt asked for: one person, one camera, one session, and that number is optimistic. 192 of 192 cross-browser checks passed on simulated cameras, in Chromium, Firefox and WebKit, which shows it runs there and says nothing about accuracy.
 - **Tests, from a fresh clone of `9dda0c8`:** 3,832 unit tests, lint with 0 problems and a clean production audit. CI on that commit adds 43 browser tests, 23 database tests and 46 function tests against a real local Supabase.
 

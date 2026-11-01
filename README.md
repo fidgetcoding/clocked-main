@@ -51,13 +51,13 @@ Open the address Vite prints, walk through onboarding, and you're in. No sign-up
 - **Try Punch Check:** go to `/punch-check`, start the camera, and throw. Turn a little to one side of the camera. Dead straight on hides your jab and cross, and I'd rather tell you that here than have you think you're bad at jabbing.
 - **Want accounts and the AI model?** Bring your own Supabase project and AI key, and follow [SETUP.md](SETUP.md). It has a block you can paste straight into a coding agent. Sign-in is an email link and nothing else.
 
-Checked on 2026-11-01 from a fresh clone of `9dda0c8`: `npm ci`, lint with 0 problems, typecheck, the build and 3,832 unit tests all pass, and the production audit is clean. CI on that commit also runs 43 browser tests, 23 database tests and 46 function tests against a real local Supabase. The backend also ran on real hosted Supabase: all 40 migrations, the row-level rules, the deployed functions and a real emailed link signing in.
+Checked on 2026-11-01 from a fresh clone of `9dda0c8`: `npm ci`, lint with 0 problems, typecheck, the build and 3,832 unit tests all pass, and the production audit is clean. CI on that commit also runs 43 browser tests, 23 database tests and 46 function tests against a real local Supabase. The backend also ran on real hosted Supabase from a local build: the 40 migrations at that point, the row-level rules, two deployed functions and a real emailed link signing in.
 
 ## What's in it
 
 - **The clock:** workouts, phases and segments, with bells, voice countdowns, and time you can add or cut mid-round.
 - **Boxing notation:** 1 to 8, plus defense and movement, with a tap-to-build combo builder that starts simple and opens up as you level.
-- **XP while you train:** 5 prestige tiers, 100 levels each, 10 ranks, double XP in championship rounds. Rewards go by what a session really did.
+- **XP while you train:** 5 prestige tiers, 100 levels each, 10 ranks, double XP in championship rounds. Rewards follow the clock: preparation doesn't count, and sessions under 5 minutes earn no badges.
 - **Punch Check:** on-device pose tracking in the browser. Counts punches, reads your combo, and calls one form cue at a time. Video never leaves your device. It's a form guide from one camera angle, so it can't judge power and it's no coach.
 - **AI workout builder:** say what you want in plain words. With your own Supabase and AI key it's built to go to a model. As a guest it builds on your device and says so.
 - **Fight Club:** presets anyone can save. Clubs and the feed need an account.
