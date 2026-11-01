@@ -1,0 +1,16 @@
+Punch Check runs these files on your device. Nothing here sends your video anywhere.
+
+@mediapipe/tasks-vision 1.1.1 (wasm/)
+  Copyright The MediaPipe Authors. Licensed under the Apache License, Version 2.0.
+  https://www.npmjs.com/package/@mediapipe/tasks-vision
+  Unmodified copies of vision_wasm_internal.js and .wasm from the package's wasm folder.
+
+Pose Landmarker lite model (pose_landmarker_lite.task, float16, version 1)
+  BlazePose GHUM 3D. Copyright Google LLC. Licensed under the Apache License, Version 2.0,
+  as stated on its model card:
+  https://storage.googleapis.com/mediapipe-assets/Model%20Card%20BlazePose%20GHUM%203D.pdf
+  Unmodified download from:
+  https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/1/pose_landmarker_lite.task
+  SHA-256 59929e1d1ee95287735ddd833b19cf4ac46d29bc7afddbbf6753c459690d574a
+
+The full licence text is in LICENSE-Apache-2.0.txt, next to this file.

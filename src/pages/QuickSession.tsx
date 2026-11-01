@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Home, Play, Pause, Square } from 'lucide-react';
+import { ArrowLeft, Home, Play, Pause, Square, Camera } from 'lucide-react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
 import { VerticalXPBar } from '@/components/ui/VerticalXPBar';
@@ -342,6 +342,16 @@ const QuickSession = () => {
               </>
             )}
           </div>
+
+          {!isRunning && (
+            <button
+              onClick={() => navigate('/punch-check')}
+              className="flex items-center gap-2 mt-8 px-4 py-2 rounded-full bg-surface-1 border border-surface-3 text-sm text-muted-foreground hover:bg-surface-2 transition-colors"
+            >
+              <Camera className="w-4 h-4 text-volt" />
+              Check your punches on camera
+            </button>
+          )}
         </div>
       </div>
 

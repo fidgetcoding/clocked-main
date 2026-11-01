@@ -1,3 +1,4 @@
+import { lazy, Suspense } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -21,6 +22,9 @@ import AdminPortal from "./pages/AdminPortal";
 import Gloves from "./pages/Gloves";
 import NotFound from "./pages/NotFound";
 
+// Lazy so the pose tracker and its page stay out of the main bundle
+const PunchCheck = lazy(() => import("./pages/PunchCheck"));
+
 const queryClient = new QueryClient();
 
 const App = () => (
@@ -43,6 +47,14 @@ const App = () => (
             <Route path="/profile" element={<Profile />} />
             <Route path="/profile/:userId" element={<Profile />} />
             <Route path="/quick-session" element={<QuickSession />} />
+            <Route
+              path="/punch-check"
+              element={
+                <Suspense fallback={<div className="min-h-screen bg-background" />}>
+                  <PunchCheck />
+                </Suspense>
+              }
+            />
             <Route path="/workout/:id" element={<WorkoutSession />} />
             <Route path="/workout/:id/session" element={<WorkoutSession />} />
             <Route path="/admin" element={<RequireAccount><AdminPortal /></RequireAccount>} />

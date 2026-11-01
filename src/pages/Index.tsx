@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, History, Archive, GripVertical, Check, Timer, X } from 'lucide-react';
+import { Plus, History, Archive, GripVertical, Check, Timer, X, Camera } from 'lucide-react';
 import { Navigate, useNavigate } from 'react-router-dom';
 import {
   DndContext,
@@ -172,6 +172,20 @@ const Index = () => {
               </div>
               {/* Decorative background icon */}
               <History className="absolute right-1 top-1 w-[5.5rem] h-[5.5rem] text-muted-foreground/10 pointer-events-none md:right-4 md:top-2 md:w-[6.5rem] md:h-[6.5rem]" strokeWidth={1} />
+            </button>
+
+            {/* Punch Check */}
+            <button
+              onClick={() => navigate('/punch-check')}
+              className="card-action col-span-2 h-24 group flex items-center justify-between relative overflow-hidden"
+            >
+              <div className="text-left">
+                <Camera className="w-5 h-5 text-volt mb-2" />
+                <h3 className="text-base font-black text-foreground leading-none">PUNCH CHECK</h3>
+                <p className="text-xs text-muted-foreground leading-none mt-0.5">CAMERA FORM GUIDE</p>
+              </div>
+              {/* Decorative background icon */}
+              <Camera className="absolute right-1 top-0 w-[5.5rem] h-[5.5rem] text-muted-foreground/10 pointer-events-none md:right-4" strokeWidth={1} />
             </button>
           </div>
         </section>
