@@ -84,11 +84,10 @@ Each signed-in user gets 25 AI generations a day, so a stranger can't run up you
 
 ## 5. Make yourself an admin
 
-Sign in once so your account exists, then run this in the dashboard's **SQL Editor** with your email:
+Sign in once so your account exists, then copy your user ID from **Authentication > Users** in the dashboard and run this in the **SQL Editor**:
 
 ```sql
-insert into public.user_roles (user_id, role)
-select id, 'admin' from auth.users where email = 'you@example.com';
+insert into public.user_roles (user_id, role) values ('YOUR_USER_ID', 'admin');
 ```
 
 That unlocks `/admin` for you and nobody else.
@@ -134,7 +133,7 @@ Steps:
 4. Tell me the exact Site URL and Redirect URLs to add under Authentication > URL Configuration, and wait until I confirm.
 5. Run `npm run build` and `npm test`, then `npm run dev`. Ask me to sign in with an email link and confirm I land on "Who are you?".
 6. Ask whether I want AI workouts. If yes, deploy the functions and have me set AI_API_KEY myself with `supabase secrets set`.
-7. Ask whether I want to be an admin, and give me the SQL for my email.
+7. Ask whether I want to be an admin. If yes, tell me where to find my user ID and give me the SQL from step 5.
 8. Ask whether I want it on Vercel. If yes, walk me through it, then remind me to add the live URL to the Redirect URLs and make og:image absolute.
 
 Finish by telling me what's working, what you skipped, and what I still need to do.
