@@ -2,6 +2,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.90.1";
 import { type GenerateRequest, MAX_BODY_LENGTH, validateGenerateRequest } from "./validate.ts";
 import { resolveAiConfig } from "./ai.ts";
+import { resolvePublicKey, resolveServiceKey } from "../_shared/keys.ts";
 
 const DAILY_GENERATION_LIMIT = 25;
 // Thinking models spend part of this on reasoning, and running out truncates the JSON
@@ -445,7 +446,7 @@ serve(async (req) => {
     }
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL')!,
-      Deno.env.get('SUPABASE_ANON_KEY')!,
+      resolvePublicKey((name) => Deno.env.get(name))!,
       { global: { headers: { Authorization: authHeader } } }
     );
     const token = authHeader.replace('Bearer ', '');
@@ -497,7 +498,7 @@ serve(async (req) => {
     // Fails closed: if the quota can't be checked, the AI key isn't spent
     const supabaseAdmin = createClient(
       Deno.env.get('SUPABASE_URL')!,
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
+      resolveServiceKey((name) => Deno.env.get(name))!,
       { auth: { autoRefreshToken: false, persistSession: false } }
     );
     const { data: withinQuota, error: quotaError } = await supabaseAdmin.rpc('consume_ai_generation_quota', {
