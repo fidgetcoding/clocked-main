@@ -47,14 +47,16 @@ The publishable key is safe in a browser: the database's security rules do the p
 
 ## 3. Let the email link come home
 
-Email links only work if Supabase trusts where they point. In the dashboard, open **Authentication > URL Configuration** and set:
+Email links only work if Supabase trusts where they point. A new project's Site URL is `http://localhost:3000`, and local links to `localhost:8080` work with that as it is, so you can skip this until you have a real address.
+
+Once you do, open **Authentication > URL Configuration** in the dashboard and set:
 
 - **Site URL:** where your app lives, such as `https://your-app.example`
 - **Redirect URLs:** add `https://your-app.example/onboarding?continue=true` and, for local work, `http://localhost:8080/onboarding?continue=true`
 
-Miss this and links land on your Site URL instead of finishing sign-in.
+Miss this and links land on your Site URL instead of finishing sign-in. If that's still the default, they open `localhost:3000`, where nothing is running.
 
-**About email delivery:** Supabase's built-in email is only for trying things out. It delivers to your project's team members and is limited to a couple of messages an hour. Before inviting anyone else, [set up custom SMTP](https://supabase.com/docs/guides/auth/auth-smtp).
+**About email delivery:** Supabase's built-in email is only for trying things out. It delivers to your project's team members, and its limit is tight: on my test project, the send right after my first one was already refused. Before inviting anyone else, [set up custom SMTP](https://supabase.com/docs/guides/auth/auth-smtp).
 
 Now run `npm run dev`, open <http://localhost:8080>, and sign in from **Settings > Save your progress**. A new account lands on the "Who are you?" step, and a returning one goes straight home.
 
@@ -101,7 +103,7 @@ On [Vercel](https://vercel.com), import your repo and keep the Vite defaults. Ad
 
 Two finishing touches:
 
-- Add your live URL to the Redirect URLs from step 3.
+- Set your live URL as the Site URL from step 3, and add it to the Redirect URLs.
 - In `index.html`, change `og:image` and `twitter:image` to the full address of `og-image.png`. Most link previews won't load a relative path.
 
 ## When something's off
@@ -110,8 +112,10 @@ Two finishing touches:
 | --- | --- |
 | "NO BACKEND CONFIGURED" on the sign-in page | The `VITE_` variables weren't set when the app was built. Set them and rebuild. |
 | The email link opens your homepage, not signed in | The redirect URL isn't on the allow list. Back to step 3. |
+| The email link opens `localhost:3000` | Your Site URL is still the default. Back to step 3. |
+| `Email address "..." is invalid` on the sign-in page | Supabase refused that address before sending anything. Placeholder domains like `example.com` get this. Use a real address. |
 | No email arrives | You've hit the built-in email's limits. Back to step 3. |
-| "Too many email requests" | Rate limited. Wait a few minutes. |
+| "Too many email requests" | Rate limited. On the built-in email that can take up to an hour to clear. |
 | `permission denied for table` (code 42501) | Migrations are missing. Run `supabase db push` again. |
 | AI workouts feel basic and nothing errors | The function is off or out of quota, and the on-device parser took over. Check your function logs. |
 
@@ -131,11 +135,11 @@ Steps:
 1. Check Node is 20+ and the Supabase CLI is 2.122+. Run `npm install`.
 2. Ask me to create a project and give you its ref. Have me run `supabase login` myself, then run `supabase link` and `supabase db push`.
 3. Create .env.local from .env.example. Ask me to paste the publishable key.
-4. Tell me the exact Site URL and Redirect URLs to add under Authentication > URL Configuration, and wait until I confirm.
+4. Local sign-in works with the default Site URL. If I have a live address, tell me the exact Site URL and Redirect URLs to add under Authentication > URL Configuration, and wait until I confirm.
 5. Run `npm run build` and `npm test`, then `npm run dev`. Ask me to sign in with an email link and confirm I land on "Who are you?".
 6. Ask whether I want AI workouts. If yes, deploy the functions and have me set AI_API_KEY myself with `supabase secrets set`.
 7. Ask whether I want to be an admin. If yes, tell me where to find my user ID and give me the SQL from step 5.
-8. Ask whether I want it on Vercel. If yes, walk me through it, then remind me to add the live URL to the Redirect URLs and make og:image absolute.
+8. Ask whether I want it on Vercel. If yes, walk me through it, then remind me to set the live URL as the Site URL, add it to the Redirect URLs, and make og:image absolute.
 
 Finish by telling me what's working, what you skipped, and what I still need to do.
 ```

@@ -33,4 +33,4 @@ React, Vite, TypeScript, Tailwind and Supabase. Tests run with `npm test`.
 
 ## License
 
-MIT. See [LICENSE](./LICENSE).
+MIT for the code. See [LICENSE](./LICENSE). The Clocked logo and the glove and badge art in `public/art/` aren't covered by MIT.
