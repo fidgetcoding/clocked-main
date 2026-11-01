@@ -1,5 +1,8 @@
 import { lazy, Suspense, useState, useEffect, useRef, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { ResumeSessionDialog } from '@/components/workout/ResumeSessionDialog';
+import { FRESH_SESSION } from '@/lib/sessionEffort';
+import { clearSession, findResumableSession, QUICK_SESSION_ID, saveSession, type SessionSnapshot } from '@/lib/sessionRecovery';
 import { ArrowLeft, Home, Play, Pause, Square, Camera } from 'lucide-react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
@@ -53,6 +56,7 @@ const QuickSession = () => {
   const navigate = useNavigate();
   const { addHistoryEntry } = useWorkoutHistory();
   const { profile, addXP: addProfileXP, updateProfile } = useProfile();
+  const location = useLocation();
   const user = useUserStore((state) => state.user);
   const addLocalXP = useUserStore((state) => state.addXP);
 
@@ -115,6 +119,54 @@ const QuickSession = () => {
     };
   }, [isRunning, isPaused, streakMultiplier]);
 
+  // Keep the run in this browser, so a reload or a killed tab can pick it back up
+  const [resumable, setResumable] = useState<SessionSnapshot | null>(null);
+  const sessionEnded = useRef(false);
+
+  const snapshotOf = useCallback((userId: string, complete: boolean) => ({
+    userId,
+    workoutId: QUICK_SESSION_ID,
+    segmentCount: 0,
+    segmentIndex: 0,
+    timeRemaining: 0,
+    totalElapsed,
+    isPreparation: false,
+    timerXP: accumulatedXP,
+    log: FRESH_SESSION,
+    isComplete: complete,
+  }), [totalElapsed, accumulatedXP]);
+
+  useEffect(() => {
+    if (!isRunning || isComplete || sessionEnded.current || !user?.id) return;
+    saveSession(snapshotOf(user.id, false));
+  }, [isRunning, isComplete, user?.id, snapshotOf]);
+
+  // Comes back paused. A finished run already paid out its XP, so it stays marked as paid.
+  const restoreSession = useCallback((saved: SessionSnapshot) => {
+    setTotalElapsed(saved.totalElapsed);
+    setAccumulatedXP(saved.timerXP);
+    setIsPaused(true);
+    setIsRunning(!saved.isComplete);
+    setIsComplete(saved.isComplete);
+    xpAwardedRef.current = saved.isComplete;
+    setResumable(null);
+  }, []);
+
+  const resumeChecked = useRef(false);
+  useEffect(() => {
+    if (resumeChecked.current || !user?.id) return;
+    resumeChecked.current = true;
+    const saved = findResumableSession(user.id, QUICK_SESSION_ID, 0);
+    if (!saved) return;
+    if (location.state?.resume) restoreSession(saved);
+    else setResumable(saved);
+  }, [user?.id, location.state, restoreSession]);
+
+  const endSession = () => {
+    sessionEnded.current = true;
+    clearSession();
+  };
+
   const handleStart = () => {
     setIsRunning(true);
     setIsPaused(false);
@@ -130,6 +182,8 @@ const QuickSession = () => {
 
     setIsComplete(true);
     setIsRunning(false);
+    // Marked finished before the XP goes out, so a reload right here can't pay it twice
+    if (user?.id) saveSession(snapshotOf(user.id, true));
 
     const xpEarned = Math.round(accumulatedXP);
     queueMicrotask(() => {
@@ -140,9 +194,10 @@ const QuickSession = () => {
         console.error('Failed to award XP:', error);
       }
     });
-  }, [accumulatedXP, addLocalXP, addProfileXP]);
+  }, [accumulatedXP, addLocalXP, addProfileXP, user?.id, snapshotOf]);
 
   const handleConfirmExit = (saveXP: boolean = true) => {
+    endSession();
     if (saveXP && accumulatedXP > 0 && !xpAwardedRef.current) {
       xpAwardedRef.current = true;
       const xpEarned = Math.round(accumulatedXP);
@@ -158,6 +213,7 @@ const QuickSession = () => {
   };
 
   const handleLog = () => {
+    endSession();
     const xpEarned = Math.round(accumulatedXP);
     addHistoryEntry.mutate({
       workout_id: null,
@@ -269,7 +325,7 @@ const QuickSession = () => {
             </div>
           )}
 
-          <Button onClick={() => navigate('/')} variant="outline" className="w-full max-w-xs bg-surface-1 border-surface-3">
+          <Button onClick={() => { endSession(); navigate('/'); }} variant="outline" className="w-full max-w-xs bg-surface-1 border-surface-3">
             Back to Home
           </Button>
         </div>
@@ -391,6 +447,18 @@ const QuickSession = () => {
       </div>
 
       {/* Exit Confirmation */}
+      {resumable && (
+        <ResumeSessionDialog
+          name="Quick Session"
+          saved={resumable}
+          onResume={() => restoreSession(resumable)}
+          onDiscard={() => {
+            clearSession();
+            setResumable(null);
+          }}
+        />
+      )}
+
       <AlertDialog open={showExitConfirm} onOpenChange={setShowExitConfirm}>
         <AlertDialogContent className="bg-surface-1 border-surface-3">
           <AlertDialogHeader>

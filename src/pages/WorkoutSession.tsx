@@ -10,6 +10,8 @@ import { RoundFeedback } from '@/types';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
 import { VerticalXPBar } from '@/components/ui/VerticalXPBar';
+import { ResumeSessionDialog } from '@/components/workout/ResumeSessionDialog';
+import { clearSession, findResumableSession, saveSession, type SessionSnapshot } from '@/lib/sessionRecovery';
 
 import { ComboXPPop } from '@/components/ui/ComboXPPop';
 import {
@@ -87,6 +89,16 @@ function formatTimeCompact(seconds: number): string {
 
 // Helper to convert DB workout to local format for session
 const PREPARATION_SECONDS = 30;
+
+// Speed bag drills are names; everything else in a combo list is punch or defense notation
+const isDrillEntry = (entry: string[]) =>
+  entry.some((token) => !/^\d/.test(token) && !/^(SLIP|ROLL|DUCK|PULL|BLOCK|PARRY|STEP|CIRCLE|PIVOT|FREESTYLE)/.test(token));
+
+// A phase can share one list between a speed bag and punches, and each should only see its own
+const mixesDrillsAndPunches = (phase: WorkoutPhase) => {
+  const types = phase.segments.map((segment) => segment.segmentType);
+  return types.includes('speedbag') && types.some((type) => type === 'combo' || type === 'shadowboxing' || type === 'doubleend');
+};
 
 function dbWorkoutToLocal(dbWorkout: DbWorkout) {
   const { sections, megasetRepeats } = splitStoredPhases(dbWorkout.phases);
@@ -240,7 +252,9 @@ const WorkoutSession = () => {
     const assigned = 0;
     
     const getComboListForPhase = (phase: WorkoutPhase): string[][] => {
-      const phaseCombos = phase.combos as string[][] | undefined;
+      const phaseCombos = (phase.combos as string[][] | undefined)?.filter(
+        (entry) => !mixesDrillsAndPunches(phase) || !isDrillEntry(entry),
+      );
       if (phaseCombos && phaseCombos.length > 0) {
         if (phase.comboOrder === 'random') {
           const shuffled = [...phaseCombos];
@@ -299,8 +313,6 @@ const WorkoutSession = () => {
     
     // Speed bag and double-end segments show what was picked for them, from their own list when
     // a phase mixes drills and punches. Kept apart from combos, which also drive XP.
-    const isDrillEntry = (entry: string[]) =>
-      entry.some((token) => !/^\d/.test(token) && !/^(SLIP|ROLL|DUCK|PULL|BLOCK|PARRY|STEP|CIRCLE|PIVOT|FREESTYLE)/.test(token));
     const bagLists = new Map<string, string[][]>();
     const bagRounds = new Map<string, string[] | undefined>();
     const bagDrillFor = ({ segment, phase, repeatIndex }: TempSegment): string[] | undefined => {
@@ -309,10 +321,8 @@ const WorkoutSession = () => {
       if (bagRounds.has(roundKey)) return bagRounds.get(roundKey);
       const listKey = `${phase.id}-${segment.segmentType}`;
       if (!bagLists.has(listKey)) {
-        const types = phase.segments.map((s) => s.segmentType);
-        const mixed = types.includes('speedbag') && types.some((type) => type === 'combo' || type === 'shadowboxing' || type === 'doubleend');
         const list = ((phase.combos as string[][] | undefined) ?? []).filter(
-          (entry) => !mixed || isDrillEntry(entry) === (segment.segmentType === 'speedbag'),
+          (entry) => !mixesDrillsAndPunches(phase) || isDrillEntry(entry) === (segment.segmentType === 'speedbag'),
         );
         if (phase.comboOrder === 'random') list.sort(() => Math.random() - 0.5);
         bagLists.set(listKey, list);
@@ -873,6 +883,61 @@ const WorkoutSession = () => {
     xpAwardedRef.current = false;
   };
 
+  // Keep the run in this browser, so a reload or a killed tab can pick it back up
+  const [resumable, setResumable] = useState<SessionSnapshot | null>(null);
+  const resumeChecked = useRef(false);
+  const sessionEnded = useRef(false);
+
+  const endSession = () => {
+    sessionEnded.current = true;
+    clearSession();
+  };
+
+  useEffect(() => {
+    // Until a second has been trained there's nothing worth coming back to
+    if (totalElapsed === 0 || logged || sessionEnded.current || !workout || !user?.id) return;
+    saveSession({
+      userId: user.id,
+      workoutId: workout.id,
+      segmentCount: flatSegments.length,
+      segmentIndex: currentSegmentIndex,
+      timeRemaining,
+      totalElapsed,
+      isPreparation,
+      timerXP: accumulatedXP - liveBadgesEarned.reduce((sum, earned) => sum + earned.badge.xpReward, 0),
+      log: sessionLog,
+      isComplete,
+    });
+  }, [logged, workout, user?.id, flatSegments.length, currentSegmentIndex, timeRemaining, totalElapsed, isPreparation, accumulatedXP, liveBadgesEarned, sessionLog, isComplete]);
+
+  // Comes back paused with the clock where it was. Only trained runs get saved, so the start bonus is already in timerXP.
+  const restoreSession = useCallback((saved: SessionSnapshot) => {
+    prevSegmentIndexRef.current = saved.segmentIndex;
+    setCurrentSegmentIndex(saved.segmentIndex);
+    setTimeRemaining(saved.timeRemaining);
+    setTotalElapsed(saved.totalElapsed);
+    setIsPreparation(saved.isPreparation);
+    setAccumulatedXP(saved.timerXP);
+    setSessionLog(saved.log);
+    startBonusPaidRef.current = true;
+    setHasStartedOnce(true);
+    setIsPaused(true);
+    setIsRunning(!saved.isComplete);
+    setIsComplete(saved.isComplete);
+    xpAwardedRef.current = saved.isComplete;
+    setHasAwardedXP(saved.isComplete);
+    setResumable(null);
+  }, []);
+
+  useEffect(() => {
+    if (resumeChecked.current || !workout || flatSegments.length === 0 || !user?.id) return;
+    resumeChecked.current = true;
+    const saved = findResumableSession(user.id, workout.id, flatSegments.length);
+    if (!saved) return;
+    if (location.state?.resume) restoreSession(saved);
+    else setResumable(saved);
+  }, [workout, flatSegments.length, user?.id, location.state, restoreSession]);
+
   // The browser's back button or a back swipe asks first, same as the home button
   useEffect(() => {
     if (!isRunning || isComplete) return;
@@ -886,12 +951,14 @@ const WorkoutSession = () => {
   }, [isRunning, isComplete]);
 
   const handleConfirmExit = (saveXP: boolean = false) => {
+    endSession();
     cancelSpeech();
     setShowExitConfirm(false);
     navigate('/');
   };
 
   const handleConfirmRestart = () => {
+    clearSession();
     cancelSpeech();
     setShowRestartConfirm(false);
     setCurrentSegmentIndex(0);
@@ -1004,6 +1071,8 @@ const WorkoutSession = () => {
 
   const handleLog = async () => {
     if (!sessionResult) return;
+    // Gone before anything is awarded, so a reload in the middle of this can't log it twice
+    endSession();
     
     const tier = (profile?.prestige || 'beginner') as Prestige;
     
@@ -1099,7 +1168,10 @@ const WorkoutSession = () => {
           onLog={handleLog}
           punchSummary={punchSummary}
           logged={logged}
-          onNavigateHome={() => navigate('/')}
+          onNavigateHome={() => {
+            endSession();
+            navigate('/');
+          }}
           onPrestige={handlePrestige}
         />
       </AppLayout>
@@ -1550,6 +1622,17 @@ const WorkoutSession = () => {
             </button>
           </div>
         </div>
+        {resumable && (
+          <ResumeSessionDialog
+            name={workout.name}
+            saved={resumable}
+            onResume={() => restoreSession(resumable)}
+            onDiscard={() => {
+              clearSession();
+              setResumable(null);
+            }}
+          />
+        )}
         {/* Exit Confirmation Dialog */}
         <AlertDialog open={showExitConfirm} onOpenChange={setShowExitConfirm}>
           <AlertDialogContent className="bg-surface-1 border-surface-3">

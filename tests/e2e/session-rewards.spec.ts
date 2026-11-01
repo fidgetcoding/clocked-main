@@ -35,7 +35,8 @@ test("pressing -30 until a run ends trains nothing and earns nothing", async ({ 
   const complete = page.getByText("WORKOUT COMPLETE!");
   const minus30 = page.getByRole("button", { name: "-30s" });
   for (let press = 0; press < 60 && !(await complete.isVisible()); press++) {
-    await minus30.dispatchEvent("click");
+    // The press before this one can end the run, and then the button is gone
+    await minus30.dispatchEvent("click", undefined, { timeout: 1000 }).catch(() => {});
   }
 
   await expect(complete).toBeVisible();
@@ -96,7 +97,7 @@ test("pausing costs Push Through, and skipping costs Full Send too", async ({ pa
   await expect(page.getByText("Full Send").first()).toBeVisible();
   await expect(page.getByText("Push Through")).toHaveCount(0);
 
-  await page.goto(`${NO_BACKEND_URL}/`);
+  await page.getByRole("button", { name: "Back to Home" }).click();
   await page.getByText("Your Sets").waitFor();
   await startTraining(page);
   await page.locator("button:has(svg.lucide-skip-forward)").click();

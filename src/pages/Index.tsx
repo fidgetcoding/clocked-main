@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Plus, History, Archive, GripVertical, Check, Timer, X, Camera } from 'lucide-react';
 import { Navigate, useNavigate } from 'react-router-dom';
 import {
@@ -21,6 +21,7 @@ import { AppLayout } from '@/components/layout/AppLayout';
 import { useWorkouts } from '@/hooks/useWorkouts';
 
 import { useUserStore } from '@/stores/userStore';
+import { clearSession, describeSavedSession, findSavedSession, QUICK_SESSION_ID, type SessionSnapshot } from '@/lib/sessionRecovery';
 import { Button } from '@/components/ui/button';
 import { SortableWorkoutCard } from '@/components/SortableWorkoutCard';
 import {
@@ -37,7 +38,11 @@ import { toast } from 'sonner';
 
 const Index = () => {
   const navigate = useNavigate();
-  const { hasCompletedOnboarding } = useUserStore();
+  const { hasCompletedOnboarding, user } = useUserStore();
+  const [savedSession, setSavedSession] = useState<SessionSnapshot | null>(null);
+  useEffect(() => {
+    setSavedSession(user?.id ? findSavedSession(user.id) : null);
+  }, [user?.id]);
   const { workouts, isLoading, deleteWorkout, archiveWorkout, reorderWorkouts } = useWorkouts();
   const [workoutToDelete, setWorkoutToDelete] = useState<string | null>(null);
   const [isReorderMode, setIsReorderMode] = useState(false);
@@ -62,6 +67,9 @@ const Index = () => {
 
   // Filter active workouts (not archived)
   const activeWorkouts = workouts.filter((w) => !w.is_archived);
+  const savedSessionName = savedSession?.workoutId === QUICK_SESSION_ID
+    ? 'Quick Session'
+    : workouts.find((w) => w.id === savedSession?.workoutId)?.name;
   const displayWorkouts = localWorkouts ?? activeWorkouts;
 
   const handleDragEnd = (event: DragEndEvent) => {
@@ -143,6 +151,36 @@ const Index = () => {
           </div>
         </header>
 
+        {savedSession && savedSessionName && (
+          <section className="px-4 pb-4">
+            <div className="card-workout flex items-center justify-between gap-3">
+              <p className="text-sm text-foreground min-w-0">{describeSavedSession(savedSessionName, savedSession)}</p>
+              <div className="flex gap-2 shrink-0">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    clearSession();
+                    setSavedSession(null);
+                  }}
+                >
+                  Discard
+                </Button>
+                <Button
+                  size="sm"
+                  onClick={() =>
+                    navigate(savedSession.workoutId === QUICK_SESSION_ID ? '/quick-session' : `/workout/${savedSession.workoutId}/session`, {
+                      state: { resume: true },
+                    })
+                  }
+                >
+                  Resume
+                </Button>
+              </div>
+            </div>
+          </section>
+        )}
+
         {/* Action Cards */}
         <section className="px-4 pb-6">
           <div className="grid grid-cols-2 gap-3">
@@ -172,6 +210,20 @@ const Index = () => {
               </div>
               {/* Decorative background icon */}
               <History className="absolute right-1 top-1 w-[5.5rem] h-[5.5rem] text-muted-foreground/10 pointer-events-none md:right-4 md:top-2 md:w-[6.5rem] md:h-[6.5rem]" strokeWidth={1} />
+            </button>
+
+            {/* Quick Session */}
+            <button
+              onClick={() => navigate('/quick-session')}
+              className="card-action col-span-2 h-24 group flex items-center justify-between relative overflow-hidden"
+            >
+              <div className="text-left">
+                <Timer className="w-5 h-5 text-volt mb-2" />
+                <h3 className="text-base font-black text-foreground leading-none">QUICK SESSION</h3>
+                <p className="text-xs text-muted-foreground leading-none mt-0.5">JUST START THE CLOCK</p>
+              </div>
+              {/* Decorative background icon */}
+              <Timer className="absolute right-1 top-0 w-[5.5rem] h-[5.5rem] text-muted-foreground/10 pointer-events-none md:right-4" strokeWidth={1} />
             </button>
 
             {/* Punch Check */}

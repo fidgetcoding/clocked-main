@@ -1,5 +1,5 @@
 import type { UserProfile } from '@/types';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { ArrowRight, User, Users, Dumbbell, Target, Home as HomeIcon, Swords, Trophy, Check, GraduationCap, ClipboardList, Users2, TrendingUp, LogIn, Star } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -96,6 +96,18 @@ const Onboarding = () => {
       navigate('/', { replace: true });
     }
   }, [user, profile, completeOnboarding, navigate]);
+
+  // A guest who already finished goes back to their app instead of being set up again, which
+  // would add a second loadout. Links carry ?continue or a hash, and those keep their own flow.
+  const checkedReturningGuest = useRef(false);
+  useEffect(() => {
+    if (authLoading || checkedReturningGuest.current) return;
+    checkedReturningGuest.current = true;
+    const { userIsGuest, hasCompletedOnboarding } = useUserStore.getState();
+    if (!user && userIsGuest && hasCompletedOnboarding && !shouldContinue && !window.location.hash) {
+      navigate('/', { replace: true });
+    }
+  }, [authLoading, user, shouldContinue, navigate]);
 
   // An expired or already-used link comes back with the reason in the URL hash
   useEffect(() => {
