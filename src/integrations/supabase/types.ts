@@ -737,6 +737,16 @@ export type Database = {
           workouts_completed: number
         }[]
       }
+      get_public_profiles: {
+        Args: { target_user_ids: string[] }
+        Returns: {
+          avatar_url: string
+          handle: string
+          id: string
+          name: string
+          user_id: string
+        }[]
+      }
       get_tier_user_counts: {
         Args: never
         Returns: {
@@ -761,6 +771,16 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      search_public_profiles: {
+        Args: { search_query: string }
+        Returns: {
+          avatar_url: string
+          handle: string
+          id: string
+          name: string
+          user_id: string
+        }[]
       }
     }
     Enums: {

@@ -65,10 +65,7 @@ export function useFollows(userId?: string) {
       
       // Get profiles for those followers
       const followerIds = follows.map(f => f.follower_id);
-      const { data: profiles, error: profilesError } = await supabase
-        .from('profiles_public')
-        .select('user_id, name, avatar_url, handle')
-        .in('user_id', followerIds);
+      const { data: profiles, error: profilesError } = await supabase.rpc('get_public_profiles', { target_user_ids: followerIds });
       
       if (profilesError) throw profilesError;
       
@@ -99,10 +96,7 @@ export function useFollows(userId?: string) {
       
       // Get profiles for those being followed
       const followingIds = follows.map(f => f.following_id);
-      const { data: profiles, error: profilesError } = await supabase
-        .from('profiles_public')
-        .select('user_id, name, avatar_url, handle')
-        .in('user_id', followingIds);
+      const { data: profiles, error: profilesError } = await supabase.rpc('get_public_profiles', { target_user_ids: followingIds });
       
       if (profilesError) throw profilesError;
       

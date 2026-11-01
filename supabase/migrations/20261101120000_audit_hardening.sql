@@ -183,3 +183,43 @@ UPDATE storage.buckets
 SET file_size_limit = 5242880,
     allowed_mime_types = '{image/jpeg,image/png,image/webp}'
 WHERE id = 'avatars';
+
+-- ===== C8: profiles_public only returns the caller's own row =====
+-- It's a security_invoker view over own-row-only profiles RLS, which breaks feed authors,
+-- follower lists and search. These definer RPCs return safe columns for other users without
+-- any USING (true) on profiles. The view stays for now: it's harmless and unused by the app.
+CREATE FUNCTION public.get_public_profiles(target_user_ids uuid[])
+RETURNS TABLE (id uuid, user_id uuid, name text, handle text, avatar_url text)
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = ''
+AS $$
+  SELECT p.id, p.user_id, p.name, p.handle, p.avatar_url
+  FROM public.profiles p
+  WHERE p.user_id = ANY (target_user_ids[1:500]);
+$$;
+
+-- Matches literally, so % and _ in the query aren't wildcards. Excludes the caller.
+CREATE FUNCTION public.search_public_profiles(search_query text)
+RETURNS TABLE (id uuid, user_id uuid, name text, handle text, avatar_url text)
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = ''
+AS $$
+  SELECT p.id, p.user_id, p.name, p.handle, p.avatar_url
+  FROM public.profiles p
+  WHERE char_length(btrim(search_query)) >= 2
+    AND p.user_id IS DISTINCT FROM auth.uid()
+    AND position(lower(btrim(search_query)) IN lower(p.name)) > 0
+  ORDER BY p.name
+  LIMIT 20;
+$$;
+
+REVOKE EXECUTE ON FUNCTION public.get_public_profiles(uuid[]) FROM PUBLIC, anon;
+REVOKE EXECUTE ON FUNCTION public.search_public_profiles(text) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.get_public_profiles(uuid[]) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.search_public_profiles(text) TO authenticated;
+
+REVOKE ALL ON TABLE public.profiles_public FROM anon;
