@@ -6,45 +6,72 @@ export type PunchShape = 'straight' | 'hook' | 'uppercut';
 export interface PunchShapeFeatures {
   /** Wrist to shoulder distance over arm length at the peak, 1 is a straight arm. */
   reach: number;
+  /** Elbow angle at the peak, 180 is a straight arm. */
   elbow: number;
-  /** Share of the wrist's movement that went toward the camera, across the body, and up. */
+  /** The largest elbow angle held on the way to the peak, ignoring the single highest reading. */
+  elbowHeldMax: number;
+  /** How much the elbow opened between the start and the peak. Negative means it closed. */
+  elbowOpening: number;
+  /** Share of the wrist's movement that went toward the camera and up. */
   forwardShare: number;
-  acrossShare: number;
   upShare: number;
+  /** Movement relative to the punching shoulder, so that turning the hips doesn't count as an arc. */
+  armAcross: number;
+  armAcrossShare: number;
   /** Share of the movement that went away from the body's centre line. */
   outwardShare: number;
   /** How far the wrist travelled upward, in shoulder widths. */
   rise: number;
+  /** How far below its own shoulder the wrist started, in shoulder widths. */
+  startBelowShoulder: number;
+  /** Degrees between the forearm and straight up at the peak, as seen in the image. */
+  forearmFromVertical: number;
+  /** Degrees between the forearm and level at the peak, as seen in the image. */
+  forearmFromLevel: number;
+  /** Degrees between the upper arm and level at the peak. */
+  upperArmFromLevel: number;
   visibility: number;
 }
 
 const ramp = (value: number, from: number, to: number) =>
   Math.min(1, Math.max(0, (value - from) / (to - from)));
 
+/**
+ * A hook or uppercut needs positive evidence, all of it at once. Anything else that is fast and
+ * moves out from the body is a straight. An elbow that opens on the way to the peak rules out both.
+ */
 export function scoreShapes(f: PunchShapeFeatures, config: PunchConfig = PUNCH_CONFIG) {
   const { straight, hook, uppercut } = config.classify;
+
+  const uppercutScore =
+    (1 - ramp(f.elbowOpening, uppercut.elbowOpensFrom, uppercut.elbowOpensFully)) *
+    ramp(f.startBelowShoulder, uppercut.startBelowMin, uppercut.startBelowFull) *
+    (1 - ramp(f.elbowHeldMax, uppercut.elbowBent, uppercut.elbowOpen)) *
+    (1 - ramp(f.forearmFromVertical, uppercut.forearmVertical, uppercut.forearmTilted)) *
+    ramp(f.rise, uppercut.riseMin, uppercut.riseFull) *
+    ramp(f.upShare, uppercut.upShareMin, uppercut.upShareFull);
+
+  const hookScore =
+    (1 - ramp(f.elbowOpening, hook.elbowOpensFrom, hook.elbowOpensFully)) *
+    ramp(f.armAcross, hook.acrossMin, hook.acrossFull) *
+    ramp(f.armAcrossShare, hook.acrossShareMin, hook.acrossShareFull) *
+    (1 - ramp(f.elbowHeldMax, hook.elbowBent, hook.elbowOpen)) *
+    ramp(f.elbow, hook.elbowClosed, hook.elbowNinety) *
+    (1 - ramp(f.upperArmFromLevel, hook.upperArmLevel, hook.upperArmDropped)) *
+    (1 - ramp(f.forearmFromLevel, hook.forearmLevel, hook.forearmTilted));
+
   const extended =
     ramp(f.reach, straight.reachMin, straight.reachFull) * ramp(f.elbow, straight.elbowMin, straight.elbowFull);
-  const hookScore =
-    ramp(f.acrossShare, hook.acrossShareMin, hook.acrossShareFull) *
-    (1 - ramp(f.elbow, hook.elbowBent, hook.elbowOpen));
-  const uppercutScore =
-    ramp(f.upShare, uppercut.upShareMin, uppercut.upShareFull) *
-    ramp(f.rise, uppercut.riseMin, uppercut.riseFull) *
-    (1 - ramp(f.elbow, uppercut.elbowBent, uppercut.elbowOpen));
-  // Punched at the camera, a straight barely shows and depth is the model's weakest output. So a
-  // fast punch with no sign of a lateral or upward arc is called a straight, with capped confidence.
-  const noArc =
-    straight.byEliminationScore *
-    (1 - ramp(f.acrossShare, hook.acrossShareMin, hook.acrossShareFull)) *
-    (1 - ramp(f.rise, uppercut.riseMin, uppercut.riseFull)) *
-    (1 - ramp(f.outwardShare, straight.outwardShareMin, straight.outwardShareFull));
+  // Depth is the model's weakest output, so a straight doesn't have to be seen extending
+  const byDefault =
+    straight.defaultScore * (1 - ramp(f.outwardShare, straight.outwardShareMin, straight.outwardShareFull));
+
   return {
-    straight: Math.max(extended, noArc),
+    straight: Math.max(extended, byDefault),
     hook: hookScore,
     uppercut: uppercutScore,
-    /** True when the straight score came from having no arc rather than from seeing an extended arm. */
-    byElimination: noArc > extended,
+    /** True when it was called a straight for lack of anything else, not from seeing a long arm. */
+    byElimination: byDefault > extended,
   };
 }
 
@@ -54,24 +81,22 @@ const LABELS: Record<PunchShape, Record<Hand, PunchClass>> = {
   uppercut: { lead: 'lead_uppercut', rear: 'rear_uppercut' },
 };
 
-/** Labels a punch from its shape. A weak or close call comes back as "punch" instead of a guess. */
+/** Labels a punch from its shape. When the arm is hard to see it comes back as "punch" instead of a guess. */
 export function classifyPunch(hand: Hand, f: PunchShapeFeatures, config: PunchConfig = PUNCH_CONFIG) {
   const scores = scoreShapes(f, config);
-  const shapes: [PunchShape, number][] = [
-    ['straight', scores.straight],
-    ['hook', scores.hook],
-    ['uppercut', scores.uppercut],
-  ];
-  const ranked = shapes.sort((a, b) => b[1] - a[1]);
-  const [best, bestScore] = ranked[0];
-  const confidence = (0.5 * bestScore + 0.5 * (bestScore - ranked[1][1])) * Math.min(1, f.visibility / 0.8);
+  const arc: PunchShape = scores.uppercut >= scores.hook ? 'uppercut' : 'hook';
+  const shape: PunchShape = scores[arc] >= config.classify.minArcEvidence ? arc : 'straight';
+  const confidence = scores[shape] * Math.min(1, f.visibility / 0.8);
   const isConfident = confidence >= config.classify.minConfidence;
   return {
-    punch: isConfident ? LABELS[best][hand] : ('punch' as const),
-    shape: isConfident ? best : null,
+    punch: isConfident ? LABELS[shape][hand] : ('punch' as const),
+    shape: isConfident ? shape : null,
     confidence,
     scores,
     /** Depth wasn't readable, so checks that depend on it should stay quiet. */
-    depthUnreliable: best === 'straight' && scores.byElimination && f.forwardShare < config.classify.straight.readableForwardShare,
+    depthUnreliable:
+      shape === 'straight' &&
+      scores.byElimination &&
+      f.forwardShare < config.classify.straight.readableForwardShare,
   };
 }

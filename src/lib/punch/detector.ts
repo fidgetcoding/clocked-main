@@ -17,6 +17,8 @@ interface HandState {
   phase: Phase;
   /** Where the hand rests, in body coordinates. */
   anchor: Vec3 | null;
+  /** Where the hand last rested with the chin covered. */
+  guardRest: Vec3 | null;
   /** Where the current extension started: the anchor, or the low point of a partial return. */
   origin: Vec3 | null;
   samples: ExtensionSample[];
@@ -48,6 +50,7 @@ const newHand = (side: Side, hand: Hand): HandState => ({
   hand,
   phase: 'idle',
   anchor: null,
+  guardRest: null,
   origin: null,
   samples: [],
   peakIndex: 0,
@@ -70,6 +73,9 @@ const newHand = (side: Side, hand: Hand): HandState => ({
 });
 
 const armOf = (pose: BodyPose, side: Side): ArmPose => (side === 'left' ? pose.left : pose.right);
+const degrees = (radians: number) => (radians * 180) / Math.PI;
+const elbowAngleOf = (arm: ArmPose) =>
+  arm.wrist && arm.elbow ? jointAngle(arm.shoulder, arm.elbow, arm.wrist) : null;
 
 /**
  * Turns timestamped pose frames into punch and form events. Pure: no DOM, no clock, no I/O.
@@ -173,6 +179,7 @@ export class PunchDetector {
     }
     if (state.speed < rest.settleSpeed) {
       state.restPose = pose;
+      if (!this.isLow(wrist, pose)) state.guardRest = wrist;
       const alpha = 1 - Math.exp(-dt / rest.anchorTauMs);
       state.anchor = {
         x: state.anchor.x + alpha * (wrist.x - state.anchor.x),
@@ -248,7 +255,10 @@ export class PunchDetector {
     const armMoved = startArm.wrist
       ? dist(sub(peak.wrist, armOf(peak.pose, state.side).shoulder), sub(startArm.wrist, startArm.shoulder))
       : 0;
-    const raisesGuard = delta.y > motion.upwardShare * distance && peak.wrist.z < motion.upwardMinForward;
+    const endsAtGuard = state.guardRest
+      ? dist(peak.wrist, state.guardRest) < motion.raiseNearGuard
+      : peak.wrist.z < motion.upwardMinForward;
+    const raisesGuard = delta.y > motion.upwardShare * distance && endsAtGuard;
     if (
       raisesGuard ||
       armMoved < motion.minArmMove ||
@@ -272,14 +282,34 @@ export class PunchDetector {
     const visibility =
       state.samples.reduce((sum, s) => sum + armOf(s.pose, state.side).visibility, 0) / state.samples.length;
 
+    const armDelta = startArm.wrist
+      ? sub(sub(peak.wrist, arm.shoulder), sub(startArm.wrist, startArm.shoulder))
+      : delta;
+    const armAcross = Math.max(0, state.side === 'left' ? -armDelta.x : armDelta.x);
+    const armTravel = Math.max(Math.hypot(armDelta.x, armDelta.y, armDelta.z), 1e-6);
+    const forearm = sub(arm.wrist, arm.elbow);
+    const elbowHistory = state.samples
+      .slice(0, state.peakIndex + 1)
+      .map((sample) => elbowAngleOf(armOf(sample.pose, state.side)))
+      .filter((angle): angle is number => angle !== null)
+      .sort((a, b) => b - a);
+    const startElbow = elbowAngleOf(startArm) ?? elbowHistory[elbowHistory.length - 1] ?? elbow;
+
     const shape = {
       reach,
       elbow,
+      elbowHeldMax: elbowHistory[1] ?? elbowHistory[0] ?? elbow,
+      elbowOpening: elbow - startElbow,
       forwardShare: Math.max(0, delta.z) / distance,
-      acrossShare: Math.max(0, across) / distance,
       upShare: Math.max(0, delta.y) / distance,
+      armAcross,
+      armAcrossShare: armAcross / armTravel,
       outwardShare: Math.max(0, -across) / distance,
       rise: Math.max(0, delta.y),
+      startBelowShoulder: (startArm.wrist ? startArm.shoulder.y : origin.y) - origin.y,
+      forearmFromVertical: degrees(Math.atan2(Math.abs(forearm.x), forearm.y)),
+      forearmFromLevel: degrees(Math.atan2(Math.abs(forearm.y), Math.abs(forearm.x))),
+      upperArmFromLevel: degrees(Math.asin(Math.min(1, Math.abs(arm.elbow.y - arm.shoulder.y) / Math.max(upperArm, 1e-6)))),
       visibility,
     };
     const result = classifyPunch(state.hand, shape, this.config);
@@ -311,9 +341,16 @@ export class PunchDetector {
         durationMs,
         reach,
         elbow,
+        elbowHeldMax: shape.elbowHeldMax,
+        elbowOpening: shape.elbowOpening,
         forwardShare: shape.forwardShare,
-        acrossShare: shape.acrossShare,
+        armAcross: shape.armAcross,
         upShare: shape.upShare,
+        rise: shape.rise,
+        startBelowShoulder: shape.startBelowShoulder,
+        forearmFromVertical: shape.forearmFromVertical,
+        forearmFromLevel: shape.forearmFromLevel,
+        upperArmFromLevel: shape.upperArmFromLevel,
         shoulderRotation,
         hipRotation,
         scores: result.scores,

@@ -149,49 +149,196 @@ describe('form checks', () => {
 });
 
 describe('classifier', () => {
-  const features = {
-    reach: 0.8,
-    elbow: 130,
-    forwardShare: 0.6,
-    acrossShare: 0.5,
-    upShare: 0.1,
+  const straightish = {
+    reach: 0.6,
+    elbow: 80,
+    elbowHeldMax: 90,
+    elbowOpening: 0,
+    forwardShare: 0.1,
+    upShare: 0.5,
+    armAcross: 0.1,
+    armAcrossShare: 0.1,
     outwardShare: 0,
-    rise: 0.1,
+    rise: 0.3,
+    startBelowShoulder: 0,
+    forearmFromVertical: 40,
+    forearmFromLevel: 50,
+    upperArmFromLevel: 50,
     visibility: 0.95,
   };
+  const trueUppercut = {
+    ...straightish,
+    upShare: 0.9,
+    rise: 0.9,
+    startBelowShoulder: 0.5,
+    elbowHeldMax: 100,
+    forearmFromVertical: 15,
+  };
+  const trueHook = {
+    ...straightish,
+    elbow: 95,
+    elbowHeldMax: 105,
+    armAcross: 0.9,
+    armAcrossShare: 0.8,
+    upShare: 0.05,
+    rise: 0,
+    forearmFromLevel: 15,
+    upperArmFromLevel: 15,
+  };
 
-  it('says "punch" when two shapes score about the same', () => {
-    const scores = scoreShapes(features);
-    expect(scores.straight).toBeGreaterThan(0);
-    expect(scores.hook).toBeGreaterThan(0);
-    expect(classifyPunch('lead', features).punch).toBe('punch');
-  });
-
-  it('calls a fast punch with no arc a straight, but marks that depth was not readable', () => {
-    const result = classifyPunch('rear', {
-      ...features,
-      reach: 0.4,
-      elbow: 70,
-      forwardShare: 0.1,
-      acrossShare: 0,
-      upShare: 0.5,
-      rise: 0.3,
-    });
+  it('calls a fast punch a straight by default, and marks that depth was not readable', () => {
+    const result = classifyPunch('rear', straightish);
     expect(result.punch).toBe('cross');
-    expect(result.confidence).toBeLessThan(0.7);
     expect(result.depthUnreliable).toBe(true);
+    expect(classifyPunch('lead', straightish).punch).toBe('jab');
   });
 
-  it('says "punch" when nothing fits', () => {
-    const result = classifyPunch('rear', { ...features, reach: 0.4, elbow: 100, acrossShare: 0, upShare: 0, outwardShare: 0.8 });
-    expect(result.punch).toBe('punch');
-    expect(result.confidence).toBe(0);
+  it('is sure of a straight when it can see a long arm', () => {
+    const result = classifyPunch('lead', { ...straightish, reach: 0.95, elbow: 165, elbowHeldMax: 165 });
+    expect(result.punch).toBe('jab');
+    expect(result.confidence).toBeCloseTo(1);
+    expect(result.depthUnreliable).toBe(false);
   });
 
-  it('loses confidence when the arm is hard to see', () => {
-    const clear = { reach: 0.95, elbow: 170, forwardShare: 0.95, acrossShare: 0, upShare: 0, outwardShare: 0, rise: 0 };
-    expect(classifyPunch('lead', { ...clear, visibility: 0.95 }).punch).toBe('jab');
-    expect(classifyPunch('lead', { ...clear, visibility: 0.3 }).punch).toBe('punch');
+  it('accepts an uppercut and a hook with all their evidence', () => {
+    expect(classifyPunch('lead', trueUppercut).punch).toBe('lead_uppercut');
+    expect(classifyPunch('rear', trueUppercut).punch).toBe('rear_uppercut');
+    expect(classifyPunch('lead', trueHook).punch).toBe('lead_hook');
+    expect(classifyPunch('rear', trueHook).punch).toBe('rear_hook');
+  });
+
+  it.each([
+    ['started at shoulder height', { startBelowShoulder: 0 }],
+    ['elbow opened during the rise', { elbowOpening: 50 }],
+    ['elbow straightened on the way', { elbowHeldMax: 155 }],
+    ['forearm not vertical at the peak', { forearmFromVertical: 55 }],
+    ['barely rose', { rise: 0.3 }],
+  ])('rejects an uppercut that %s', (_name, change) => {
+    expect(classifyPunch('lead', { ...trueUppercut, ...change }).punch).toBe('jab');
+  });
+
+  it.each([
+    ['elbow opened during the arc', { elbowOpening: 70 }],
+    ['elbow straightened on the way', { elbowHeldMax: 150 }],
+    ['elbow folded shut', { elbow: 40 }],
+    ['upper arm hanging down', { upperArmFromLevel: 60 }],
+    ['forearm not level', { forearmFromLevel: 55 }],
+    ['little sideways travel', { armAcross: 0.25 }],
+  ])('rejects a hook whose %s', (_name, change) => {
+    expect(classifyPunch('rear', { ...trueHook, ...change }).punch).toBe('cross');
+  });
+
+  it('says "punch" for a hand pushed outward, which is not extending', () => {
+    expect(classifyPunch('rear', { ...straightish, outwardShare: 0.9 }).punch).toBe('punch');
+  });
+
+  it('says "punch" when the arm is hard to see', () => {
+    expect(classifyPunch('lead', { ...straightish, visibility: 0.4 }).punch).toBe('punch');
+    expect(classifyPunch('lead', { ...trueHook, visibility: 0.3 }).punch).toBe('punch');
+  });
+});
+
+/**
+ * Real-camera failure, 2026-11-01: jabs came in as 5 and crosses as 4. With weak depth the model
+ * puts a jab's wrist rising in the image with the elbow reading bent, and turns a cross's hip
+ * rotation into a sideways sweep. Coordinates are metres from the middle of the shoulders.
+ */
+describe('regression: straights read as uppercuts and hooks', () => {
+  const lerp = (a: number[], b: number[], k: number) => a.map((v, i) => v + (b[i] - v) * k) as [number, number, number];
+  const progress = (t: number, at: number, ms: number) => {
+    const out = Math.min(1, Math.max(0, (t - at) / ms));
+    const back = Math.min(1, Math.max(0, (t - at - ms) / 260));
+    return out * (1 - back);
+  };
+
+  // Lead hand: the guard reads level with the shoulder, then the wrist climbs with the elbow bent
+  const jabAsFive = (stance: Stance) => (side: 'left' | 'right', t: number) => {
+    const leadSide = stance === 'orthodox' ? 'left' : 'right';
+    if (side !== leadSide) return null;
+    const s = side === 'left' ? 1 : -1;
+    const k = progress(t, 2000, 170);
+    return {
+      wrist: lerp([s * 0.15, 0, -0.34], [s * 0.1, -0.24, -0.38], k),
+      elbow: lerp([s * 0.26, 0.2, -0.16], [s * 0.2, 0.08, -0.2], k),
+    };
+  };
+
+  // Rear hand: it sweeps inward as the shoulders turn, with the elbow still reading bent
+  const crossAsFour = (stance: Stance) => (side: 'left' | 'right', t: number) => {
+    const rearSide = stance === 'orthodox' ? 'right' : 'left';
+    if (side !== rearSide) return null;
+    const s = side === 'left' ? 1 : -1;
+    const k = progress(t, 2000, 170);
+    return {
+      wrist: lerp([s * 0.2, 0.02, -0.33], [s * -0.08, -0.03, -0.38], k),
+      elbow: lerp([s * 0.3, 0.22, -0.14], [s * 0.2, 0.14, -0.14], k),
+    };
+  };
+
+  describe.each<Stance>(['orthodox', 'southpaw'])('%s', (stance) => {
+    const twist = (t: number) => {
+      // The rear shoulder comes forward as the cross lands
+      const sign = stance === 'orthodox' ? -1 : 1;
+      return sign * 28 * progress(t, 2000, 170);
+    };
+
+    it('reads a jab whose wrist rises in the image as 1, not 5', () => {
+      const { punches } = run({ stance, armOverride: jabAsFive(stance) });
+      expect(punches.map((p) => p.punch)).toEqual(['jab']);
+      expect(punches[0].metrics.rise).toBeGreaterThan(0.45);
+      expect(punches[0].metrics.elbow).toBeLessThan(125);
+    });
+
+    it('reads a cross with a sweep from hip rotation as 2, not 4', () => {
+      const { punches } = run({ stance, armOverride: crossAsFour(stance), twist });
+      expect(punches.map((p) => p.punch)).toEqual(['cross']);
+      expect(punches[0].metrics.elbow).toBeLessThan(125);
+    });
+
+    it('reads a jab from low hands as 1 when the elbow opens on the way up', () => {
+      const leadSide = stance === 'orthodox' ? 'left' : 'right';
+      const { punches } = run({
+        stance,
+        armOverride: (side, t) => {
+          if (side !== leadSide) return null;
+          const s = side === 'left' ? 1 : -1;
+          const k = progress(t, 2000, 170);
+          return {
+            wrist: lerp([s * 0.2, 0.14, -0.2], [s * 0.1, -0.12, -0.5], k),
+            elbow: lerp([s * 0.3, 0.26, -0.02], [s * 0.2, 0.0, -0.26], k),
+          };
+        },
+      });
+      expect(punches.map((p) => p.punch)).toEqual(['jab']);
+      expect(punches[0].metrics.elbowOpening).toBeGreaterThan(35);
+    });
+
+    it.each<[HandName, Shape, string, number]>([
+      ['lead', 'hook', 'lead_hook', 0.8],
+      ['rear', 'hook', 'rear_hook', 0.8],
+      ['lead', 'uppercut', 'lead_uppercut', 0.6],
+      ['rear', 'uppercut', 'rear_uppercut', 0.6],
+    ])('still reads a real %s %s with reduced depth as %s', (hand, shape, label, armDepth) => {
+      const { punches } = run({ stance, armDepth, punches: [{ hand, shape, at: 2000 }] });
+      expect(punches.map((p) => p.punch)).toEqual([label]);
+    });
+
+    it.each<[HandName, string]>([
+      ['lead', 'jab'],
+      ['rear', 'cross'],
+    ])('reads a %s straight with weak depth as %s', (hand, label) => {
+      const { punches } = run({ stance, armDepth: 0.5, punches: [{ hand, shape: 'straight', at: 2000 }] });
+      expect(punches.map((p) => p.punch)).toEqual([label]);
+    });
+  });
+
+  it('gives the punch to the hand the stance says, on the side the model calls left', () => {
+    // The model is fed the unmirrored image, so the fighter's left is on the image's right
+    const leftWristMoves = (side: 'left' | 'right', t: number) =>
+      side === 'left' ? jabAsFive('orthodox')('left', t) : null;
+    expect(run({ stance: 'orthodox', armOverride: leftWristMoves }).punches[0]).toMatchObject({ side: 'left', hand: 'lead', punch: 'jab' });
+    const southpaw = run({ armOverride: leftWristMoves }, 'southpaw').punches[0];
+    expect(southpaw).toMatchObject({ side: 'left', hand: 'rear', punch: 'cross' });
   });
 });
 
@@ -324,8 +471,8 @@ describe('missing data', () => {
     expect(punches[0].confidence).toBeLessThan(1);
   });
 
-  it('says "punch" when the shape is ambiguous', () => {
-    // A half-bent arm pushed out and forward is not clearly a straight, a hook or an uppercut
+  it('says "punch" when the movement is not an extension', () => {
+    // A half-bent arm pushed out to the side isn't a straight, a hook or an uppercut
     const detector = new PunchDetector('orthodox');
     const events: PunchEvent[] = [];
     const frames = simulate({
@@ -333,7 +480,7 @@ describe('missing data', () => {
       handOffset: (side, t) => {
         if (side !== 'left') return [0, 0, 0];
         const k = Math.min(1, Math.max(0, (t - 2000) / 170));
-        return [0.24 * k, 0, -0.22 * k];
+        return [0.3 * k, 0, -0.12 * k];
       },
     });
     for (const frame of frames) events.push(...detector.push(frame));

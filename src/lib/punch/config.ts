@@ -34,8 +34,10 @@ export const PUNCH_CONFIG = {
     maxStartBelowShoulder: 1,
     /** Reject movement that is mostly downward: this is the hands dropping. */
     maxDownShare: 0.5,
-    /** Reject a mostly upward movement that ends this close to the chest: this is the guard coming up. */
+    /** Reject a mostly upward movement that ends where the guard was: this is the guard coming back up. */
     upwardShare: 0.55,
+    raiseNearGuard: 0.25,
+    /** With no guard seen yet, one that ends this close to the chest counts as the guard coming up. */
     upwardMinForward: 0.55,
     /** The peak is confirmed once the wrist falls back by this share of the distance travelled. */
     peakDropShare: 0.12,
@@ -69,32 +71,59 @@ export const PUNCH_CONFIG = {
   },
 
   classify: {
+    /** Straight is the default. A hook or uppercut has to reach this much evidence to win. */
+    minArcEvidence: 0.5,
     straight: {
+      /** Seeing this much reach and elbow extension is firm evidence of a straight. */
       reachMin: 0.68,
       reachFull: 0.88,
       elbowMin: 115,
       elbowFull: 145,
-      /** The score for a punch with no arc at all, when the arm's extension can't be seen. */
-      byEliminationScore: 0.6,
-      outwardShareMin: 0.3,
-      outwardShareFull: 0.6,
+      /** The score for a fast punch with no arc evidence, when the extension can't be seen. */
+      defaultScore: 0.7,
+      /** A hand moving this much outward isn't extending at all. */
+      outwardShareMin: 0.4,
+      outwardShareFull: 0.75,
       /** At least this much of the movement seen going forward means depth is being read. */
       readableForwardShare: 0.5,
     },
     hook: {
-      acrossShareMin: 0.3,
-      acrossShareFull: 0.6,
-      elbowBent: 115,
-      elbowOpen: 150,
+      /** Sideways travel relative to the punching shoulder, so hip rotation doesn't count. */
+      acrossMin: 0.3,
+      acrossFull: 0.55,
+      acrossShareMin: 0.35,
+      acrossShareFull: 0.65,
+      /** A tight guard opens to about 90 on a hook. Opening further than that is a straight. */
+      elbowOpensFrom: 45,
+      elbowOpensFully: 65,
+      /** The elbow stays near 90: never opening past these on the way, nor closed at the peak. */
+      elbowBent: 110,
+      elbowOpen: 135,
+      elbowClosed: 45,
+      elbowNinety: 65,
+      /** Degrees from level at the peak. */
+      upperArmLevel: 40,
+      upperArmDropped: 60,
+      forearmLevel: 35,
+      forearmTilted: 55,
     },
     uppercut: {
-      upShareMin: 0.35,
-      upShareFull: 0.65,
+      /** How far below its own shoulder the wrist has to start. */
+      startBelowMin: 0.1,
+      startBelowFull: 0.3,
+      /** An uppercut stays about as bent as it started. Opening this much is a straight. */
+      elbowOpensFrom: 25,
+      elbowOpensFully: 45,
+      elbowBent: 125,
+      elbowOpen: 150,
+      /** Degrees from straight up at the peak. */
+      forearmVertical: 30,
+      forearmTilted: 50,
       /** How far up the wrist must travel, so a front-on straight doesn't look like an uppercut. */
       riseMin: 0.45,
       riseFull: 0.75,
-      elbowBent: 125,
-      elbowOpen: 160,
+      upShareMin: 0.35,
+      upShareFull: 0.65,
     },
     /** Below this a punch is reported as "punch", not guessed at. */
     minConfidence: 0.45,

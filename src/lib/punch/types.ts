@@ -39,9 +39,16 @@ export interface PunchMetrics {
   durationMs: number;
   reach: number;
   elbow: number;
+  elbowHeldMax: number;
+  elbowOpening: number;
   forwardShare: number;
-  acrossShare: number;
+  armAcross: number;
   upShare: number;
+  rise: number;
+  startBelowShoulder: number;
+  forearmFromVertical: number;
+  forearmFromLevel: number;
+  upperArmFromLevel: number;
   shoulderRotation: number;
   hipRotation: number;
   scores: { straight: number; hook: number; uppercut: number; byElimination: boolean };

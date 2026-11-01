@@ -51,6 +51,10 @@ export interface SynthOptions {
   twist?: (t: number) => number;
   /** Moves both wrists by this much, metres, for odd movements. */
   handOffset?: (side: Side, t: number) => V;
+  /** Replaces where the model puts an arm's joints, relative to the middle of the shoulders in metres. */
+  armOverride?: (side: Side, t: number) => { wrist: V; elbow: V } | null;
+  /** Scales how far arm joints sit from the shoulder plane: the model's depth being weak. 1 is unchanged. */
+  armDepth?: number;
 }
 
 const SHOULDER_W = 0.38;
@@ -154,6 +158,8 @@ export function simulate(options: SynthOptions = {}): PoseFrame[] {
     sway,
     twist,
     handOffset,
+    armOverride,
+    armDepth = 1,
   } = options;
   const random = mulberry(seed);
   const gaussian = () => Math.sqrt(-2 * Math.log(random() || 1e-9)) * Math.cos(2 * Math.PI * random());
@@ -233,7 +239,12 @@ export function simulate(options: SynthOptions = {}): PoseFrame[] {
     const limb = (side: Side, placed: { wrist: V; pole: V }, shoulder: V) => {
       const offset = handOffset?.(side, t) ?? ([0, 0, 0] as V);
       const wrist = add(add(placed.wrist, offset), swayNow);
-      return { wrist, elbow: solveElbow(shoulder, wrist, placed.pole) };
+      const shown = armOverride?.(side, t);
+      const arm = shown
+        ? { wrist: add(shoulderMid, shown.wrist), elbow: add(shoulderMid, shown.elbow) }
+        : { wrist, elbow: solveElbow(shoulder, wrist, placed.pole) };
+      const flatten = (p: V): V => [p[0], p[1], shoulderMid[2] + (p[2] - shoulderMid[2]) * armDepth];
+      return { wrist: flatten(arm.wrist), elbow: flatten(arm.elbow) };
     };
     const leftArm = limb('left', left, leftShoulder);
     const rightArm = limb('right', right, rightShoulder);
