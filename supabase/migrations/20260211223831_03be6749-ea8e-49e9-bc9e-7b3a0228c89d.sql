@@ -36,6 +36,4 @@ AS $$
   )
 $$;
 
--- Seed admin role for nate@lorecraft.io
-INSERT INTO public.user_roles (user_id, role)
-VALUES ('8a3fdf60-f42f-42d1-8ebc-f0b6a3a43693', 'admin');
+-- Admin roles are granted per deployment, once that user exists. See SETUP.md.
