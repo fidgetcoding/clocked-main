@@ -11,7 +11,9 @@
     "punch:confusion": "vite-node scripts/punch-confusion.ts",
     "preview": "vite preview",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "typecheck": "tsc -p tsconfig.app.json --noEmit && tsc -p tsconfig.tests.json --noEmit",
+    "test:stack": "node scripts/test-stack.mjs"
   },
   "dependencies": {
     "@capacitor/android": "^8.6.0",
@@ -73,6 +75,7 @@
   "devDependencies": {
     "@capacitor/cli": "^8.6.0",
     "@eslint/js": "^9.32.0",
+    "@playwright/test": "^1.64.1",
     "@tailwindcss/typography": "^0.5.16",
     "@testing-library/jest-dom": "^6.6.0",
     "@testing-library/react": "^16.0.0",

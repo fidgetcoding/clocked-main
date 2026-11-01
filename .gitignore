@@ -23,6 +23,8 @@ dist-ssr
 *.sln
 *.sw?
 
+.stack-test
+
 # Secrets
 .env*
 !.env.example

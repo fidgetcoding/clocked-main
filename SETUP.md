@@ -79,6 +79,7 @@ supabase secrets set AI_BASE_URL=https://your-provider.example/v1 AI_MODEL=your-
 | `AI_API_KEY` | None. Without it the function answers 503 and the app uses its on-device parser. |
 | `AI_BASE_URL` | `https://generativelanguage.googleapis.com/v1beta/openai` |
 | `AI_MODEL` | `gemini-3.8-flash` |
+| `AI_TIMEOUT_MS` | `90000` |
 
 Each signed-in user gets 25 AI generations a day, so a stranger can't run up your bill. To change that, edit `DAILY_GENERATION_LIMIT` in `supabase/functions/generate-workout/index.ts`. Guests never call the AI.
 
@@ -138,3 +139,15 @@ Steps:
 
 Finish by telling me what's working, what you skipped, and what I still need to do.
 ```
+
+## Testing it against a real backend
+
+`npm test` runs the fast tests. This one needs Docker and the [Supabase CLI](https://supabase.com/docs/guides/local-development/cli/getting-started):
+
+```sh
+npm run test:stack
+```
+
+It starts a throwaway local Supabase with a random project ID, applies every migration, serves the edge functions against a fake AI provider, and drives the app in a real browser, including clicking the sign-in link in the local mail catcher. It removes everything it created when it's done, and it never talks to hosted Supabase or a real AI provider.
+
+To pick a different CLI binary, set `SUPABASE_BIN`. If you only need the browser once, run `npx playwright install chromium` first.

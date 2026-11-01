@@ -519,32 +519,44 @@ serve(async (req) => {
       );
     }
 
-    const aiResponse = await fetch(ai.chatCompletionsUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${ai.apiKey}`,
-      },
-      body: JSON.stringify({
-        model: ai.model,
-        max_tokens: MAX_OUTPUT_TOKENS,
-        messages: [
-          { role: 'system', content: SYSTEM_PROMPT },
-          { role: 'user', content: buildUserMessage(body) },
-        ],
-      }),
-    });
+    let aiData: any;
+    try {
+      const aiResponse = await fetch(ai.chatCompletionsUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${ai.apiKey}`,
+        },
+        body: JSON.stringify({
+          model: ai.model,
+          max_tokens: MAX_OUTPUT_TOKENS,
+          messages: [
+            { role: 'system', content: SYSTEM_PROMPT },
+            { role: 'user', content: buildUserMessage(body) },
+          ],
+        }),
+        signal: AbortSignal.timeout(ai.timeoutMs),
+      });
 
-    if (!aiResponse.ok) {
-      const errorText = await aiResponse.text();
-      console.error('AI provider error:', aiResponse.status, errorText);
+      if (!aiResponse.ok) {
+        const errorText = await aiResponse.text();
+        console.error('AI provider error:', aiResponse.status, errorText);
+        return new Response(
+          JSON.stringify({ error: 'AI generation failed', fallback: true }),
+          { status: 502, headers: { 'Content-Type': 'application/json', ...CORS_HEADERS } }
+        );
+      }
+
+      aiData = await aiResponse.json();
+    } catch (err) {
+      const timedOut = err instanceof DOMException && err.name === 'TimeoutError';
+      console.error('AI provider unreachable:', err);
       return new Response(
-        JSON.stringify({ error: 'AI generation failed', fallback: true }),
-        { status: 502, headers: { 'Content-Type': 'application/json', ...CORS_HEADERS } }
+        JSON.stringify({ error: timedOut ? 'AI generation timed out' : 'AI generation failed', fallback: true }),
+        { status: timedOut ? 504 : 502, headers: { 'Content-Type': 'application/json', ...CORS_HEADERS } }
       );
     }
 
-    const aiData = await aiResponse.json();
     const rawText = aiData.choices?.[0]?.message?.content || '';
 
     if (!rawText) {
@@ -566,6 +578,14 @@ serve(async (req) => {
       parsed = JSON.parse(jsonStr);
     } catch (e) {
       console.error('JSON parse error:', e, 'Raw text:', rawText.substring(0, 500));
+      return new Response(
+        JSON.stringify({ error: 'Invalid JSON from AI', fallback: true }),
+        { status: 422, headers: { 'Content-Type': 'application/json', ...CORS_HEADERS } }
+      );
+    }
+
+    if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
+      console.error('AI response is not a workout object:', rawText.substring(0, 500));
       return new Response(
         JSON.stringify({ error: 'Invalid JSON from AI', fallback: true }),
         { status: 422, headers: { 'Content-Type': 'application/json', ...CORS_HEADERS } }

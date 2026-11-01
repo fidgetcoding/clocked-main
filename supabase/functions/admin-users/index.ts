@@ -7,6 +7,8 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "GET, POST, DELETE, OPTIONS",
 };
 
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -115,9 +117,18 @@ Deno.serve(async (req) => {
 
     if (req.method === "POST") {
       // Create a new user
-      const { email, password, name } = await req.json();
+      let body: { email?: unknown; password?: unknown; name?: unknown };
+      try {
+        body = await req.json();
+      } catch {
+        return new Response(JSON.stringify({ error: "Request body must be valid JSON" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      const { email, password, name } = body;
 
-      if (!email || !password) {
+      if (typeof email !== "string" || typeof password !== "string" || !email || !password) {
         return new Response(JSON.stringify({ error: "Email and password are required" }), {
           status: 400,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -125,7 +136,7 @@ Deno.serve(async (req) => {
       }
 
       // Validate name input
-      const trimmedName = (name || "").trim().replace(/<[^>]*>/g, "");
+      const trimmedName = (typeof name === "string" ? name : "").trim().replace(/<[^>]*>/g, "");
       if (trimmedName.length > 100) {
         return new Response(JSON.stringify({ error: "Name must be 100 characters or less" }), {
           status: 400,
@@ -155,8 +166,8 @@ Deno.serve(async (req) => {
     if (req.method === "DELETE") {
       const targetUserId = url.searchParams.get("userId");
 
-      if (!targetUserId) {
-        return new Response(JSON.stringify({ error: "userId is required" }), {
+      if (!targetUserId || !UUID_PATTERN.test(targetUserId)) {
+        return new Response(JSON.stringify({ error: "A valid userId is required" }), {
           status: 400,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });

@@ -1,0 +1,8 @@
+{
+  "extends": "./tsconfig.app.json",
+  "compilerOptions": {
+    "types": ["node"],
+    "lib": ["ES2022", "DOM", "DOM.Iterable"]
+  },
+  "include": ["tests/stack/*.ts", "tests/e2e/*.ts", "playwright.config.ts", "vitest.stack.config.ts"]
+}

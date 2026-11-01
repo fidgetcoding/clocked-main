@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   DEFAULT_AI_BASE_URL,
   DEFAULT_AI_MODEL,
+  DEFAULT_AI_TIMEOUT_MS,
   resolveAiConfig,
 } from '../../supabase/functions/generate-workout/ai';
 
@@ -21,6 +22,7 @@ describe('resolveAiConfig', () => {
       apiKey: 'k',
       chatCompletionsUrl: `${DEFAULT_AI_BASE_URL}/chat/completions`,
       model: DEFAULT_AI_MODEL,
+      timeoutMs: DEFAULT_AI_TIMEOUT_MS,
     });
   });
 
