@@ -55,14 +55,14 @@ function sortByDifficultyDesc(presets: TierPresetWithLoadout[]): TierPresetWithL
 }
 
 /**
- * tier_presets is only readable with an account, so guests get the same catalog built
- * on the device. Names come from the generator and there are no user counts to show.
+ * The same catalog built on the device, for guests (tier_presets needs an account) and for
+ * projects that haven't added curated rows to tier_presets. Names come from the generator.
  */
-function buildGuestPresets(equipmentMode: 'shadow' | 'bag', userTier: Prestige): TierPreset[] {
+function buildGeneratedPresets(equipmentMode: 'shadow' | 'bag', userTier: Prestige): TierPreset[] {
   return PRESTIGE_ORDER.filter((tier) => tier !== userTier).map((tier) => {
     const equipConfig = equipmentMode === 'bag' ? BAG_EQUIPMENT : SHADOW_EQUIPMENT;
     return {
-      id: `guest-preset-${tier}-${equipmentMode}`,
+      id: `generated-preset-${tier}-${equipmentMode}`,
       tier,
       equipment_mode: equipmentMode,
       name: generateLoadoutWorkout(tier, equipConfig).name,
@@ -95,8 +95,8 @@ export function useTierPresets() {
     enabled: !!profile && !!user,
   });
 
-  const guestPresets = useMemo(() => buildGuestPresets(equipmentMode, userTier), [equipmentMode, userTier]);
-  const presets = isGuest ? guestPresets : dbPresets;
+  const generatedPresets = useMemo(() => buildGeneratedPresets(equipmentMode, userTier), [equipmentMode, userTier]);
+  const presets = isGuest || dbPresets?.length === 0 ? generatedPresets : dbPresets;
 
   // Fetch tier user counts
   const { data: tierCounts } = useQuery({
