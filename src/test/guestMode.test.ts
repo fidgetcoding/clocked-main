@@ -115,7 +115,7 @@ describe('guest hooks', () => {
         workout_id: null,
         workout_name: 'Quick Session',
         completed_at: new Date().toISOString(),
-        duration: 120,
+        duration: 600,
         xp_earned: 30,
         difficulty: null,
         notes: null,
@@ -125,8 +125,23 @@ describe('guest hooks', () => {
     });
     await waitFor(() => expect(result.current.history).toHaveLength(1));
 
-    const stats = await computePostLogStats('local-id', buildGuestProfile(null));
-    expect(stats).toMatchObject({ workouts_completed: 1, total_training_seconds: 120, current_streak: 1 });
+    const stats = await computePostLogStats('local-id', buildGuestProfile(null), 600);
+    expect(stats).toMatchObject({ workouts_completed: 1, total_training_seconds: 600, current_streak: 1 });
+
+    // A session under the minimum stays on the record without moving the count or the streak
+    useHistoryStore.getState().addGuestEntry({
+      workout_id: null,
+      workout_name: 'Tap and quit',
+      completed_at: new Date().toISOString(),
+      duration: 5,
+      xp_earned: 1,
+      difficulty: null,
+      notes: null,
+      is_manual_entry: false,
+      round_feedback: [],
+    });
+    const short = await computePostLogStats('local-id', buildGuestProfile(null), 5);
+    expect(short).toEqual({ workouts_completed: 1, total_training_seconds: 605 });
     expect(supabaseMock.from).not.toHaveBeenCalled();
     expect(supabaseMock.rpc).not.toHaveBeenCalled();
   });

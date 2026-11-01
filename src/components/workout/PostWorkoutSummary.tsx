@@ -1,3 +1,4 @@
+import { MIN_REWARD_SECONDS } from '@/lib/sessionEffort';
 import { useState, useEffect } from 'react';
 import { Badge, BADGE_CATEGORY_COLORS, BADGE_CATEGORY_NAMES, BadgeCategory } from '@/data/badges';
 import { 
@@ -61,6 +62,7 @@ export interface SessionXPBreakdown {
   totalXPAfter: number;
   prestigeEligible: boolean;
   isMaxLevel: boolean;
+  belowRewardMinimum?: boolean;
 }
 
 interface PostWorkoutSummaryProps {
@@ -370,6 +372,11 @@ export function PostWorkoutSummary({
               {result.streakMultiplier > 1 ? `${result.streakMultiplier}x XP` : 'No bonus yet'}
             </span>
           </div>
+        )}
+        {result.belowRewardMinimum && (
+          <p className="text-xs text-muted-foreground mt-2">
+            Train for at least {MIN_REWARD_SECONDS / 60} minutes to earn badges and keep your streak going.
+          </p>
         )}
       </div>
 

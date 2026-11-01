@@ -2,6 +2,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Prestige, getLevelFromXP } from '@/lib/xpSystem';
 import { GUEST_USER_ID } from '@/lib/guest';
 import { useHistoryStore } from '@/stores/historyStore';
+import { MIN_REWARD_SECONDS, qualifiesForRewards } from '@/lib/sessionEffort';
 
 /**
  * Calculate streak and workout count after logging a session.
@@ -14,7 +15,8 @@ export async function computePostLogStats(
     last_workout_date: string | null;
     current_streak: number;
     longest_streak: number;
-  }
+  },
+  sessionSeconds: number
 ) {
   let workoutsCompleted: number;
   let totalTrainingSeconds: number | undefined;
@@ -22,14 +24,15 @@ export async function computePostLogStats(
   if (profile.user_id === GUEST_USER_ID) {
     // Guest history lives in the browser, so the same totals come from there
     const { guestHistory } = useHistoryStore.getState();
-    workoutsCompleted = guestHistory.length;
+    workoutsCompleted = guestHistory.filter((entry) => entry.duration >= MIN_REWARD_SECONDS).length;
     totalTrainingSeconds = guestHistory.reduce((sum, entry) => sum + (entry.duration || 0), 0);
   } else {
     // 1. Self-healing workout count: get actual count from workout_history
     const { count, error } = await supabase
       .from('workout_history')
       .select('id', { count: 'exact', head: true })
-      .eq('user_id', userId);
+      .eq('user_id', userId)
+      .gte('duration', MIN_REWARD_SECONDS);
 
     if (error) {
       console.error('Failed to count workout history:', error);
@@ -47,6 +50,13 @@ export async function computePostLogStats(
     }
 
     totalTrainingSeconds = durationError ? undefined : ((durationData as number) || 0);
+  }
+
+  // A session under the minimum is on the record but doesn't move the streak
+  if (!qualifiesForRewards(sessionSeconds)) {
+    const totals: Record<string, any> = { workouts_completed: workoutsCompleted };
+    if (totalTrainingSeconds !== undefined) totals.total_training_seconds = totalTrainingSeconds;
+    return totals;
   }
 
   // 3. Streak logic
@@ -176,8 +186,10 @@ export function computePostL100Increments(
   profile: Record<string, any>,
   sessionXP: number,
   flatSegments: Array<{ combo?: string[]; name: string; segmentType?: string; duration: number }>,
+  sessionEffort: number,
 ): Record<string, any> {
   const increments: Record<string, any> = {};
+  if (sessionEffort <= 0) return increments;
   
   const prestige = (profile.prestige || 'beginner') as Prestige;
   const currentLevel = profile.current_level || 1;
@@ -252,19 +264,19 @@ export function computePostL100Increments(
   
   // Multiply by estimated reps per combo segment (combos repeat during duration)
   // Each combo segment typically repeats ~5 times in a 30s round
-  const REP_MULTIPLIER = 5;
-  increments.punch_1_count = (profile.punch_1_count || 0) + punch1 * REP_MULTIPLIER;
-  increments.punch_2_count = (profile.punch_2_count || 0) + punch2 * REP_MULTIPLIER;
-  increments.punch_3_count = (profile.punch_3_count || 0) + punch3 * REP_MULTIPLIER;
-  increments.punch_4_count = (profile.punch_4_count || 0) + punch4 * REP_MULTIPLIER;
-  increments.punch_5_count = (profile.punch_5_count || 0) + punch5 * REP_MULTIPLIER;
-  increments.punch_6_count = (profile.punch_6_count || 0) + punch6 * REP_MULTIPLIER;
-  increments.punch_7_count = (profile.punch_7_count || 0) + punch7 * REP_MULTIPLIER;
-  increments.punch_8_count = (profile.punch_8_count || 0) + punch8 * REP_MULTIPLIER;
-  increments.slips_count = (profile.slips_count || 0) + slips * REP_MULTIPLIER;
-  increments.rolls_count = (profile.rolls_count || 0) + rolls * REP_MULTIPLIER;
-  increments.pullbacks_count = (profile.pullbacks_count || 0) + pullbacks * REP_MULTIPLIER;
-  increments.circles_count = (profile.circles_count || 0) + circles * REP_MULTIPLIER;
+  const REP_MULTIPLIER = 5 * sessionEffort;
+  increments.punch_1_count = (profile.punch_1_count || 0) + Math.round(punch1 * REP_MULTIPLIER);
+  increments.punch_2_count = (profile.punch_2_count || 0) + Math.round(punch2 * REP_MULTIPLIER);
+  increments.punch_3_count = (profile.punch_3_count || 0) + Math.round(punch3 * REP_MULTIPLIER);
+  increments.punch_4_count = (profile.punch_4_count || 0) + Math.round(punch4 * REP_MULTIPLIER);
+  increments.punch_5_count = (profile.punch_5_count || 0) + Math.round(punch5 * REP_MULTIPLIER);
+  increments.punch_6_count = (profile.punch_6_count || 0) + Math.round(punch6 * REP_MULTIPLIER);
+  increments.punch_7_count = (profile.punch_7_count || 0) + Math.round(punch7 * REP_MULTIPLIER);
+  increments.punch_8_count = (profile.punch_8_count || 0) + Math.round(punch8 * REP_MULTIPLIER);
+  increments.slips_count = (profile.slips_count || 0) + Math.round(slips * REP_MULTIPLIER);
+  increments.rolls_count = (profile.rolls_count || 0) + Math.round(rolls * REP_MULTIPLIER);
+  increments.pullbacks_count = (profile.pullbacks_count || 0) + Math.round(pullbacks * REP_MULTIPLIER);
+  increments.circles_count = (profile.circles_count || 0) + Math.round(circles * REP_MULTIPLIER);
   
   return increments;
 }

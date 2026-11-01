@@ -22,6 +22,7 @@ import { getStreakMultiplier, getLevelFromXP } from '@/lib/xpSystem';
 import { LevelUpOverlay } from '@/components/ui/LevelUpOverlay';
 import { useSoundEffects } from '@/hooks/useSoundEffects';
 import { computePostLogStats } from '@/lib/workoutTracking';
+import { MIN_REWARD_SECONDS, qualifiesForRewards } from '@/lib/sessionEffort';
 import { Switch } from '@/components/ui/switch';
 import { usePunchPrefsStore } from '@/stores/punchPrefsStore';
 import type { PunchSessionReport } from '@/lib/punch/round';
@@ -171,7 +172,7 @@ const QuickSession = () => {
       onSuccess: async () => {
         setLogged(true);
         if (user?.id && profile) {
-          const stats = await computePostLogStats(profile.user_id, profile);
+          const stats = await computePostLogStats(profile.user_id, profile, totalElapsed);
           if (stats) {
             updateProfile.mutate(stats);
           }
@@ -191,6 +192,12 @@ const QuickSession = () => {
           <div className="text-6xl mb-6">⏱️</div>
           <h1 className="text-3xl font-black text-foreground mb-2">SESSION COMPLETE!</h1>
           <p className="text-muted-foreground mb-6">Quick Session</p>
+
+          {!qualifiesForRewards(totalElapsed) && (
+            <p className="text-xs text-muted-foreground mb-4 max-w-xs text-center">
+              Train for at least {MIN_REWARD_SECONDS / 60} minutes to keep your streak going.
+            </p>
+          )}
 
           <div className="grid grid-cols-2 gap-4 mb-6 w-full max-w-xs">
             <div className="card-workout text-center">

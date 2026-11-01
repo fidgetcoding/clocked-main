@@ -27,9 +27,10 @@ import { useSpeechSynthesis } from '@/hooks/useSpeechSynthesis';
 import { useSoundEffects } from '@/hooks/useSoundEffects';
 import { useBadges } from '@/hooks/useBadges';
 import { cn } from '@/lib/utils';
-import { ACTIVITY_XP_RATES, ActivityType, getStreakMultiplier, getActivityTypeFromName, calculateComboXP, getLevelFromXP, PER_SESSION_ESTIMATES, TIER_COMBO_STATS, Prestige, isPrestigeEligible as checkPrestigeEligible, isMaxLevel as checkIsMaxLevel } from '@/lib/xpSystem';
+import { ACTIVITY_XP_RATES, ActivityType, getStreakMultiplier, getActivityTypeFromName, calculateComboXP, getLevelFromXP, Prestige, isPrestigeEligible as checkPrestigeEligible, isMaxLevel as checkIsMaxLevel } from '@/lib/xpSystem';
 import { computePostLogStats, computePostL100Increments } from '@/lib/workoutTracking';
-import { checkBadges, sumBadgeXP, BadgeStats } from '@/data/badges';
+import { buildSessionBadgeStats, getSessionCredit, getSessionEffort, qualifiesForRewards } from '@/lib/sessionEffort';
+import { checkBadges, sumBadgeXP } from '@/data/badges';
 import { checkPostL100Badges } from '@/data/postL100Badges';
 import { LevelUpOverlay } from '@/components/ui/LevelUpOverlay';
 import { PostWorkoutSummary, SessionXPBreakdown } from '@/components/workout/PostWorkoutSummary';
@@ -488,8 +489,9 @@ const WorkoutSession = () => {
     if (isComplete || !isRunning || isPaused || !profile) return;
     
     const interval = setInterval(() => {
+      if (!qualifiesForRewards(totalElapsed)) return;
+
       const tier = (profile.prestige || 'beginner') as Prestige;
-      const tierStats = TIER_COMBO_STATS[tier];
       
       const today = new Date();
       today.setHours(0, 0, 0, 0);
@@ -507,20 +509,7 @@ const WorkoutSession = () => {
         newStreak = 1;
       }
       
-      const liveStats: BadgeStats = {
-        consecutiveDays: newStreak,
-        totalCombos: (profile.combos_landed || 0) + PER_SESSION_ESTIMATES.combosLanded,
-        complexCombos: (profile.complex_combos || 0) + tierStats.complex,
-        defenseCombos: (profile.defense_combos || 0) + tierStats.defense,
-        counterCombos: (profile.counter_combos || 0) + tierStats.counter,
-        totalSessions: (profile.workouts_completed || 0) + 1,
-        totalHours: ((profile.total_training_seconds || 0) + totalElapsed) / 3600,
-        singleSessionMinutes: totalElapsed / 60,
-        totalPushups: (profile.total_pushups || 0) + PER_SESSION_ESTIMATES.pushups,
-        totalBurpees: (profile.total_burpees || 0) + PER_SESSION_ESTIMATES.burpees,
-        totalCurlups: (profile.total_curlups || 0) + PER_SESSION_ESTIMATES.curlups,
-        totalJogRunMinutes: (profile.total_jog_run_minutes || 0) + PER_SESSION_ESTIMATES.jogRunMinutes,
-      };
+      const liveStats = buildSessionBadgeStats(profile, tier, totalElapsed, newStreak);
       
       const alreadyEarned = [...earnedBadgeIds, ...Array.from(liveBadgeIdsRef.current)];
       const newBadges = checkBadges(liveStats, alreadyEarned);
@@ -571,32 +560,24 @@ const WorkoutSession = () => {
       newStreak = 1;
       streakBroken = (profile.current_streak || 0) > 1;
     }
+
+    const earnedRewards = qualifiesForRewards(totalElapsed);
+    if (!earnedRewards) {
+      newStreak = profile.current_streak || 0;
+      streakBroken = false;
+    }
     
     const tier = (profile.prestige || 'beginner') as Prestige;
-    const tierStats = TIER_COMBO_STATS[tier];
     
-    const updatedStats: BadgeStats = {
-      consecutiveDays: newStreak,
-      totalCombos: (profile.combos_landed || 0) + PER_SESSION_ESTIMATES.combosLanded,
-      complexCombos: (profile.complex_combos || 0) + tierStats.complex,
-      defenseCombos: (profile.defense_combos || 0) + tierStats.defense,
-      counterCombos: (profile.counter_combos || 0) + tierStats.counter,
-      totalSessions: (profile.workouts_completed || 0) + 1,
-      totalHours: ((profile.total_training_seconds || 0) + totalElapsed) / 3600,
-      singleSessionMinutes: totalElapsed / 60,
-      totalPushups: (profile.total_pushups || 0) + PER_SESSION_ESTIMATES.pushups,
-      totalBurpees: (profile.total_burpees || 0) + PER_SESSION_ESTIMATES.burpees,
-      totalCurlups: (profile.total_curlups || 0) + PER_SESSION_ESTIMATES.curlups,
-      totalJogRunMinutes: (profile.total_jog_run_minutes || 0) + PER_SESSION_ESTIMATES.jogRunMinutes,
-    };
+    const updatedStats = buildSessionBadgeStats(profile, tier, totalElapsed, newStreak);
     
     // BUG 3 FIX: Exclude live-earned badges from post-workout check to avoid double-counting
     const liveEarnedIds = Array.from(liveBadgeIdsRef.current);
-    const newCoreBadges = checkBadges(updatedStats, [...earnedBadgeIds, ...liveEarnedIds]);
+    const newCoreBadges = earnedRewards ? checkBadges(updatedStats, [...earnedBadgeIds, ...liveEarnedIds]) : [];
     
     const currentLevel = profile.current_level || 1;
     let newPostL100Badges: any[] = [];
-    if (currentLevel >= 100) {
+    if (earnedRewards && currentLevel >= 100) {
       const postL100StatsForCheck = {
         ...updatedStats,
         postL100Sessions: ((profile as any)?.post_l100_sessions || 0) + 1,
@@ -668,6 +649,7 @@ const WorkoutSession = () => {
       totalXPAfter,
       prestigeEligible: checkPrestigeEligible(tier, totalXPAfter),
       isMaxLevel: checkIsMaxLevel(tier, totalXPAfter),
+      belowRewardMinimum: !earnedRewards,
     });
   }, [isComplete, sessionResult, profile, accumulatedXP, totalElapsed, earnedBadgeIds, liveBadgesEarned]);
 
@@ -984,7 +966,6 @@ const WorkoutSession = () => {
     if (!sessionResult) return;
     
     const tier = (profile?.prestige || 'beginner') as Prestige;
-    const tierStats = TIER_COMBO_STATS[tier];
     
     if (sessionResult.newBadges.length > 0) {
       try {
@@ -1009,32 +990,37 @@ const WorkoutSession = () => {
     }, {
       onSuccess: async () => {
         setLogged(true);
-        postWorkoutComplete.mutate({
-          workoutName: workout?.name || 'Workout',
-          xpEarned: sessionResult.sessionTotal,
-          duration: totalElapsed,
-        });
+        if (qualifiesForRewards(totalElapsed)) {
+          postWorkoutComplete.mutate({
+            workoutName: workout?.name || 'Workout',
+            xpEarned: sessionResult.sessionTotal,
+            duration: totalElapsed,
+          });
+        }
         if (user?.id && profile) {
-          const postLogStats = await computePostLogStats(profile.user_id, profile);
+          const postLogStats = await computePostLogStats(profile.user_id, profile, totalElapsed);
           if (postLogStats) {
             const postL100Increments = computePostL100Increments(
               profile as any,
               sessionResult.sessionTotal,
               flatSegments,
+              getSessionEffort(totalElapsed),
             );
+            const credit = getSessionCredit(totalElapsed, tier);
+            
             
             updateProfile.mutate({
               ...postLogStats,
               ...postL100Increments,
               total_xp: (profile.total_xp || 0) + sessionResult.sessionTotal,
-              combos_landed: (profile.combos_landed || 0) + PER_SESSION_ESTIMATES.combosLanded,
-              total_pushups: (profile.total_pushups || 0) + PER_SESSION_ESTIMATES.pushups,
-              total_burpees: (profile.total_burpees || 0) + PER_SESSION_ESTIMATES.burpees,
-              total_curlups: (profile.total_curlups || 0) + PER_SESSION_ESTIMATES.curlups,
-              total_jog_run_minutes: (profile.total_jog_run_minutes || 0) + PER_SESSION_ESTIMATES.jogRunMinutes,
-              complex_combos: (profile.complex_combos || 0) + tierStats.complex,
-              defense_combos: (profile.defense_combos || 0) + tierStats.defense,
-              counter_combos: (profile.counter_combos || 0) + tierStats.counter,
+              combos_landed: (profile.combos_landed || 0) + credit.combos,
+              total_pushups: (profile.total_pushups || 0) + credit.pushups,
+              total_burpees: (profile.total_burpees || 0) + credit.burpees,
+              total_curlups: (profile.total_curlups || 0) + credit.curlups,
+              total_jog_run_minutes: (profile.total_jog_run_minutes || 0) + credit.jogRunMinutes,
+              complex_combos: (profile.complex_combos || 0) + credit.complexCombos,
+              defense_combos: (profile.defense_combos || 0) + credit.defenseCombos,
+              counter_combos: (profile.counter_combos || 0) + credit.counterCombos,
             } as any);
           }
         }
