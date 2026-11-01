@@ -58,7 +58,7 @@ On the math (private note, February 16):
 | May 21 | "Fixed 6 security findings", logo scaled up. Last Lovable commit | `bd3f86d`, `3cf00f5` |
 | Nov 1 | Email-link-only sign-in, guest mode, audit fixes, nav bug, totals bug, new icons, Capacitor bump, MIT | `f501bd1`, `49700e3`, `3daadfe` to `cd25c1f`, `e95ebd5` |
 | Nov 1 | Leaves Lovable: a clone developed only in Claude Code, with readers bringing their own Supabase and AI key | `56a97f3`, `445547b`, `071202e`, `05bea90` |
-| Nov 1 | Punch Check, a fix after real-camera feedback, then tuning against a real recording | `52f83d7`, `e1a9d2b`, `bbf6da9`, `471b0fa` |
+| Nov 1 | Punch Check, a fix after my first live try, a recording mode, the camera inside workouts, then tuning against that recording and quieter cues | `52f83d7`, `e1a9d2b`, `20879ec`, `af5e13f`, `bbf6da9`, `471b0fa` |
 | Nov 1 | Migrations run on a new project, Data API grants made explicit | `f5d72d9`, `341f160` |
 | Nov 1 | Production audit cleared, on react-router 7 | `aa2f45b`, `a81be2c` |
 | Nov 1 | The backend run for real with `npm run test:stack`. Lint to zero, wired into CI | `04a9c31`, `78f9b06` |
@@ -123,7 +123,7 @@ History shape: 1,086 commits by Lovable's bot from January 20 to May 21, then my
   - A coach test only passed on a UTC machine (`36d0550`).
   - `club_members` reads failed with infinite recursion. Fixed in `21efa69`.
   - Punch Check: on a real camera, jabs came in as 5 and crosses as 4 (uppercut numbers). A straight became the default, and hooks and uppercuts now have to prove themselves.
-  - Punch Check again: my labeled recording scored 11 of 29 on held-out reps, and lead uppercuts were almost never seen. Most of it was the detector, not the thresholds. Real uppercuts come back up only to guard height, so they were being thrown out as hands returning. A hook's wind-up and the other hand's recoil counted as punches. After tuning it's 24 of 29 on that one recording, which is optimistic, since the fixes came from studying it.
+  - Punch Check again: my labeled recording scored 11 of 29 on held-out reps, and lead uppercuts were almost never seen. Most of it was the detector, not the thresholds. Real uppercuts come back up only to guard height, so they were being thrown out as hands returning. A hook's wind-up and the other hand's recoil counted as punches. After tuning it's 24 of 29 on that one recording: one person, one camera, one session. That's optimistic, since the fixes came from studying it.
   - A guest walk through the whole app found that saved presets had no phases and ran empty, the AI Coach's Generate Workout opened an empty builder, and the mic on the workout log typed a canned sentence instead of listening. Speed bag drills and double-end combos were saved but never shown, and the time buttons sat on the combo card on short phones and laptops.
 - **Fixed:** the audit list below, and all of the above.
 - **Wanted next:** to find out if any of the backend really works.
@@ -183,8 +183,8 @@ beginner drills question
 | Nov 1, `471b0fa` | Punch Check form cues on my one recording. Nobody knows which reps had real faults, so the only check is an independent measure from the picture: is the other hand below its own shoulder? | Punches with a cue: 19 of 31 down to 9 of 31 on odd reps, 20 of 32 down to 11 of 31 on even. "Elbow in" went from 13 to 0, and "reach all the way" from 7 to 1. "Other hand" now agrees with the picture on 6 of 8 drops on odd reps and 8 of 8 on even, with 2 and 1 cues the picture didn't back up. That shows the cues are consistent, **not that they're right**, and none has been tested against a fault I threw on purpose | `npm run punch:confusion -- file --cues` |
 | Nov 1, `471b0fa` | Punch Check straights thrown at the camera | Mannequin straight on, 10 of each: jabs 4 to 7, crosses 4 to 5. On my recording, reps labeled what was asked: odd 25 to 26 of 30, held-out even 25 to 24 of 29, so 50 of 59 either way. The lost one is a held-out jab, and I'd already looked at that half once, so read the 83% with that in mind. Jabs stay 6 of 9 and crosses 10 of 10. 0 false punches in guard. Still one person | Offline runs, not in this repo |
 | Nov 1, `471b0fa` | Vitest | 3,777 pass in 22 files | Fresh clone |
-| Nov 1, `329ca89` | Punch Check in Chromium, Firefox and WebKit at phone sizes and in landscape, on the production build, with a canvas standing in for the camera so the same frames reach the real model | 192 of 192. Testing it found the camera panel over the workout timer on phones under 700 px tall, and the Play button and combo card overrun in landscape. Both fixed. Not a real phone, and WebKit on a Mac isn't iOS Safari | Test recordings |
-| Nov 1 | A 30-minute live Quick Session in Chromium with the real model and a fake camera, one commit before `329ca89` | 52,995 frames, a steady 30 fps, 509 punches counted, no errors, flat page and listener counts. JS heap went from 7 to 27 MB, which traces to the model's own GL tables, not my code. It also showed the session clock running about 10% slow, now fixed and checked over 90 s | Test recordings |
+| Nov 1, `329ca89` | Punch Check in Chromium, Firefox and WebKit at phone sizes and in landscape, on the production build, with a canvas standing in for the camera so the same frames reach the real model | 192 of 192. Testing it found the camera panel over the workout timer on phones under 700 px tall, and the Play button and combo card overrun in landscape. Both fixed. The same frames went in everywhere, so this shows it runs and says nothing about accuracy. Not a real phone, and WebKit on a Mac isn't iOS Safari | Test recordings |
+| Nov 1 | A 30-minute live Quick Session in Chromium with the real model and a fake camera, one commit before `329ca89` | 52,995 frames, a steady 30 fps, 509 punches counted but not scored, no errors, flat page and listener counts. JS heap went from 7 to 27 MB, which traces to the model's own GL tables, not my code. It also showed the session clock running about 10% slow, now fixed and checked over 90 s | Test recordings |
 | Nov 1, `329ca89` | Vitest, lint, build | 3,804 pass in 24 files. Lint and build clean | Fresh clone |
 | Nov 1, `a1b5777` | Guest walk through onboarding, building and running all 7 segment types, manual logs, history, stats, badges, presets and clubs in Chromium at 320x568, 390x844 and 1440x900, on the production build | 0 console errors at the end. 26 browser tests added, covering each bug. Clubs only got their no-backend message, since they need an account. Firefox, WebKit and real phones were not part of this walk | Scripted browser run |
 | Nov 1, `a1b5777` | Timer buttons against the combo card, 253 screen sizes from 320 to 1920 wide and 480 to 932 tall | 0 overlaps. The page scrolls only under 560 px tall | Same run |
@@ -241,7 +241,7 @@ Design documents from the build. They're design history, so their numbers differ
 
 ## 10. What's next
 
-- Punch Check's camera-angle work and Quick Session logging, both in progress.
+- Punch Check's camera-position work and full Quick Session logging are next.
 - Record more people with `?record=1`, build a confusion table, then do more with the form data.
 - Run the AI builder with a real model and a real key.
 - Coach-made presets, and testing with non-boxers.
