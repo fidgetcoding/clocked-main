@@ -3,6 +3,7 @@ import { AppLayout } from '@/components/layout/AppLayout';
 import { useGloves } from '@/hooks/useGloves';
 import { GLOVES, TIER_SECTIONS, getGlovesForTier, Glove } from '@/data/gloves';
 import { cn } from '@/lib/utils';
+import { GloveArt } from '@/components/ui/GameArt';
 import { toast } from 'sonner';
 
 function GloveCard({
@@ -29,25 +30,23 @@ function GloveCard({
           ? 'border-volt bg-volt/10 ring-1 ring-volt shadow-[0_0_12px_hsl(var(--volt)/0.3)]'
           : isUnlocked
             ? 'border-surface-3 bg-surface-1 hover:bg-surface-2 cursor-pointer'
-            : 'border-surface-3/50 bg-surface-1/30 cursor-not-allowed opacity-60',
+            : 'border-surface-3/50 bg-surface-1/30 cursor-not-allowed',
         isPrestigeReward && isUnlocked && 'col-span-1'
       )}
     >
-      {/* Glove placeholder */}
       <div
         className={cn(
-          'w-full aspect-square rounded-lg flex items-center justify-center mb-1.5 transition-all',
+          'relative w-full aspect-square rounded-lg overflow-hidden mb-1.5 transition-all',
           isPrestigeReward && 'ring-1 ring-white/20',
           isBMF && isUnlocked && 'ring-2 ring-[#FFD700]'
         )}
-        style={{
-          backgroundColor: isUnlocked
-            ? glove.tierThemeColor
-            : `${glove.tierThemeColor}33`,
-          ...(isBMF && { border: '2px solid #1A1A1A' }),
-        }}
       >
-        {!isUnlocked && <Lock className="w-5 h-5 text-muted-foreground/60" />}
+        <GloveArt id={glove.id} locked={!isUnlocked} className="w-full h-full" />
+        {!isUnlocked && (
+          <div className="absolute inset-0 flex items-center justify-center">
+            <Lock className="w-5 h-5 text-white/80 drop-shadow" />
+          </div>
+        )}
       </div>
 
       {/* Name */}
@@ -100,10 +99,7 @@ const Gloves = () => {
         <div className="px-4 py-4 border-b border-surface-3">
           <p className="text-xs text-muted-foreground mb-2 uppercase tracking-wider">Currently Equipped</p>
           <div className="flex items-center gap-3">
-            <div
-              className="w-12 h-12 rounded-xl ring-2 ring-volt"
-              style={{ backgroundColor: equipped.tierThemeColor }}
-            />
+            <GloveArt id={equipped.id} className="w-12 h-12 rounded-xl ring-2 ring-volt" />
             <div>
               <p className="text-sm font-bold text-foreground">{equipped.name}</p>
               <p className="text-xs text-muted-foreground">{equipped.description}</p>

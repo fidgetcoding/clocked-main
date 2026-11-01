@@ -1,3 +1,4 @@
+import { BadgeArt } from '@/components/ui/GameArt';
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
 import { useBadges } from '@/hooks/useBadges';
@@ -19,28 +20,6 @@ function getCategoryName(cat: AnyBadgeCategory) {
   return POST_L100_CATEGORY_NAMES[cat as PostL100Category];
 }
 
-// Badge shape components
-function BadgeShapeIcon({ shape, earned, categoryColor }: { shape: string; earned: boolean; categoryColor: string }) {
-  const size = 'w-12 h-12';
-  const baseClasses = cn(
-    size, 'flex items-center justify-center transition-all duration-300',
-    earned ? `${categoryColor} shadow-lg` : 'bg-surface-2 opacity-40'
-  );
-
-  switch (shape) {
-    case 'hexagon':
-      return <div className={cn(baseClasses, 'clip-hexagon')} />;
-    case 'shield':
-      return <div className={cn(baseClasses, 'rounded-t-full rounded-b-lg')} />;
-    case 'star':
-      return <div className={cn(baseClasses, 'rotate-45 rounded-lg')} />;
-    case 'diamond':
-      return <div className={cn(baseClasses, 'rotate-45 rounded-md scale-90')} />;
-    default: // circle
-      return <div className={cn(baseClasses, 'rounded-full')} />;
-  }
-}
-
 interface BadgeDetailModalProps {
   badge: AnyBadge;
   stats: BadgeStats;
@@ -60,8 +39,8 @@ function BadgeDetailModal({ badge, stats, onClose }: BadgeDetailModalProps) {
         </button>
 
         <div className="text-center mb-4">
-          <div className={cn('w-20 h-20 mx-auto mb-3 rounded-full flex items-center justify-center', badge.earned ? colors.bg : 'bg-surface-2')}>
-            <BadgeShapeIcon shape={badge.shape} earned={badge.earned} categoryColor={colors.bg} />
+          <div className={cn('w-20 h-20 mx-auto mb-3 rounded-full overflow-hidden flex items-center justify-center', badge.earned ? colors.bg : 'bg-surface-2')}>
+            <BadgeArt id={badge.id} locked={!badge.earned} className="w-full h-full rounded-full" />
           </div>
           <h3 className={cn('text-lg font-bold', badge.earned ? colors.text : 'text-muted-foreground')}>
             {badge.name}
@@ -163,12 +142,12 @@ export function BadgeCollection() {
                   className="flex flex-col items-center gap-1 p-2 rounded-lg hover:bg-surface-2 transition-colors"
                 >
                   <div className={cn(
-                    'w-10 h-10 rounded-full flex items-center justify-center transition-all',
+                    'w-10 h-10 rounded-full overflow-hidden flex items-center justify-center transition-all',
                     badge.earned 
                       ? `${colors.bg} ring-2 ring-offset-1 ring-offset-background ${colors.glow.replace('shadow-', 'ring-')}` 
-                      : 'bg-surface-2 opacity-30'
+                      : 'bg-surface-2'
                   )}>
-                    <BadgeShapeIcon shape={badge.shape} earned={badge.earned} categoryColor={colors.bg} />
+                    <BadgeArt id={badge.id} locked={!badge.earned} className="w-full h-full rounded-full" />
                   </div>
                   <span className={cn(
                     'text-[9px] leading-tight text-center line-clamp-2',

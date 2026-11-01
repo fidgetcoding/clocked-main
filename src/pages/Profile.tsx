@@ -1,3 +1,4 @@
+import { GloveArt } from '@/components/ui/GameArt';
 import { useEffect, useState } from 'react';
 import { Settings, User, Link as LinkIcon, UserPlus, UserCheck, Clock, Trophy, Flame, ChevronRight, X, Search, Check, Share2 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
@@ -277,10 +278,7 @@ const Profile = () => {
                 <>
                   <span className="text-muted-foreground/50">•</span>
                   <button onClick={() => navigate('/gloves')} className="flex items-center gap-1.5 group">
-                    <div
-                      className="w-4 h-4 rounded-sm ring-1 ring-volt/40"
-                      style={{ backgroundColor: (GLOVES[equippedGlove] || GLOVES.default).tierThemeColor }}
-                    />
+                    <GloveArt id={(GLOVES[equippedGlove] || GLOVES.default).id} className="w-4 h-4 rounded-sm ring-1 ring-volt/40" />
                     <span className="text-xs text-muted-foreground group-hover:text-foreground transition-colors">
                       {(GLOVES[equippedGlove] || GLOVES.default).name}
                     </span>

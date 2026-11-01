@@ -2,6 +2,19 @@
 import { expect, test } from "@playwright/test";
 import { finishGuestOnboarding, NO_BACKEND_URL, readStore, trainAndFinish } from "./helpers";
 
+test("every glove on the gloves page shows real art", async ({ page }) => {
+  await finishGuestOnboarding(page, NO_BACKEND_URL, "Art Check");
+  await page.goto(`${NO_BACKEND_URL}/gloves`);
+  const art = page.locator('img[src*="/art/gloves/"]');
+  await expect(art.first()).toBeVisible();
+  expect(await art.count()).toBeGreaterThanOrEqual(52);
+
+  for (const image of await art.all()) await image.scrollIntoViewIfNeeded();
+  await expect
+    .poll(() => art.evaluateAll((images) => images.filter((image) => !(image as HTMLImageElement).naturalWidth).length))
+    .toBe(0);
+});
+
 test("a fresh clone runs as a guest, gates rewards, and never calls a backend", async ({ page }) => {
   const backendCalls: string[] = [];
   page.on("request", (request) => {

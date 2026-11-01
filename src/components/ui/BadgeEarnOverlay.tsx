@@ -1,22 +1,12 @@
 import { useEffect, useState } from 'react';
 import { Badge, BADGE_CATEGORY_COLORS } from '@/data/badges';
-import { Award, Star, Trophy, Zap } from 'lucide-react';
+import { BadgeArt } from '@/components/ui/GameArt';
 import { cn } from '@/lib/utils';
 
 
 interface BadgeEarnOverlayProps {
   badge: Badge;
   onComplete: () => void;
-}
-
-function BadgeIcon({ shape }: { shape: string }) {
-  switch (shape) {
-    case 'hexagon': return <Star className="w-10 h-10" />;
-    case 'shield': return <Award className="w-10 h-10" />;
-    case 'star': return <Star className="w-10 h-10 fill-current" />;
-    case 'diamond': return <Trophy className="w-10 h-10" />;
-    default: return <Zap className="w-10 h-10" />;
-  }
 }
 
 export function BadgeEarnOverlay({ badge, onComplete }: BadgeEarnOverlayProps) {
@@ -71,10 +61,10 @@ export function BadgeEarnOverlay({ badge, onComplete }: BadgeEarnOverlayProps) {
           } as React.CSSProperties}
         >
           <div className={cn(
-            'w-24 h-24 rounded-full flex items-center justify-center border-2 border-current/30',
+            'w-24 h-24 rounded-full overflow-hidden flex items-center justify-center border-2 border-current/30',
             colors.bg,
           )}>
-            <BadgeIcon shape={badge.shape} />
+            <BadgeArt id={badge.id} className="w-full h-full rounded-full" />
           </div>
         </div>
 

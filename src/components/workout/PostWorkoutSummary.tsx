@@ -1,3 +1,4 @@
+import { BadgeArt } from '@/components/ui/GameArt';
 import type { ExtendedBadgeCategory, PostL100Badge } from '@/data/postL100Badges';
 import { MIN_REWARD_SECONDS } from '@/lib/sessionEffort';
 import { useState, useEffect } from 'react';
@@ -13,37 +14,6 @@ import { RoundFeedback } from '@/types';
 import { cn } from '@/lib/utils';
 import { Zap, Trophy, Flame, Star, Award, TrendingUp } from 'lucide-react';
 import type { PunchSessionReport } from '@/lib/punch/round';
-
-// Badge shape components
-function BadgeShape({ shape, category, earned, size = 'md' }: { 
-  shape: string; category: ExtendedBadgeCategory; earned: boolean; size?: 'sm' | 'md' 
-}) {
-  const colors = BADGE_CATEGORY_COLORS[category];
-  const dim = size === 'sm' ? 'w-10 h-10' : 'w-14 h-14';
-  
-  if (!earned) {
-    return (
-      <div className={cn(dim, 'rounded-full bg-surface-2 border border-surface-3 flex items-center justify-center opacity-40')}>
-        <Award className="w-5 h-5 text-muted-foreground" />
-      </div>
-    );
-  }
-  
-  const baseClasses = cn(dim, 'flex items-center justify-center', colors.bg, colors.text);
-  
-  switch (shape) {
-    case 'hexagon':
-      return <div className={cn(baseClasses, 'rounded-lg rotate-0 border-2 border-current/20 shadow-lg', colors.glow)}><Star className="w-5 h-5" /></div>;
-    case 'shield':
-      return <div className={cn(baseClasses, 'rounded-t-full rounded-b-lg border-2 border-current/20 shadow-lg', colors.glow)}><Award className="w-5 h-5" /></div>;
-    case 'star':
-      return <div className={cn(baseClasses, 'rounded-full border-2 border-current/20 shadow-lg', colors.glow)}><Star className="w-5 h-5 fill-current" /></div>;
-    case 'diamond':
-      return <div className={cn(baseClasses, 'rounded-lg rotate-45 border-2 border-current/20 shadow-lg', colors.glow)}><Trophy className="w-4 h-4 -rotate-45" /></div>;
-    default: // circle
-      return <div className={cn(baseClasses, 'rounded-full border-2 border-current/20 shadow-lg', colors.glow)}><Zap className="w-5 h-5" /></div>;
-  }
-}
 
 export interface SessionXPBreakdown {
   baseXP: number;
@@ -249,7 +219,7 @@ export function PostWorkoutSummary({
                       key={badge.id}
                       className="flex items-center gap-3 p-2 rounded-lg bg-surface-2/50 border border-surface-3"
                     >
-                      <BadgeShape shape={badge.shape} category={badge.category} earned size="sm" />
+                      <BadgeArt id={badge.id} className="w-10 h-10 rounded-full shrink-0" />
                       <div className="flex-1 min-w-0">
                         <p className={cn("text-sm font-bold truncate", badgeColors.text)}>{badge.name}</p>
                         <p className="text-[10px] text-muted-foreground">{badge.description}</p>
@@ -336,7 +306,7 @@ export function PostWorkoutSummary({
                   className="flex items-center gap-3 p-2 rounded-lg bg-surface-2/50 border border-surface-3"
                   onClick={() => setShowBadgeDetails(showBadgeDetails?.id === badge.id ? null : badge)}
                 >
-                  <BadgeShape shape={badge.shape} category={badge.category} earned size="sm" />
+                  <BadgeArt id={badge.id} className="w-10 h-10 rounded-full shrink-0" />
                   <div className="flex-1 min-w-0">
                     <p className={cn("text-sm font-bold truncate", colors.text)}>{badge.name}</p>
                     <p className="text-[10px] text-muted-foreground">{badge.description}</p>

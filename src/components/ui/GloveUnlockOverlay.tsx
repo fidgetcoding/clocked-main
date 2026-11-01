@@ -1,3 +1,4 @@
+import { GloveArt } from '@/components/ui/GameArt';
 import { useEffect, useState } from 'react';
 import { playSoundEffect } from '@/hooks/useSoundEffects';
 import { Glove } from '@/data/gloves';
@@ -53,27 +54,18 @@ export function GloveUnlockOverlay({ glove, onComplete }: GloveUnlockOverlayProp
 
       {/* Content */}
       <div className="relative z-20 flex flex-col items-center gap-4">
-        {/* Glove icon / swatch */}
+        {/* Glove art */}
         <div
           className="rounded-2xl flex items-center justify-center transition-all duration-700"
           style={{
             width: phase === 'flash' ? '20px' : '120px',
             height: phase === 'flash' ? '20px' : '120px',
-            background: `linear-gradient(135deg, ${color}, ${color}99)`,
             boxShadow: phase !== 'flash' ? `0 0 50px ${color}60, 0 0 100px ${color}30` : 'none',
             opacity: phase === 'out' ? 0 : 1,
             transform: phase === 'out' ? 'scale(0.8)' : 'scale(1)',
           }}
         >
-          <span
-            className="transition-all duration-500"
-            style={{
-              fontSize: phase === 'flash' ? '0px' : '56px',
-              filter: 'drop-shadow(0 2px 8px rgba(0,0,0,0.5))',
-            }}
-          >
-            🥊
-          </span>
+          <GloveArt id={glove.id} className="w-full h-full rounded-2xl" />
         </div>
 
         {/* NEW GLOVES label */}

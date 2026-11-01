@@ -49,5 +49,9 @@ test("a 5-second workout earns nothing, and a real one earns its rewards", async
     await expect.poll(async () => (await profileOf(userId))?.current_streak).toBe(1);
     expect((await profileOf(userId))?.total_training_seconds).toBeGreaterThanOrEqual(6 * 60);
     await expect.poll(() => badgeCount(userId)).toBeGreaterThan(0);
+
+    const badgeArt = page.locator('img[src*="/art/badges/"]').first();
+    await expect(badgeArt).toBeVisible();
+    await expect.poll(() => badgeArt.evaluate((image) => (image as HTMLImageElement).naturalWidth)).toBeGreaterThan(0);
   });
 });
