@@ -94,12 +94,18 @@ export async function userIdFor(email: string): Promise<string> {
   return match.id;
 }
 
-/** Start the first workout on the home screen, leave the timer running, and finish it early. */
-export async function trainAndFinish(page: Page, trainingSeconds: number): Promise<void> {
+/** Start the first workout on the home screen and get past the preparation, which doesn't count as training. */
+export async function startTraining(page: Page): Promise<void> {
   await page.locator("button:has(svg.lucide-play)").first().click();
   await page.waitForURL("**/workout/**");
   await page.locator("button:has(svg.lucide-play)").first().click();
   await page.locator("button:has(svg.lucide-pause)").waitFor();
+  await page.locator("button:has(svg.lucide-skip-forward)").click();
+}
+
+/** Start the first workout on the home screen, leave the timer running, and finish it early. */
+export async function trainAndFinish(page: Page, trainingSeconds: number): Promise<void> {
+  await startTraining(page);
   await page.clock.fastForward(trainingSeconds * 1000);
   await page.getByText(formatElapsed(trainingSeconds)).first().waitFor();
   await page.getByTitle("Complete workout early").click();

@@ -18,7 +18,10 @@ export type BadgeTrackingStat =
   | 'total_pushups'
   | 'total_burpees'
   | 'total_curlups'
-  | 'total_jog_run_minutes';
+  | 'total_jog_run_minutes'
+  | 'session_finished'
+  | 'session_finished_unpaused'
+  | 'session_combo_rounds';
 
 export type BadgeShape = 'circle' | 'hexagon' | 'shield' | 'star' | 'diamond';
 
@@ -173,14 +176,14 @@ const CONDITIONING_BADGES: Badge[] = [
 
 // =====================================================
 // 8.6 In-Workout Badges (4) — Category Total: 390 XP
-// Trigger on first completed session
+// Each one asks for something this session really did. They used to fire on any first session.
 // =====================================================
 
 const IN_WORKOUT_BADGES: Badge[] = [
-  { id: 'full_send',           name: 'Full Send',           description: 'Complete your first workout',        category: 'in_workout', xpReward: 200, trackingStat: 'total_sessions', threshold: 1, shape: 'star' },
-  { id: 'push_through',        name: 'Push Through',        description: 'Push through your first workout',    category: 'in_workout', xpReward: 50,  trackingStat: 'total_sessions', threshold: 1, shape: 'shield' },
-  { id: 'beast_mode_achiever', name: 'Beast Mode Achiever', description: 'Achieve beast mode in a workout',    category: 'in_workout', xpReward: 100, trackingStat: 'total_sessions', threshold: 1, shape: 'hexagon' },
-  { id: 'rapid_fire',          name: 'Rapid Fire',          description: 'Complete rapid fire combinations',    category: 'in_workout', xpReward: 40,  trackingStat: 'total_sessions', threshold: 1, shape: 'circle' },
+  { id: 'full_send',           name: 'Full Send',           description: 'Finish a whole workout, nothing skipped', category: 'in_workout', xpReward: 200, trackingStat: 'session_finished', threshold: 1, shape: 'star' },
+  { id: 'push_through',        name: 'Push Through',        description: 'Finish a whole workout without pausing', category: 'in_workout', xpReward: 50,  trackingStat: 'session_finished_unpaused', threshold: 1, shape: 'shield' },
+  { id: 'beast_mode_achiever', name: 'Beast Mode Achiever', description: 'Train for 40 minutes in one workout', category: 'in_workout', xpReward: 100, trackingStat: 'single_session_minutes', threshold: 40, shape: 'hexagon' },
+  { id: 'rapid_fire',          name: 'Rapid Fire',          description: 'Finish a workout with 10 combo rounds', category: 'in_workout', xpReward: 40,  trackingStat: 'session_combo_rounds', threshold: 10, shape: 'circle' },
 ];
 
 // =====================================================
@@ -241,6 +244,9 @@ export interface BadgeStats {
   totalBurpees: number;
   totalCurlups: number;
   totalJogRunMinutes: number;
+  sessionFinished: number; // 1 if this session ran to its end with nothing skipped or cut, else 0
+  sessionFinishedUnpaused: number; // 1 if it also never paused, else 0
+  sessionComboRounds: number; // Combo rounds in this session, once it has finished
 }
 
 /**
@@ -277,6 +283,9 @@ function getStatValue(stats: BadgeStats, stat: BadgeTrackingStat): number {
     case 'total_burpees':          return stats.totalBurpees;
     case 'total_curlups':          return stats.totalCurlups;
     case 'total_jog_run_minutes':  return stats.totalJogRunMinutes;
+    case 'session_finished':       return stats.sessionFinished;
+    case 'session_finished_unpaused': return stats.sessionFinishedUnpaused;
+    case 'session_combo_rounds':   return stats.sessionComboRounds;
     default: return 0;
   }
 }

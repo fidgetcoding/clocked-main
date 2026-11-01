@@ -34,7 +34,7 @@ import { useRepeatingCheck } from '@/hooks/useRepeatingCheck';
 import { cn } from '@/lib/utils';
 import { ACTIVITY_XP_RATES, ActivityType, getStreakMultiplier, getActivityTypeFromName, calculateComboXP, getLevelFromXP, Prestige, isPrestigeEligible as checkPrestigeEligible, isMaxLevel as checkIsMaxLevel } from '@/lib/xpSystem';
 import { computePostLogStats, computePostL100Increments } from '@/lib/workoutTracking';
-import { buildSessionBadgeStats, getSessionCredit, getSessionEffort, qualifiesForRewards } from '@/lib/sessionEffort';
+import { buildSessionBadgeStats, FRESH_SESSION, getSessionCredit, getSessionEffort, noteTraining, qualifiesForRewards, SessionLog, toSessionFacts } from '@/lib/sessionEffort';
 import { checkBadges, sumBadgeXP } from '@/data/badges';
 import { checkPostL100Badges } from '@/data/postL100Badges';
 import { LevelUpOverlay } from '@/components/ui/LevelUpOverlay';
@@ -376,7 +376,9 @@ const WorkoutSession = () => {
 
   const [currentSegmentIndex, setCurrentSegmentIndex] = useState(0);
   const [timeRemaining, setTimeRemaining] = useState(PREPARATION_SECONDS);
+  // Time trained: the preparation countdown doesn't count
   const [totalElapsed, setTotalElapsed] = useState(0);
+  const [sessionLog, setSessionLog] = useState<SessionLog>(FRESH_SESSION);
   const [isRunning, setIsRunning] = useState(false);
   const [isPaused, setIsPaused] = useState(true);
   const [isPreparation, setIsPreparation] = useState(true);
@@ -527,7 +529,7 @@ const WorkoutSession = () => {
       newStreak = 1;
     }
     
-    const liveStats = buildSessionBadgeStats(profile, tier, totalElapsed, newStreak);
+    const liveStats = buildSessionBadgeStats(profile, tier, totalElapsed, newStreak, toSessionFacts(sessionLog, flatSegments));
     
     const alreadyEarned = [...earnedBadgeIds, ...Array.from(liveBadgeIdsRef.current)];
     const newBadges = checkBadges(liveStats, alreadyEarned);
@@ -584,7 +586,7 @@ const WorkoutSession = () => {
     
     const tier = (profile.prestige || 'beginner') as Prestige;
     
-    const updatedStats = buildSessionBadgeStats(profile, tier, totalElapsed, newStreak);
+    const updatedStats = buildSessionBadgeStats(profile, tier, totalElapsed, newStreak, toSessionFacts(sessionLog, flatSegments));
     
     // BUG 3 FIX: Exclude live-earned badges from post-workout check to avoid double-counting
     const liveEarnedIds = Array.from(liveBadgeIdsRef.current);
@@ -666,7 +668,7 @@ const WorkoutSession = () => {
       isMaxLevel: checkIsMaxLevel(tier, totalXPAfter),
       belowRewardMinimum: !earnedRewards,
     });
-  }, [isComplete, sessionResult, profile, accumulatedXP, totalElapsed, earnedBadgeIds, liveBadgesEarned]);
+  }, [isComplete, sessionResult, profile, accumulatedXP, totalElapsed, earnedBadgeIds, liveBadgesEarned, sessionLog, flatSegments]);
 
   // Background-safe timer using wall-clock deltas
   useEffect(() => {
@@ -681,10 +683,11 @@ const WorkoutSession = () => {
         if (delta < 1) return;
         lastTickTimeRef.current = lastTick;
 
-        setTotalElapsed(prev => prev + delta);
         setTimeRemaining(prev => prev - delta);
         
         if (!isPreparation && currentSegment) {
+          setTotalElapsed(prev => prev + delta);
+          setSessionLog(log => noteTraining(log, currentSegment));
           const xpPerSecond = getXPPerSecond(currentSegment);
           const xpGained = xpPerSecond * streakMultiplier * delta;
           setAccumulatedXP(prev => prev + xpGained);
@@ -810,6 +813,7 @@ const WorkoutSession = () => {
       } else if (!isComplete && !xpAwardedRef.current) {
         xpAwardedRef.current = true;
         cancelSpeech();
+        setSessionLog(log => ({ ...log, ranToEnd: true }));
         setIsComplete(true);
         setIsRunning(false);
         
@@ -833,19 +837,25 @@ const WorkoutSession = () => {
     }, 2000);
   };
 
+  // The bonus for showing up lands with the first second trained, so skipping to the end earns nothing
+  const startBonusPaidRef = useRef(false);
+  useEffect(() => {
+    if (totalElapsed === 0 || startBonusPaidRef.current) return;
+    startBonusPaidRef.current = true;
+    setAccumulatedXP(prev => prev + 10);
+    showXpBubble(10);
+  }, [totalElapsed]);
+
   const handleStart = () => {
     initSpeech();
     sessionActiveRef.current = true; // BUG 1 FIX: Mark session as active
     setIsRunning(true);
     setIsPaused(false);
-    if (!hasStartedOnce) {
-      setAccumulatedXP(prev => prev + 10);
-      showXpBubble(10);
-      setHasStartedOnce(true);
-    }
+    setHasStartedOnce(true);
   };
 
   const handlePauseResume = () => {
+    if (!isPaused && !isPreparation) setSessionLog(log => ({ ...log, paused: true }));
     setIsPaused((prev) => !prev);
   };
 
@@ -853,6 +863,7 @@ const WorkoutSession = () => {
     setCurrentSegmentIndex(0);
     setTimeRemaining(PREPARATION_SECONDS);
     setTotalElapsed(0);
+    setSessionLog(FRESH_SESSION);
     setAccumulatedXP(0);
     setIsRunning(false);
     setIsPaused(true);
@@ -886,6 +897,7 @@ const WorkoutSession = () => {
     setCurrentSegmentIndex(0);
     setTimeRemaining(PREPARATION_SECONDS);
     setTotalElapsed(0);
+    setSessionLog(FRESH_SESSION);
     setAccumulatedXP(0);
     setIsRunning(false);
     setIsPaused(true);
@@ -914,6 +926,7 @@ const WorkoutSession = () => {
       setIsPreparation(false);
       setTimeRemaining(flatSegments[0]?.duration || 60);
     } else if (currentSegmentIndex < flatSegments.length - 1) {
+      setSessionLog(log => ({ ...log, cutShort: true }));
       setCurrentSegmentIndex((prev) => prev + 1);
       setTimeRemaining(flatSegments[currentSegmentIndex + 1].duration);
     } else {
@@ -937,11 +950,17 @@ const WorkoutSession = () => {
     }
   };
 
+  const noteCutShort = () => {
+    if (!isPreparation) setSessionLog(log => ({ ...log, cutShort: true }));
+  };
+
   const adjustTime = (delta: number) => {
+    if (delta < 0) noteCutShort();
     setTimeRemaining((prev) => Math.max(0, prev + delta));
   };
 
   const halveTime = () => {
+    noteCutShort();
     setTimeRemaining((prev) => Math.max(1, Math.floor(prev / 2)));
   };
 
@@ -1027,7 +1046,7 @@ const WorkoutSession = () => {
               flatSegments,
               getSessionEffort(totalElapsed),
             );
-            const credit = getSessionCredit(totalElapsed, tier);
+            const credit = getSessionCredit(totalElapsed, tier, sessionLog.content);
             
             
             updateProfile.mutate({

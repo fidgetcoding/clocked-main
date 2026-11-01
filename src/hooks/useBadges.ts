@@ -51,6 +51,9 @@ export function useBadges() {
     totalBurpees: (profile)?.total_burpees || 0,
     totalCurlups: (profile)?.total_curlups || 0,
     totalJogRunMinutes: (profile)?.total_jog_run_minutes || 0,
+    sessionFinished: 0, // Set per-session
+    sessionFinishedUnpaused: 0, // Set per-session
+    sessionComboRounds: 0, // Set per-session
   };
 
   // Build post-L100 stats from profile

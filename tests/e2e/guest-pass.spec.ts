@@ -201,10 +201,18 @@ test("a warmup with no combos stays freestyle when the rounds have some", async 
 
 test("restarting gets the same preparation and doesn't promise to save XP", async ({ page }) => {
   await startFirstSet(page);
+  await page.locator("button:has(svg.lucide-skip-forward)").click();
+  await expect(page.getByText("00:01").first()).toBeVisible();
   await page.getByTitle("Restart from beginning").click();
-  await expect(page.getByText(/drops the \+10 XP/)).toBeVisible();
+  await expect(page.getByText(/drops the \+1\d XP/)).toBeVisible();
   await page.getByRole("button", { name: "Restart", exact: true }).click();
   await expect(page.getByText("0:30")).toBeVisible();
+});
+
+test("restarting during the preparation has no XP to drop", async ({ page }) => {
+  await startFirstSet(page);
+  await page.getByTitle("Restart from beginning").click();
+  await expect(page.getByText("This will reset the workout to the beginning.")).toBeVisible();
 });
 
 test("drills picked for a speed bag round show up in the session", async ({ page }) => {
