@@ -51,7 +51,7 @@ export function BottomNav() {
   };
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 bg-tech-black border-t border-surface-3">
+    <nav className="fixed bottom-0 left-0 right-0 z-40 bg-tech-black border-t border-surface-3">
       <div className="flex items-center justify-around max-w-lg mx-auto safe-bottom">
         {navItems.map(renderNavItem)}
       </div>
