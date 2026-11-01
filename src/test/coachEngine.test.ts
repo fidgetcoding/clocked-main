@@ -66,7 +66,9 @@ function makeHistory(
   }));
 }
 
-const NOW = new Date('2026-02-25T14:00:00Z'); // 2pm
+// Built from local parts because the engine reads the user's local hour (now.getHours()).
+// A UTC string would land on a different hour in every timezone but UTC.
+const NOW = new Date(2026, 1, 25, 14, 0); // 2pm
 
 // =====================================================
 // CATEGORY A: DIFFICULTY CALIBRATION (Rule C1)
@@ -351,7 +353,7 @@ describe('Category F: Recovery (C6)', () => {
 
 describe('Category G: Time & Context (C7, C8, C9)', () => {
   it('G.1 — Early Morning Session', () => {
-    const morning = new Date('2026-02-25T06:30:00Z');
+    const morning = new Date(2026, 1, 25, 6, 30);
     const profile = makeProfile({ morning_workouts: 15 });
     const history = makeHistory(10, { difficulty: 'just_right' });
     const rec = generateCoachRecommendation(history, profile, morning);
