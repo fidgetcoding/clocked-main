@@ -1,6 +1,6 @@
-import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
+import { lazy, Suspense, useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { ArrowLeft, Home, Play, Pause, RotateCcw, SkipForward, SkipBack, ChevronRight, MoreVertical, CheckCircle, Zap, Flame, Trophy } from 'lucide-react';
+import { ArrowLeft, Home, Play, Pause, RotateCcw, SkipForward, SkipBack, ChevronRight, MoreVertical, CheckCircle, Zap, Flame, Trophy, Camera } from 'lucide-react';
 import { RoundFeedbackPanel } from '@/components/workout/RoundFeedbackPanel';
 import { RoundFeedback } from '@/types';
 import { AppLayout } from '@/components/layout/AppLayout';
@@ -34,6 +34,11 @@ import { checkPostL100Badges } from '@/data/postL100Badges';
 import { LevelUpOverlay } from '@/components/ui/LevelUpOverlay';
 import { PostWorkoutSummary, SessionXPBreakdown } from '@/components/workout/PostWorkoutSummary';
 import { usePostWorkoutComplete } from '@/hooks/useCommunityPosts';
+import { usePunchPrefsStore } from '@/stores/punchPrefsStore';
+import type { PunchSessionReport } from '@/lib/punch/round';
+
+// Lazy so the camera pipeline stays out of the main bundle
+const PunchCameraPanel = lazy(() => import('@/components/punch/PunchCameraPanel'));
 
 interface FlatSegment {
   id: string;
@@ -367,6 +372,10 @@ const WorkoutSession = () => {
   const [showRestartConfirm, setShowRestartConfirm] = useState(false);
   const [comboXPPop, setComboXPPop] = useState<{ amount: number; id: number; isChampionship?: boolean } | null>(null);
   const [levelUpLevel, setLevelUpLevel] = useState<number | null>(null);
+  const [punchSummary, setPunchSummary] = useState<PunchSessionReport | null>(null);
+  const [cameraSession, setCameraSession] = useState(0);
+  const cameraOn = usePunchPrefsStore((state) => state.workoutCamera);
+  const setCameraOn = usePunchPrefsStore((state) => state.setWorkoutCamera);
   const [sessionResult, setSessionResult] = useState<SessionXPBreakdown | null>(null);
   
   // Badge system
@@ -883,6 +892,8 @@ const WorkoutSession = () => {
     setIsComplete(false);
     setHasAwardedXP(false);
     xpAwardedRef.current = false;
+    setPunchSummary(null);
+    setCameraSession((n) => n + 1);
   };
 
   const handleBack = () => {
@@ -992,7 +1003,7 @@ const WorkoutSession = () => {
       duration: totalElapsed,
       xp_earned: sessionResult.sessionTotal,
       difficulty: difficultyRating || null,
-      notes: notes || null,
+      notes: [notes, punchSummary?.total ? punchSummary.note : ''].filter(Boolean).join('\n') || null,
       is_manual_entry: false,
       round_feedback: feedbackMode === 'advanced' ? roundFeedback : [],
     }, {
@@ -1060,6 +1071,7 @@ const WorkoutSession = () => {
           roundCount={roundCount}
           onRoundRating={handleRoundRating}
           onLog={handleLog}
+          punchSummary={punchSummary}
           logged={logged}
           onNavigateHome={() => navigate('/')}
           onPrestige={handlePrestige}
@@ -1143,6 +1155,18 @@ const WorkoutSession = () => {
             >
               <CheckCircle className="w-4 h-4" />
             </button>
+            <button
+              onClick={() => setCameraOn(!cameraOn)}
+              aria-label="Punch camera"
+              aria-pressed={cameraOn}
+              title="Punch camera"
+              className={cn(
+                "px-3 py-2 rounded-full border transition-colors",
+                cameraOn ? "bg-volt/20 border-volt/40 text-volt" : "bg-surface-1 border-surface-3 text-muted-foreground hover:text-foreground"
+              )}
+            >
+              <Camera className="w-4 h-4" />
+            </button>
           </div>
           
           <div className="flex flex-col items-end gap-1 relative">
@@ -1169,6 +1193,21 @@ const WorkoutSession = () => {
             )}
           </div>
         </header>
+
+        {/* Sits in the corner clear of the timer and combos. Only boxing segments are counted. */}
+        {cameraOn && hasStartedOnce && (
+          <Suspense fallback={null}>
+            <PunchCameraPanel
+              key={cameraSession}
+              counting={
+                isRunning && !isPaused && !isPreparation && !!currentSegment &&
+                currentSegment.type !== 'rest' && (isBoxingSegment(currentSegment) || isShadowboxing)
+              }
+              onSummary={setPunchSummary}
+              className="fixed left-4 top-[4.5rem] z-10"
+            />
+          </Suspense>
+        )}
 
         {/* Level Up Overlay */}
         {levelUpLevel !== null && (

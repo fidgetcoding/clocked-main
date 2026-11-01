@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { lazy, Suspense, useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Home, Play, Pause, Square, Camera } from 'lucide-react';
 import { AppLayout } from '@/components/layout/AppLayout';
@@ -22,6 +22,12 @@ import { getStreakMultiplier, getLevelFromXP } from '@/lib/xpSystem';
 import { LevelUpOverlay } from '@/components/ui/LevelUpOverlay';
 import { useSoundEffects } from '@/hooks/useSoundEffects';
 import { computePostLogStats } from '@/lib/workoutTracking';
+import { Switch } from '@/components/ui/switch';
+import { usePunchPrefsStore } from '@/stores/punchPrefsStore';
+import type { PunchSessionReport } from '@/lib/punch/round';
+
+// Lazy so the camera pipeline stays out of the main bundle
+const PunchCameraPanel = lazy(() => import('@/components/punch/PunchCameraPanel'));
 
 const QUICK_SESSION_XP_RATE = 0.10; // XP per second
 
@@ -58,6 +64,9 @@ const QuickSession = () => {
   const [difficultyRating, setDifficultyRating] = useState<'too_easy' | 'just_right' | 'too_hard' | null>(null);
   const [showExitConfirm, setShowExitConfirm] = useState(false);
   const [levelUpLevel, setLevelUpLevel] = useState<number | null>(null);
+  const [punchSummary, setPunchSummary] = useState<PunchSessionReport | null>(null);
+  const cameraOn = usePunchPrefsStore((state) => state.quickSessionCamera);
+  const setCameraOn = usePunchPrefsStore((state) => state.setQuickSessionCamera);
 
   const lastTickTimeRef = useRef<number>(Date.now());
   const xpAwardedRef = useRef(false);
@@ -155,7 +164,7 @@ const QuickSession = () => {
       duration: totalElapsed,
       xp_earned: xpEarned,
       difficulty: difficultyRating || null,
-      notes: notes || null,
+      notes: [notes, punchSummary?.total ? punchSummary.note : ''].filter(Boolean).join('\n') || null,
       is_manual_entry: false,
       round_feedback: [],
     }, {
@@ -193,6 +202,16 @@ const QuickSession = () => {
               <p className="text-sm text-muted-foreground">XP Earned</p>
             </div>
           </div>
+
+          {!!punchSummary?.total && (
+            <div className="card-workout w-full max-w-xs text-center mb-6" data-testid="quick-punches">
+              <p className="text-2xl font-bold text-volt">{punchSummary.total}</p>
+              <p className="text-sm text-muted-foreground">
+                Punches seen, {punchSummary.cleanPercent}% clean
+              </p>
+              {punchSummary.topFix && <p className="text-xs text-muted-foreground mt-1">{punchSummary.topFix.advice}</p>}
+            </div>
+          )}
 
           {!logged ? (
             <div className="w-full max-w-xs space-y-4 mb-6">
@@ -292,6 +311,13 @@ const QuickSession = () => {
           <LevelUpOverlay level={levelUpLevel} onComplete={() => setLevelUpLevel(null)} />
         )}
 
+        {/* The camera asks for permission here, once the session has started */}
+        {cameraOn && isRunning && (
+          <Suspense fallback={null}>
+            <PunchCameraPanel counting={!isPaused} onSummary={setPunchSummary} className="fixed left-4 top-[4.5rem] z-10" />
+          </Suspense>
+        )}
+
         {/* Main Timer */}
         <div className="flex-1 flex flex-col items-center justify-center px-4">
           <h2 className="text-2xl font-black text-foreground mb-2 uppercase tracking-wider">
@@ -343,15 +369,16 @@ const QuickSession = () => {
             )}
           </div>
 
-          {!isRunning && (
-            <button
-              onClick={() => navigate('/punch-check')}
-              className="flex items-center gap-2 mt-8 px-4 py-2 rounded-full bg-surface-1 border border-surface-3 text-sm text-muted-foreground hover:bg-surface-2 transition-colors"
-            >
-              <Camera className="w-4 h-4 text-volt" />
-              Check your punches on camera
-            </button>
-          )}
+          <label className="flex items-center gap-3 mt-8 px-4 py-2 rounded-full bg-surface-1 border border-surface-3 text-sm text-muted-foreground">
+            <Camera className="w-4 h-4 text-volt" />
+            Punch camera
+            <Switch
+              checked={cameraOn}
+              onCheckedChange={setCameraOn}
+              aria-label="Punch camera"
+              className="data-[state=checked]:bg-volt"
+            />
+          </label>
         </div>
       </div>
 

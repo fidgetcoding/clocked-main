@@ -10,6 +10,7 @@ import { PrestigePrompt, MaxLevelCelebration } from '@/components/workout/Presti
 import { RoundFeedback } from '@/types';
 import { cn } from '@/lib/utils';
 import { Zap, Trophy, Flame, Star, Award, TrendingUp } from 'lucide-react';
+import type { PunchSessionReport } from '@/lib/punch/round';
 
 // Badge shape components
 function BadgeShape({ shape, category, earned, size = 'md' }: { 
@@ -76,6 +77,7 @@ interface PostWorkoutSummaryProps {
   roundCount: number;
   onRoundRating: (round: number, rating: number) => void;
   onLog: () => void;
+  punchSummary?: PunchSessionReport | null;
   logged: boolean;
   onNavigateHome: () => void;
   onPrestige: () => void;
@@ -91,7 +93,7 @@ export function PostWorkoutSummary({
   result, workoutName, totalElapsed,
   notes, setNotes, difficultyRating, setDifficultyRating,
   feedbackMode, setFeedbackMode, roundFeedback, roundCount, onRoundRating,
-  onLog, logged, onNavigateHome, onPrestige,
+  onLog, punchSummary, logged, onNavigateHome, onPrestige,
 }: PostWorkoutSummaryProps) {
   const [showBadgeDetails, setShowBadgeDetails] = useState<Badge | null>(null);
   const [animateXP, setAnimateXP] = useState(false);
@@ -372,6 +374,14 @@ export function PostWorkoutSummary({
       </div>
 
       {/* Journal */}
+      {!!punchSummary?.total && (
+        <div className="card-workout w-full text-center mb-4" data-testid="workout-punches">
+          <p className="text-2xl font-bold text-volt">{punchSummary.total}</p>
+          <p className="text-sm text-muted-foreground">Punches seen, {punchSummary.cleanPercent}% clean</p>
+          {punchSummary.topFix && <p className="text-xs text-muted-foreground mt-1">{punchSummary.topFix.advice}</p>}
+        </div>
+      )}
+
       {!logged ? (
         <div className="w-full max-w-sm space-y-4 mb-6">
           {roundCount > 0 && (
