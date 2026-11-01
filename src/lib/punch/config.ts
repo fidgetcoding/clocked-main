@@ -37,6 +37,18 @@ export const PUNCH_CONFIG = {
     /** Turned this far, the far arm is mostly hidden behind the body. */
     farArmYaw: 55,
     farArmConfidence: 0.5,
+    /** Turned this far, the model can't keep the arms apart, so punches are counted but not named. */
+    sideOnYaw: 65,
+    /**
+     * Off-axis, the model's depth makes a hook's arm look long, so a hook can pass for a straight. One
+     * whose path bowed this much could be either, so it's called "punch". That bend alone isn't proof
+     * of a hook: on my recording turned in software, crosses bow this much too.
+     */
+    offAxisYaw: 10,
+    /** Punches on both arms this close together, off-axis, are one punch seen twice. */
+    mirrorWindowMs: 250,
+    unsureBend: 0.1,
+    unsureMaxUpShare: 0.5,
     /**
      * How far the spine can tilt toward or away from the camera before it's put down to the camera's
      * height. Within this range a real lean can't be told from a camera angle, so it's left alone.

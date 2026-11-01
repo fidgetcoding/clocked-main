@@ -50,6 +50,8 @@ interface HandState {
   fromWindUp: boolean;
   /** The last frame this hand was at rest, the baseline for measuring rotation. */
   restPose: BodyPose | null;
+  /** When this hand last landed a punch. */
+  lastPunchT: number;
   /** State of the other hand while this one extends. */
   otherStartedIdle: boolean;
   otherStartedLow: boolean;
@@ -83,6 +85,7 @@ const newHand = (side: Side, hand: Hand): HandState => ({
   fromDip: false,
   fromWindUp: false,
   restPose: null,
+  lastPunchT: -Infinity,
   otherStartedIdle: false,
   otherStartedLow: false,
 });
@@ -91,6 +94,17 @@ const armOf = (pose: BodyPose, side: Side): ArmPose => (side === 'left' ? pose.l
 const degrees = (radians: number) => (radians * 180) / Math.PI;
 const elbowAngleOf = (arm: ArmPose) =>
   arm.wrist && arm.elbow ? jointAngle(arm.shoulder, arm.elbow, arm.wrist) : null;
+
+/** How far the wrist's path bows away from a straight line in the picture, as a share of that line. */
+function pathBendOf(samples: ExtensionSample[], origin: Vec3, end: Vec3, camera: Vec3) {
+  const chord = sub(end, origin);
+  const across = samples.reduce((most, sample) => {
+    const off = sub(sample.wrist, origin);
+    const along = dot(off, chord) / Math.max(dot(chord, chord), 1e-6);
+    return Math.max(most, pictureLength({ x: off.x - chord.x * along, y: off.y - chord.y * along, z: off.z - chord.z * along }, camera));
+  }, 0);
+  return across / Math.max(pictureLength(chord, camera), 1e-6);
+}
 
 /**
  * Turns timestamped pose frames into punch and form events. Pure: no DOM, no clock, no I/O.
@@ -362,6 +376,13 @@ export class PunchDetector {
       return;
     }
 
+    // Off-axis the model can move a punch onto both arms at once. The faster one is the punch.
+    if (Math.abs(peak.pose.viewYaw) >= view.offAxisYaw) {
+      const otherIsFaster = other.phase === 'extending' && other.peakSpeed > state.peakSpeed;
+      const otherJustLanded = peak.pose.t - other.lastPunchT <= view.mirrorWindowMs;
+      if (otherIsFaster || otherJustLanded) return;
+    }
+
     const arm = armOf(peak.pose, state.side);
     if (!arm.wrist || !arm.elbow) return;
     const across = state.side === 'left' ? -delta.x : delta.x;
@@ -411,6 +432,8 @@ export class PunchDetector {
       forearmFromLevel: degrees(Math.atan2(Math.abs(forearm.y), forearmSideways)),
       upperArmBelowLevel: degrees(Math.asin(Math.max(-1, Math.min(1, (arm.shoulder.y - arm.elbow.y) / Math.max(upperArm, 1e-6))))),
       visibility,
+      pathBend: pathBendOf(toPeak, origin, peak.wrist, peak.pose.camera),
+      viewYaw: peak.pose.viewYaw,
     };
     const result = classifyPunch(state.hand, shape, this.config);
     // Coming up out of a dip with no arc and no long arm is a hand going home, not a straight
@@ -425,6 +448,7 @@ export class PunchDetector {
     const issues = this.peakIssues(state, other, peak, result.punch, result.depthUnreliable, armShort, shoulderRotation, hipRotation);
     const id = this.nextId++;
     this.lastPunchT = peak.pose.t;
+    state.lastPunchT = peak.pose.t;
     state.openPunchId = id;
     state.openPeakT = peak.pose.t;
 
@@ -434,6 +458,7 @@ export class PunchDetector {
       t: peak.pose.t,
       side: state.side,
       hand: state.hand,
+      handUnsure: result.handUnsure,
       punch: result.punch,
       confidence: result.confidence,
       issues,
@@ -455,6 +480,8 @@ export class PunchDetector {
         upperArmBelowLevel: shape.upperArmBelowLevel,
         shoulderRotation,
         hipRotation,
+        pathBend: shape.pathBend,
+        viewYaw: shape.viewYaw,
         scores: result.scores,
       },
     });

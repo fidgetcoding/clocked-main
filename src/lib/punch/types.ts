@@ -51,6 +51,10 @@ export interface PunchMetrics {
   upperArmBelowLevel: number;
   shoulderRotation: number;
   hipRotation: number;
+  /** How far the wrist's path bowed from a straight line in the picture, as a share of its length. */
+  pathBend: number;
+  /** How far the fighter was turned from the camera, as the model read it. */
+  viewYaw: number;
   scores: { straight: number; hook: number; uppercut: number; byElimination: boolean };
 }
 
@@ -60,6 +64,8 @@ export interface PunchDetected {
   t: number;
   side: Side;
   hand: Hand;
+  /** True when the view doesn't let the arms be told apart, so hand is a best guess. */
+  handUnsure?: boolean;
   punch: PunchClass;
   confidence: number;
   issues: FormIssue[];

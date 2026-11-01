@@ -32,6 +32,10 @@ export interface PunchShapeFeatures {
   /** Degrees the upper arm hangs below level at the peak. Negative means the elbow is above the shoulder. */
   upperArmBelowLevel: number;
   visibility: number;
+  /** How far the wrist's path bowed from a straight line in the picture, as a share of its length. */
+  pathBend: number;
+  /** Degrees the fighter is turned from the camera, as the model read it. */
+  viewYaw: number;
 }
 
 const ramp = (value: number, from: number, to: number) =>
@@ -91,13 +95,18 @@ export function classifyPunch(hand: Hand, f: PunchShapeFeatures, config: PunchCo
   const scores = scoreShapes(f, config);
   const arc: PunchShape = scores.uppercut >= scores.hook ? 'uppercut' : 'hook';
   const shape: PunchShape = scores[arc] >= config.classify.minArcEvidence ? arc : 'straight';
+  const { view } = config;
+  const sideOn = Math.abs(f.viewYaw) >= view.sideOnYaw;
+  const maybeHook = shape === 'straight' && Math.abs(f.viewYaw) >= view.offAxisYaw && f.pathBend >= view.unsureBend && f.upShare < view.unsureMaxUpShare;
   const confidence = scores[shape] * Math.min(1, f.visibility / 0.8);
-  const isConfident = confidence >= config.classify.minConfidence;
+  const isConfident = !sideOn && !maybeHook && confidence >= config.classify.minConfidence;
   return {
     punch: isConfident ? LABELS[shape][hand] : ('punch' as const),
     shape: isConfident ? shape : null,
     confidence,
     scores,
+    /** Side on, the model can move one arm's punch onto the other, so which hand threw it isn't known. */
+    handUnsure: sideOn,
     /** Depth wasn't readable, so checks that depend on it should stay quiet. */
     depthUnreliable:
       shape === 'straight' &&

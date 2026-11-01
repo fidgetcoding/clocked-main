@@ -63,7 +63,7 @@ export class SessionPunchLog {
     this.indexById.set(event.id, log.punches.length);
     log.punches.push([seconds, event.punch, event.hand, [...event.issues]]);
     log.counts[event.punch] += 1;
-    log.hands[event.hand] += 1;
+    if (!event.handUnsure) log.hands[event.hand] += 1;
     for (const issue of event.issues) log.cues[issue] = (log.cues[issue] ?? 0) + 1;
 
     const round = log.rounds[log.rounds.length - 1];
