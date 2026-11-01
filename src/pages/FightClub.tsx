@@ -18,6 +18,7 @@ import { useFollows } from '@/hooks/useFollows';
 import { useClubs, EARLY_ADOPTERS_CLUB_ID } from '@/hooks/useClubs';
 import { useAuth } from '@/contexts/AuthContext';
 import { promptEmailLink } from '@/lib/guest';
+import { isBackendConfigured } from '@/integrations/supabase/client';
 import { useTierPresets, TierPresetWithLoadout } from '@/hooks/useTierPresets';
 
 type Tab = 'feed' | 'clubs' | 'presets';
@@ -63,7 +64,7 @@ const FightClub = () => {
   
   // Clubs
   const { user, isGuest } = useAuth();
-  const { clubs, isMemberOf, joinClub, leaveClub, useClubMemberCount } = useClubs();
+  const { clubs, clubsLoading, isMemberOf, joinClub, leaveClub, useClubMemberCount } = useClubs();
   const { data: earlyAdoptersMemberCount = 0 } = useClubMemberCount(EARLY_ADOPTERS_CLUB_ID);
   const earlyAdoptersClub = clubs.find(c => c.id === EARLY_ADOPTERS_CLUB_ID);
   
@@ -886,7 +887,7 @@ const FightClub = () => {
               {/* Empty state when no clubs */}
               {discoverClubs.length === 0 && myClubs.length === 0 && (
                 <p className="text-sm text-muted-foreground text-center py-4">
-                  Loading clubs...
+                  {clubsLoading ? 'Loading clubs...' : isBackendConfigured ? 'No clubs yet.' : 'Clubs need a connected backend.'}
                 </p>
               )}
             </div>
