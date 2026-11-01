@@ -3,7 +3,6 @@ import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { X, Sparkles, Wand2, Mic, MicOff, TrendingUp, CheckCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { TrendingWorkout } from '@/data/trendingWorkouts';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
@@ -19,9 +18,9 @@ import { useAuth } from '@/contexts/useAuth';
 
 interface AIBuilderModalProps {
   onClose: () => void;
-  onGenerate?: (prompt: string, baseWorkout?: TrendingWorkout) => void;
-  baseWorkout?: TrendingWorkout;
   onWorkoutGenerated?: (workout: Workout) => void;
+  /** Starts generating from this text as soon as the modal opens. */
+  startingPrompt?: string;
 }
 
 const SUGGESTION_CHIPS = [
@@ -319,13 +318,13 @@ async function generateWorkoutFromPrompt(
   };
 }
 
-export const AIBuilderModal = ({ onClose, onGenerate, baseWorkout, onWorkoutGenerated }: AIBuilderModalProps) => {
+export const AIBuilderModal = ({ onClose, onWorkoutGenerated, startingPrompt }: AIBuilderModalProps) => {
   const navigate = useNavigate();
   const user = useUserStore((state) => state.user);
   const { isGuest } = useAuth();
   const { history } = useWorkoutHistory();
   
-  const [prompt, setPrompt] = useState('');
+  const [prompt, setPrompt] = useState(startingPrompt ?? '');
   const [isGenerating, setIsGenerating] = useState(false);
   const [generationProgress, setGenerationProgress] = useState(0);
   const [generationDone, setGenerationDone] = useState(false);
@@ -518,6 +517,14 @@ export const AIBuilderModal = ({ onClose, onGenerate, baseWorkout, onWorkoutGene
   };
 
 
+  const startedFromPrompt = useRef(false);
+  useEffect(() => {
+    if (!startingPrompt || startedFromPrompt.current) return;
+    startedFromPrompt.current = true;
+    handleGenerate();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- runs once, for the prompt the modal opened with
+  }, []);
+
   const handleSuggestionClick = (suggestion: string) => {
     setPrompt(suggestion);
   };
@@ -552,21 +559,8 @@ export const AIBuilderModal = ({ onClose, onGenerate, baseWorkout, onWorkoutGene
 
         {/* Content */}
         <div className="p-4 space-y-4">
-          {/* Base Workout Info (if customizing) */}
-          {baseWorkout && (
-            <div className="bg-volt/10 border border-volt/20 rounded-xl p-3">
-              <p className="text-xs text-volt font-medium uppercase tracking-wider mb-1">
-                Customizing
-              </p>
-              <p className="text-sm text-foreground font-semibold">{baseWorkout.name}</p>
-              <p className="text-xs text-muted-foreground mt-1">
-                Describe what you'd like to change or add to this workout
-              </p>
-            </div>
-          )}
-
           {/* History Insights Banner */}
-          {insightsSummary && !baseWorkout && (
+          {insightsSummary && (
             <div className="bg-surface-2 border border-volt/20 rounded-xl p-3 flex items-start gap-2">
               <TrendingUp className="w-4 h-4 text-volt mt-0.5 flex-shrink-0" />
               <p className="text-xs text-muted-foreground">
@@ -593,10 +587,7 @@ export const AIBuilderModal = ({ onClose, onGenerate, baseWorkout, onWorkoutGene
               <Textarea
                 value={prompt + (interimTranscript ? (prompt ? ' ' : '') + interimTranscript : '')}
                 onChange={(e) => setPrompt(e.target.value)}
-                placeholder={baseWorkout 
-                  ? "E.g. Make it shorter, add more rest, focus on defense..."
-                  : "E.g. 5 round heavy bag workout with defense combos"
-                }
+                placeholder="E.g. 5 round heavy bag workout with defense combos"
                 className={cn(
                   "min-h-[100px] bg-surface-2 border-surface-3 text-foreground placeholder:text-muted-foreground resize-none pr-14",
                   isListening && "border-volt"
@@ -641,27 +632,25 @@ export const AIBuilderModal = ({ onClose, onGenerate, baseWorkout, onWorkoutGene
           </div>
 
           {/* Suggestion Chips */}
-          {!baseWorkout && (
-            <div className="space-y-2">
-              <p className="text-xs text-muted-foreground">Quick suggestions:</p>
-              <div className="flex flex-wrap gap-2">
-                {SUGGESTION_CHIPS.map((suggestion) => (
-                  <button
-                    key={suggestion}
-                    onClick={() => handleSuggestionClick(suggestion)}
-                    className={cn(
-                      'px-3 py-1.5 rounded-full text-xs font-medium transition-colors',
-                      prompt === suggestion
-                        ? 'bg-volt text-primary-foreground'
-                        : 'bg-surface-2 text-muted-foreground hover:bg-surface-3'
-                    )}
-                  >
-                    {suggestion}
-                  </button>
-                ))}
-              </div>
+          <div className="space-y-2">
+            <p className="text-xs text-muted-foreground">Quick suggestions:</p>
+            <div className="flex flex-wrap gap-2">
+              {SUGGESTION_CHIPS.map((suggestion) => (
+                <button
+                  key={suggestion}
+                  onClick={() => handleSuggestionClick(suggestion)}
+                  className={cn(
+                    'px-3 py-1.5 rounded-full text-xs font-medium transition-colors',
+                    prompt === suggestion
+                      ? 'bg-volt text-primary-foreground'
+                      : 'bg-surface-2 text-muted-foreground hover:bg-surface-3'
+                  )}
+                >
+                  {suggestion}
+                </button>
+              ))}
             </div>
-          )}
+          </div>
         </div>
 
         {/* Actions */}

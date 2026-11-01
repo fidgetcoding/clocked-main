@@ -843,6 +843,18 @@ const WorkoutSession = () => {
     xpAwardedRef.current = false;
   };
 
+  // The browser's back button or a back swipe asks first, same as the home button
+  useEffect(() => {
+    if (!isRunning || isComplete) return;
+    window.history.pushState(null, '');
+    const askBeforeLeaving = () => {
+      window.history.pushState(null, '');
+      setShowExitConfirm(true);
+    };
+    window.addEventListener('popstate', askBeforeLeaving);
+    return () => window.removeEventListener('popstate', askBeforeLeaving);
+  }, [isRunning, isComplete]);
+
   const handleConfirmExit = (saveXP: boolean = false) => {
     cancelSpeech();
     setShowExitConfirm(false);
@@ -885,6 +897,8 @@ const WorkoutSession = () => {
     } else if (currentSegmentIndex < flatSegments.length - 1) {
       setCurrentSegmentIndex((prev) => prev + 1);
       setTimeRemaining(flatSegments[currentSegmentIndex + 1].duration);
+    } else {
+      handleCompleteEarly();
     }
   };
 
@@ -1228,10 +1242,10 @@ const WorkoutSession = () => {
         )}
 
         {/* Main Timer — middle area between top bar and bottom bar */}
-        {/* The layers below are absolute, so without a minimum height they run over the controls on short screens */}
-        <div className="flex-1 relative px-4 min-h-[26rem] [@media(max-height:500px)]:min-h-[42rem]">
+        {/* On short screens the two layers stack in normal flow, so a combo card can never land on the timer or the controls */}
+        <div className="flex-1 relative px-4 min-h-[26rem] [@media(max-height:700px)]:min-h-0 [@media(max-height:700px)]:flex [@media(max-height:700px)]:flex-col [@media(max-height:700px)]:justify-center [@media(max-height:700px)]:gap-2">
           {/* Layer 1: Fixed, vertically centered — phase name, timer, segment */}
-          <div className="absolute inset-0 flex flex-col items-center justify-center px-4 -mt-[24%] md:mt-0">
+          <div className="absolute inset-0 flex flex-col items-center justify-center px-4 -mt-[24%] md:mt-0 [@media(max-height:700px)]:static [@media(max-height:700px)]:mt-0">
                 {/* Phase Name */}
                 {isPreparation ? (
                   <p className="text-xs text-muted-foreground uppercase tracking-widest mb-2">GET READY</p>
@@ -1252,7 +1266,7 @@ const WorkoutSession = () => {
 
                 {/* Timer with 270° arc ring */}
                 <div className="relative w-full flex items-center justify-center">
-                  <div className="relative flex items-center justify-center" style={{ width: 280, height: 280 }}>
+                  <div className="relative flex items-center justify-center w-[280px] h-[280px] [@media(max-height:700px)]:w-[max(150px,27vh)] [@media(max-height:700px)]:h-[max(150px,27vh)]">
                     {/* SVG Arc Ring — 270° open at bottom */}
                     <svg className="absolute inset-0" viewBox="0 0 280 280">
                       {(() => {
@@ -1276,7 +1290,7 @@ const WorkoutSession = () => {
                     </svg>
                     <span className={cn(
                       "timer-display font-black",
-                      "timer-display text-7xl font-black",
+                      "timer-display text-7xl font-black [@media(max-height:700px)]:text-[length:max(36px,7vh)]",
                       isChampionship 
                         ? "text-championship-gold animate-gold-shimmer" 
                         : isCooldown ? "text-cooldown-blue" : "text-volt text-glow-volt"
@@ -1326,7 +1340,7 @@ const WorkoutSession = () => {
           {/* END Layer 1 */}
 
           {/* Layer 2: absolute, lower portion only — combo/UP NEXT cards */}
-          <div className="absolute left-4 right-4 flex flex-col items-center justify-start pointer-events-none top-[80%] md:top-[78%]">
+          <div className="absolute left-4 right-4 flex flex-col items-center justify-start pointer-events-none top-[80%] md:top-[78%] [@media(max-height:700px)]:static [@media(max-height:700px)]:min-h-[5.5rem]">
             <div className="pointer-events-auto w-full flex flex-col items-center">
           {/* Rest Screen - Clean Next Preview */}
           {isRestSegment && (

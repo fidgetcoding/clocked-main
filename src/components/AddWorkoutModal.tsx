@@ -7,6 +7,7 @@ import { RoundFeedback } from '@/types';
 import { useWorkoutHistory } from '@/hooks/useWorkoutHistory';
 import { useUserStore } from '@/stores/userStore';
 import { useProfile } from '@/hooks/useProfile';
+import { useDictation } from '@/hooks/useDictation';
 
 interface AddWorkoutModalProps {
   isOpen: boolean;
@@ -19,7 +20,6 @@ export function AddWorkoutModal({ isOpen, onClose }: AddWorkoutModalProps) {
   const [duration, setDuration] = useState(30); // minutes
   const [notes, setNotes] = useState('');
   const [difficulty, setDifficulty] = useState<'too_easy' | 'just_right' | 'too_hard' | null>(null);
-  const [isRecording, setIsRecording] = useState(false);
   const [rounds, setRounds] = useState(6);
   const [roundFeedback, setRoundFeedback] = useState<RoundFeedback[]>([]);
 
@@ -37,19 +37,7 @@ export function AddWorkoutModal({ isOpen, onClose }: AddWorkoutModalProps) {
     });
   };
 
-  const toggleRecording = () => {
-    if (!isRecording) {
-      // Start recording (mock - would use Web Speech API)
-      setIsRecording(true);
-      // Simulate stopping after 5 seconds for demo
-      setTimeout(() => {
-        setIsRecording(false);
-        setNotes((prev) => prev + (prev ? ' ' : '') + 'Felt good today, focused on technique.');
-      }, 3000);
-    } else {
-      setIsRecording(false);
-    }
-  };
+  const dictation = useDictation((text) => setNotes((prev) => prev + (prev ? ' ' : '') + text));
 
   const handleSave = () => {
     // Use proper XP rate: ~0.25 XP per second for general active work = 15 XP per minute
@@ -77,6 +65,7 @@ export function AddWorkoutModal({ isOpen, onClose }: AddWorkoutModalProps) {
         setNotes('');
         setDifficulty(null);
         setRoundFeedback([]);
+        dictation.stop();
         onClose();
       },
     });
@@ -87,7 +76,7 @@ export function AddWorkoutModal({ isOpen, onClose }: AddWorkoutModalProps) {
   return (
     <div className="fixed inset-0 bg-background/95 z-50 flex flex-col">
       <header className="flex items-center justify-between px-4 py-4 border-b border-surface-3">
-        <button onClick={onClose} className="text-muted-foreground">
+        <button onClick={() => { dictation.stop(); onClose(); }} className="text-muted-foreground">
           <X className="w-6 h-6" />
         </button>
         <h2 className="font-bold text-foreground">Log Past Workout</h2>
@@ -237,20 +226,23 @@ export function AddWorkoutModal({ isOpen, onClose }: AddWorkoutModalProps) {
               placeholder="How did it go? What did you work on?"
               className="w-full h-32 p-3 pr-12 rounded-xl bg-surface-1 border border-surface-3 text-foreground placeholder:text-muted-foreground text-sm resize-none focus:outline-none focus:ring-2 focus:ring-volt"
             />
-            <button
-              onClick={toggleRecording}
-              className={cn(
-                'absolute right-3 bottom-3 w-8 h-8 rounded-full flex items-center justify-center transition-colors',
-                isRecording
-                  ? 'bg-destructive text-destructive-foreground animate-pulse'
-                  : 'bg-surface-2 text-muted-foreground hover:text-foreground'
-              )}
-            >
-              {isRecording ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
-            </button>
+            {dictation.supported && (
+              <button
+                onClick={dictation.toggle}
+                aria-label={dictation.listening ? 'Stop dictating' : 'Dictate notes'}
+                className={cn(
+                  'absolute right-3 bottom-3 w-8 h-8 rounded-full flex items-center justify-center transition-colors',
+                  dictation.listening
+                    ? 'bg-destructive text-destructive-foreground animate-pulse'
+                    : 'bg-surface-2 text-muted-foreground hover:text-foreground'
+                )}
+              >
+                {dictation.listening ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
+              </button>
+            )}
           </div>
-          {isRecording && (
-            <p className="text-xs text-destructive mt-1 animate-pulse">Recording...</p>
+          {dictation.listening && (
+            <p className="text-xs text-destructive mt-1 animate-pulse">Listening...</p>
           )}
         </div>
       </div>

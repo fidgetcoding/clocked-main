@@ -1,7 +1,7 @@
 import type { StoredPhase } from '@/lib/storedPhases';
 import type { WorkoutSection } from '@/types';
 import { getSpeechRecognizerClass } from '@/lib/speechRecognition';
-import { splitStoredPhases } from '@/lib/storedPhases';
+import { joinStoredPhases, splitStoredPhases } from '@/lib/storedPhases';
 import { useState } from 'react';
 import { ArrowLeft, Users, Newspaper, Trophy, Search, MessageCircle, BarChart3, Send, ChevronRight, Mic, MicOff, Download, X, UserPlus, LogIn, LogOut, Trash2, Star, Radio } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -11,7 +11,6 @@ import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import { WORKOUT_CATEGORIES, TrendingWorkout, WorkoutCategory } from '@/data/trendingWorkouts';
 import { WorkoutPreviewModal } from '@/components/WorkoutPreviewModal';
-import { AIBuilderModal } from '@/components/AIBuilderModal';
 import { useWorkouts } from '@/hooks/useWorkouts';
 import { useCommunityPosts, CommunityPost, useDeleteCommunityPost } from '@/hooks/useCommunityPosts';
 
@@ -65,8 +64,6 @@ const FightClub = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<WorkoutCategory>('All');
   const [selectedWorkout, setSelectedWorkout] = useState<TrendingWorkout | null>(null);
-  const [showAIBuilder, setShowAIBuilder] = useState(false);
-  const [customizeWorkout, setCustomizeWorkout] = useState<TrendingWorkout | undefined>(undefined);
   
   // User search state
   const [showUserSearch, setShowUserSearch] = useState(false);
@@ -101,7 +98,7 @@ const FightClub = () => {
       description: null,
       duration: workout.totalDuration,
       difficulty: workout.difficulty,
-      phases: [...workout.sections.warmup, ...workout.sections.grind, ...workout.sections.cooldown],
+      phases: joinStoredPhases(workout.sections),
       combos: workout.combos || [],
       tags: workout.tags || [],
       is_preset: false,
@@ -113,20 +110,14 @@ const FightClub = () => {
     setSelectedWorkout(null);
   };
 
-  // Handle customizing a workout with AI
-  const handleCustomizeWorkout = (workout: TrendingWorkout) => {
-    setSelectedWorkout(null);
-    setCustomizeWorkout(workout);
-    setShowAIBuilder(true);
+  const matchesPresetSearch = (preset: { name: string; tier: string }) => {
+    const query = searchQuery.toLowerCase();
+    return preset.name.toLowerCase().includes(query) || preset.tier.toLowerCase().includes(query);
   };
 
-  // Handle AI generation
-  const handleAIGenerate = (prompt: string, baseWorkout?: TrendingWorkout) => {
-    // For now, just navigate to build page - in future this would call AI
-    toast.success('AI workout generation coming soon!');
-    setShowAIBuilder(false);
-    setCustomizeWorkout(undefined);
-    navigate('/build');
+  // Open a copy of the workout in the builder
+  const handleCustomizeWorkout = (workout: TrendingWorkout) => {
+    navigate(`/build?ai=${encodeURIComponent(JSON.stringify(workout))}`);
   };
 
   // Handle saving a community shared workout
@@ -142,7 +133,7 @@ const FightClub = () => {
       description: data.description || null,
       duration: data.totalDuration || data.duration || 0,
       difficulty: data.difficulty || null,
-      phases: data.phases || (data.sections ? [...(data.sections.warmup || []), ...(data.sections.grind || []), ...(data.sections.cooldown || [])] : []),
+      phases: data.phases || joinStoredPhases(data.sections ?? {}),
       combos: data.combos || [],
       tags: post.tags || [],
       is_preset: false,
@@ -895,12 +886,12 @@ const FightClub = () => {
                   <p className="text-muted-foreground">No presets available.</p>
                 </div>
               ) : (
-                tierPresets
-                  .filter((preset) => {
-                    if (!searchQuery) return true;
-                    return preset.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                      preset.tier.toLowerCase().includes(searchQuery.toLowerCase());
-                  })
+                <>
+                {!tierPresets.some(matchesPresetSearch) && (
+                  <p className="text-center py-8 text-muted-foreground">No workouts match "{searchQuery}".</p>
+                )}
+                {tierPresets
+                  .filter(matchesPresetSearch)
                   .filter((preset) => {
                     if (selectedCategory === 'All') return true;
                     if (selectedCategory === 'Boxing') return true; // All presets are boxing
@@ -992,6 +983,8 @@ const FightClub = () => {
                       </button>
                     );
                   })
+                }
+                </>
               )}
             </div>
           )}
@@ -1007,19 +1000,6 @@ const FightClub = () => {
           onCustomize={handleCustomizeWorkout}
         />
       )}
-
-      {/* AI Builder Modal */}
-      {showAIBuilder && (
-        <AIBuilderModal
-          onClose={() => {
-            setShowAIBuilder(false);
-            setCustomizeWorkout(undefined);
-          }}
-          onGenerate={handleAIGenerate}
-          baseWorkout={customizeWorkout}
-        />
-      )}
-
 
       {/* User Search Modal */}
       {showUserSearch && (

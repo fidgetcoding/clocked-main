@@ -7,6 +7,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
 import { useProfile } from '@/hooks/useProfile';
+import { useWorkoutHistory } from '@/hooks/useWorkoutHistory';
 import { usePublicProfile } from '@/hooks/usePublicProfile';
 import { useFollows } from '@/hooks/useFollows';
 import { useAuth } from '@/contexts/useAuth';
@@ -44,6 +45,7 @@ const Profile = () => {
   const { followersCount, followingCount, followersList, followingList, isFollowing, follow, unfollow } = useFollows(userId);
   const [listModal, setListModal] = useState<ListModalType>(null);
   const [showSharedWorkouts, setShowSharedWorkouts] = useState(false);
+  const { history } = useWorkoutHistory();
   const [showPrestigePrompt, setShowPrestigePrompt] = useState(false);
   const [showLevelUpOverlay, setShowLevelUpOverlay] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -77,10 +79,13 @@ const Profile = () => {
     ? '@' + (profile?.handle || profile?.name?.toLowerCase().replace(/\s+/g, '') || 'fighter') 
     : '@' + (viewingUser?.handle || viewingUser?.name?.toLowerCase().replace(/\s+/g, '') || 'fighter');
   const profileAvatar = isOwnProfile ? profile?.avatar_url : viewingUser?.avatar_url;
-  const workoutsCompleted = isOwnProfile ? (profile?.workouts_completed || 0) : (viewingUser?.workouts_completed || 0);
+  // Your own log counts too, since a guest's profile row doesn't track these
+  const workoutsCompleted = isOwnProfile ? Math.max(profile?.workouts_completed || 0, history.length) : (viewingUser?.workouts_completed || 0);
   const currentStreak = isOwnProfile ? (profile?.current_streak || 0) : (viewingUser?.current_streak || 0);
   const longestStreak = isOwnProfile ? (profile?.longest_streak || 0) : currentStreak; // Public profiles don't expose longest_streak
-  const totalTrainingSeconds = isOwnProfile ? (profile?.total_training_seconds || 0) : (viewingUser?.total_training_seconds || 0);
+  const totalTrainingSeconds = isOwnProfile
+    ? Math.max(profile?.total_training_seconds || 0, history.reduce((total, entry) => total + (entry.duration || 0), 0))
+    : (viewingUser?.total_training_seconds || 0);
   const bio = isOwnProfile ? profile?.bio : viewingUser?.bio;
   const profileRole = isOwnProfile ? (profile?.role || 'fighter') : (viewingUser?.role || 'fighter');
 

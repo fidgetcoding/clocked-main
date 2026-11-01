@@ -313,7 +313,9 @@ const Build = () => {
   const [comboMode, setComboMode] = useState<'custom' | 'presets'>('presets');
   const [currentCombo, setCurrentCombo] = useState<string[]>([]);
   const [editingComboIndex, setEditingComboIndex] = useState<number | null>(null);
-  const [showAIBuilder, setShowAIBuilder] = useState(false);
+  // The AI Coach sends you here with its plan, ready to build
+  const coachPrompt = searchParams.get('coachPrompt') ?? undefined;
+  const [showAIBuilder, setShowAIBuilder] = useState(!!coachPrompt);
   const [showExercisePicker, setShowExercisePicker] = useState(false);
   const [editingSegmentContext, setEditingSegmentContext] = useState<'speedbag' | 'combo' | 'exercises'>('combo');
   const [editingExerciseSegmentId, setEditingExerciseSegmentId] = useState<string | null>(null);
@@ -718,6 +720,17 @@ const Build = () => {
   };
 
   const handleSave = (andStart: boolean = false) => {
+    const segments = [...warmupPhases, ...grindPhases, ...cooldownPhases].flatMap((phase) => phase.segments);
+    if (segments.length === 0) {
+      toast.error('Add a phase with at least one segment first');
+      return;
+    }
+    const untimed = segments.find((segment) => segment.duration <= 0);
+    if (untimed) {
+      toast.error(`Give "${untimed.name}" a time first`);
+      return;
+    }
+
     const id = workoutId || editId || generateId();
     const existingWorkout = workouts.find(w => w.id === id);
     
@@ -1028,8 +1041,9 @@ const Build = () => {
                           />
                           <Input
                             type="number"
+                            min={1}
                             value={segment.duration}
-                            onChange={(e) => updateSegment(phase.id, segment.id, { duration: parseInt(e.target.value) || 0 })}
+                            onChange={(e) => updateSegment(phase.id, segment.id, { duration: Math.max(0, parseInt(e.target.value) || 0) })}
                             className="w-16 bg-surface-2 border-surface-3 text-foreground text-sm h-8 text-center"
                           />
                           <span className="text-xs text-muted-foreground">sec</span>
@@ -1655,13 +1669,7 @@ const Build = () => {
 
         {/* AI Builder Modal */}
         {showAIBuilder && (
-          <AIBuilderModal
-            onClose={() => setShowAIBuilder(false)}
-            onGenerate={(prompt) => {
-              toast.success('AI workout generation coming soon!');
-              setShowAIBuilder(false);
-            }}
-          />
+          <AIBuilderModal onClose={() => setShowAIBuilder(false)} startingPrompt={coachPrompt} />
         )}
 
         {/* Share to Fight Club Dialog */}

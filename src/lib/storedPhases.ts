@@ -19,7 +19,8 @@ export function splitStoredPhases(stored: StoredPhase[] | null | undefined): Spl
   const phases = all.filter((phase) => !phase._meta);
   const inSection = (name: WorkoutPhase['section']) =>
     phases
-      .filter((phase) => phase.section === name)
+      // Phases with no section were saved by an older preset flow; they still belong in the rounds
+      .filter((phase) => phase.section === name || (name === 'grind' && !phase.section))
       .map(({ section: _section, ...rest }) => rest as WorkoutPhase);
 
   return {
@@ -27,4 +28,11 @@ export function splitStoredPhases(stored: StoredPhase[] | null | undefined): Spl
     sections: { warmup: inSection('warmup'), grind: inSection('grind'), cooldown: inSection('cooldown') },
     megasetRepeats: meta?.megasetRepeats || meta?.supersetRepeats || 1,
   };
+}
+
+/** The reverse of splitStoredPhases, so a workout saved from sections keeps its phases. */
+export function joinStoredPhases(sections: Partial<WorkoutSection>): StoredPhase[] {
+  return (['warmup', 'grind', 'cooldown'] as const).flatMap((section) =>
+    (sections[section] ?? []).map((phase) => ({ ...phase, section })),
+  );
 }

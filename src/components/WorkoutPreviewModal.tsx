@@ -271,7 +271,7 @@ export const WorkoutPreviewModal = ({ workout, onClose, onSave, onCustomize }: W
             className="w-full border-surface-3 text-foreground hover:bg-surface-2 h-12 text-base"
           >
             <Sparkles className="w-5 h-5 mr-2 text-volt" />
-            Customize with AI Builder
+            Customize in the Builder
           </Button>
         </div>
       </div>

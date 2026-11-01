@@ -68,6 +68,7 @@ function WorkoutCalendar({ workoutDates }: { workoutDates: Date[] }) {
   
   const hasWorkout = (day: Date) => workoutDates.some(d => isSameDay(d, day));
   const isToday = (day: Date) => isSameDay(day, now);
+  const trainedDays = days.filter(hasWorkout).length;
   
   return (
     <div className="card-workout">
@@ -77,7 +78,7 @@ function WorkoutCalendar({ workoutDates }: { workoutDates: Date[] }) {
           <h3 className="font-semibold text-foreground text-sm">{format(now, 'MMMM yyyy')}</h3>
         </div>
         <span className="text-xs text-muted-foreground">
-          {workoutDates.filter(d => d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear()).length} days
+          {trainedDays} {trainedDays === 1 ? 'day' : 'days'}
         </span>
       </div>
       {/* Day headers */}
