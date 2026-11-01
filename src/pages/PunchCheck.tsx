@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import { BroadcastPage, Plate } from '@/components/broadcast';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
 import { PunchLive } from '@/components/punch/PunchLive';
@@ -138,20 +139,26 @@ const PunchRound = () => {
     const message = CAMERA_MESSAGES[problem];
     return (
       <AppLayout hideNav>
-        <div className="min-h-screen flex flex-col items-center justify-center px-4 bg-background" data-testid="punch-problem">
-          <div className="card-workout w-full max-w-sm text-center mb-6">
-            <h1 className="text-lg font-bold text-foreground mb-2">{message.title}</h1>
-            <p className="text-sm text-muted-foreground">{message.body}</p>
+        <BroadcastPage show="Technical difficulties" className="pb-6">
+          <div data-testid="punch-problem">
+            <div className="mt-4 grid h-28 grid-cols-7 -skew-x-[14deg] scale-x-125" aria-hidden="true">
+              <i className="bg-foreground" />
+              <i className="bg-volt" />
+              <i className="bg-muted-foreground" />
+              <i className="bg-alert-red" />
+              <i className="bg-surface-3" />
+              <i className="bg-volt" />
+              <i className="bg-background" />
+            </div>
+            <Plate tone="red" bleed="both" className="flex h-20 justify-start px-4 text-6xl">We lost the feed</Plate>
+            <h1 className="fx mt-4 px-4 text-5xl">{message.title}</h1>
+            <p className="mt-2 px-4 text-lg">{message.body}</p>
+            <div className="mt-5 space-y-3 px-5">
+              <Button size="lg" onClick={handleStart} className="w-full">Try again</Button>
+              <Button onClick={() => navigate('/')} variant="secondary" className="w-full">Back to Home</Button>
+            </div>
           </div>
-          <div className="w-full max-w-sm space-y-3">
-            <Button onClick={handleStart} className="btn-primary-glow w-full">
-              Try again
-            </Button>
-            <Button onClick={() => navigate('/')} variant="outline" className="w-full bg-surface-1 border-surface-3">
-              Back to Home
-            </Button>
-          </div>
-        </div>
+        </BroadcastPage>
       </AppLayout>
     );
   }
@@ -165,6 +172,7 @@ const PunchRound = () => {
           canvasRef={canvasRef}
           loading={status !== 'live' && !paused}
           hud={{ ...hud, clock, paused }}
+          counts={getSummary().counts}
           debugPunch={lastPunch}
           showDebug={showDebug}
           onExit={() => navigate('/')}

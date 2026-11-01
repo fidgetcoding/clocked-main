@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { Badge, BADGE_CATEGORY_COLORS } from '@/data/badges';
+import type { Badge } from '@/data/badges';
+import { Plate } from '@/components/broadcast/Plate';
 import { BadgeArt } from '@/components/ui/GameArt';
 import { cn } from '@/lib/utils';
 
@@ -11,7 +12,6 @@ interface BadgeEarnOverlayProps {
 
 export function BadgeEarnOverlay({ badge, onComplete }: BadgeEarnOverlayProps) {
   const [phase, setPhase] = useState<'enter' | 'hold' | 'exit'>('enter');
-  const colors = BADGE_CATEGORY_COLORS[badge.category];
 
   useEffect(() => {
     // Play a short celebratory chime
@@ -26,68 +26,20 @@ export function BadgeEarnOverlay({ badge, onComplete }: BadgeEarnOverlayProps) {
   return (
     <div
       className={cn(
-        'fixed inset-0 z-[100] flex items-center justify-center overflow-hidden pointer-events-none',
+        'pointer-events-none fixed inset-0 z-[100] flex flex-col justify-center overflow-hidden bg-background/95',
         phase === 'enter' && 'animate-badge-overlay-in',
         phase === 'exit' && 'animate-badge-overlay-out',
       )}
     >
-      {/* Dimmed backdrop */}
-      <div
-        className="absolute inset-0 bg-background/95"
-        style={{
-          opacity: phase === 'exit' ? 0 : 1,
-          transition: 'opacity 0.5s ease-out',
-        }}
-      />
-
-      {/* Badge content */}
-      <div
-        className={cn(
-          'relative flex flex-col items-center gap-3 transition-all duration-500',
-          phase === 'enter' && 'scale-50 opacity-0',
-          phase === 'hold' && 'scale-100 opacity-100',
-          phase === 'exit' && 'scale-75 opacity-0',
-        )}
-      >
-        {/* Glow ring */}
-        <div
-          className={cn(
-            'w-28 h-28 rounded-full flex items-center justify-center',
-            colors.bg, colors.text,
-            'shadow-[0_0_60px_20px] animate-badge-pulse',
-          )}
-          style={{
-            '--tw-shadow-color': `hsl(var(--electric-volt) / 0.3)`,
-          } as React.CSSProperties}
-        >
-          <div className={cn(
-            'w-24 h-24 rounded-full overflow-hidden flex items-center justify-center border-2 border-current/30',
-            colors.bg,
-          )}>
-            <BadgeArt id={badge.id} className="w-full h-full rounded-full" />
-          </div>
-        </div>
-
-        {/* Badge earned label */}
-        <span className="text-xs font-bold uppercase tracking-[0.3em] text-muted-foreground">
-          Badge Earned
-        </span>
-
-        {/* Badge name */}
-        <h2 className={cn('text-2xl font-black', colors.text)}>
-          {badge.name}
-        </h2>
-
-        {/* Description */}
-        <p className="text-sm text-muted-foreground max-w-[200px] text-center">
-          {badge.description}
-        </p>
-
-        {/* XP reward */}
-        <span className="text-lg font-black text-volt">
-          +{badge.xpReward.toLocaleString()} XP
-        </span>
-      </div>
+      <Plate tone="lime" bleed="left" className="plate-slap h-12 w-fit justify-start pl-4 pr-8 text-4xl">
+        Badge Earned
+      </Plate>
+      <BadgeArt id={badge.id} className="mx-auto my-4 aspect-square w-[min(70vw,40dvh)]" />
+      <h2 className="fx mx-4 text-6xl">{badge.name}</h2>
+      <p className="mx-4 mt-2 text-lg">{badge.description}</p>
+      <Plate tone="white" bleed="left" className="mt-3 h-16 w-fit justify-start pl-4 pr-9 text-5xl">
+        +{badge.xpReward.toLocaleString()} XP
+      </Plate>
     </div>
   );
 }

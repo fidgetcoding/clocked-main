@@ -20,16 +20,16 @@ interface ResumeSessionDialogProps {
 export function ResumeSessionDialog({ name, saved, onResume, onDiscard }: ResumeSessionDialogProps) {
   return (
     <AlertDialog open>
-      <AlertDialogContent className="bg-surface-1 border-surface-3">
+      <AlertDialogContent>
         <AlertDialogHeader>
           <AlertDialogTitle>Pick up where you left off?</AlertDialogTitle>
           <AlertDialogDescription>{describeSavedSession(name, saved)}</AlertDialogDescription>
         </AlertDialogHeader>
-        <AlertDialogFooter className="flex-col sm:flex-row gap-2">
-          <AlertDialogCancel onClick={onDiscard} className="bg-surface-2 border-surface-3 hover:bg-surface-3">
+        <AlertDialogFooter>
+          <AlertDialogCancel onClick={onDiscard}>
             Discard
           </AlertDialogCancel>
-          <AlertDialogAction onClick={onResume} className="bg-volt text-primary-foreground hover:bg-volt/90">
+          <AlertDialogAction onClick={onResume}>
             Resume
           </AlertDialogAction>
         </AlertDialogFooter>

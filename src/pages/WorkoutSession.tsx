@@ -8,6 +8,7 @@ import { RoundFeedbackPanel } from '@/components/workout/RoundFeedbackPanel';
 import { RoundFeedback } from '@/types';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
+import { buttonVariants } from '@/components/ui/button-variants';
 import { RunStage } from '@/components/broadcast/run/RunStage';
 import { comboText, toComboMove } from '@/components/broadcast/run/moves';
 import type { RunKind, RunView } from '@/components/broadcast/run/types';
@@ -1037,7 +1038,7 @@ const WorkoutSession = () => {
       <AppLayout>
         <div className="min-h-screen flex items-center justify-center">
           <div className="text-center">
-            <p className="text-muted-foreground mb-4">Workout not found</p>
+            <p className="fx mb-4 text-4xl">Workout not found</p>
             <Button onClick={() => navigate('/')}>Go Home</Button>
           </div>
         </div>
@@ -1141,7 +1142,7 @@ const WorkoutSession = () => {
       return (
         <AppLayout hideNav>
           <div className="min-h-screen flex items-center justify-center">
-            <p className="text-muted-foreground">Calculating results...</p>
+            <p className="fx text-4xl text-volt">Calculating results...</p>
           </div>
         </AppLayout>
       );
@@ -1317,7 +1318,7 @@ const WorkoutSession = () => {
         )}
         {/* Exit Confirmation Dialog */}
         <AlertDialog open={showExitConfirm} onOpenChange={setShowExitConfirm}>
-          <AlertDialogContent className="bg-surface-1 border-surface-3">
+          <AlertDialogContent>
             <AlertDialogHeader>
               <AlertDialogTitle>Leave Workout?</AlertDialogTitle>
               <AlertDialogDescription>
@@ -1326,11 +1327,11 @@ const WorkoutSession = () => {
                   : "Are you sure you want to leave this workout?"}
               </AlertDialogDescription>
             </AlertDialogHeader>
-            <AlertDialogFooter className="flex-col sm:flex-row gap-2">
-              <AlertDialogCancel className="bg-surface-2 border-surface-3 hover:bg-surface-3">
+            <AlertDialogFooter>
+              <AlertDialogCancel>
                 Cancel
               </AlertDialogCancel>
-              <AlertDialogAction onClick={() => handleConfirmExit()} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              <AlertDialogAction onClick={() => handleConfirmExit()} className={buttonVariants({ variant: 'destructive' })}>
                 Leave
               </AlertDialogAction>
             </AlertDialogFooter>
@@ -1339,7 +1340,7 @@ const WorkoutSession = () => {
 
         {/* Restart Confirmation Dialog */}
         <AlertDialog open={showRestartConfirm} onOpenChange={setShowRestartConfirm}>
-          <AlertDialogContent className="bg-surface-1 border-surface-3">
+          <AlertDialogContent>
             <AlertDialogHeader>
               <AlertDialogTitle>Restart Workout?</AlertDialogTitle>
               <AlertDialogDescription>
@@ -1349,10 +1350,10 @@ const WorkoutSession = () => {
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
-              <AlertDialogCancel className="bg-surface-2 border-surface-3 hover:bg-surface-3">
+              <AlertDialogCancel>
                 Cancel
               </AlertDialogCancel>
-              <AlertDialogAction onClick={handleConfirmRestart} className="bg-volt text-primary-foreground hover:bg-volt/90">
+              <AlertDialogAction onClick={handleConfirmRestart}>
                 Restart
               </AlertDialogAction>
             </AlertDialogFooter>

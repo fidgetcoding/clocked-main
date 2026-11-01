@@ -3,6 +3,10 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { ResumeSessionDialog } from '@/components/workout/ResumeSessionDialog';
 import { FRESH_SESSION } from '@/lib/sessionEffort';
 import { clearSession, findResumableSession, QUICK_SESSION_ID, saveSession, type SessionSnapshot } from '@/lib/sessionRecovery';
+import { BroadcastPage, FitText, OnAir, Plate } from '@/components/broadcast';
+import { DifficultyPicker } from '@/components/workout/DifficultyPicker';
+import { Textarea } from '@/components/ui/textarea';
+import { buttonVariants } from '@/components/ui/button-variants';
 import { RunStage } from '@/components/broadcast/run/RunStage';
 import type { RunView } from '@/components/broadcast/run/types';
 import type { CameraFeedState } from '@/components/punch/feedState';
@@ -21,7 +25,6 @@ import {
 import { useWorkoutHistory } from '@/hooks/useWorkoutHistory';
 import { useUserStore } from '@/stores/userStore';
 import { useProfile } from '@/hooks/useProfile';
-import { cn } from '@/lib/utils';
 import { getStreakMultiplier, getLevelFromXP, getLevelProgress, getXPWithinCurrentLevel } from '@/lib/xpSystem';
 import { LevelUpOverlay } from '@/components/ui/LevelUpOverlay';
 import { useSoundEffects } from '@/hooks/useSoundEffects';
@@ -247,90 +250,63 @@ const QuickSession = () => {
 
     return (
       <AppLayout hideNav>
-        <div className="min-h-screen flex flex-col items-center justify-center px-4 bg-background">
-          <div className="text-6xl mb-6">⏱️</div>
-          <h1 className="text-3xl font-black text-foreground mb-2">SESSION COMPLETE!</h1>
-          <p className="text-muted-foreground mb-6">Quick Session</p>
+        <BroadcastPage show="Quick Session" air={<OnAir state="off">Off air</OnAir>} className="pb-6">
+          <div className="px-4 pt-3">
+            <div role="heading" aria-level={1} className="fx h-16">
+              <FitText className="h-full" max={72}>SESSION COMPLETE!</FitText>
+            </div>
+          </div>
+          <div className="mt-3 flex items-center gap-5">
+            <Plate tone="lime" bleed="left" className="h-28 justify-start pl-4 pr-9 text-[6.5rem]">
+              +{xpEarned}
+            </Plate>
+            <div>
+              <p className="lab">XP Earned</p>
+              <p className="fx mt-1 text-4xl">{formatTimeCompact(totalElapsed)}</p>
+              <p className="lab">Duration</p>
+            </div>
+          </div>
 
           {!qualifiesForRewards(totalElapsed) && (
-            <p className="text-xs text-muted-foreground mb-4 max-w-xs text-center">
+            <p className="mt-3 px-4 text-base text-muted-foreground">
               Train for at least {MIN_REWARD_SECONDS / 60} minutes to keep your streak going.
             </p>
           )}
 
-          <div className="grid grid-cols-2 gap-4 mb-6 w-full max-w-xs">
-            <div className="card-workout text-center">
-              <p className="text-2xl font-bold text-volt">{formatTimeCompact(totalElapsed)}</p>
-              <p className="text-sm text-muted-foreground">Duration</p>
-            </div>
-            <div className="card-workout text-center">
-              <p className="text-2xl font-bold text-volt">+{xpEarned}</p>
-              <p className="text-sm text-muted-foreground">XP Earned</p>
-            </div>
-          </div>
-
           {!!punchSummary?.total && (
-            <div className="card-workout w-full max-w-xs text-center mb-6" data-testid="quick-punches">
-              <p className="text-2xl font-bold text-volt">{punchSummary.total}</p>
-              <p className="text-sm text-muted-foreground">
+            <section className="mt-4 bg-surface-1 px-4 py-3" data-testid="quick-punches">
+              <p className="fx text-5xl text-volt">{punchSummary.total}</p>
+              <p className="lab lab-w mt-1">
                 {punchSummary.total === 1 ? 'Punch' : 'Punches'} seen, {punchSummary.cleanPercent}% clean
               </p>
-              {punchSummary.topFix && <p className="text-xs text-muted-foreground mt-1">{punchSummary.topFix.advice}</p>}
-            </div>
+              {punchSummary.topFix && <p className="mt-1 text-base">{punchSummary.topFix.advice}</p>}
+            </section>
           )}
 
-          {!logged ? (
-            <div className="w-full max-w-xs space-y-4 mb-6">
-              <div>
-                <label className="text-sm text-muted-foreground mb-2 block">How did it go?</label>
-                <textarea
-                  value={notes}
-                  onChange={(e) => setNotes(e.target.value)}
-                  placeholder="Add notes about your session..."
-                  className="w-full h-24 p-3 rounded-xl bg-surface-1 border border-surface-3 text-foreground placeholder:text-muted-foreground text-sm resize-none focus:outline-none focus:ring-2 focus:ring-volt"
-                />
-              </div>
-
-              <div>
-                <label className="text-sm text-muted-foreground mb-2 block">Difficulty</label>
-                <div className="flex gap-2">
-                  {[
-                    { value: 'too_easy', label: 'Too Easy' },
-                    { value: 'just_right', label: 'Just Right' },
-                    { value: 'too_hard', label: 'Too Hard' },
-                  ].map((opt) => (
-                    <button
-                      key={opt.value}
-                      onClick={() => setDifficultyRating(opt.value as typeof difficultyRating)}
-                      className={cn(
-                        'flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-colors',
-                        difficultyRating === opt.value
-                          ? 'bg-volt text-primary-foreground'
-                          : 'bg-surface-1 border border-surface-3 text-muted-foreground hover:bg-surface-2'
-                      )}
-                    >
-                      {opt.label}
-                    </button>
-                  ))}
+          <div className="mt-5 space-y-4 px-4">
+            {!logged ? (
+              <>
+                <div>
+                  <label htmlFor="session-notes" className="fx mb-2 block text-3xl">How did it go?</label>
+                  <Textarea
+                    id="session-notes"
+                    value={notes}
+                    onChange={(e) => setNotes(e.target.value)}
+                    placeholder="Add notes about your session..."
+                    className="h-24 resize-none"
+                  />
                 </div>
-              </div>
-
-              <Button onClick={handleLog} className="btn-primary-glow w-full">
-                Log Session
-              </Button>
-            </div>
-          ) : (
-            <div className="w-full max-w-xs mb-6">
-              <div className="card-workout text-center">
-                <p className="text-volt font-semibold">Session Logged!</p>
-              </div>
-            </div>
-          )}
-
-          <Button onClick={() => { endSession(); navigate('/'); }} variant="outline" className="w-full max-w-xs bg-surface-1 border-surface-3">
-            Back to Home
-          </Button>
-        </div>
+                <DifficultyPicker value={difficultyRating} onChange={setDifficultyRating} />
+                <Button size="lg" onClick={handleLog} className="w-full">Log Session</Button>
+              </>
+            ) : (
+              <p className="fx text-center text-3xl text-volt">Session Logged!</p>
+            )}
+            <Button onClick={() => { endSession(); navigate('/'); }} variant="secondary" className="w-full">
+              Back to Home
+            </Button>
+          </div>
+        </BroadcastPage>
       </AppLayout>
     );
   }
@@ -425,21 +401,21 @@ const QuickSession = () => {
       )}
 
       <AlertDialog open={showExitConfirm} onOpenChange={setShowExitConfirm}>
-        <AlertDialogContent className="bg-surface-1 border-surface-3">
+        <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle className="text-foreground">End Session?</AlertDialogTitle>
-            <AlertDialogDescription className="text-muted-foreground">
+            <AlertDialogTitle>End Session?</AlertDialogTitle>
+            <AlertDialogDescription>
               You've trained for {formatTimeCompact(totalElapsed)}. Your XP will be saved.
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter className="flex-col sm:flex-row gap-2">
-            <AlertDialogCancel className="bg-surface-2 border-surface-3 text-foreground">
+          <AlertDialogFooter>
+            <AlertDialogCancel>
               Keep Going
             </AlertDialogCancel>
-            <AlertDialogAction onClick={() => handleConfirmExit(false)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+            <AlertDialogAction onClick={() => handleConfirmExit(false)} className={buttonVariants({ variant: 'destructive' })}>
               Leave Without Saving
             </AlertDialogAction>
-            <AlertDialogAction onClick={() => handleConfirmExit(true)} className="bg-volt text-primary-foreground">
+            <AlertDialogAction onClick={() => handleConfirmExit(true)} >
               End & Save
             </AlertDialogAction>
           </AlertDialogFooter>

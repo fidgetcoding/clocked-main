@@ -1,5 +1,7 @@
 import { useEffect } from 'react';
+import { FitText, Logo, Plate } from '@/components/broadcast';
 import { playSoundEffect } from '@/hooks/useSoundEffects';
+import { getRankingFromLevel, RANKING_NAMES } from '@/lib/xpSystem';
 
 type LevelUpVariant = 'volt' | 'cooldown' | 'championship';
 
@@ -9,12 +11,13 @@ interface LevelUpOverlayProps {
   variant?: LevelUpVariant;
 }
 
-const variantColors: Record<LevelUpVariant, string> = {
-  volt: 'hsl(var(--electric-volt))',
-  cooldown: 'hsl(var(--cooldown-blue))',
-  championship: 'hsl(var(--championship-gold))',
+const BACKGROUND: Record<LevelUpVariant, string> = {
+  volt: 'bg-volt',
+  cooldown: 'bg-foreground',
+  championship: 'bg-championship-gold',
 };
 
+/** Breaking news: the whole screen for a moment. Never takes a tap. */
 export function LevelUpOverlay({ level, onComplete, variant = 'volt' }: LevelUpOverlayProps) {
   useEffect(() => {
     playSoundEffect.levelUp();
@@ -22,61 +25,15 @@ export function LevelUpOverlay({ level, onComplete, variant = 'volt' }: LevelUpO
     return () => clearTimeout(timer);
   }, [onComplete]);
 
-  const bg = variantColors[variant];
-
   return (
-    <div 
-      className="fixed inset-0 z-[100] pointer-events-none flex items-center justify-center overflow-hidden"
-      style={{
-        animation: 'level-up-flash 2.5s ease-out forwards',
-        background: 'transparent',
-      }}
-    >
-      {/* Dark strip at top to prevent browser chrome color bleed */}
-      <div 
-        className="absolute top-0 left-0 right-0 z-10"
-        style={{ 
-          height: 'max(env(safe-area-inset-top, 0px), 50px)', 
-          background: '#0A0A0B',
-        }}
-      />
-      {/* Dark strip at bottom to prevent browser footer color bleed */}
-      <div 
-        className="absolute bottom-0 left-0 right-0 z-10"
-        style={{ 
-          height: 'max(env(safe-area-inset-bottom, 0px), 50px)', 
-          background: '#0A0A0B',
-        }}
-      />
-      
-      {/* Flash overlay — inset from safe areas */}
-      <div 
-        className="absolute inset-0"
-        style={{
-          background: bg,
-          animation: 'level-up-flash 2.5s ease-out forwards',
-          top: 'max(env(safe-area-inset-top, 0px), 50px)',
-          bottom: 'max(env(safe-area-inset-bottom, 0px), 50px)',
-        }}
-      />
-      
-      {/* Level text */}
-      <div 
-        className="relative flex flex-col items-center gap-2 z-20"
-        style={{ animation: 'level-up-text 2.5s ease-out forwards' }}
-      >
-        <span className="text-sm font-bold uppercase tracking-[0.3em] text-white/80">
-          Level Up
-        </span>
-        <span 
-          className="text-8xl font-black text-white"
-          style={{
-            textShadow: '0 0 40px hsl(var(--tech-black) / 0.5), 0 0 80px hsl(var(--tech-black) / 0.3)',
-          }}
-        >
-          {level}
-        </span>
-      </div>
+    <div className={`level-up pointer-events-none fixed inset-0 z-[100] flex flex-col overflow-hidden pt-[max(1rem,env(safe-area-inset-top))] text-background ${BACKGROUND[variant]}`} role="status">
+      <Logo className="ml-4 h-4 w-32" />
+      <span className="lab ml-4 mt-3 text-background">Breaking</span>
+      <FitText className="fx mx-4 h-[18dvh]" max={200}>Level Up</FitText>
+      <FitText className="fx mx-4 min-h-0 flex-1" align="center">{String(level)}</FitText>
+      <Plate tone="black" bleed="left" className="mb-[8dvh] h-20 w-fit justify-start pl-4 pr-10 text-6xl">
+        {RANKING_NAMES[getRankingFromLevel(level)]}
+      </Plate>
     </div>
   );
 }

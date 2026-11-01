@@ -1,8 +1,11 @@
 import type { RefObject } from 'react';
-import { ArrowLeft, Home, Loader2, Lock, Square } from 'lucide-react';
+import { CameraIcon, OnAir, Plate, ScoreBug, Ticker } from '@/components/broadcast';
+import { PunchStats } from '@/components/broadcast/run/parts';
+import { useStageLayout } from '@/components/broadcast/run/useStageLayout';
+import { Button } from '@/components/ui/button';
 import type { TrackingHud } from '@/hooks/usePunchTracking';
-import { formatClock, punchWord } from '@/lib/punch/round';
-import type { PunchDetected } from '@/lib/punch/types';
+import { formatClock, PUNCH_LABELS, PUNCH_ORDER, punchWord } from '@/lib/punch/round';
+import type { PunchClass, PunchDetected } from '@/lib/punch/types';
 
 export interface PunchHud extends TrackingHud {
   /** Seconds to show on the clock: time left with a timer, time elapsed without. */
@@ -15,6 +18,7 @@ interface PunchLiveProps {
   canvasRef: RefObject<HTMLCanvasElement>;
   loading: boolean;
   hud: PunchHud;
+  counts: Record<PunchClass, number>;
   debugPunch: PunchDetected | null;
   showDebug: boolean;
   onExit: () => void;
@@ -29,103 +33,64 @@ export function PunchLive({
   canvasRef,
   loading,
   hud,
+  counts,
   debugPunch,
   showDebug,
   onExit,
   onFinish,
   onResume,
 }: PunchLiveProps) {
+  const layout = useStageLayout();
+  const wide = layout === 'wide';
+  const fps = hud.fps > 0 ? `${Math.round(hud.fps)} fps` : '';
+
   return (
     <div
-      className="h-[100dvh] flex flex-col bg-background"
+      className="stage"
+      data-layout={layout === 'landscape' ? 'wide-short' : layout}
+      data-camera="on"
+      data-tone="live"
       data-testid="punch-live"
       data-fps={hud.fps.toFixed(1)}
       data-inference-ms={hud.inferenceMs.toFixed(1)}
       data-delegate={hud.delegate ?? ''}
       data-frames={hud.frames}
     >
-      <header className="flex items-center justify-between px-4 py-3 safe-top">
-        <button
-          onClick={onExit}
-          aria-label="Leave Punch Check"
-          className="flex items-center gap-2 px-3 py-2 rounded-full bg-surface-1 border border-surface-3"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          <Home className="w-4 h-4" />
-        </button>
-        <span className="timer-display text-2xl font-black text-volt" data-testid="punch-clock">
-          {formatClock(hud.clock)}
-        </span>
-        <span className="text-xs font-bold text-muted-foreground w-[4.5rem] text-right" data-testid="punch-fps">
-          {hud.fps > 0 ? `${Math.round(hud.fps)} fps` : ''}
-        </span>
-      </header>
-
-      <div className="relative flex-1 min-h-0 mx-4 rounded-2xl overflow-hidden bg-black border border-surface-3">
+      <div className="stage-feed bg-black">
         {/* Both layers are flipped together so the picture acts like a mirror */}
-        <video
-          ref={videoRef}
-          playsInline
-          muted
-          className="absolute inset-0 w-full h-full object-contain -scale-x-100"
-        />
-        <canvas
-          ref={canvasRef}
-          className="absolute inset-0 w-full h-full object-contain -scale-x-100 pointer-events-none"
-        />
+        <video ref={videoRef} playsInline muted className="absolute inset-0 h-full w-full object-cover -scale-x-100" />
+        <canvas ref={canvasRef} className="pointer-events-none absolute inset-0 h-full w-full object-cover -scale-x-100" />
+      </div>
 
-        <span className="absolute top-2 left-2 flex items-center gap-1 px-2 py-1 rounded-full bg-black/60 text-[11px] text-foreground">
-          <Lock className="w-3 h-3 text-volt" />
-          Stays on this device
-        </span>
+      <div className="stage-col">
+        <div className="stage-toprow">
+          <ScoreBug mid="Punch Check" className="min-w-0" />
+          <div className="flex shrink-0 items-center gap-3 pr-3">
+            <span className="lab lab-w hidden bg-background/70 px-1.5 py-0.5 sm:inline">Stays on this device</span>
+            <span className="lab lab-w bg-background/70 px-1.5 py-0.5" data-testid="punch-fps">{fps}</span>
+            <button type="button" onClick={onExit} aria-label="Leave Punch Check" className="plate plate-graphite fx h-11 px-4 text-lg">
+              Leave
+            </button>
+          </div>
+        </div>
+
+        <div className="mt-2 flex items-start justify-between px-3">
+          <span className="fx timer-display stage-shadow text-[4.5rem]" data-testid="punch-clock" role="timer">
+            {formatClock(hud.clock)}
+          </span>
+          <OnAir state={hud.paused ? 'off' : 'live'} className="mt-2 bg-background/70 px-1.5 py-0.5">
+            {hud.paused ? 'Off air' : 'On air'}
+          </OnAir>
+        </div>
 
         {hud.warning && !hud.paused && !loading && (
-          <div
-            role="status"
-            data-testid="punch-warning"
-            className="absolute top-10 inset-x-2 p-2 rounded-xl bg-black/80 border border-surface-3 text-center text-sm font-medium text-foreground"
-          >
-            {hud.warning}
-          </div>
-        )}
-
-        {hud.cue && !hud.paused && !loading && (
-          <div
-            role="status"
-            data-testid="punch-cue"
-            className="absolute bottom-3 inset-x-0 mx-auto w-fit max-w-[90%] px-4 py-2 rounded-full bg-volt text-primary-foreground text-lg font-black uppercase tracking-wide"
-          >
-            {hud.cue}
-          </div>
-        )}
-
-        {loading && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-black/70 text-center px-6">
-            <Loader2 className="w-8 h-8 text-volt animate-spin" />
-            <p className="text-sm text-foreground">Starting the camera and pose tracker</p>
-          </div>
-        )}
-
-        {hud.paused && (
-          <div
-            data-testid="punch-paused"
-            className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-black/90 text-center px-6"
-          >
-            <p className="text-sm text-foreground">Camera off because you left the tab.</p>
-            <button
-              onClick={onResume}
-              className="px-4 py-2 rounded-full bg-volt text-primary-foreground text-sm font-bold"
-            >
-              Turn it back on
-            </button>
+          <div role="status" data-testid="punch-warning" className="pointer-events-none mx-3 mt-1">
+            <span className="fx inline-block bg-background/85 px-3 py-1.5 text-2xl leading-none">{hud.warning}</span>
           </div>
         )}
 
         {showDebug && debugPunch && (
-          <pre
-            data-testid="punch-debug"
-            className="absolute bottom-16 left-2 p-2 rounded-lg bg-black/80 text-[10px] leading-tight text-foreground whitespace-pre"
-          >
+          <pre data-testid="punch-debug" className="mx-3 mt-2 w-fit bg-background/80 p-2 text-[13px] leading-tight text-foreground">
             {[
               `${debugPunch.punch} ${debugPunch.hand} conf ${fixed(debugPunch.confidence)}`,
               `dist ${fixed(debugPunch.metrics.distance)} speed ${fixed(debugPunch.metrics.peakSpeed, 1)} ${Math.round(debugPunch.metrics.durationMs)}ms`,
@@ -141,33 +106,60 @@ export function PunchLive({
             ].join('\n')}
           </pre>
         )}
+
+        <div className="stage-floor mt-auto pt-8">
+          {hud.cue && !hud.paused && !loading && (
+            <div role="status" data-testid="punch-cue" className="plate-slap pointer-events-none mb-2">
+              <Plate tone="red" bleed="left" className={`flex w-fit justify-start py-2 pl-3 pr-8 leading-[.86] ${wide ? 'text-[7rem]' : 'text-[3.25rem]'}`}>
+                {hud.cue}
+              </Plate>
+            </div>
+          )}
+          <div className={`flex items-end gap-3 px-4 ${wide ? 'gap-8' : ''}`}>
+            <p className={`fx shrink-0 text-volt ${wide ? 'text-[9rem]' : 'text-[6.5rem] [@media(max-height:480px)]:text-[3.5rem]'}`} data-testid="punch-count">
+              {hud.count}
+            </p>
+            <div className="min-w-0 pb-1">
+              <p className="lab">{punchWord(hud.count)}, last combo</p>
+              <p className="fx truncate text-4xl" data-testid="punch-combo">{hud.combo || ' '}</p>
+              <p className="lab truncate" data-testid="punch-last">Last: {hud.lastLabel ?? 'Combo'}</p>
+            </div>
+            {wide && <PunchStats counts={counts} large className="ml-auto w-[26rem]" />}
+          </div>
+          {!wide && <PunchStats counts={counts} className="mt-2 px-4 [@media(max-height:620px)]:hidden" />}
+          <div className="px-5 py-2.5">
+            <button type="button" onClick={onFinish} aria-label="End round" className="plate plate-white fx h-14 w-full text-3xl">
+              End round
+            </button>
+          </div>
+        </div>
+        <Ticker
+          tone="lime"
+          paused={hud.paused}
+          items={PUNCH_ORDER.filter((punch) => punch !== 'punch' && counts[punch] > 0).map((punch) => `${PUNCH_LABELS[punch]} ${counts[punch]}`).concat('Stays on this device')}
+          className={wide ? 'ticker-wide' : undefined}
+        />
       </div>
 
-      <div className="flex items-center justify-between gap-4 px-4 py-4 safe-bottom">
-        <div className="min-w-[5rem]">
-          <p className="timer-display text-5xl font-black text-volt text-glow-volt leading-none" data-testid="punch-count">
-            {hud.count}
-          </p>
-          <p className="text-xs text-muted-foreground uppercase tracking-widest mt-1">{punchWord(hud.count)}</p>
+      {loading && (
+        <div className="stage-incoming z-20">
+          <span className="fx text-5xl text-volt">Feed incoming</span>
+          <span className="lab lab-w">Starting the camera and pose tracker</span>
         </div>
+      )}
 
-        <div className="flex-1 min-w-0 text-center">
-          <p className="text-2xl font-black text-foreground truncate" data-testid="punch-combo">
-            {hud.combo || ' '}
-          </p>
-          <p className="text-xs text-muted-foreground truncate" data-testid="punch-last">
-            {hud.lastLabel ?? 'Combo'}
-          </p>
+      {hud.paused && (
+        <div data-testid="punch-paused" className="absolute inset-0 z-20 flex flex-col justify-center gap-3 bg-background/95">
+          <Plate tone="white" bleed="both" className="flex h-24 justify-start px-4 text-7xl">Feed cut</Plate>
+          <p className="fx px-4 text-4xl">Camera off because you left the tab.</p>
+          <div className="px-5">
+            <Button size="lg" onClick={onResume} className="w-full gap-3">
+              <CameraIcon className="size-6" />
+              Turn it back on
+            </Button>
+          </div>
         </div>
-
-        <button
-          onClick={onFinish}
-          aria-label="End round"
-          className="w-16 h-16 shrink-0 rounded-full bg-volt flex items-center justify-center shadow-lg shadow-volt/30 active:scale-95 transition-transform"
-        >
-          <Square className="w-6 h-6 text-primary-foreground" />
-        </button>
-      </div>
+      )}
     </div>
   );
 }

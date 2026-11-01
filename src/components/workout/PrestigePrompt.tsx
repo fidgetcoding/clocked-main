@@ -1,28 +1,17 @@
 import { useState, useEffect } from 'react';
+import { BroadcastPage, Plate, SectionRule } from '@/components/broadcast';
+import { GloveArt } from '@/components/ui/GameArt';
 import { Button } from '@/components/ui/button';
 import { playSoundEffect } from '@/hooks/useSoundEffects';
-import { 
-  Prestige, PRESTIGE_NAMES, PRESTIGE_ORDER, 
-  getPrestigeChanges, getNextPrestige 
-} from '@/lib/xpSystem';
-import { cn } from '@/lib/utils';
-import { Crown, ChevronUp, Shield, Swords, Star, ArrowRight } from 'lucide-react';
+import { Prestige, PRESTIGE_NAMES, getPrestigeChanges, getNextPrestige } from '@/lib/xpSystem';
 
-// Tier-specific colors
-const TIER_COLORS: Record<Prestige, { bg: string; text: string; border: string; glow: string }> = {
-  rookie:       { bg: 'bg-slate-500/20', text: 'text-slate-400', border: 'border-slate-500/30', glow: 'shadow-slate-500/30' },
-  beginner:     { bg: 'bg-volt/20', text: 'text-volt', border: 'border-volt/30', glow: 'shadow-volt/30' },
-  intermediate: { bg: 'bg-blue-500/20', text: 'text-blue-400', border: 'border-blue-500/30', glow: 'shadow-blue-500/30' },
-  advanced:     { bg: 'bg-purple-500/20', text: 'text-purple-400', border: 'border-purple-500/30', glow: 'shadow-purple-500/30' },
-  pro:          { bg: 'bg-amber-500/20', text: 'text-amber-400', border: 'border-amber-500/30', glow: 'shadow-amber-500/30' },
-};
-
-const TIER_ICONS: Record<Prestige, React.ReactNode> = {
-  rookie:       <Shield className="w-12 h-12" />,
-  beginner:     <Swords className="w-12 h-12" />,
-  intermediate: <Star className="w-12 h-12" />,
-  advanced:     <Crown className="w-12 h-12" />,
-  pro:          <Crown className="w-12 h-12" />,
+// The gloves that close out each tier
+const TIER_GLOVE: Record<Prestige, string> = {
+  rookie: 'golden',
+  beginner: 'platinum',
+  intermediate: 'emerald',
+  advanced: 'ruby',
+  pro: 'bmf',
 };
 
 interface PrestigePromptProps {
@@ -31,215 +20,109 @@ interface PrestigePromptProps {
   onDefer: () => void;
 }
 
+const Line = ({ tone, children }: { tone: 'keep' | 'reset'; children: React.ReactNode }) => (
+  <p className="flex items-baseline gap-3 border-b border-surface-2 px-4 py-2 text-lg">
+    <i className={`block h-2.5 w-4 shrink-0 -skew-x-[14deg] ${tone === 'keep' ? 'bg-volt' : 'bg-foreground'}`} />
+    {children}
+  </p>
+);
+
 export function PrestigePrompt({ currentPrestige, onPrestige, onDefer }: PrestigePromptProps) {
   const [confirming, setConfirming] = useState(false);
   const changes = getPrestigeChanges(currentPrestige);
-  
+
   useEffect(() => {
     playSoundEffect.prestige();
   }, []);
-  
+
   if (!changes) return null;
-  
-  const nextColors = TIER_COLORS[changes.nextTier];
-  const currentColors = TIER_COLORS[currentPrestige];
 
   if (confirming) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center px-4 py-8 bg-background safe-top safe-bottom">
-        <div className="w-full max-w-sm text-center space-y-6">
-          <div className={cn('w-20 h-20 rounded-2xl mx-auto flex items-center justify-center', nextColors.bg, nextColors.text)}>
-            {TIER_ICONS[changes.nextTier]}
-          </div>
-          
-          <div>
-            <h2 className="text-2xl font-black text-foreground mb-2">Are you sure?</h2>
-            <p className="text-sm text-muted-foreground">
-              This promotion is <span className="font-bold text-foreground">permanent</span>. 
-              You'll advance to {changes.nextTierName} and start at Level 1 with a harder XP curve.
-            </p>
-          </div>
-
-          <div className="card-workout text-left space-y-2">
-            <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">What carries over</h4>
-            <p className="text-sm text-foreground">✅ All lifetime stats (combos, pushups, hours, etc.)</p>
-            <p className="text-sm text-foreground">✅ All earned badges — permanently yours</p>
-            <p className="text-sm text-foreground">✅ Your current streak stays unbroken</p>
-          </div>
-
-          <div className="card-workout text-left space-y-2">
-            <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">What resets</h4>
-            <p className="text-sm text-foreground">🔄 Level resets to 1 in {changes.nextTierName}</p>
-            <p className="text-sm text-foreground">🔄 XP progress starts fresh on a harder curve</p>
-            <p className="text-sm text-foreground">🔄 Workout combos become more complex</p>
-          </div>
-
-          <div className="flex gap-3">
-            <Button 
-              onClick={() => setConfirming(false)} 
-              variant="outline" 
-              className="flex-1 bg-surface-1 border-surface-3"
-            >
-              Go Back
-            </Button>
-            <Button 
-              onClick={onPrestige}
-              className={cn('flex-1 font-bold text-white', nextColors.bg, 'hover:opacity-90 border', nextColors.border)}
-            >
-              Prestige Now
-            </Button>
-          </div>
+      <BroadcastPage show="Official ruling" className="pb-6">
+        <Plate as="h2" tone="white" bleed="both" className="mt-3 flex h-20 justify-start px-4 text-6xl">
+          Are you sure?
+        </Plate>
+        <p className="mt-3 px-4 text-lg">
+          This promotion is <b>permanent</b>. You'll advance to {changes.nextTierName} and start at Level 1 with a harder XP curve.
+        </p>
+        <SectionRule title="What carries over" className="mt-2" />
+        <Line tone="keep">All lifetime stats (combos, pushups, hours, etc.)</Line>
+        <Line tone="keep">All earned badges, permanently yours</Line>
+        <Line tone="keep">Your current streak stays unbroken</Line>
+        <SectionRule title="What resets" className="mt-2" />
+        <Line tone="reset">Level resets to 1 in {changes.nextTierName}</Line>
+        <Line tone="reset">XP progress starts fresh on a harder curve</Line>
+        <Line tone="reset">Workout combos become more complex</Line>
+        <div className="mt-5 flex gap-4 px-5">
+          <Button variant="secondary" className="flex-1" onClick={() => setConfirming(false)}>Go Back</Button>
+          <Button className="flex-1" onClick={onPrestige}>Prestige Now</Button>
         </div>
-      </div>
+      </BroadcastPage>
     );
   }
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center px-4 py-8 bg-background safe-top safe-bottom">
-      <div className="w-full max-w-sm text-center space-y-6">
-        {/* Celebration */}
-        <div className="relative">
-          <div className={cn(
-            'w-24 h-24 rounded-2xl mx-auto flex items-center justify-center shadow-xl',
-            nextColors.bg, nextColors.text, nextColors.glow
-          )}>
-            <ChevronUp className="w-16 h-16 animate-bounce" />
-          </div>
+    <BroadcastPage show="Title fight" className="pb-6">
+      <div className="relative mt-2 flex min-h-[13rem] items-start overflow-hidden">
+        <div className="relative z-10 px-4 pt-2">
+          <p className="lab lab-lime">You've conquered</p>
+          <p className="fx text-7xl">{changes.currentTierName}</p>
+          <p className="fx mt-2 text-2xl">You're ready to prestige.</p>
         </div>
-
-        <div>
-          <h1 className="text-3xl font-black text-foreground mb-2">
-            PRESTIGE UNLOCKED
-          </h1>
-          <p className="text-lg text-muted-foreground">
-            You've conquered <span className={cn('font-bold', currentColors.text)}>{changes.currentTierName}</span>.
-          </p>
-          <p className="text-lg text-muted-foreground">
-            You're ready to prestige.
-          </p>
-        </div>
-
-        {/* Tier Transition */}
-        <div className="flex items-center justify-center gap-4">
-          <div className={cn('px-4 py-2 rounded-xl font-bold uppercase tracking-wide text-sm', currentColors.bg, currentColors.text, 'border', currentColors.border)}>
-            {changes.currentTierName}
-          </div>
-          <ArrowRight className="w-6 h-6 text-muted-foreground" />
-          <div className={cn('px-4 py-2 rounded-xl font-bold uppercase tracking-wide text-sm', nextColors.bg, nextColors.text, 'border', nextColors.border)}>
-            {changes.nextTierName}
-          </div>
-        </div>
-
-        {/* What changes */}
-        <div className="card-workout text-left space-y-3">
-          <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">What happens</h3>
-          <div className="space-y-2 text-sm">
-            <p className="text-foreground">
-              <span className={cn('font-bold', nextColors.text)}>New Tier:</span> {changes.nextTierName} — harder combos, more defense moves
-            </p>
-            <p className="text-foreground">
-              <span className={cn('font-bold', nextColors.text)}>Level Reset:</span> Back to Level 1 with a steeper XP curve
-            </p>
-            <p className="text-foreground">
-              <span className={cn('font-bold', nextColors.text)}>Keep Everything:</span> Stats, badges, and streak all carry over
-            </p>
-          </div>
-        </div>
-
-        {/* No pressure message */}
-        <div className="px-4 py-3 rounded-xl bg-surface-2/50 border border-surface-3">
-          <p className="text-xs text-muted-foreground">
-            No rush. You can stay at Champion Level 100 as long as you want — farm badges, build streaks. 
-            This button will always be here when you're ready. This is a <span className="font-bold text-foreground">one-way promotion</span>.
-          </p>
-        </div>
-
-        {/* Actions */}
-        <div className="space-y-3">
-          <Button 
-            onClick={() => setConfirming(true)}
-            className={cn('w-full font-bold text-lg py-6 text-white', nextColors.bg, 'hover:opacity-90 border', nextColors.border)}
-          >
-            Prestige Now
-          </Button>
-          <Button 
-            onClick={onDefer} 
-            variant="outline" 
-            className="w-full bg-surface-1 border-surface-3 text-muted-foreground"
-          >
-            Not Yet
-          </Button>
-        </div>
+        <GloveArt id={TIER_GLOVE[currentPrestige]} className="art-slant absolute -right-4 top-0 h-52 w-52" />
       </div>
-    </div>
+      <Plate as="h1" tone="lime" bleed="both" className="flex h-20 justify-start px-4 text-6xl">
+        PRESTIGE UNLOCKED
+      </Plate>
+      <SectionRule title="What happens" className="mt-3" right={`${changes.currentTierName} to ${changes.nextTierName}`} />
+      <Line tone="keep">New Tier: {changes.nextTierName}, harder combos, more defense moves</Line>
+      <Line tone="reset">Level Reset: back to Level 1 with a steeper XP curve</Line>
+      <Line tone="keep">Keep Everything: stats, badges and streak all carry over</Line>
+      <p className="mt-3 px-4 text-base text-muted-foreground">
+        No rush. You can stay at Champion Level 100 as long as you want and farm badges. This will always be here when you're ready. It's a one-way promotion.
+      </p>
+      <div className="mt-5 flex gap-4 px-5">
+        <Button variant="secondary" className="flex-1" onClick={onDefer}>Not Yet</Button>
+        <Button className="flex-1" onClick={() => setConfirming(true)}>Prestige Now</Button>
+      </div>
+    </BroadcastPage>
   );
 }
 
 /**
- * Pro L100 — Max Level celebration (no prestige available)
+ * Pro L100: the end of the ladder, with no prestige after it.
  */
 export function MaxLevelCelebration({ onDismiss }: { onDismiss: () => void }) {
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center px-4 py-8 bg-background safe-top safe-bottom">
-      <div className="w-full max-w-sm text-center space-y-6">
-        <div className="w-24 h-24 rounded-2xl mx-auto flex items-center justify-center bg-amber-500/20 text-amber-400 shadow-xl shadow-amber-500/30">
-          <Crown className="w-16 h-16" />
-        </div>
-
-        <div>
-          <h1 className="text-3xl font-black text-foreground mb-2">MAX LEVEL</h1>
-          <p className="text-lg text-muted-foreground">
-            Pro · Champion · Level 100
-          </p>
-          <p className="text-sm text-muted-foreground mt-2">
-            You've reached the pinnacle. Keep training for BMF (250 sessions) and BMFK (365 consecutive days).
-          </p>
-        </div>
-
-        <Button onClick={onDismiss} className="w-full btn-primary-glow">
-          Continue
-        </Button>
+    <BroadcastPage show="Final" className="pb-6">
+      <Plate as="h1" tone="gold" bleed="both" className="mt-6 flex h-24 justify-start px-4 text-7xl">
+        MAX LEVEL
+      </Plate>
+      <p className="fx mt-4 px-4 text-3xl">Pro, Champion, Level 100</p>
+      <p className="mt-2 px-4 text-lg">You've reached the top. Keep training for BMF (250 sessions) and BMFK (365 consecutive days).</p>
+      <div className="mt-5 px-5">
+        <Button className="w-full" onClick={onDismiss}>Continue</Button>
       </div>
-    </div>
+    </BroadcastPage>
   );
 }
 
-/**
- * Compact "Prestige Available" banner for Stats/Profile pages.
- */
 interface PrestigeBannerProps {
   currentPrestige: Prestige;
   onClick: () => void;
 }
 
+/** Compact "Prestige Available" row for Stats and Profile. */
 export function PrestigeAvailableBanner({ currentPrestige, onClick }: PrestigeBannerProps) {
   const next = getNextPrestige(currentPrestige);
   if (!next) return null;
-  
-  const nextColors = TIER_COLORS[next];
-  
   return (
-    <button
-      onClick={onClick}
-      className={cn(
-        'w-full flex items-center justify-between p-4 rounded-2xl border transition-all',
-        'hover:scale-[1.01] active:scale-[0.99]',
-        nextColors.bg, nextColors.border,
-        'shadow-lg', nextColors.glow
-      )}
-    >
-      <div className="flex items-center gap-3">
-        <div className={cn('w-10 h-10 rounded-xl flex items-center justify-center', nextColors.bg, nextColors.text)}>
-          <ChevronUp className="w-6 h-6" />
-        </div>
-        <div className="text-left">
-          <p className={cn('text-sm font-bold', nextColors.text)}>Prestige Available</p>
-          <p className="text-xs text-muted-foreground">
-            Promote to {PRESTIGE_NAMES[next]} when you're ready
-          </p>
-        </div>
-      </div>
-      <ArrowRight className={cn('w-5 h-5', nextColors.text)} />
+    <button type="button" onClick={onClick} className="plate plate-lime plate-bleed-l plate-bleed-r flex min-h-16 w-full justify-between px-4 py-2 text-left">
+      <span>
+        <span className="fx block text-3xl">Prestige Available</span>
+        <span className="block text-sm font-semibold">Promote to {PRESTIGE_NAMES[next]} when you're ready</span>
+      </span>
     </button>
   );
 }

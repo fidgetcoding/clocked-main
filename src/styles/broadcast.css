@@ -407,7 +407,8 @@ a.plate:active {
 /* A slanted window onto glove art */
 .art-slant {
   overflow: hidden;
-  clip-path: polygon(14% 0, 100% 0, 86% 100%, 0 100%);
+  /* 12.47% of the height each way is a true 14 degree edge on square art */
+  clip-path: polygon(24.93% 0, 100% 0, 75.07% 100%, 0 100%);
   background: #0a0a0a;
 }
 
@@ -531,4 +532,8 @@ a.plate:active {
   max-width: 46rem;
   margin-inline: auto;
   overflow: hidden;
+}
+
+.\@container-tape {
+  container-type: inline-size;
 }

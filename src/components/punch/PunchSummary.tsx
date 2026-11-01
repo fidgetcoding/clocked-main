@@ -1,3 +1,4 @@
+import { BroadcastPage, FitText, OnAir, Plate } from '@/components/broadcast';
 import { Button } from '@/components/ui/button';
 import { formatClock, PUNCH_LABELS, PUNCH_ORDER, punchWord, type RoundSummary } from '@/lib/punch/round';
 
@@ -14,78 +15,75 @@ interface PunchSummaryProps {
 
 export function PunchSummary({ summary, seconds, logged, logging, logFailed, onLog, onAgain, onHome }: PunchSummaryProps) {
   const thrown = PUNCH_ORDER.filter((punch) => summary.counts[punch] > 0);
+  const top = Math.max(1, ...thrown.map((punch) => summary.counts[punch]));
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center px-4 py-8 bg-background" data-testid="punch-summary">
-      <h1 className="text-3xl font-black text-foreground mb-2">ROUND DONE</h1>
-      <p className="text-muted-foreground mb-6">Punch Check</p>
+    <BroadcastPage show="Punch Check" air={<OnAir state="off">Off air</OnAir>} className="pb-6">
+      <div data-testid="punch-summary">
+        <div role="heading" aria-level={1} className="fx mx-4 mt-3 h-20">
+          <FitText className="h-full" max={96}>ROUND DONE</FitText>
+        </div>
 
-      <div className="grid grid-cols-3 gap-3 mb-4 w-full max-w-sm">
-        <div className="card-workout text-center">
-          <p className="text-2xl font-bold text-volt" data-testid="summary-total">{summary.total}</p>
-          <p className="text-sm text-muted-foreground capitalize">{punchWord(summary.total)}</p>
+        <div className="mt-3 grid grid-cols-3 border-y border-surface-3 py-2 text-center">
+          <div>
+            <p className="fx text-6xl text-volt" data-testid="summary-total">{summary.total}</p>
+            <p className="lab">{punchWord(summary.total)}</p>
+          </div>
+          <div>
+            <p className="fx text-6xl" data-testid="summary-clean">{summary.cleanPercent === null ? '-' : `${summary.cleanPercent}%`}</p>
+            <p className="lab">Clean</p>
+          </div>
+          <div>
+            <p className="fx text-6xl">{formatClock(seconds)}</p>
+            <p className="lab">Time</p>
+          </div>
         </div>
-        <div className="card-workout text-center">
-          <p className="text-2xl font-bold text-volt" data-testid="summary-clean">
-            {summary.cleanPercent === null ? '-' : `${summary.cleanPercent}%`}
-          </p>
-          <p className="text-sm text-muted-foreground">Clean</p>
-        </div>
-        <div className="card-workout text-center">
-          <p className="text-2xl font-bold text-volt">{formatClock(seconds)}</p>
-          <p className="text-sm text-muted-foreground">Time</p>
-        </div>
-      </div>
 
-      {summary.total === 0 ? (
-        <div className="card-workout w-full max-w-sm mb-4">
-          <p className="text-sm text-foreground">
+        {summary.total === 0 ? (
+          <p className="mt-3 px-4 text-lg">
             No punches spotted. Check that your head, hands and hips are in the picture, 6 to 8 feet from the camera,
             and that the room is well lit.
           </p>
-        </div>
-      ) : (
-        <div className="card-workout w-full max-w-sm mb-4 space-y-1" data-testid="summary-counts">
-          {thrown.map((punch) => (
-            <div key={punch} className="flex items-center justify-between text-sm">
-              <span className="text-muted-foreground">{punch === 'punch' ? 'Not sure which' : PUNCH_LABELS[punch]}</span>
-              <span className="font-bold text-foreground">{summary.counts[punch]}</span>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {summary.topFix && (
-        <div className="card-workout w-full max-w-sm mb-4" data-testid="summary-fix">
-          <p className="text-xs text-muted-foreground uppercase tracking-widest mb-1">Top fix</p>
-          <p className="text-sm font-semibold text-foreground">{summary.topFix.advice}</p>
-          <p className="text-xs text-muted-foreground mt-1">Flagged {summary.topFix.count === 1 ? 'once' : `${summary.topFix.count} times`} this round</p>
-        </div>
-      )}
-
-      <p className="text-xs text-muted-foreground w-full max-w-sm mb-6">
-        A form guide from one camera angle, so some calls will be wrong. It can't judge your power, and it's no
-        replacement for a coach.
-      </p>
-
-      <div className="w-full max-w-sm space-y-3">
-        {logged ? (
-          <div className="card-workout text-center">
-            <p className="text-volt font-semibold">Saved to your workout log</p>
-          </div>
         ) : (
-          <Button onClick={onLog} disabled={logging || summary.total === 0} className="btn-primary-glow w-full">
-            Save to workout log
-          </Button>
+          <div className="mt-3 space-y-1 px-4" data-testid="summary-counts">
+            {thrown.map((punch) => (
+              <div key={punch} className="fx grid grid-cols-[8rem_1fr_2.5rem] items-center gap-2.5 text-2xl">
+                <span className="whitespace-nowrap">{punch === 'punch' ? 'Not sure which' : PUNCH_LABELS[punch]}</span>
+                <i className="block h-4 -skew-x-[14deg] bg-volt" style={{ width: `${(summary.counts[punch] / top) * 100}%` }} />
+                <em className="text-right not-italic">{summary.counts[punch]}</em>
+              </div>
+            ))}
+          </div>
         )}
-        {logFailed && <p className="text-sm text-destructive text-center">Couldn't save that. Try again.</p>}
-        <Button onClick={onAgain} variant="outline" className="w-full bg-surface-1 border-surface-3">
-          Go again
-        </Button>
-        <Button onClick={onHome} variant="outline" className="w-full bg-surface-1 border-surface-3">
-          Back to Home
-        </Button>
+
+        {summary.topFix && (
+          <div className="mt-4" data-testid="summary-fix">
+            <Plate tone="red" bleed="left" className="h-9 w-fit justify-start pl-4 pr-6 text-[1.75rem]">Top fix</Plate>
+            <p className="fx mt-2 px-4 text-3xl">{summary.topFix.advice}</p>
+            <p className="lab mt-1 px-4">Flagged {summary.topFix.count === 1 ? 'once' : `${summary.topFix.count} times`} this round</p>
+          </div>
+        )}
+
+        <p className="mt-4 px-4 text-sm text-muted-foreground">
+          A form guide from one camera angle, so some calls will be wrong. It can't judge your power, and it's no
+          replacement for a coach.
+        </p>
+
+        <div className="mt-4 space-y-3 px-5">
+          {logged ? (
+            <p className="fx text-center text-3xl text-volt">Saved to your workout log</p>
+          ) : (
+            <Button onClick={onLog} disabled={logging || summary.total === 0} size="lg" className="w-full text-3xl">
+              Save to workout log
+            </Button>
+          )}
+          {logFailed && <p className="text-center text-base text-alert-red">Couldn't save that. Try again.</p>}
+          <div className="flex gap-4">
+            <Button onClick={onAgain} variant="secondary" className="flex-1">Go again</Button>
+            <Button onClick={onHome} variant="secondary" className="flex-1">Back to Home</Button>
+          </div>
+        </div>
       </div>
-    </div>
+    </BroadcastPage>
   );
 }

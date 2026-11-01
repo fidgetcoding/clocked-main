@@ -146,7 +146,7 @@ export function PunchRecorder() {
             <h1 className="text-lg font-bold text-foreground mb-2">{CAMERA_MESSAGES[problem].title}</h1>
             <p className="text-sm text-muted-foreground">{CAMERA_MESSAGES[problem].body}</p>
           </div>
-          <Button onClick={() => navigate('/')} variant="outline" className="w-full max-w-sm bg-surface-1 border-surface-3">
+          <Button onClick={() => navigate('/')} variant="secondary" className="w-full max-w-sm">
             Back to Home
           </Button>
         </div>
@@ -173,7 +173,7 @@ export function PunchRecorder() {
               Takes about 4 minutes. Turn slightly to the camera, 6 to 8 feet back, with your head, hands and hips in the
               picture. Throw one punch each time you hear a number.
             </p>
-            <Button onClick={begin} disabled={status === 'starting'} className="btn-primary-glow w-full">
+            <Button onClick={begin} disabled={status === 'starting'} size="lg" className="w-full">
               {status === 'starting' ? 'Starting' : 'Start'}
             </Button>
           </div>
@@ -186,7 +186,7 @@ export function PunchRecorder() {
             {paused && (
               <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-black/90 text-center px-6">
                 <p className="text-sm text-foreground">Camera off because you left the tab. Frames stopped too.</p>
-                <button onClick={() => void start()} className="px-4 py-2 rounded-full bg-volt text-primary-foreground text-sm font-bold">
+                <button onClick={() => void start()} className="plate plate-lime fx h-11 px-5 text-xl">
                   Turn it back on
                 </button>
               </div>
@@ -211,8 +211,7 @@ export function PunchRecorder() {
             <Button
               onClick={() => goToStep(stepIndex + 1)}
               disabled={stage !== 'recording'}
-              variant="outline"
-              className="bg-surface-1 border-surface-3"
+              variant="secondary"
             >
               Done, next
             </Button>
@@ -225,11 +224,11 @@ export function PunchRecorder() {
               <p className="text-2xl font-bold text-volt">{framesRef.current.length}</p>
               <p className="text-sm text-muted-foreground">Frames of body points</p>
             </div>
-            <Button onClick={download} className="btn-primary-glow w-full">
+            <Button onClick={download} size="lg" className="w-full">
               <Download />
               Download file
             </Button>
-            <Button onClick={() => navigate('/')} variant="outline" className="w-full bg-surface-1 border-surface-3">
+            <Button onClick={() => navigate('/')} variant="secondary" className="w-full">
               Back to Home
             </Button>
           </div>

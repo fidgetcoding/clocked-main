@@ -3,6 +3,7 @@ import { BadgeArt } from '@/components/ui/GameArt';
 import { Button } from '@/components/ui/button';
 import { CAMERA_MESSAGES } from '@/lib/punch/framing';
 import { PUNCH_LABELS, PUNCH_ORDER } from '@/lib/punch/round';
+import type { PunchClass } from '@/lib/punch/types';
 import { cn } from '@/lib/utils';
 import { FitText } from '../FitText';
 import { OnAir } from '../OnAir';
@@ -266,13 +267,13 @@ const SHORT_PUNCH: Record<string, string> = {
 };
 
 /** The live tracker's tally: how many, and of what. */
-export function PunchStats({ feed, large, className }: { feed: RunStageProps['feed']; large?: boolean; className?: string }) {
-  if (!feed) return null;
-  const rows = PUNCH_ORDER.filter((punch) => punch !== 'punch' || feed.counts.punch > 0)
+export function PunchStats({ feed, counts = feed?.counts, large, className }: { feed?: RunStageProps['feed']; counts?: Record<PunchClass, number>; large?: boolean; className?: string }) {
+  if (!counts) return null;
+  const rows = PUNCH_ORDER.filter((punch) => punch !== 'punch' || counts.punch > 0)
     .slice(0, large ? 7 : 4)
     .map((punch) => {
       const label = punch === 'punch' ? 'Other' : PUNCH_LABELS[punch];
-      return { label: SHORT_PUNCH[label] ?? label, value: feed.counts[punch] };
+      return { label: SHORT_PUNCH[label] ?? label, value: counts[punch] };
     });
   const top = Math.max(1, ...rows.map((row) => row.value));
   return (
