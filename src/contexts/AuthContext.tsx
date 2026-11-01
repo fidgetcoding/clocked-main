@@ -78,7 +78,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (event === 'SIGNED_OUT' || (previousUserIdRef.current && previousUserIdRef.current !== newUserId)) {
           console.log('Auth state change: clearing user data');
           clearUserLocalStorage();
-          queryClientRef.current?.clear();
         }
 
         if (!session) {
@@ -90,10 +89,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           syncProfileToStore(newUserId);
         }
 
+        const accountChanged = event === 'SIGNED_OUT' || (previousUserIdRef.current && previousUserIdRef.current !== newUserId);
         previousUserIdRef.current = newUserId;
         setSession(session);
         setUser(session?.user ?? null);
         setLoading(false);
+
+        // Last on purpose: the store updates above re-render synchronously, and an empty cache at
+        // that point makes mounted queries refetch with the old user but no session
+        if (accountChanged) {
+          queryClientRef.current?.clear();
+        }
       }
     );
 
@@ -116,11 +122,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [syncProfileToStore]);
 
   const signOut = async () => {
-    // Clear all user-specific data before signing out
+    await supabase.auth.signOut();
     clearUserLocalStorage();
     queryClientRef.current?.clear();
-    
-    await supabase.auth.signOut();
     setUser(null);
     setSession(null);
   };
