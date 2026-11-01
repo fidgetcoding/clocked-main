@@ -77,3 +77,103 @@ CREATE POLICY "Users can view their own avatar files"
     bucket_id = 'avatars'
     AND auth.uid()::text = (storage.foldername(name))[1]
   );
+
+-- ===== C3/C4: club membership and club-only posts =====
+-- Definer so policies can check membership without re-entering club_members RLS.
+CREATE FUNCTION public.is_club_member(_club_id uuid)
+RETURNS boolean
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = ''
+AS $$
+  SELECT EXISTS (
+    SELECT 1
+    FROM public.club_members cm
+    WHERE cm.club_id = _club_id
+      AND cm.user_id = auth.uid()
+  );
+$$;
+
+REVOKE EXECUTE ON FUNCTION public.is_club_member(uuid) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.is_club_member(uuid) TO authenticated;
+
+-- The old policy queried club_members from inside its own policy, so every read
+-- failed with "infinite recursion detected".
+DROP POLICY IF EXISTS "Members visible for public clubs or own clubs" ON public.club_members;
+CREATE POLICY "Members visible for public clubs or own clubs"
+  ON public.club_members FOR SELECT
+  TO authenticated
+  USING (
+    EXISTS (SELECT 1 FROM public.clubs c WHERE c.id = club_members.club_id AND c.type = 'public')
+    OR public.is_club_member(club_id)
+  );
+
+DROP POLICY IF EXISTS "Users can join clubs" ON public.club_members;
+CREATE POLICY "Users can join public clubs as members"
+  ON public.club_members FOR INSERT
+  TO authenticated
+  WITH CHECK (
+    auth.uid() = user_id
+    AND role = 'member'
+    AND EXISTS (SELECT 1 FROM public.clubs c WHERE c.id = club_members.club_id AND c.type = 'public')
+  );
+
+-- Enforces member_cap at the database. Locking the club row makes concurrent joins
+-- take turns, so the last spot can't be taken twice.
+CREATE FUNCTION public.enforce_club_member_cap()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = ''
+AS $$
+DECLARE
+  cap integer;
+BEGIN
+  SELECT c.member_cap INTO cap
+  FROM public.clubs c
+  WHERE c.id = NEW.club_id
+  FOR NO KEY UPDATE;
+
+  IF cap IS NOT NULL
+     AND (SELECT count(*) FROM public.club_members cm WHERE cm.club_id = NEW.club_id) >= cap THEN
+    RAISE EXCEPTION 'This club has reached its member limit';
+  END IF;
+
+  RETURN NEW;
+END;
+$$;
+
+REVOKE EXECUTE ON FUNCTION public.enforce_club_member_cap() FROM PUBLIC, anon, authenticated;
+
+CREATE TRIGGER enforce_club_member_cap
+  BEFORE INSERT ON public.club_members
+  FOR EACH ROW
+  EXECUTE FUNCTION public.enforce_club_member_cap();
+
+DROP POLICY IF EXISTS "Authenticated users can view all community posts" ON public.community_posts;
+CREATE POLICY "Users can view feed posts and their clubs' posts"
+  ON public.community_posts FOR SELECT
+  TO authenticated
+  USING (destination IS DISTINCT FROM 'club' OR public.is_club_member(club_id));
+
+DROP POLICY IF EXISTS "Users can insert their own posts" ON public.community_posts;
+CREATE POLICY "Users can insert their own posts"
+  ON public.community_posts FOR INSERT
+  TO authenticated
+  WITH CHECK (
+    auth.uid() = user_id
+    AND (destination IS DISTINCT FROM 'club' OR public.is_club_member(club_id))
+  );
+
+-- Without this, an UPDATE could move an existing post into a club the author isn't in,
+-- getting around the INSERT check above.
+DROP POLICY IF EXISTS "Users can update their own posts" ON public.community_posts;
+CREATE POLICY "Users can update their own posts"
+  ON public.community_posts FOR UPDATE
+  TO authenticated
+  USING (auth.uid() = user_id)
+  WITH CHECK (
+    auth.uid() = user_id
+    AND (destination IS DISTINCT FROM 'club' OR public.is_club_member(club_id))
+  );
