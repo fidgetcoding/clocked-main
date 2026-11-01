@@ -1,9 +1,11 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { type GenerateRequest, MAX_BODY_LENGTH, validateGenerateRequest } from "./validate.ts";
 
 const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
 const AI_GATEWAY_URL = 'https://ai.gateway.lovable.dev/v1/chat/completions';
 const MODEL = 'google/gemini-2.5-flash';
+const DAILY_GENERATION_LIMIT = 25;
 
 const CORS_HEADERS = {
   'Access-Control-Allow-Origin': '*',
@@ -242,20 +244,6 @@ Note: No warmup or cooldown — user only asked for rounds. Combos progress from
 
 ALWAYS return just the JSON object. No markdown fences, no explanation.`;
 
-interface GenerateRequest {
-  prompt: string;
-  userTier: string;
-  equipment: Record<string, boolean>;
-  experienceLevel: string;
-  historyInsights?: {
-    averageDifficulty: string | null;
-    recentTrend: string | null;
-    preferredDuration: number;
-    suggestedDifficultyAdjust: number;
-    totalWorkouts: number;
-  };
-}
-
 // Valid boxing combo tokens — includes FREESTYLE
 const VALID_BOXING_TOKENS = new Set([
   '1','2','3','4','5','6','7','8',
@@ -462,20 +450,71 @@ serve(async (req) => {
     );
     const token = authHeader.replace('Bearer ', '');
     const { data: claimsData, error: claimsError } = await supabase.auth.getClaims(token);
-    if (claimsError || !claimsData?.claims) {
+    // The public anon key is also a valid JWT, so a real user has to be named in the claims
+    const claims = claimsData?.claims;
+    if (claimsError || !claims?.sub || claims.role !== 'authenticated') {
       return new Response(
         JSON.stringify({ error: 'Unauthorized' }),
         { status: 401, headers: { 'Content-Type': 'application/json', ...CORS_HEADERS } }
       );
     }
 
-    const body: GenerateRequest = await req.json();
+    const rawBody = await req.text();
+    if (rawBody.length > MAX_BODY_LENGTH) {
+      return new Response(
+        JSON.stringify({ error: 'Request too large', fallback: true }),
+        { status: 413, headers: { 'Content-Type': 'application/json', ...CORS_HEADERS } }
+      );
+    }
+
+    let parsedBody: unknown;
+    try {
+      parsedBody = JSON.parse(rawBody);
+    } catch {
+      return new Response(
+        JSON.stringify({ error: 'Request body must be valid JSON', fallback: true }),
+        { status: 400, headers: { 'Content-Type': 'application/json', ...CORS_HEADERS } }
+      );
+    }
+
+    const validation = validateGenerateRequest(parsedBody);
+    if (!validation.ok) {
+      return new Response(
+        JSON.stringify({ error: validation.error, fallback: true }),
+        { status: 400, headers: { 'Content-Type': 'application/json', ...CORS_HEADERS } }
+      );
+    }
+    const body: GenerateRequest = validation.value;
 
     if (!LOVABLE_API_KEY) {
       console.error('LOVABLE_API_KEY not configured');
       return new Response(
         JSON.stringify({ error: 'AI service not configured', fallback: true }),
         { status: 500, headers: { 'Content-Type': 'application/json', ...CORS_HEADERS } }
+      );
+    }
+
+    // Fails closed: if the quota can't be checked, the AI key isn't spent
+    const supabaseAdmin = createClient(
+      Deno.env.get('SUPABASE_URL')!,
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
+      { auth: { autoRefreshToken: false, persistSession: false } }
+    );
+    const { data: withinQuota, error: quotaError } = await supabaseAdmin.rpc('consume_ai_generation_quota', {
+      _user_id: claims.sub,
+      _daily_limit: DAILY_GENERATION_LIMIT,
+    });
+    if (quotaError) {
+      console.error('Quota check failed:', quotaError);
+      return new Response(
+        JSON.stringify({ error: 'AI generation unavailable', fallback: true }),
+        { status: 503, headers: { 'Content-Type': 'application/json', ...CORS_HEADERS } }
+      );
+    }
+    if (!withinQuota) {
+      return new Response(
+        JSON.stringify({ error: 'Daily AI generation limit reached', fallback: true }),
+        { status: 429, headers: { 'Content-Type': 'application/json', ...CORS_HEADERS } }
       );
     }
 
