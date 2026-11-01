@@ -73,8 +73,8 @@ export function useWorkouts() {
         .eq('user_id', user.id)
         .order('sort_order', { ascending: false })
         .limit(1)
-        .single();
-      
+        .maybeSingle();
+
       const newSortOrder = (maxOrder?.sort_order ?? 0) + 1;
       
       const { data, error } = await supabase

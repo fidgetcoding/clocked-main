@@ -30,6 +30,7 @@ import { useUserRole } from '@/hooks/useUserRole';
 import { useSpeechSynthesis } from '@/hooks/useSpeechSynthesis';
 import { useSoundEffects } from '@/hooks/useSoundEffects';
 import { useBadges } from '@/hooks/useBadges';
+import { useRepeatingCheck } from '@/hooks/useRepeatingCheck';
 import { cn } from '@/lib/utils';
 import { ACTIVITY_XP_RATES, ActivityType, getStreakMultiplier, getActivityTypeFromName, calculateComboXP, getLevelFromXP, Prestige, isPrestigeEligible as checkPrestigeEligible, isMaxLevel as checkIsMaxLevel } from '@/lib/xpSystem';
 import { computePostLogStats, computePostL100Increments } from '@/lib/workoutTracking';
@@ -481,52 +482,46 @@ const WorkoutSession = () => {
   }, [isBoxingSegment]);
 
   // BUG 3: Live badge checking — runs every ~5 seconds during workout
-  useEffect(() => {
-    if (isComplete || !isRunning || isPaused || !profile) return;
-    
-    const interval = setInterval(() => {
-      if (!qualifiesForRewards(totalElapsed)) return;
+  useRepeatingCheck(() => {
+    if (!profile || !qualifiesForRewards(totalElapsed)) return;
 
-      const tier = (profile.prestige || 'beginner') as Prestige;
-      
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      const todayStr = today.toISOString().split('T')[0];
-      const yesterday = new Date(today);
-      yesterday.setDate(yesterday.getDate() - 1);
-      const yesterdayStr = yesterday.toISOString().split('T')[0];
-      const lastDate = profile.last_workout_date;
-      let newStreak: number;
-      if (lastDate === todayStr) {
-        newStreak = profile.current_streak || 1;
-      } else if (lastDate === yesterdayStr) {
-        newStreak = (profile.current_streak || 0) + 1;
-      } else {
-        newStreak = 1;
-      }
-      
-      const liveStats = buildSessionBadgeStats(profile, tier, totalElapsed, newStreak);
-      
-      const alreadyEarned = [...earnedBadgeIds, ...Array.from(liveBadgeIdsRef.current)];
-      const newBadges = checkBadges(liveStats, alreadyEarned);
-      
-      if (newBadges.length > 0) {
-        for (const badge of newBadges) {
-          if (!liveBadgeIdsRef.current.has(badge.id)) {
-            liveBadgeIdsRef.current.add(badge.id);
-            setLiveBadgesEarned(prev => [...prev, { badge, earnedAt: Date.now() }]);
-            setAccumulatedXP(prev => prev + badge.xpReward);
-            
-            const popId = Date.now();
-            setLatestBadgePop({ badge, id: popId });
-            setTimeout(() => setLatestBadgePop(prev => prev?.id === popId ? null : prev), 3000);
-          }
+    const tier = (profile.prestige || 'beginner') as Prestige;
+    
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const todayStr = today.toISOString().split('T')[0];
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+    const yesterdayStr = yesterday.toISOString().split('T')[0];
+    const lastDate = profile.last_workout_date;
+    let newStreak: number;
+    if (lastDate === todayStr) {
+      newStreak = profile.current_streak || 1;
+    } else if (lastDate === yesterdayStr) {
+      newStreak = (profile.current_streak || 0) + 1;
+    } else {
+      newStreak = 1;
+    }
+    
+    const liveStats = buildSessionBadgeStats(profile, tier, totalElapsed, newStreak);
+    
+    const alreadyEarned = [...earnedBadgeIds, ...Array.from(liveBadgeIdsRef.current)];
+    const newBadges = checkBadges(liveStats, alreadyEarned);
+    
+    if (newBadges.length > 0) {
+      for (const badge of newBadges) {
+        if (!liveBadgeIdsRef.current.has(badge.id)) {
+          liveBadgeIdsRef.current.add(badge.id);
+          setLiveBadgesEarned(prev => [...prev, { badge, earnedAt: Date.now() }]);
+          setAccumulatedXP(prev => prev + badge.xpReward);
+          
+          const popId = Date.now();
+          setLatestBadgePop({ badge, id: popId });
+          setTimeout(() => setLatestBadgePop(prev => prev?.id === popId ? null : prev), 3000);
         }
       }
-    }, 5000);
-    
-    return () => clearInterval(interval);
-  }, [isComplete, isRunning, isPaused, profile, totalElapsed, earnedBadgeIds]);
+    }
+  }, 5000, !isComplete && isRunning && !isPaused && !!profile);
 
   // Compute session result when workout completes
   useEffect(() => {

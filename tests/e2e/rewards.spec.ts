@@ -11,6 +11,13 @@ const badgeCount = async (userId: string) =>
   (await service.from("badges").select("*", { count: "exact", head: true }).eq("user_id", userId)).count;
 
 test("a 5-second workout earns nothing, and a real one earns its rewards", async ({ page }) => {
+  // A new account has nothing saved yet, and that shouldn't show up as failed requests
+  const refused: string[] = [];
+  page.on("response", (response) => {
+    const url = new URL(response.url());
+    if (url.pathname.startsWith("/rest/v1/") && response.status() >= 400) refused.push(`${response.status()} ${url.pathname}`);
+  });
+
   await page.clock.install();
   const email = `rewards-${Date.now()}@example.com`;
   await requestSignInEmail(page, APP_URL, email);
@@ -54,4 +61,6 @@ test("a 5-second workout earns nothing, and a real one earns its rewards", async
     await expect(badgeArt).toBeVisible();
     await expect.poll(() => badgeArt.evaluate((image) => (image as HTMLImageElement).naturalWidth)).toBeGreaterThan(0);
   });
+
+  expect(refused).toEqual([]);
 });
