@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react';
 import { usePunchTracking } from '@/hooks/usePunchTracking';
 import { useStance } from '@/hooks/useStance';
 import { summaryNote, type PunchSessionReport } from '@/lib/punch/round';
+import type { PunchEvent } from '@/lib/punch/types';
 import { cn } from '@/lib/utils';
 import type { CameraFeedState } from './feedState';
 
@@ -10,18 +11,25 @@ interface PunchCameraPanelProps {
   counting: boolean;
   onSummary?: (report: PunchSessionReport) => void;
   onCue?: (cue: string) => void;
+  /** Every detector event, for a session keeping its own log. */
+  onEvent?: (event: PunchEvent) => void;
+  /** Called each time the camera and model are up and running. */
+  onTracking?: () => void;
+  /** The count to show, for a session whose log began before this panel did. Defaults to this panel's own. */
+  displayCount?: number;
   /** Called when something the graphics show has changed. */
   onFeed?: (feed: CameraFeedState) => void;
   className?: string;
 }
 
 /** The camera picture and its tracker, filling whatever it sits in. Failing never affects the screen around it. */
-const PunchCameraPanel = ({ counting, onSummary, onCue, onFeed, className }: PunchCameraPanelProps) => {
+const PunchCameraPanel = ({ counting, onSummary, onCue, onEvent, onTracking, displayCount, onFeed, className }: PunchCameraPanelProps) => {
   const { stance } = useStance();
   const { videoRef, canvasRef, status, problem, paused, hud, start, getSummary } = usePunchTracking({
     stance,
     processing: counting,
     onCue,
+    onEvent,
   });
 
   useEffect(() => {
@@ -29,6 +37,12 @@ const PunchCameraPanel = ({ counting, onSummary, onCue, onFeed, className }: Pun
     // Asked for once, when the panel first appears
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const onTrackingRef = useRef(onTracking);
+  onTrackingRef.current = onTracking;
+  useEffect(() => {
+    if (status === 'live') onTrackingRef.current?.();
+  }, [status]);
 
   // Once a second, and a last time on the way out, since form flags can land after a punch
   const onSummaryRef = useRef(onSummary);
@@ -55,14 +69,15 @@ const PunchCameraPanel = ({ counting, onSummary, onCue, onFeed, className }: Pun
   const startRef = useRef(start);
   startRef.current = start;
   const message = counting ? hud.cue ?? hud.warning : null;
-  const signature = [status, paused, problem, hud.count, hud.cue, hud.warning, hud.combo, hud.lastLabel, counting].join('|');
+  const shownCount = displayCount ?? hud.count;
+  const signature = [status, paused, problem, shownCount, hud.cue, hud.warning, hud.combo, hud.lastLabel, counting].join('|');
   useEffect(() => {
     const summary = getSummary();
     onFeedRef.current?.({
       status,
       paused,
       problem,
-      count: hud.count,
+      count: shownCount,
       cue: counting ? hud.cue : null,
       warning: counting ? hud.warning : null,
       combo: hud.combo,

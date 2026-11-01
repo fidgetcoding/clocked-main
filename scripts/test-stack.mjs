@@ -19,9 +19,12 @@ const SUPABASE = process.env.SUPABASE_BIN || 'supabase';
 const PROJECT_ID = `clocked-test-${randomBytes(4).toString('hex')}`;
 const NETWORK = `supabase_network_${PROJECT_ID}`;
 const FAKE_AI = `${PROJECT_ID}-fake-ai`;
-const FAKE_AI_PORT = '57399';
-const APP_PORT = '57337';
-const NO_BACKEND_PORT = '57338';
+// STACK_PORT_OFFSET moves every port, so that two runs on one machine can't reach each other's stack
+const PORT_OFFSET = Number(process.env.STACK_PORT_OFFSET || 0);
+const port = (value) => String(value + PORT_OFFSET);
+const FAKE_AI_PORT = port(57399);
+const APP_PORT = port(57337);
+const NO_BACKEND_PORT = port(57338);
 const AI_BASE_URL = `http://${FAKE_AI}:8080/v1/`;
 
 const background = [];
@@ -106,7 +109,9 @@ async function main() {
 
   writeFileSync(
     join(STACK, 'supabase/config.toml'),
-    readFileSync(join(ROOT, 'tests/stack/config.toml'), 'utf8').replace('__PROJECT_ID__', PROJECT_ID),
+    readFileSync(join(ROOT, 'tests/stack/config.toml'), 'utf8')
+      .replace('__PROJECT_ID__', PROJECT_ID)
+      .replace(/\b57\d{3}\b/g, (value) => port(Number(value))),
   );
   cpSync(join(ROOT, 'supabase/functions'), join(STACK, 'supabase/functions'), { recursive: true });
   cpSync(join(ROOT, 'tests/stack/env-probe'), join(STACK, 'supabase/functions/env-probe'), { recursive: true });
@@ -158,9 +163,9 @@ async function main() {
 
   step('Build the app, connected and with no backend', () => {
     run('npx', ['vite', 'build', '--outDir', join(WORK, 'dist-backend'), '--emptyOutDir'], {
-      env: { ...process.env, VITE_SUPABASE_URL: stack.API_URL, VITE_SUPABASE_PUBLISHABLE_KEY: stack.PUBLISHABLE_KEY },
+      env: { ...process.env, VITE_E2E_POSE_FEED: '1', VITE_SUPABASE_URL: stack.API_URL, VITE_SUPABASE_PUBLISHABLE_KEY: stack.PUBLISHABLE_KEY },
     });
-    const noBackendEnv = { ...process.env };
+    const noBackendEnv = { ...process.env, VITE_E2E_POSE_FEED: '1' };
     delete noBackendEnv.VITE_SUPABASE_URL;
     delete noBackendEnv.VITE_SUPABASE_PUBLISHABLE_KEY;
     run('npx', ['vite', 'build', '--outDir', join(WORK, 'dist-no-backend'), '--emptyOutDir'], { env: noBackendEnv });

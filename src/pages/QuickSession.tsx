@@ -32,7 +32,8 @@ import { computePostLogStats } from '@/lib/workoutTracking';
 import { wholeSecondsSince } from '@/lib/sessionClock';
 import { MIN_REWARD_SECONDS, qualifiesForRewards } from '@/lib/sessionEffort';
 import { usePunchPrefsStore } from '@/stores/punchPrefsStore';
-import type { PunchSessionReport } from '@/lib/punch/round';
+import { PunchLogDetails, PunchLogLive } from '@/components/punch/PunchLogView';
+import { useSessionPunchLog } from '@/hooks/useSessionPunchLog';
 
 // Lazy so the camera pipeline stays out of the main bundle
 const PunchCameraPanel = lazy(() => import('@/components/punch/PunchCameraPanel'));
@@ -73,7 +74,8 @@ const QuickSession = () => {
   const [difficultyRating, setDifficultyRating] = useState<'too_easy' | 'just_right' | 'too_hard' | null>(null);
   const [showExitConfirm, setShowExitConfirm] = useState(false);
   const [levelUpLevel, setLevelUpLevel] = useState<number | null>(null);
-  const [punchSummary, setPunchSummary] = useState<PunchSessionReport | null>(null);
+  const punchLog = useSessionPunchLog(totalElapsed);
+  const { snapshot: punchSnapshot, restore: restorePunchLog, endRound: endPunchRound } = punchLog;
   const cameraOn = usePunchPrefsStore((state) => state.quickSessionCamera);
   const setCameraOn = usePunchPrefsStore((state) => state.setQuickSessionCamera);
   const [feed, setFeed] = useState<CameraFeedState | null>(null);
@@ -138,8 +140,9 @@ const QuickSession = () => {
     isPreparation: false,
     timerXP: accumulatedXP,
     log: FRESH_SESSION,
+    punchLog: punchSnapshot(),
     isComplete: complete,
-  }), [totalElapsed, accumulatedXP]);
+  }), [totalElapsed, accumulatedXP, punchSnapshot]);
 
   useEffect(() => {
     if (!isRunning || isComplete || sessionEnded.current || !user?.id) return;
@@ -149,13 +152,14 @@ const QuickSession = () => {
   // Comes back paused. A finished run already paid out its XP, so it stays marked as paid.
   const restoreSession = useCallback((saved: SessionSnapshot) => {
     setTotalElapsed(saved.totalElapsed);
+    restorePunchLog(saved.punchLog);
     setAccumulatedXP(saved.timerXP);
     setIsPaused(true);
     setIsRunning(!saved.isComplete);
     setIsComplete(saved.isComplete);
     xpAwardedRef.current = saved.isComplete;
     setResumable(null);
-  }, []);
+  }, [restorePunchLog]);
 
   const resumeChecked = useRef(false);
   useEffect(() => {
@@ -175,16 +179,20 @@ const QuickSession = () => {
   const handleStart = () => {
     setIsRunning(true);
     setIsPaused(false);
+    punchLog.startRound();
   };
 
   const handlePauseResume = () => {
-    setIsPaused(prev => !prev);
+    if (isPaused) punchLog.startRound();
+    else endPunchRound();
+    setIsPaused(!isPaused);
   };
 
   const handleFinish = useCallback(() => {
     if (xpAwardedRef.current) return;
     xpAwardedRef.current = true;
 
+    endPunchRound();
     setIsComplete(true);
     setIsRunning(false);
     // Marked finished before the XP goes out, so a reload right here can't pay it twice
@@ -199,7 +207,7 @@ const QuickSession = () => {
         console.error('Failed to award XP:', error);
       }
     });
-  }, [accumulatedXP, addLocalXP, addProfileXP, user?.id, snapshotOf]);
+  }, [accumulatedXP, addLocalXP, addProfileXP, user?.id, snapshotOf, endPunchRound]);
 
   const handleConfirmExit = (saveXP: boolean = true) => {
     endSession();
@@ -227,7 +235,8 @@ const QuickSession = () => {
       duration: totalElapsed,
       xp_earned: xpEarned,
       difficulty: difficultyRating || null,
-      notes: [notes, punchSummary?.total ? punchSummary.note : ''].filter(Boolean).join('\n') || null,
+      notes: notes || null,
+      punch_log: punchLog.finish() ?? undefined,
       is_manual_entry: false,
       round_feedback: [],
     }, {
@@ -273,15 +282,7 @@ const QuickSession = () => {
             </p>
           )}
 
-          {!!punchSummary?.total && (
-            <section className="mt-4 bg-surface-1 px-4 py-3" data-testid="quick-punches">
-              <p className="fx text-5xl text-volt">{punchSummary.total}</p>
-              <p className="lab lab-w mt-1">
-                {punchSummary.total === 1 ? 'Punch' : 'Punches'} seen, {punchSummary.cleanPercent}% clean
-              </p>
-              {punchSummary.topFix && <p className="mt-1 text-base">{punchSummary.topFix.advice}</p>}
-            </section>
-          )}
+          {punchLog.log.tracked && <PunchLogDetails log={punchLog.log} className="mt-4 bg-surface-1 px-4 py-3" />}
 
           <div className="mt-5 space-y-4 px-4">
             {!logged ? (
@@ -317,7 +318,7 @@ const QuickSession = () => {
 
   const runView: RunView = {
     workoutName: 'QUICK SESSION',
-    phaseName: 'QUICK SESSION',
+    phaseName: 'No timer, no plan',
     segmentName: 'FREEFORM',
     kind: 'freeform',
     idle: !isRunning,
@@ -377,7 +378,13 @@ const QuickSession = () => {
           // The camera asks for permission here, once the session has started
           cameraOn && isRunning ? (
             <Suspense fallback={null}>
-              <PunchCameraPanel counting={!isPaused} onSummary={setPunchSummary} onFeed={setFeed} />
+              <PunchCameraPanel
+                counting={!isPaused}
+                onEvent={punchLog.onEvent}
+                onTracking={punchLog.onTracking}
+                displayCount={punchLog.log.totals.punches}
+                onFeed={setFeed}
+              />
             </Suspense>
           ) : undefined
         }
@@ -385,6 +392,7 @@ const QuickSession = () => {
         counting={!isPaused}
         problemDismissed={feedProblemDismissed}
         onDismissProblem={() => setFeedProblemDismissed(true)}
+        liveLog={cameraOn && isRunning ? <PunchLogLive log={punchLog.log} lastCue={punchLog.lastCue} /> : undefined}
       />
 
       {/* Exit Confirmation */}

@@ -20,6 +20,12 @@ export interface PoseModel {
 /** How long an unused model stays loaded, so that turning the camera off and on doesn't reload it. */
 const KEEP_LOADED_MS = 30000;
 
+declare global {
+  interface Window {
+    __e2ePoseFeed?: (timestampMs: number) => PoseResult;
+  }
+}
+
 let shared: Promise<PoseModel> | null = null;
 let holders = 0;
 let closeTimer: ReturnType<typeof setTimeout> | null = null;
@@ -65,6 +71,12 @@ export class PoseUnsupportedError extends Error {}
 
 /** Loads the pose model from this site's own files. Imported on demand, so the app never pays for it unused. */
 export async function createPoseModel(delegate: PoseDelegate = 'GPU'): Promise<PoseModel> {
+  // Only in builds made for the browser tests, which feed in poses since they have no person or camera
+  if (import.meta.env.VITE_E2E_POSE_FEED === '1' && window.__e2ePoseFeed) {
+    const feed = window.__e2ePoseFeed;
+    return { delegate: 'CPU', detect: (_video, timestampMs) => feed(timestampMs), close: () => undefined };
+  }
+
   const { FilesetResolver, PoseLandmarker } = await import('@mediapipe/tasks-vision');
   if (!(await FilesetResolver.isSimdSupported())) throw new PoseUnsupportedError('WebAssembly SIMD is not available');
   const fileset = await FilesetResolver.forVisionTasks(`${ASSET_BASE}/wasm`);

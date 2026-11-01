@@ -104,7 +104,7 @@ function WidePlain({ view, actions, flash, cameraOn, feed, onDismissProblem, pro
   );
 }
 
-function WideFeed({ view, actions, flash, cameraOn, feed, counting, onDismissProblem, problemDismissed, bellXP }: Props) {
+function WideFeed({ view, actions, flash, cameraOn, feed, counting, onDismissProblem, problemDismissed, bellXP, liveLog }: Props) {
   const hasCombo = view.combo.length > 0;
   const live = feed?.status === 'live';
   return (
@@ -126,7 +126,7 @@ function WideFeed({ view, actions, flash, cameraOn, feed, counting, onDismissPro
             <XpChip flash={flash} />
           </div>
           <PunchCount feed={feed} counting={counting} size="text-[8rem]" className="mt-1" />
-          <PunchStats feed={feed} large className="mt-3" />
+          {liveLog ? <div className="mt-3">{liveLog}</div> : <PunchStats feed={feed} large className="mt-3" />}
           <p className="lab mt-3">Stays on this device</p>
         </div>
 

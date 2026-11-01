@@ -83,7 +83,7 @@ function LandscapePlain({ view, actions, flash, cameraOn, feed, onDismissProblem
   );
 }
 
-function LandscapeFeed({ view, actions, flash, cameraOn, feed, counting, onDismissProblem, problemDismissed, bellXP }: Props) {
+function LandscapeFeed({ view, actions, flash, cameraOn, feed, counting, onDismissProblem, problemDismissed, bellXP, liveLog }: Props) {
   const hasCombo = view.combo.length > 0;
   const live = feed?.status === 'live';
   return (
@@ -122,7 +122,7 @@ function LandscapeFeed({ view, actions, flash, cameraOn, feed, counting, onDismi
         ) : (
           <div className="mt-1 flex items-center gap-3">
             <PunchCount feed={feed} counting={counting} size="text-[3.25rem]" className="shrink-0" />
-            <PunchStats feed={feed} className="min-w-0 flex-1 [@media(max-height:360px)]:hidden" />
+            {liveLog ? <div className="min-w-0 flex-1">{liveLog}</div> : <PunchStats feed={feed} className="min-w-0 flex-1 [@media(max-height:360px)]:hidden" />}
           </div>
         )}
         {!feed && <LevelBar level={view.level} percent={view.levelPercent} className="mt-1" />}

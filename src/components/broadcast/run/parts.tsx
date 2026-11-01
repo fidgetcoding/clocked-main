@@ -36,7 +36,7 @@ export function AirLight({ view, cameraOn, feedLive, className }: { view: RunVie
 export function StageBug({ view, className }: { view: RunView; className?: string }) {
   const tone = view.championship ? 'gold' : isRest(view) || view.cooldown ? 'graphite' : 'lime';
   const mid =
-    view.kind === 'prep' || view.idle
+    view.kind === 'prep' || view.kind === 'freeform' || view.idle
       ? view.workoutName
       : isRest(view) && view.round
         ? `After round ${view.round}`
@@ -64,8 +64,10 @@ export function ToolStrip({ actions, cameraOn, className }: { actions: RunAction
       <button
         type="button"
         onClick={actions.onToggleCamera}
+        role="switch"
         aria-label="Punch camera"
-        aria-pressed={cameraOn}
+        aria-checked={cameraOn}
+        data-state={cameraOn ? 'checked' : 'unchecked'}
         title="Punch camera"
         className={cn('plate fx h-11 flex-1 gap-1.5 px-2.5', cameraOn ? 'plate-white' : 'plate-graphite')}
       >

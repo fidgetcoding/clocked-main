@@ -531,6 +531,7 @@ export type Database = {
           id: string
           is_manual_entry: boolean | null
           notes: string | null
+          punch_log: Json | null
           round_feedback: Json | null
           user_id: string
           workout_id: string | null
@@ -545,6 +546,7 @@ export type Database = {
           id?: string
           is_manual_entry?: boolean | null
           notes?: string | null
+          punch_log?: Json | null
           round_feedback?: Json | null
           user_id: string
           workout_id?: string | null
@@ -559,6 +561,7 @@ export type Database = {
           id?: string
           is_manual_entry?: boolean | null
           notes?: string | null
+          punch_log?: Json | null
           round_feedback?: Json | null
           user_id?: string
           workout_id?: string | null

@@ -73,6 +73,8 @@ export interface RunStageProps {
   counting?: boolean;
   onDismissProblem?: () => void;
   problemDismissed?: boolean;
+  /** A session's own running log, shown instead of the plain tally. */
+  liveLog?: React.ReactNode;
   /** Dialogs and overlays that sit on top of the stage. */
   children?: React.ReactNode;
 }

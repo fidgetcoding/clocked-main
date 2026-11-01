@@ -1,3 +1,4 @@
+import { PunchLogDetails } from '@/components/punch/PunchLogView';
 import { useState } from 'react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { BroadcastPage, EmptyPlate, FitText, OnAir, Plate } from '@/components/broadcast';
@@ -157,6 +158,13 @@ const History = () => {
                             </div>
                           ))}
                         </div>
+                      </div>
+                    )}
+
+                    {workout.punch_log && (
+                      <div className="mt-3">
+                        <p className="lab">Punch Log</p>
+                        <PunchLogDetails log={workout.punch_log} className="mt-1 bg-surface-2 p-3" />
                       </div>
                     )}
 

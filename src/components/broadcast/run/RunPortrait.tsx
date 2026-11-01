@@ -97,7 +97,7 @@ function PortraitPlain({ view, actions, flash, cameraOn, feed, onDismissProblem,
   );
 }
 
-function PortraitFeed({ view, actions, flash, cameraOn, feed, counting, onDismissProblem, problemDismissed, bellXP }: Props) {
+function PortraitFeed({ view, actions, flash, cameraOn, feed, counting, onDismissProblem, problemDismissed, bellXP, liveLog }: Props) {
   const hasCombo = view.combo.length > 0;
   const live = feed?.status === 'live';
   return (
@@ -136,7 +136,7 @@ function PortraitFeed({ view, actions, flash, cameraOn, feed, counting, onDismis
         {hasCombo && <NextComboRow view={view} className="mx-4 mt-1" />}
         <div className="mt-1 flex items-center gap-3 px-4">
           <PunchCount feed={feed} counting={counting} size="text-[3.75rem]" className="shrink-0" />
-          <PunchStats feed={feed} className="min-w-0 flex-1" />
+          {liveLog ? <div className="min-w-0 flex-1">{liveLog}</div> : <PunchStats feed={feed} className="min-w-0 flex-1" />}
         </div>
         {view.paused && <TimeAdjust onAdjust={actions.onAdjust} className="mx-5 mt-2" />}
         <Transport view={view} actions={actions} className="mx-5 my-2.5" />
