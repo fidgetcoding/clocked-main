@@ -5,7 +5,7 @@ import { PunchDetector } from '@/lib/punch/detector';
 import { assessFraming, FRAMING_MESSAGES, FramingMonitor, type FramingStatus } from '@/lib/punch/framing';
 import type { PoseResult } from '@/lib/punch/poseModel';
 import { applyEvent, comboReadout, CueQueue, cuesFor, newRound, PUNCH_LABELS, summarize, type RoundState } from '@/lib/punch/round';
-import type { PunchDetected, Stance } from '@/lib/punch/types';
+import type { PunchDetected, PunchEvent, Stance } from '@/lib/punch/types';
 
 export interface TrackingHud {
   count: number;
@@ -39,10 +39,12 @@ interface Options {
   onCue?: (cue: string) => void;
   /** Called with every frame's pose, for recording landmarks. */
   onPoseFrame?: (result: PoseResult, t: number) => void;
+  /** Called with every detector event, for keeping a full log. */
+  onEvent?: (event: PunchEvent) => void;
 }
 
 /** The whole camera pipeline: camera, pose model, detector, tally, cues and framing checks. */
-export function usePunchTracking({ stance, processing = true, onCue, onPoseFrame }: Options) {
+export function usePunchTracking({ stance, processing = true, onCue, onPoseFrame, onEvent }: Options) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const detectorRef = useRef(new PunchDetector(stance));
@@ -53,8 +55,8 @@ export function usePunchTracking({ stance, processing = true, onCue, onPoseFrame
   const framingStatusRef = useRef<FramingStatus>('ok');
   const lastCueRef = useRef<string | null>(null);
   const lastLabelRef = useRef<string | null>(null);
-  const callbacksRef = useRef({ onCue, onPoseFrame });
-  callbacksRef.current = { onCue, onPoseFrame };
+  const callbacksRef = useRef({ onCue, onPoseFrame, onEvent });
+  callbacksRef.current = { onCue, onPoseFrame, onEvent };
 
   const [hud, setHud] = useState<TrackingHud>(EMPTY_HUD);
   const [lastPunch, setLastPunch] = useState<PunchDetected | null>(null);
@@ -73,6 +75,7 @@ export function usePunchTracking({ stance, processing = true, onCue, onPoseFrame
 
     for (const event of detectorRef.current.push({ t, landmarks: result.world })) {
       applyEvent(roundRef.current, event);
+      callbacksRef.current.onEvent?.(event);
       if (event.type === 'punch') {
         lastLabelRef.current = PUNCH_LABELS[event.punch];
         setLastPunch(event);

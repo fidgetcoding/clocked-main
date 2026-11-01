@@ -21,6 +21,8 @@ export interface SessionSnapshot {
   timerXP: number;
   /** What the run has done so far, which decides its badges and credit. */
   log: SessionLog;
+  /** The camera's punch log so far, read back through parsePunchLog. */
+  punchLog?: unknown;
   isComplete: boolean;
   savedAt: number;
 }

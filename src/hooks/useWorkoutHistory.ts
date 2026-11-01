@@ -1,5 +1,6 @@
 import type { Database } from '@/integrations/supabase/types';
 import { fromJson, toJson } from '@/lib/json';
+import { parsePunchLog, type PunchLog } from '@/lib/punch/sessionLog';
 import type { RoundFeedback } from '@/types';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -18,12 +19,15 @@ export interface WorkoutHistoryEntry {
   notes: string | null;
   is_manual_entry: boolean;
   round_feedback: RoundFeedback[];
+  /** Sessions with the camera on. Older rows and every other session have none. */
+  punch_log?: PunchLog | null;
   created_at: string;
 }
 
 const toHistoryEntry = (row: Database['public']['Tables']['workout_history']['Row']): WorkoutHistoryEntry => ({
   ...row,
   round_feedback: fromJson<RoundFeedback[]>(row.round_feedback),
+  punch_log: parsePunchLog(row.punch_log),
 });
 
 export function useWorkoutHistory() {
@@ -57,7 +61,7 @@ export function useWorkoutHistory() {
       
       const { data, error } = await supabase
         .from('workout_history')
-        .insert({ ...entry, round_feedback: toJson(entry.round_feedback), user_id: user.id })
+        .insert({ ...entry, round_feedback: toJson(entry.round_feedback), punch_log: toJson(entry.punch_log), user_id: user.id })
         .select()
         .single();
       
@@ -76,7 +80,7 @@ export function useWorkoutHistory() {
       
       const { data, error } = await supabase
         .from('workout_history')
-        .update({ ...updates, round_feedback: updates.round_feedback && toJson(updates.round_feedback) })
+        .update({ ...updates, round_feedback: updates.round_feedback && toJson(updates.round_feedback), punch_log: toJson(updates.punch_log) })
         .eq('id', id)
         .eq('user_id', user.id)
         .select()

@@ -3,6 +3,12 @@ import { persist } from 'zustand/middleware';
 import { CompletedWorkout } from '@/types';
 import type { WorkoutHistoryEntry } from '@/hooks/useWorkoutHistory';
 import { GUEST_USER_ID } from '@/lib/guest';
+import { withoutDetail } from '@/lib/punch/sessionLog';
+
+// Browser storage is small, so only the newest guest sessions keep their punch-by-punch detail
+const GUEST_LOGS_WITH_DETAIL = 20;
+const trimGuestLogs = (rows: WorkoutHistoryEntry[]) =>
+  rows.map((row, i) => (i >= GUEST_LOGS_WITH_DETAIL && row.punch_log ? { ...row, punch_log: withoutDetail(row.punch_log) } : row));
 
 interface HistoryStore {
   completedWorkouts: CompletedWorkout[];
@@ -29,7 +35,7 @@ export const useHistoryStore = create<HistoryStore>()(
           user_id: GUEST_USER_ID,
           created_at: new Date().toISOString(),
         };
-        set((state) => ({ guestHistory: [row, ...state.guestHistory] }));
+        set((state) => ({ guestHistory: trimGuestLogs([row, ...state.guestHistory]) }));
         return row;
       },
 

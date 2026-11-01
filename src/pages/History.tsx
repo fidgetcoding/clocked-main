@@ -1,3 +1,4 @@
+import { PunchLogDetails } from '@/components/punch/PunchLogView';
 import { useState } from 'react';
 import { History as HistoryIcon, Plus, ChevronRight, Calendar, Brain, X, Wand2, Zap, Target, Shield, Activity } from 'lucide-react';
 import { AppLayout } from '@/components/layout/AppLayout';
@@ -219,6 +220,13 @@ const History = () => {
                               </div>
                             ))}
                           </div>
+                        </div>
+                      )}
+
+                      {workout.punch_log && (
+                        <div className="mt-3">
+                          <p className="text-xs text-muted-foreground mb-2">Punch Log</p>
+                          <PunchLogDetails log={workout.punch_log} className="bg-surface-2 rounded-lg p-3" />
                         </div>
                       )}
 

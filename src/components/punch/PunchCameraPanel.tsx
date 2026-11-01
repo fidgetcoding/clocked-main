@@ -4,6 +4,7 @@ import { usePunchTracking } from '@/hooks/usePunchTracking';
 import { useStance } from '@/hooks/useStance';
 import { CAMERA_MESSAGES } from '@/lib/punch/framing';
 import { summaryNote, type PunchSessionReport } from '@/lib/punch/round';
+import type { PunchEvent } from '@/lib/punch/types';
 import { cn } from '@/lib/utils';
 
 interface PunchCameraPanelProps {
@@ -11,16 +12,23 @@ interface PunchCameraPanelProps {
   counting: boolean;
   onSummary?: (report: PunchSessionReport) => void;
   onCue?: (cue: string) => void;
+  /** Every detector event, for a session keeping its own log. */
+  onEvent?: (event: PunchEvent) => void;
+  /** Called each time the camera and model are up and running. */
+  onTracking?: () => void;
+  /** The count to show, for a session whose log began before this panel did. Defaults to this panel's own. */
+  displayCount?: number;
   className?: string;
 }
 
 /** A small camera picture that counts and cues inside another screen. Failing never affects that screen. */
-const PunchCameraPanel = ({ counting, onSummary, onCue, className }: PunchCameraPanelProps) => {
+const PunchCameraPanel = ({ counting, onSummary, onCue, onEvent, onTracking, displayCount, className }: PunchCameraPanelProps) => {
   const { stance } = useStance();
   const { videoRef, canvasRef, status, problem, paused, hud, start, getSummary } = usePunchTracking({
     stance,
     processing: counting,
     onCue,
+    onEvent,
   });
   const [dismissed, setDismissed] = useState(false);
 
@@ -29,6 +37,12 @@ const PunchCameraPanel = ({ counting, onSummary, onCue, className }: PunchCamera
     // Asked for once, when the panel first appears
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const onTrackingRef = useRef(onTracking);
+  onTrackingRef.current = onTracking;
+  useEffect(() => {
+    if (status === 'live') onTrackingRef.current?.();
+  }, [status]);
 
   // Once a second, and a last time on the way out, since form flags can land after a punch
   const onSummaryRef = useRef(onSummary);
@@ -109,7 +123,7 @@ const PunchCameraPanel = ({ counting, onSummary, onCue, className }: PunchCamera
             data-testid="camera-panel-count"
             className="absolute bottom-1 left-1 px-1.5 rounded-md bg-black/70 text-sm font-black text-volt"
           >
-            {hud.count}
+            {displayCount ?? hud.count}
           </span>
         )}
       </div>
