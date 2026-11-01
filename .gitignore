@@ -30,3 +30,6 @@ dist-ssr
 !.env.example
 *.pem
 *.key
+
+# Supabase CLI working files
+supabase/.temp
