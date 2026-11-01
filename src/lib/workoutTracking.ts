@@ -1,3 +1,4 @@
+import type { Profile } from '@/hooks/useProfile';
 import { supabase } from '@/integrations/supabase/client';
 import { Prestige, getLevelFromXP } from '@/lib/xpSystem';
 import { GUEST_USER_ID } from '@/lib/guest';
@@ -54,7 +55,7 @@ export async function computePostLogStats(
 
   // A session under the minimum is on the record but doesn't move the streak
   if (!qualifiesForRewards(sessionSeconds)) {
-    const totals: Record<string, any> = { workouts_completed: workoutsCompleted };
+    const totals: Record<string, number> = { workouts_completed: workoutsCompleted };
     if (totalTrainingSeconds !== undefined) totals.total_training_seconds = totalTrainingSeconds;
     return totals;
   }
@@ -84,7 +85,7 @@ export async function computePostLogStats(
 
   const longestStreak = Math.max(newStreak, profile.longest_streak);
 
-  const result: Record<string, any> = {
+  const result: Record<string, number | string | null> = {
     workouts_completed: workoutsCompleted,
     current_streak: newStreak,
     longest_streak: longestStreak,
@@ -183,12 +184,12 @@ export function isComeback(lastWorkoutDate: string | null, currentStreak: number
  * Returns an object of field increments to merge into the profile update.
  */
 export function computePostL100Increments(
-  profile: Record<string, any>,
+  profile: Profile,
   sessionXP: number,
   flatSegments: Array<{ combo?: string[]; name: string; segmentType?: string; duration: number }>,
   sessionEffort: number,
-): Record<string, any> {
-  const increments: Record<string, any> = {};
+): Partial<Profile> {
+  const increments: Partial<Profile> = {};
   if (sessionEffort <= 0) return increments;
   
   const prestige = (profile.prestige || 'beginner') as Prestige;

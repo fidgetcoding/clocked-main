@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useCallback, useState, useEffect } from 'react';
 import { X, Clock, Star, Download, Play, Sparkles, Save } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { TrendingWorkout } from '@/data/trendingWorkouts';
@@ -6,7 +6,7 @@ import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { promptEmailLink } from '@/lib/guest';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/contexts/useAuth';
 
 interface WorkoutPreviewModalProps {
   workout: TrendingWorkout;
@@ -32,18 +32,19 @@ export const WorkoutPreviewModal = ({ workout, onClose, onSave, onCustomize }: W
   const totalPhases = workout.sections.warmup.length + workout.sections.grind.length + workout.sections.cooldown.length;
   const totalRounds = workout.sections.grind.reduce((acc, phase) => acc + phase.repeats, 0);
 
-  const refreshRatingSummary = async () => {
+  const refreshRatingSummary = useCallback(async () => {
     const { data } = await supabase.rpc('get_workout_rating_summary', { target_workout_id: workout.id });
     const summary = data?.[0];
     if (summary && summary.rating_count > 0) {
       setAvgRating(Number(summary.average_rating));
       setRatingCount(summary.rating_count);
     }
-  };
+  }, [workout.id]);
 
   // Fetch existing rating data on mount. Ratings need an account, so guests skip this.
+  const signedInUserId = authUser?.id;
   useEffect(() => {
-    if (!authUser) return;
+    if (!signedInUserId) return;
 
     async function fetchRatings() {
       // Get average rating
@@ -65,7 +66,7 @@ export const WorkoutPreviewModal = ({ workout, onClose, onSave, onCustomize }: W
       }
     }
     fetchRatings();
-  }, [workout.id, authUser?.id]);
+  }, [workout.id, signedInUserId, refreshRatingSummary]);
 
   const submitRating = async (stars: number) => {
     setIsSubmitting(true);

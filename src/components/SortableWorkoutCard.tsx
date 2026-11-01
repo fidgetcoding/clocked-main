@@ -1,3 +1,4 @@
+import { splitStoredPhases } from '@/lib/storedPhases';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { Play, Pencil, Trash2, Clock, RotateCcw, GripVertical } from 'lucide-react';
@@ -17,12 +18,8 @@ function formatDuration(seconds: number): string {
 }
 
 function getWorkoutStats(workout: DbWorkout) {
-  const raw = workout.phases;
-  const phases: any[] = Array.isArray(raw) ? raw : [];
-  const warmupPhases = phases.filter((p: any) => p.section === 'warmup');
-  const grindPhases = phases.filter((p: any) => p.section === 'grind');
-  const cooldownPhases = phases.filter((p: any) => p.section === 'cooldown');
-  const totalPhases = warmupPhases.length + grindPhases.length + cooldownPhases.length;
+  const { warmup, grind, cooldown } = splitStoredPhases(Array.isArray(workout.phases) ? workout.phases : []).sections;
+  const totalPhases = warmup.length + grind.length + cooldown.length;
   return { totalPhases };
 }
 

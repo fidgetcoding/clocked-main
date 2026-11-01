@@ -1,3 +1,5 @@
+import type { Badge } from '@/data/badges';
+import type { DbWorkout } from '@/hooks/useWorkouts';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { renderHook, waitFor, act } from '@testing-library/react';
 import { createElement, ReactNode } from 'react';
@@ -83,8 +85,8 @@ describe('guest hooks', () => {
     const { result } = renderHook(() => useWorkouts(), { wrapper });
     await waitFor(() => expect(useUserStore.getState().userIsGuest).toBe(true));
 
-    let first: any;
-    let second: any;
+    let first: DbWorkout;
+    let second: DbWorkout;
     await act(async () => {
       first = await result.current.addWorkout.mutateAsync(workoutInput);
       second = await result.current.addWorkout.mutateAsync({ ...workoutInput, name: 'Roadwork' });
@@ -159,8 +161,8 @@ describe('guest hooks', () => {
       await result.current.profile.addXP.mutateAsync(50);
       await result.current.profile.addXP.mutateAsync(50);
       await result.current.gloves.equipGlove.mutateAsync('golden');
-      await result.current.badges.awardBadges.mutateAsync([{ id: 'b1', xpReward: 10 } as any]);
-      await result.current.badges.awardBadges.mutateAsync([{ id: 'b1', xpReward: 10 } as any]);
+      await result.current.badges.awardBadges.mutateAsync([{ id: 'b1', xpReward: 10 } as Badge]);
+      await result.current.badges.awardBadges.mutateAsync([{ id: 'b1', xpReward: 10 } as Badge]);
       await result.current.exercises.addExercise.mutateAsync({ name: 'Burpees' });
       await result.current.exercises.addExercise.mutateAsync({ name: 'burpees' });
     });

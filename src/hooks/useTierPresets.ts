@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useProfile } from '@/hooks/useProfile';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/contexts/useAuth';
 import { generateLoadoutWorkout, UserEquipmentConfig } from '@/lib/loadoutGenerator';
 import { Prestige, PRESTIGE_ORDER } from '@/lib/xpSystem';
 
@@ -12,7 +12,7 @@ export interface TierPreset {
   equipment_mode: string;
   name: string;
   description: string | null;
-  loadout: Record<string, any>;
+  loadout: Record<string, unknown>;
   created_at: string;
 }
 
@@ -117,7 +117,7 @@ export function useTierPresets() {
   // Generate loadouts and merge with user counts
   const enrichedPresets: TierPresetWithLoadout[] = (presets || []).map((preset) => {
     const equipConfig = preset.equipment_mode === 'bag' ? BAG_EQUIPMENT : SHADOW_EQUIPMENT;
-    const experienceLevel = (preset.loadout)?.experienceLevel || preset.tier;
+    const experienceLevel = (preset.loadout?.experienceLevel as string | undefined) || preset.tier;
     const generatedLoadout = generateLoadoutWorkout(experienceLevel, equipConfig);
     
     // Override generated name with the curated DB name

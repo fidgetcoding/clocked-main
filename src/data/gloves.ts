@@ -94,12 +94,12 @@ export const TIER_SECTIONS = [
  * Compute full list of unlocked glove IDs based on prestige + level + streak.
  */
 export function checkGloveUnlocks(prestige: string, level: number, streakDays: number): string[] {
-  const currentIndex = PRESTIGE_ORDER.indexOf(prestige.toLowerCase() as any);
+  const currentIndex = (PRESTIGE_ORDER as readonly string[]).indexOf(prestige.toLowerCase());
   const unlocked: string[] = ['default'];
 
   for (const [id, glove] of Object.entries(GLOVES)) {
     if (id === 'default' || id === 'bmf') continue;
-    const glovePrestigeIndex = PRESTIGE_ORDER.indexOf(glove.prestige as any);
+    const glovePrestigeIndex = (PRESTIGE_ORDER as readonly string[]).indexOf(glove.prestige);
     if (glovePrestigeIndex < 0) continue;
 
     if (glovePrestigeIndex < currentIndex) {

@@ -1,3 +1,4 @@
+import { getSpeechRecognizerClass, type SpeechRecognizer } from '@/lib/speechRecognition';
 import { useState, useEffect, useRef } from 'react';
 import { X, Send, Users, UserPlus, UserCheck, Volume2, VolumeX, Maximize2, Minimize2, Mic, MicOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -49,19 +50,19 @@ export const LiveStreamModal = ({
   const chatEndRef = useRef<HTMLDivElement>(null);
 
   // Speech recognition setup
-  const [recognition, setRecognition] = useState<any>(null);
+  const [recognition, setRecognition] = useState<SpeechRecognizer | null>(null);
 
   useEffect(() => {
     if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
-      const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+      const SpeechRecognition = getSpeechRecognizerClass();
       const recognitionInstance = new SpeechRecognition();
       recognitionInstance.continuous = false;
       recognitionInstance.interimResults = true;
       recognitionInstance.lang = 'en-US';
 
-      recognitionInstance.onresult = (event: any) => {
+      recognitionInstance.onresult = (event) => {
         const transcript = Array.from(event.results)
-          .map((result: any) => result[0].transcript)
+          .map((result) => result[0].transcript)
           .join('');
         
         if (event.results[0].isFinal) {

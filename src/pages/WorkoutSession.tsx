@@ -1,3 +1,7 @@
+import type { SegmentType, WorkoutPhase, WorkoutSegment } from '@/types';
+import type { Badge } from '@/data/badges';
+import type { PostL100Badge } from '@/data/postL100Badges';
+import { splitStoredPhases } from '@/lib/storedPhases';
 import { lazy, Suspense, useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { ArrowLeft, Home, Play, Pause, RotateCcw, SkipForward, SkipBack, ChevronRight, MoreVertical, CheckCircle, Zap, Flame, Trophy, Camera } from 'lucide-react';
@@ -41,11 +45,19 @@ import type { PunchSessionReport } from '@/lib/punch/round';
 // Lazy so the camera pipeline stays out of the main bundle
 const PunchCameraPanel = lazy(() => import('@/components/punch/PunchCameraPanel'));
 
+interface TempSegment {
+  segment: WorkoutSegment;
+  sectionName: 'warmup' | 'grind' | 'cooldown';
+  phase: WorkoutPhase;
+  repeatIndex: number;
+  megasetIndex?: number;
+}
+
 interface FlatSegment {
   id: string;
   name: string;
   type: 'active' | 'rest';
-  segmentType?: 'work' | 'rest' | 'shadowboxing' | 'combo' | 'speedbag' | 'doubleend';
+  segmentType?: SegmentType;
   duration: number;
   phaseName: string;
   section: 'warmup' | 'grind' | 'cooldown';
@@ -72,21 +84,12 @@ function formatTimeCompact(seconds: number): string {
 
 // Helper to convert DB workout to local format for session
 function dbWorkoutToLocal(dbWorkout: DbWorkout) {
-  const rawPhases = dbWorkout.phases as any[];
-  const metaEntry = rawPhases?.find((p: any) => p._meta);
-  const megasetRepeats = metaEntry?.megasetRepeats || metaEntry?.supersetRepeats || 1;
-  const phases = rawPhases?.filter((p: any) => !p._meta) || [];
+  const { phases, sections, megasetRepeats } = splitStoredPhases(dbWorkout.phases);
   
-  const sections = {
-    warmup: phases.filter((p: any) => p.section === 'warmup').map(({ section, ...rest }: any) => rest),
-    grind: phases.filter((p: any) => p.section === 'grind').map(({ section, ...rest }: any) => rest),
-    cooldown: phases.filter((p: any) => p.section === 'cooldown').map(({ section, ...rest }: any) => rest),
-  };
-  
-  let combos: string[][] = dbWorkout.combos || [];
+  const combos: string[][] = dbWorkout.combos || [];
   
   if (combos.length === 0) {
-    phases?.forEach((phase: any) => {
+    phases.forEach((phase) => {
       if (phase.combos) {
         combos.push(...phase.combos);
       }
@@ -133,15 +136,7 @@ const WorkoutSession = () => {
   const workout = useMemo(() => {
     if (dbWorkout) return dbWorkoutToLocal(dbWorkout);
     if (oneOffLoadout) {
-      const rawPhases = oneOffLoadout.phases || [];
-      const metaEntry = rawPhases.find((p: any) => p._meta);
-      const megasetRepeats = metaEntry?.megasetRepeats || metaEntry?.supersetRepeats || 1;
-      const phases = rawPhases.filter((p: any) => !p._meta);
-      const sections = {
-        warmup: phases.filter((p: any) => p.section === 'warmup').map(({ section, ...rest }: any) => rest),
-        grind: phases.filter((p: any) => p.section === 'grind').map(({ section, ...rest }: any) => rest),
-        cooldown: phases.filter((p: any) => p.section === 'cooldown').map(({ section, ...rest }: any) => rest),
-      };
+      const { sections, megasetRepeats } = splitStoredPhases(oneOffLoadout.phases);
       return {
         id: 'oneoff',
         name: oneOffName || oneOffLoadout.name || 'Preset Workout',
@@ -173,15 +168,15 @@ const WorkoutSession = () => {
     const hasCooldown = workout.sections.cooldown.length > 0;
     const hasGrind = workout.sections.grind.length > 0;
 
-    const makeTransitionRest = (name: string, sectionName: 'warmup' | 'grind' | 'cooldown') => ({
+    const makeTransitionRest = (name: string, sectionName: 'warmup' | 'grind' | 'cooldown'): TempSegment => ({
       segment: { id: `transition-${name}`, name, type: 'rest' as const, segmentType: 'rest', duration: 30 },
       sectionName,
-      phase: { name, repeats: 1, segments: [], comboOrder: 'sequential' },
+      phase: { id: `transition-${name}`, name, repeats: 1, segments: [], comboOrder: 'sequential' },
       repeatIndex: 0,
       megasetIndex: undefined,
     });
     
-    const tempSegments: { segment: any; sectionName: 'warmup' | 'grind' | 'cooldown'; phase: any; repeatIndex: number; megasetIndex?: number }[] = [];
+    const tempSegments: TempSegment[] = [];
     
     let grindIterationIndex = 0;
     sectionOrder.forEach(({ sectionName }) => {
@@ -231,7 +226,7 @@ const WorkoutSession = () => {
       
       const phaseCombos = phase.combos as string[][] | undefined;
       const phaseHasCombos = phaseCombos && phaseCombos.length > 0;
-      const phaseHasComboSegments = phase.segments?.some((s: any) => 
+      const phaseHasComboSegments = phase.segments?.some((s) => 
         ['combo', 'shadowboxing', 'speedbag', 'doubleend'].includes(s.segmentType || '')
       );
       const isExerciseSegment = !isExplicitExercise && (
@@ -244,9 +239,9 @@ const WorkoutSession = () => {
     
     const totalCombos = workout.combos?.length || 0;
     const comboAssignments: Map<number, string[]> = new Map();
-    let assigned = 0;
+    const assigned = 0;
     
-    const getComboListForPhase = (phase: any): string[][] => {
+    const getComboListForPhase = (phase: WorkoutPhase): string[][] => {
       const phaseCombos = phase.combos as string[][] | undefined;
       if (phaseCombos && phaseCombos.length > 0) {
         if (phase.comboOrder === 'random') {
@@ -273,7 +268,7 @@ const WorkoutSession = () => {
     
     const phaseComboLists: Map<string, { list: string[][]; cursor: number }> = new Map();
     
-    const getPhaseCombo = (phase: any, phaseKey: string): string[] | undefined => {
+    const getPhaseCombo = (phase: WorkoutPhase, phaseKey: string): string[] | undefined => {
       if (totalCombos === 0 && !(phase.combos && phase.combos.length > 0)) return undefined;
       if (!phaseComboLists.has(phaseKey)) {
         phaseComboLists.set(phaseKey, { list: getComboListForPhase(phase), cursor: 0 });
@@ -383,16 +378,16 @@ const WorkoutSession = () => {
   const { earnedBadgeIds, awardBadges, currentStats } = useBadges();
   
   // BUG 3: Live badge tracking during workout
-  const [liveBadgesEarned, setLiveBadgesEarned] = useState<Array<{ badge: any; earnedAt: number }>>([]);
+  const [liveBadgesEarned, setLiveBadgesEarned] = useState<Array<{ badge: Badge | PostL100Badge; earnedAt: number }>>([]);
   const liveBadgeIdsRef = useRef<Set<string>>(new Set());
-  const [latestBadgePop, setLatestBadgePop] = useState<{ badge: any; id: number } | null>(null);
+  const [latestBadgePop, setLatestBadgePop] = useState<{ badge: Badge | PostL100Badge; id: number } | null>(null);
   
   // BUG 4 FIX: Only count grind phases that have at least one boxing segment
   const roundCount = useMemo(() => {
     if (!workout) return 0;
     let count = 0;
     for (const phase of workout.sections.grind) {
-      const hasBoxingSegment = phase.segments?.some((s: any) => 
+      const hasBoxingSegment = phase.segments?.some((s) => 
         ['shadowboxing', 'combo', 'doubleend', 'speedbag'].includes(s.segmentType || '')
       );
       if (hasBoxingSegment) {
@@ -482,7 +477,7 @@ const WorkoutSession = () => {
     }
     
     return xpPerSecond;
-  }, [profile?.prestige, isBoxingSegment]);
+  }, [isBoxingSegment]);
 
   // BUG 3: Live badge checking — runs every ~5 seconds during workout
   useEffect(() => {
@@ -576,36 +571,36 @@ const WorkoutSession = () => {
     const newCoreBadges = earnedRewards ? checkBadges(updatedStats, [...earnedBadgeIds, ...liveEarnedIds]) : [];
     
     const currentLevel = profile.current_level || 1;
-    let newPostL100Badges: any[] = [];
+    let newPostL100Badges: PostL100Badge[] = [];
     if (earnedRewards && currentLevel >= 100) {
       const postL100StatsForCheck = {
         ...updatedStats,
-        postL100Sessions: ((profile as any)?.post_l100_sessions || 0) + 1,
-        overflowXp: (profile as any)?.overflow_xp || 0,
-        tiersCompleted: (profile as any)?.tiers_completed || 0,
-        totalLevelsEarned: (profile as any)?.total_levels_earned || 0,
-        rookieSessionsToL100: (profile as any)?.rookie_sessions_to_l100 || 0,
-        beginnerSessionsToL100: (profile as any)?.beginner_sessions_to_l100 || 0,
-        intermediateSessionsToL100: (profile as any)?.intermediate_sessions_to_l100 || 0,
-        advancedSessionsToL100: (profile as any)?.advanced_sessions_to_l100 || 0,
-        proSessionsToL100: (profile as any)?.pro_sessions_to_l100 || 0,
+        postL100Sessions: (profile?.post_l100_sessions || 0) + 1,
+        overflowXp: profile?.overflow_xp || 0,
+        tiersCompleted: profile?.tiers_completed || 0,
+        totalLevelsEarned: profile?.total_levels_earned || 0,
+        rookieSessionsToL100: profile?.rookie_sessions_to_l100 || 0,
+        beginnerSessionsToL100: profile?.beginner_sessions_to_l100 || 0,
+        intermediateSessionsToL100: profile?.intermediate_sessions_to_l100 || 0,
+        advancedSessionsToL100: profile?.advanced_sessions_to_l100 || 0,
+        proSessionsToL100: profile?.pro_sessions_to_l100 || 0,
         doubleDays: (profile)?.double_days || 0,
         morningWorkouts: (profile)?.morning_workouts || 0,
         nightWorkouts: (profile)?.night_workouts || 0,
         weekendWorkouts: (profile)?.weekend_workouts || 0,
         weekdayWorkouts: (profile)?.weekday_workouts || 0,
-        perfectMonths: (profile as any)?.perfect_months || 0,
+        perfectMonths: profile?.perfect_months || 0,
         comebackCount: (profile)?.comeback_count || 0,
-        mondayWorkouts: (profile as any)?.monday_workouts || 0,
-        fridayWorkouts: (profile as any)?.friday_workouts || 0,
-        sundayWorkouts: (profile as any)?.sunday_workouts || 0,
+        mondayWorkouts: profile?.monday_workouts || 0,
+        fridayWorkouts: profile?.friday_workouts || 0,
+        sundayWorkouts: profile?.sunday_workouts || 0,
         accountAgeDays: profile?.created_at ? Math.floor((Date.now() - new Date(profile.created_at).getTime()) / 86400000) : 0,
-        newYearsWorkout: (profile as any)?.new_years_workout ? 1 : 0,
-        birthdayWorkout: (profile as any)?.birthday_workout ? 1 : 0,
-        holidayWorkouts: (profile as any)?.holiday_workouts || 0,
-        singleSessionXp: Math.max((profile as any)?.best_session_xp || 0, effectiveBase),
+        newYearsWorkout: profile?.new_years_workout ? 1 : 0,
+        birthdayWorkout: profile?.birthday_workout ? 1 : 0,
+        holidayWorkouts: profile?.holiday_workouts || 0,
+        singleSessionXp: Math.max(profile?.best_session_xp || 0, effectiveBase),
         totalBadges: earnedBadgeIds.length + liveEarnedIds.length + newCoreBadges.length,
-        streakRecoveries: (profile as any)?.streak_recoveries || 0,
+        streakRecoveries: profile?.streak_recoveries || 0,
         avgXpPerSession: profile?.workouts_completed ? Math.round(((profile?.total_xp || 0) + effectiveBase) / ((profile.workouts_completed || 0) + 1)) : effectiveBase,
         punch1Count: (profile)?.punch_1_count || 0,
         punch2Count: (profile)?.punch_2_count || 0,
@@ -720,14 +715,6 @@ const WorkoutSession = () => {
   useEffect(() => {
     if (prevSegmentIndexRef.current === currentSegmentIndex) return;
     prevSegmentIndexRef.current = currentSegmentIndex;
-
-    if (currentSegment) {
-      const baseRate = getXPPerSecond(currentSegment);
-      const effectiveRate = baseRate * streakMultiplier;
-      const isChamp = currentSegment.phaseName.toLowerCase().includes('championship');
-      const isBoxing = isBoxingSegment(currentSegment);
-      console.log(`[XP DEBUG] Segment: "${currentSegment.name}" | type: ${currentSegment.segmentType} | phase: "${currentSegment.phaseName}" | championship: ${isChamp} | boxing: ${isBoxing} | base XP/sec: ${baseRate.toFixed(4)} | streak: ${streakMultiplier}x | effective XP/sec: ${effectiveRate.toFixed(4)}`);
-    }
 
     if (!isPreparation && currentSegment && isRunning && !isPaused) {
       if (preferences?.voiceAnnouncements !== false) {
@@ -974,7 +961,7 @@ const WorkoutSession = () => {
     }
     
     if (sessionResult.sessionTotal > 0) {
-      try { addLocalXP(sessionResult.sessionTotal, true); } catch {}
+      try { addLocalXP(sessionResult.sessionTotal, true); } catch (e) { console.error('Local XP update failed:', e); }
     }
     
     addHistoryEntry.mutate({

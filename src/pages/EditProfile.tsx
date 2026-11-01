@@ -1,3 +1,4 @@
+import { useLatest } from '@/hooks/useLatest';
 import { useState, useRef, useEffect, useMemo } from 'react';
 import { ArrowLeft, User, Pencil, Archive, RotateCcw, Trash2, ChevronRight, Camera, Loader2, Check } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -5,7 +6,7 @@ import { AppLayout } from '@/components/layout/AppLayout';
 import { Input } from '@/components/ui/input';
 import { useUserStore } from '@/stores/userStore';
 import { useWorkoutStore } from '@/stores/workoutStore';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/contexts/useAuth';
 import { useProfile } from '@/hooks/useProfile';
 import { supabase } from '@/integrations/supabase/client';
 import { promptEmailLink } from '@/lib/guest';
@@ -49,22 +50,26 @@ const EditProfile = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Initialize weight/height from profile
+  const useImperialRef = useLatest(useImperial);
+  const savedWeightKg = profile?.weight_kg;
+  const savedHeightCm = profile?.height_cm;
   useEffect(() => {
-    if (profile) {
-      if (profile.weight_kg) {
-        setWeightInput(useImperial ? Math.round(profile.weight_kg * 2.20462).toString() : profile.weight_kg.toString());
+    const useImperial = useImperialRef.current;
+    if (savedWeightKg || savedHeightCm) {
+      if (savedWeightKg) {
+        setWeightInput(useImperial ? Math.round(savedWeightKg * 2.20462).toString() : savedWeightKg.toString());
       }
-      if (profile.height_cm) {
+      if (savedHeightCm) {
         if (useImperial) {
-          const totalInches = profile.height_cm / 2.54;
+          const totalInches = savedHeightCm / 2.54;
           setHeightFt(Math.floor(totalInches / 12).toString());
           setHeightIn(Math.round(totalInches % 12).toString());
         } else {
-          setHeightCm(profile.height_cm.toString());
+          setHeightCm(savedHeightCm.toString());
         }
       }
     }
-  }, [profile?.weight_kg, profile?.height_cm]);
+  }, [savedWeightKg, savedHeightCm, useImperialRef]);
 
   // Update editedHandle and editedBio when profile loads
   const currentHandle = profile?.handle || profile?.name?.toLowerCase().replace(/\s+/g, '') || 'fighter';
@@ -163,7 +168,8 @@ const EditProfile = () => {
       try {
         await updateProfile.mutateAsync({ handle: cleanHandle });
         toast.success('Handle updated!');
-      } catch (error: any) {
+      } catch (caught) {
+        const error = caught as { message?: string; code?: string };
         if (error?.message?.includes('unique') || error?.code === '23505') {
           toast.error('This handle is already taken');
           return;

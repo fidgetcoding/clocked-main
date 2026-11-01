@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { useProfile } from '@/hooks/useProfile';
 import { usePublicProfile } from '@/hooks/usePublicProfile';
 import { useFollows } from '@/hooks/useFollows';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/contexts/useAuth';
 import { XPBar } from '@/components/ui/XPBar';
 import { PrestigeBadge } from '@/components/ui/PrestigeDisplay';
 import { Prestige, getRankingFromLevel, isPrestigeEligible } from '@/lib/xpSystem';

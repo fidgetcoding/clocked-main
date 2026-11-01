@@ -1,6 +1,7 @@
+import { toJson } from '@/lib/json';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/contexts/useAuth';
 import { Workout } from '@/types';
 
 export interface CommunityPost {
@@ -132,7 +133,7 @@ export function useShareWorkout() {
           type: 'preset_shared',
           workout_id: workout.id,
           workout_name: customName || workout.name,
-          workout_data: sanitizedWorkout as any,
+          workout_data: toJson(sanitizedWorkout),
           message: message || null,
           tags: tags || [],
           custom_name: customName || null,

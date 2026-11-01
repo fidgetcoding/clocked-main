@@ -1,3 +1,4 @@
+import type { SupabaseClient } from '@supabase/supabase-js';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const createClient = vi.hoisted(() => vi.fn(() => ({ real: true })));
@@ -49,10 +50,31 @@ describe('supabase client selection', () => {
   });
 });
 
+// The real client's types only allow known tables, and these calls don't care which table it is
+type QueryResult = { data: unknown; error: { message: string } | null };
+interface LooseQuery extends PromiseLike<QueryResult> {
+  select(columns?: string): LooseQuery;
+  insert(row: object): LooseQuery;
+  update(row: object): LooseQuery;
+  upsert(row: object): LooseQuery;
+  delete(): LooseQuery;
+  eq(column: string, value: unknown): LooseQuery;
+  order(column: string): LooseQuery;
+  limit(count: number): LooseQuery;
+  single(): LooseQuery;
+  maybeSingle(): LooseQuery;
+}
+interface LooseClient {
+  auth: SupabaseClient['auth'];
+  from(table: string): LooseQuery;
+  rpc(name: string, args: object): LooseQuery;
+  functions: { invoke(name: string): Promise<QueryResult> };
+}
+
 describe('offline client', () => {
   const offline = async () => {
     const { createOfflineClient } = await import('@/integrations/supabase/offlineClient');
-    return createOfflineClient() as any;
+    return createOfflineClient() as unknown as LooseClient;
   };
 
   it('reports no session and fires the initial auth event', async () => {

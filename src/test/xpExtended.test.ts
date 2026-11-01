@@ -1,3 +1,4 @@
+import type { ActivityType } from '@/lib/xpSystem';
 import { describe, it, expect } from 'vitest';
 import extendedData from './xp_extended_tests.json';
 import {
@@ -76,7 +77,7 @@ describe('Extended: Exercise Duration XP', () => {
   const tests = extendedData.exercise_duration_tests;
   for (const t of tests) {
     it(`${t.activity} @ ${t.duration_sec}s = ${t.expected_xp} XP`, () => {
-      const actType = t.activity as any;
+      const actType = t.activity as ActivityType;
       if (ACTIVITY_XP_RATES[actType] !== undefined) {
         const actual = calculateActivityXP(actType, t.duration_sec);
         expect(approx(actual, t.expected_xp)).toBe(true);
@@ -90,7 +91,7 @@ describe('Extended: Championship Multiplier', () => {
   const tests = extendedData.championship_tests;
   for (const t of tests) {
     it(`${t.activity} @ ${t.duration}s champ=${t.champ_mult}x → ${t.expected}`, () => {
-      const actType = t.activity as any;
+      const actType = t.activity as ActivityType;
       if (ACTIVITY_XP_RATES[actType] !== undefined) {
         const base = calculateActivityXP(actType, t.duration);
         const result = base * t.champ_mult;

@@ -253,12 +253,39 @@ const VALID_BOXING_TOKENS = new Set([
   'FREESTYLE'
 ]);
 
+// What the provider sends back is untrusted, so every field might be missing or the wrong shape
+interface AiSegment {
+  name?: string;
+  type?: string;
+  segmentType?: string;
+  duration: number;
+}
+
+interface AiPhase {
+  name?: string;
+  section?: string;
+  repeats?: number;
+  comboOrder?: string;
+  combos?: unknown[];
+  segments?: AiSegment[];
+}
+
+interface AiWorkout {
+  difficulty?: string;
+  megasetRepeats?: number;
+  tags?: string[];
+  hasWarmup?: boolean;
+  hasCooldown?: boolean;
+  combos?: unknown[];
+  phases?: AiPhase[];
+}
+
 function splitHyphenCombo(token: string): string[] {
   // Split "1-2-3" into ["1","2","3"]
   return token.split('-').map(t => t.trim()).filter(t => t.length > 0);
 }
 
-function autoRepairCombos(combos: any[]): string[][] {
+function autoRepairCombos(combos: unknown[]): string[][] {
   return combos.map(combo => {
     if (!Array.isArray(combo) || combo.length === 0) return [];
     // Detect and fix hyphen-joined combos like ["1-2-3"]
@@ -282,22 +309,22 @@ function autoRepairCombos(combos: any[]): string[][] {
   }).filter(combo => combo.length > 0);
 }
 
-function autoRepair(result: any): any {
+function autoRepair(result: AiWorkout): AiWorkout {
   // megasetRepeats: enforce minimum, NO upper limit
   if (!result.megasetRepeats || result.megasetRepeats < 1) result.megasetRepeats = 1;
 
   if (!result.tags) result.tags = [];
   if (result.hasWarmup === undefined) {
-    result.hasWarmup = result.phases?.some((p: any) => p.section === 'warmup') ?? false;
+    result.hasWarmup = result.phases?.some((p) => p.section === 'warmup') ?? false;
   }
   if (result.hasCooldown === undefined) {
-    result.hasCooldown = result.phases?.some((p: any) => p.section === 'cooldown') ?? false;
+    result.hasCooldown = result.phases?.some((p) => p.section === 'cooldown') ?? false;
   }
   if (!result.combos) result.combos = [];
 
   // RULE 13: If no grind phase exists, reclassify ALL phases as grind
   // Handles "warmup only" and "cooldown only" requests — don't auto-insert a new phase
-  const hasGrind = result.phases?.some((p: any) => p.section === 'grind');
+  const hasGrind = result.phases?.some((p) => p.section === 'grind');
   if (!hasGrind && result.phases && result.phases.length > 0) {
     for (const phase of result.phases) {
       phase.section = 'grind';
@@ -348,7 +375,7 @@ function autoRepair(result: any): any {
   return result;
 }
 
-function validateParsedResult(result: any): { valid: boolean; errors: string[] } {
+function validateParsedResult(result: AiWorkout): { valid: boolean; errors: string[] } {
   const errors: string[] = [];
 
   if (!result.phases || !Array.isArray(result.phases) || result.phases.length === 0) {
@@ -356,15 +383,15 @@ function validateParsedResult(result: any): { valid: boolean; errors: string[] }
     return { valid: false, errors };
   }
 
-  const hasGrind = result.phases.some((p: any) => p.section === 'grind');
+  const hasGrind = result.phases.some((p) => p.section === 'grind');
   if (!hasGrind) errors.push('No grind phase found');
 
-  if (!['beginner', 'intermediate', 'advanced'].includes(result.difficulty)) {
+  if (!['beginner', 'intermediate', 'advanced'].includes(String(result.difficulty))) {
     errors.push(`Invalid difficulty: ${result.difficulty}`);
   }
 
   // Only enforce minimum, no upper limit on megasetRepeats
-  if (result.megasetRepeats < 1) {
+  if ((result.megasetRepeats ?? 1) < 1) {
     errors.push(`Invalid megasetRepeats: ${result.megasetRepeats}`);
   }
 
@@ -394,17 +421,17 @@ function validateParsedResult(result: any): { valid: boolean; errors: string[] }
         const combo = phase.combos[i];
         if (!Array.isArray(combo) || combo.length === 0) continue;
         // Only validate if it looks like a boxing combo (first token is a number 1-8 or known token)
-        const isBoxingCombo = VALID_BOXING_TOKENS.has(combo[0]);
+        const isBoxingCombo = VALID_BOXING_TOKENS.has(String(combo[0]));
         if (isBoxingCombo) {
           for (const token of combo) {
-            if (!VALID_BOXING_TOKENS.has(token)) {
+            if (!VALID_BOXING_TOKENS.has(String(token))) {
               errors.push(`Invalid boxing token "${token}" in phase "${phase.name}" combo ${i}`);
             }
           }
         }
         // Non-boxing combos (exercise names, drill names) are valid as-is
         // Check for malformed hyphen-joined combos like ["1-2-3"] and reject them
-        if (combo.length === 1 && /^\d[-\d]+/.test(combo[0])) {
+        if (combo.length === 1 && /^\d[-\d]+/.test(String(combo[0]))) {
           errors.push(`Malformed combo in phase "${phase.name}" combo ${i}: tokens must be separate array elements, not hyphen-joined`);
         }
       }
@@ -519,7 +546,7 @@ serve(async (req) => {
       );
     }
 
-    let aiData: any;
+    let aiData: { choices?: { message?: { content?: string } }[] };
     try {
       const aiResponse = await fetch(ai.chatCompletionsUrl, {
         method: 'POST',
@@ -573,7 +600,7 @@ serve(async (req) => {
       jsonStr = jsonStr.replace(/^```(?:json)?\n?/, '').replace(/\n?```$/, '');
     }
 
-    let parsed: any;
+    let parsed: AiWorkout;
     try {
       parsed = JSON.parse(jsonStr);
     } catch (e) {

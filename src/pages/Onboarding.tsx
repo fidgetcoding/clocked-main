@@ -1,3 +1,4 @@
+import type { UserProfile } from '@/types';
 import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { ArrowRight, User, Users, Dumbbell, Target, Home as HomeIcon, Swords, Trophy, Check, Lock, Globe, GraduationCap, ClipboardList, Users2, TrendingUp, LogIn, Star } from 'lucide-react';
@@ -5,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useUserStore } from '@/stores/userStore';
 import { useWorkouts } from '@/hooks/useWorkouts';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/contexts/useAuth';
 import { hasFinishedOnboarding, useProfile } from '@/hooks/useProfile';
 import { STANCE_OPTIONS } from '@/hooks/useStance';
 import type { Stance } from '@/lib/punch/types';
@@ -93,7 +94,7 @@ const Onboarding = () => {
       completeOnboarding({
         name: profile.name,
         role: profile.role,
-        experienceLevel: profile.experience_level as any,
+        experienceLevel: profile.experience_level as UserProfile['experienceLevel'],
         prestige: profile.prestige,
         currentLevel: profile.current_level,
       });
@@ -144,7 +145,7 @@ const Onboarding = () => {
         name: name || (role === 'coach' ? 'Coach' : 'Fighter'),
         role,
         experience_level: finalExperience,
-        equipment: finalEquipmentWithBag,
+        equipment: finalEquipmentWithBag as UserProfile['equipment'],
         goals: goals,
         prestige,
         current_level: 1,
@@ -158,9 +159,9 @@ const Onboarding = () => {
     completeOnboarding({
       role,
       name: name || (role === 'coach' ? 'Coach' : 'Fighter'),
-      experienceLevel: finalExperience as any,
-      equipment: finalEquipmentWithBag as any,
-      goals: goals as any,
+      experienceLevel: finalExperience as UserProfile['experienceLevel'],
+      equipment: finalEquipmentWithBag as UserProfile['equipment'],
+      goals: goals as UserProfile['goals'],
     });
     
     // Generate exactly ONE loadout workout based on tier + equipment

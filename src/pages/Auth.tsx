@@ -33,8 +33,8 @@ const Auth = () => {
       });
       if (error) throw error;
       setSentTo(address);
-    } catch (error: any) {
-      setErrorMessage(describeAuthError(error));
+    } catch (error) {
+      setErrorMessage(describeAuthError(error as Parameters<typeof describeAuthError>[0]));
     } finally {
       setLoading(false);
     }

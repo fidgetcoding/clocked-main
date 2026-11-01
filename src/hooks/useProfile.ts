@@ -1,13 +1,26 @@
+import type { Database } from '@/integrations/supabase/types';
 import { useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/contexts/useAuth';
 import { useUserStore } from '@/stores/userStore';
 import { GUEST_USER_ID } from '@/lib/guest';
 import type { Stance } from '@/lib/punch/types';
 import { Prestige, Ranking, getRankingFromLevel, experienceLevelToPrestige, getLevelFromXP } from '@/lib/xpSystem';
 
-export interface Profile {
+type ProfileRow = Database['public']['Tables']['profiles']['Row'];
+
+// Columns only the badge checks read, so they stay optional for guests and older rows
+type BadgeProgressColumns = Partial<Pick<ProfileRow,
+  | 'post_l100_sessions' | 'overflow_xp' | 'tiers_completed' | 'total_levels_earned'
+  | 'rookie_sessions_to_l100' | 'beginner_sessions_to_l100' | 'intermediate_sessions_to_l100'
+  | 'advanced_sessions_to_l100' | 'pro_sessions_to_l100' | 'perfect_months'
+  | 'monday_workouts' | 'friday_workouts' | 'sunday_workouts'
+  | 'new_years_workout' | 'birthday_workout' | 'holiday_workouts'
+  | 'best_session_xp' | 'streak_recoveries'
+>>;
+
+export interface Profile extends BadgeProgressColumns {
   id: string;
   user_id: string;
   name: string;

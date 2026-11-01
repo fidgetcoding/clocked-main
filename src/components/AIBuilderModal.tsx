@@ -1,3 +1,4 @@
+import { getSpeechRecognizerClass, type SpeechRecognizer } from '@/lib/speechRecognition';
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { X, Sparkles, Wand2, Mic, MicOff, TrendingUp, CheckCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -14,7 +15,7 @@ import { analyzeWorkoutHistory, getInsightsSummary, HistoryInsights } from '@/li
 import { detectBagType, detectAllSpeedBagDrills, containsSpeedBagVocabulary } from '@/data/speedBagDrills';
 import { getAllPresets } from '@/data/comboPresets';
 import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/contexts/useAuth';
 
 interface AIBuilderModalProps {
   onClose: () => void;
@@ -32,10 +33,10 @@ const SUGGESTION_CHIPS = [
 ];
 
 // Check if SpeechRecognition is available
-const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+const SpeechRecognition = getSpeechRecognizerClass();
 
 // Parse prompt to extract workout parameters
-export function parseWorkoutPrompt(prompt: string, userLevel: string = 'beginner') {
+function parseWorkoutPrompt(prompt: string, userLevel: string = 'beginner') {
   const lowerPrompt = prompt.toLowerCase();
   
   // Extract rounds/sets
@@ -179,7 +180,7 @@ export function parseWorkoutPrompt(prompt: string, userLevel: string = 'beginner
 
 // Generate a full workout object from parsed prompt
 // Tries AI agent (edge function) first, falls back to regex parser, then legacy logic
-export async function generateWorkoutFromPrompt(
+async function generateWorkoutFromPrompt(
   prompt: string,
   userLevel: string = 'beginner',
   historyInsights?: HistoryInsights | null,
@@ -331,7 +332,7 @@ export const AIBuilderModal = ({ onClose, onGenerate, baseWorkout, onWorkoutGene
   const [isListening, setIsListening] = useState(false);
   const [interimTranscript, setInterimTranscript] = useState('');
   const [promptHints, setPromptHints] = useState<string[]>([]);
-  const recognitionRef = useRef<any>(null);
+  const recognitionRef = useRef<SpeechRecognizer | null>(null);
   
   
   // Analyze workout history for personalization
@@ -367,7 +368,7 @@ export const AIBuilderModal = ({ onClose, onGenerate, baseWorkout, onWorkoutGene
     recognition.interimResults = true;
     recognition.lang = 'en-US';
 
-    recognition.onresult = (event: any) => {
+    recognition.onresult = (event) => {
       let interim = '';
       let final = '';
 
@@ -388,7 +389,7 @@ export const AIBuilderModal = ({ onClose, onGenerate, baseWorkout, onWorkoutGene
       }
     };
 
-    recognition.onerror = (event: any) => {
+    recognition.onerror = (event) => {
       console.error('Speech recognition error:', event.error);
       if (event.error === 'not-allowed') {
         toast.error('Microphone access denied. Please enable it in your browser settings.');

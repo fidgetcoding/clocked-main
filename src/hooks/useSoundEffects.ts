@@ -6,7 +6,7 @@ let audioContext: AudioContext | null = null;
 
 const getAudioContext = (): AudioContext => {
   if (!audioContext) {
-    audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+    audioContext = new (window.AudioContext || window.webkitAudioContext)();
   }
   return audioContext;
 };
@@ -85,7 +85,7 @@ const playLevelUpSoundImpl = () => {
 
 export const useSoundEffects = () => {
   const user = useUserStore((state) => state.user);
-  const prefs = user?.preferences as Record<string, any> | undefined;
+  const prefs = user?.preferences as Record<string, unknown> | undefined;
   
   const soundEnabled = prefs?.soundEnabled !== false;
   const tenSecondWarningEnabled = prefs?.tenSecondWarning !== false;

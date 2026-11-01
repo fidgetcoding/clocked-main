@@ -1,6 +1,7 @@
+import { toJson } from '@/lib/json';
 import { useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/contexts/useAuth';
 import { useProfile } from '@/hooks/useProfile';
 import { useQueryClient } from '@tanstack/react-query';
 import { generateLoadoutWorkout, UserEquipmentConfig } from '@/lib/loadoutGenerator';
@@ -26,7 +27,7 @@ export function usePresetSeeding() {
     const { guestWorkouts, addGuestWorkout } = useWorkoutStore.getState();
     if (guestWorkouts.length > 0) return;
 
-    const eq = (profile.equipment as Record<string, any>) || {};
+    const eq = (profile.equipment || {}) as unknown as UserEquipmentConfig;
     const loadout = generateLoadoutWorkout(profile.experience_level || 'beginner', {
       gloves: !!eq.gloves,
       wraps: !!eq.wraps,
@@ -76,7 +77,7 @@ export function usePresetSeeding() {
         }
 
         // Build equipment config from profile
-        const eq = (profile.equipment as Record<string, any>) || {};
+        const eq = (profile.equipment || {}) as unknown as UserEquipmentConfig;
         const loadoutEquipment: UserEquipmentConfig = {
           gloves: !!eq.gloves,
           wraps: !!eq.wraps,
@@ -100,7 +101,7 @@ export function usePresetSeeding() {
             description: loadout.description,
             duration: loadout.duration,
             difficulty: loadout.difficulty,
-            phases: loadout.phases as any,
+            phases: toJson(loadout.phases),
             combos: loadout.combos,
             tags: loadout.tags,
             is_preset: loadout.is_preset,

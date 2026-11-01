@@ -1,3 +1,4 @@
+import type { ExtendedBadgeCategory, PostL100Badge } from '@/data/postL100Badges';
 import { MIN_REWARD_SECONDS } from '@/lib/sessionEffort';
 import { useState, useEffect } from 'react';
 import { Badge, BADGE_CATEGORY_COLORS, BADGE_CATEGORY_NAMES, BadgeCategory } from '@/data/badges';
@@ -15,7 +16,7 @@ import type { PunchSessionReport } from '@/lib/punch/round';
 
 // Badge shape components
 function BadgeShape({ shape, category, earned, size = 'md' }: { 
-  shape: string; category: BadgeCategory; earned: boolean; size?: 'sm' | 'md' 
+  shape: string; category: ExtendedBadgeCategory; earned: boolean; size?: 'sm' | 'md' 
 }) {
   const colors = BADGE_CATEGORY_COLORS[category];
   const dim = size === 'sm' ? 'w-10 h-10' : 'w-14 h-14';
@@ -51,7 +52,7 @@ export interface SessionXPBreakdown {
   effectiveBase: number;
   badgeXP: number;
   sessionTotal: number;
-  newBadges: Badge[];
+  newBadges: (Badge | PostL100Badge)[];
   levelBefore: number;
   levelAfter: number;
   streakBefore: number;
@@ -97,7 +98,7 @@ export function PostWorkoutSummary({
   feedbackMode, setFeedbackMode, roundFeedback, roundCount, onRoundRating,
   onLog, punchSummary, logged, onNavigateHome, onPrestige,
 }: PostWorkoutSummaryProps) {
-  const [showBadgeDetails, setShowBadgeDetails] = useState<Badge | null>(null);
+  const [showBadgeDetails, setShowBadgeDetails] = useState<Badge | PostL100Badge | null>(null);
   const [animateXP, setAnimateXP] = useState(false);
   const [animateLevel, setAnimateLevel] = useState(false);
   const [showPrestigePrompt, setShowPrestigePrompt] = useState(false);

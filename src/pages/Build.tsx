@@ -1,3 +1,5 @@
+import { useLatest } from '@/hooks/useLatest';
+import { splitStoredPhases } from '@/lib/storedPhases';
 import { useState, useEffect, useMemo } from 'react';
 import { ArrowLeft, Plus, Trash2, GripVertical, Pencil, Play, X, ChevronDown, ChevronUp, Sparkles, Share2, Shuffle, ListOrdered, Repeat, Layers, Search, Check } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
@@ -20,15 +22,16 @@ import {
   ComboDifficulty
 } from '@/data/comboPresets';
 import { SPEED_BAG_DRILLS } from '@/data/speedBagDrills';
-import { ExercisePickerModal, isBuiltinExercise } from '@/components/ExercisePickerModal';
+import { ExercisePickerModal } from '@/components/ExercisePickerModal';
+import { isBuiltinExercise } from '@/data/exerciseCategories';
 import { useCustomExercises } from '@/hooks/useCustomExercises';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/contexts/useAuth';
 import { promptEmailLink } from '@/lib/guest';
 import { AIBuilderModal } from '@/components/AIBuilderModal';
 import { useShareWorkout } from '@/hooks/useCommunityPosts';
 import { useClubs } from '@/hooks/useClubs';
 import { toast } from 'sonner';
-import { DndContext, closestCenter, PointerSensor, TouchSensor, useSensor, useSensors } from '@dnd-kit/core';
+import { DndContext, closestCenter, PointerSensor, TouchSensor, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy, useSortable, arrayMove } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 
@@ -131,7 +134,7 @@ function resolveLibraryEntryTarget({
 }
 
 // Sortable wrapper for phase cards in the builder
-function SortablePhaseWrapper({ id, children }: { id: string; children: (props: { dragHandleProps: Record<string, any>; style: React.CSSProperties; setNodeRef: (node: HTMLElement | null) => void; isDragging: boolean }) => React.ReactNode }) {
+function SortablePhaseWrapper({ id, children }: { id: string; children: (props: { dragHandleProps: React.HTMLAttributes<HTMLElement>; style: React.CSSProperties; setNodeRef: (node: HTMLElement | null) => void; isDragging: boolean }) => React.ReactNode }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
   const style = { transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.5 : 1 };
   return <>{children({ dragHandleProps: { ...attributes, ...listeners }, style, setNodeRef, isDragging })}</>;
@@ -246,22 +249,16 @@ function formatDuration(seconds: number): string {
 
 // Helper to convert DB workout phases to local format
 function dbPhasesToLocal(dbWorkout: DbWorkout): { warmup: WorkoutPhase[], grind: WorkoutPhase[], cooldown: WorkoutPhase[], megasetRepeats: number } {
-  const phases = dbWorkout.phases as any[];
-  const metaEntry = phases?.find((p: any) => p._meta);
-  const megasetRepeats = metaEntry?.megasetRepeats || metaEntry?.supersetRepeats || 1;
-  const actualPhases = phases?.filter((p: any) => !p._meta) || [];
-  const warmup = actualPhases.filter((p: any) => p.section === 'warmup').map(({ section, ...rest }: any) => rest) || [];
-  const grind = actualPhases.filter((p: any) => p.section === 'grind').map(({ section, ...rest }: any) => rest) || [];
-  const cooldown = actualPhases.filter((p: any) => p.section === 'cooldown').map(({ section, ...rest }: any) => rest) || [];
+  const { sections: { warmup, grind, cooldown }, megasetRepeats } = splitStoredPhases(dbWorkout.phases);
   
   // Migrate: if top-level combos exist but no phase has combos, attach to first grind phase with combo segments
   const topLevelCombos: string[][] = dbWorkout.combos || [];
-  const anyPhaseHasCombos = [...warmup, ...grind, ...cooldown].some((p: any) => p.combos && p.combos.length > 0);
+  const anyPhaseHasCombos = [...warmup, ...grind, ...cooldown].some((p) => p.combos && p.combos.length > 0);
   
   if (topLevelCombos.length > 0 && !anyPhaseHasCombos) {
     // Find first grind phase with combo/shadowboxing segments
-    const targetPhase = grind.find((p: any) => 
-      p.segments?.some((s: any) => s.segmentType === 'combo' || s.segmentType === 'shadowboxing')
+    const targetPhase = grind.find((p) => 
+      p.segments?.some((s) => s.segmentType === 'combo' || s.segmentType === 'shadowboxing')
     );
     if (targetPhase) {
       targetPhase.combos = topLevelCombos;
@@ -283,6 +280,8 @@ const Build = () => {
   const { workouts, addWorkout, updateWorkout } = useWorkouts();
   const user = useUserStore((state) => state.user);
   const { addExercise: addCustomExercise, isInLibrary } = useCustomExercises();
+  const addCustomExerciseRef = useLatest(addCustomExercise);
+  const isInLibraryRef = useLatest(isInLibrary);
   const { isGuest } = useAuth();
   
   // Get default difficulty based on user's experience level
@@ -337,7 +336,7 @@ const Build = () => {
   );
 
   // Phase drag-and-drop handler
-  const handlePhaseDragEnd = (event: any) => {
+  const handlePhaseDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
     if (!over || active.id === over.id) return;
     const phases = getActivePhases();
@@ -377,13 +376,13 @@ const Build = () => {
   };
   
   const editingPhaseCombos = editingPhaseId ? getPhaseCombos(editingPhaseId) : [];
-  const comboIds = useMemo(() => editingPhaseCombos.map((_, i) => `combo-${i}`), [editingPhaseCombos]);
+  const comboIds = editingPhaseCombos.map((_, i) => `combo-${i}`);
   
-  const handleComboDragEnd = (event: any) => {
+  const handleComboDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
     if (!over || active.id === over.id || !editingPhaseId) return;
-    const oldIndex = comboIds.indexOf(active.id);
-    const newIndex = comboIds.indexOf(over.id);
+    const oldIndex = comboIds.indexOf(String(active.id));
+    const newIndex = comboIds.indexOf(String(over.id));
     setPhaseCombos(editingPhaseId, arrayMove(editingPhaseCombos, oldIndex, newIndex));
   };
 
@@ -414,7 +413,7 @@ const Build = () => {
         const customNames = new Set<string>();
         for (const phase of allPhases) {
           for (const seg of phase.segments) {
-            if (seg.segmentType === 'exercise' && seg.name && !isBuiltinExercise(seg.name) && !isInLibrary(seg.name)) {
+            if (seg.segmentType === 'exercise' && seg.name && !isBuiltinExercise(seg.name) && !isInLibraryRef.current(seg.name)) {
               // Skip generic names
               const generic = ['exercise', 'exercise a', 'exercise b', 'rest', 'stretch', 'stretching', 'warmup', 'cooldown'];
               if (!generic.includes(seg.name.toLowerCase())) {
@@ -432,7 +431,7 @@ const Build = () => {
                 label: 'Save to Library',
                 onClick: () => {
                   for (const n of names) {
-                    addCustomExercise.mutate({ name: n });
+                    addCustomExerciseRef.current.mutate({ name: n });
                   }
                   toast.success(`Saved ${names.length} exercise${names.length > 1 ? 's' : ''} to your library`);
                 },
@@ -444,7 +443,7 @@ const Build = () => {
         console.error('Failed to parse AI workout data', e);
       }
     }
-  }, [aiWorkoutData]);
+  }, [aiWorkoutData, addCustomExerciseRef, isInLibraryRef]);
 
   // Load existing workout for editing from Supabase
   useEffect(() => {

@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/contexts/useAuth';
 import { useProfile } from '@/hooks/useProfile';
 import { useUserStore } from '@/stores/userStore';
 import { ALL_BADGES, checkBadges, sumBadgeXP, getBadgeProgress, Badge, BadgeStats, BadgeCategory, BADGE_CATEGORY_COLORS, BADGE_CATEGORY_NAMES } from '@/data/badges';
@@ -56,32 +56,32 @@ export function useBadges() {
   // Build post-L100 stats from profile
   const postL100Stats: PostL100Stats = {
     ...currentStats,
-    postL100Sessions: (profile as any)?.post_l100_sessions || 0,
-    overflowXp: (profile as any)?.overflow_xp || 0,
-    tiersCompleted: (profile as any)?.tiers_completed || 0,
-    totalLevelsEarned: (profile as any)?.total_levels_earned || 0,
-    rookieSessionsToL100: (profile as any)?.rookie_sessions_to_l100 || 0,
-    beginnerSessionsToL100: (profile as any)?.beginner_sessions_to_l100 || 0,
-    intermediateSessionsToL100: (profile as any)?.intermediate_sessions_to_l100 || 0,
-    advancedSessionsToL100: (profile as any)?.advanced_sessions_to_l100 || 0,
-    proSessionsToL100: (profile as any)?.pro_sessions_to_l100 || 0,
+    postL100Sessions: profile?.post_l100_sessions || 0,
+    overflowXp: profile?.overflow_xp || 0,
+    tiersCompleted: profile?.tiers_completed || 0,
+    totalLevelsEarned: profile?.total_levels_earned || 0,
+    rookieSessionsToL100: profile?.rookie_sessions_to_l100 || 0,
+    beginnerSessionsToL100: profile?.beginner_sessions_to_l100 || 0,
+    intermediateSessionsToL100: profile?.intermediate_sessions_to_l100 || 0,
+    advancedSessionsToL100: profile?.advanced_sessions_to_l100 || 0,
+    proSessionsToL100: profile?.pro_sessions_to_l100 || 0,
     doubleDays: (profile)?.double_days || 0,
     morningWorkouts: (profile)?.morning_workouts || 0,
     nightWorkouts: (profile)?.night_workouts || 0,
     weekendWorkouts: (profile)?.weekend_workouts || 0,
     weekdayWorkouts: (profile)?.weekday_workouts || 0,
-    perfectMonths: (profile as any)?.perfect_months || 0,
+    perfectMonths: profile?.perfect_months || 0,
     comebackCount: (profile)?.comeback_count || 0,
-    mondayWorkouts: (profile as any)?.monday_workouts || 0,
-    fridayWorkouts: (profile as any)?.friday_workouts || 0,
-    sundayWorkouts: (profile as any)?.sunday_workouts || 0,
+    mondayWorkouts: profile?.monday_workouts || 0,
+    fridayWorkouts: profile?.friday_workouts || 0,
+    sundayWorkouts: profile?.sunday_workouts || 0,
     accountAgeDays: profile?.created_at ? Math.floor((Date.now() - new Date(profile.created_at).getTime()) / 86400000) : 0,
-    newYearsWorkout: (profile as any)?.new_years_workout ? 1 : 0,
-    birthdayWorkout: (profile as any)?.birthday_workout ? 1 : 0,
-    holidayWorkouts: (profile as any)?.holiday_workouts || 0,
-    singleSessionXp: (profile as any)?.best_session_xp || 0,
+    newYearsWorkout: profile?.new_years_workout ? 1 : 0,
+    birthdayWorkout: profile?.birthday_workout ? 1 : 0,
+    holidayWorkouts: profile?.holiday_workouts || 0,
+    singleSessionXp: profile?.best_session_xp || 0,
     totalBadges: earnedBadges.length,
-    streakRecoveries: (profile as any)?.streak_recoveries || 0,
+    streakRecoveries: profile?.streak_recoveries || 0,
     avgXpPerSession: profile?.workouts_completed ? Math.round((profile?.total_xp || 0) / profile.workouts_completed) : 0,
     punch1Count: (profile)?.punch_1_count || 0,
     punch2Count: (profile)?.punch_2_count || 0,

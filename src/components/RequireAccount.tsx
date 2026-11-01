@@ -1,6 +1,6 @@
 import { ReactNode } from 'react';
 import { Navigate } from 'react-router-dom';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/contexts/useAuth';
 
 /** Keeps guests off routes that only make sense with an account. */
 export const RequireAccount = ({ children }: { children: ReactNode }) => {

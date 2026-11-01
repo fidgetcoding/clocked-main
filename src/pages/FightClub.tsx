@@ -1,3 +1,7 @@
+import type { StoredPhase } from '@/lib/storedPhases';
+import type { WorkoutSection } from '@/types';
+import { getSpeechRecognizerClass } from '@/lib/speechRecognition';
+import { splitStoredPhases } from '@/lib/storedPhases';
 import { useState } from 'react';
 import { ArrowLeft, Users, Newspaper, Trophy, Search, MessageCircle, BarChart3, Send, ChevronRight, Mic, MicOff, Download, X, UserPlus, LogIn, LogOut, Trash2, Star } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -16,7 +20,7 @@ import { toast } from 'sonner';
 import { useUserSearch } from '@/hooks/useUserSearch';
 import { useFollows } from '@/hooks/useFollows';
 import { useClubs, EARLY_ADOPTERS_CLUB_ID } from '@/hooks/useClubs';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/contexts/useAuth';
 import { promptEmailLink } from '@/lib/guest';
 import { isBackendConfigured } from '@/integrations/supabase/client';
 import { useTierPresets, TierPresetWithLoadout } from '@/hooks/useTierPresets';
@@ -33,6 +37,16 @@ interface Club {
   memberCount: number;
   activeNow: number;
   rank?: number;
+}
+
+interface SharedWorkoutData {
+  description?: string;
+  totalDuration?: number;
+  duration?: number;
+  difficulty?: string;
+  phases?: StoredPhase[];
+  sections?: Partial<WorkoutSection>;
+  combos?: string[][];
 }
 
 const FightClub = () => {
@@ -124,7 +138,7 @@ const FightClub = () => {
       return;
     }
     
-    const data = post.workout_data as any;
+    const data = post.workout_data as unknown as SharedWorkoutData;
     addWorkout.mutate({
       name: post.workout_name || post.custom_name || 'Shared Workout',
       description: data.description || null,
@@ -231,13 +245,13 @@ const FightClub = () => {
       return;
     }
     
-    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    const SpeechRecognition = getSpeechRecognizerClass();
     const recognition = new SpeechRecognition();
     recognition.continuous = false;
     recognition.interimResults = false;
     recognition.lang = 'en-US';
     
-    recognition.onresult = (event: any) => {
+    recognition.onresult = (event) => {
       const transcript = event.results[0][0].transcript;
       if (transcript) {
         const newMessage = {
@@ -424,7 +438,7 @@ const FightClub = () => {
                           <p className="text-xs text-muted-foreground mb-1 hover:text-volt transition-colors">{msg.userName}</p>
                         )}
                         <div className="flex items-center gap-1">
-                          {(msg as any).isVoice && <Mic className="w-3 h-3 text-volt" />}
+                          {msg.isVoice && <Mic className="w-3 h-3 text-volt" />}
                           <p className={cn('text-sm', msg.isOwn ? 'text-primary-foreground' : 'text-foreground')}>
                             {msg.message}
                           </p>
@@ -1007,17 +1021,12 @@ const FightClub = () => {
                         onClick={() => {
                           // Convert tier preset to TrendingWorkout for the preview modal
                           const loadout = preset.generatedLoadout;
-                          const phases = loadout.phases || [];
-                          const sections = {
-                            warmup: phases.filter((p: any) => p.section === 'warmup').map(({ section, ...rest }: any) => rest),
-                            grind: phases.filter((p: any) => p.section === 'grind').map(({ section, ...rest }: any) => rest),
-                            cooldown: phases.filter((p: any) => p.section === 'cooldown').map(({ section, ...rest }: any) => rest),
-                          };
+                          const { sections } = splitStoredPhases(loadout.phases);
                           const asTrending: TrendingWorkout = {
                             id: preset.id,
                             name: preset.name,
                             icon: '🥊',
-                            difficulty: preset.tier as any,
+                            difficulty: preset.tier as TrendingWorkout['difficulty'],
                             totalDuration: loadout.duration,
                             isPreset: true,
                             isArchived: false,

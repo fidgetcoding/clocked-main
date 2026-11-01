@@ -1,4 +1,6 @@
-import { createContext, useContext, useEffect, useState, ReactNode, useRef, useCallback } from 'react';
+import type { UserProfile } from '@/types';
+import { AuthContext } from './useAuth';
+import { useEffect, useState, ReactNode, useRef, useCallback } from 'react';
 import { flushSync } from 'react-dom';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
@@ -6,16 +8,6 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useUserStore } from '@/stores/userStore';
 import { useWorkoutStore } from '@/stores/workoutStore';
 import { useHistoryStore } from '@/stores/historyStore';
-
-interface AuthContextType {
-  user: User | null;
-  session: Session | null;
-  loading: boolean;
-  isGuest: boolean;
-  signOut: () => Promise<void>;
-}
-
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 // Helper to clear all user-specific localStorage data
 // Guest rows live in these same stores and stay put: SIGNED_OUT can fire on an anonymous
@@ -33,14 +25,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const previousUserIdRef = useRef<string | null>(null);
   
-  // Get queryClient from context - we'll handle this in the effect
-  const queryClientRef = useRef<ReturnType<typeof useQueryClient> | null>(null);
-  
-  try {
-    queryClientRef.current = useQueryClient();
-  } catch {
-    // QueryClient not available yet, will be set later
-  }
+  const queryClient = useQueryClient();
 
   // Sync profile from DB to local store when user signs in
   const syncProfileToStore = useCallback(async (userId: string) => {
@@ -59,8 +44,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         completeOnboarding({
           name: profile.name,
           role: profile.role as 'fighter' | 'coach',
-          experienceLevel: profile.experience_level as any,
-          prestige: profile.prestige as any,
+          experienceLevel: profile.experience_level as UserProfile['experienceLevel'],
+          prestige: profile.prestige as UserProfile['prestige'],
           currentLevel: profile.current_level ?? 1,
         });
       }
@@ -102,7 +87,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // user is committed would make mounted queries refetch as the old user with no session.
         if (accountChanged) {
           flushSync(applySession);
-          queryClientRef.current?.clear();
+          queryClient.clear();
         } else {
           applySession();
         }
@@ -125,7 +110,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
 
     return () => subscription.unsubscribe();
-  }, [syncProfileToStore]);
+  }, [syncProfileToStore, queryClient]);
 
   const signOut = async () => {
     await supabase.auth.signOut();
@@ -134,7 +119,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setSession(null);
     });
     clearUserLocalStorage();
-    queryClientRef.current?.clear();
+    queryClient.clear();
   };
 
   return (
@@ -142,12 +127,4 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       {children}
     </AuthContext.Provider>
   );
-}
-
-export function useAuth() {
-  const context = useContext(AuthContext);
-  if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
-  return context;
 }

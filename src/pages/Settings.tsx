@@ -1,3 +1,4 @@
+import { toJson } from '@/lib/json';
 import { useState, useRef } from 'react';
 import { ArrowLeft, LogOut, Volume2, Timer, Shield, Mail } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -5,7 +6,7 @@ import { AppLayout } from '@/components/layout/AppLayout';
 import { Switch } from '@/components/ui/switch';
 import { Button } from '@/components/ui/button';
 import { useUserStore } from '@/stores/userStore';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/contexts/useAuth';
 import { useUserRole } from '@/hooks/useUserRole';
 import { useProfile } from '@/hooks/useProfile';
 import { STANCE_OPTIONS, useStance } from '@/hooks/useStance';
@@ -73,7 +74,7 @@ const Settings = () => {
     if (!authUser?.id || !profile) return;
     setIsRegenerating(true);
     try {
-      const eq = (profile.equipment as Record<string, any>) || {};
+      const eq = (profile.equipment || {}) as unknown as UserEquipmentConfig;
       const loadoutEquipment: UserEquipmentConfig = {
         gloves: !!eq.gloves,
         wraps: !!eq.wraps,
@@ -103,7 +104,7 @@ const Settings = () => {
           description: loadout.description,
           duration: loadout.duration,
           difficulty: loadout.difficulty,
-          phases: loadout.phases as any,
+          phases: toJson(loadout.phases),
           combos: loadout.combos,
           tags: loadout.tags,
           is_preset: loadout.is_preset,

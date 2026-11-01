@@ -136,7 +136,7 @@ function splitIntoBlocks(prompt: string): string[] {
     // Split when we see "N round(s)" at a sentence boundary
     const parts: string[] = [];
     const pattern = /(?:^|(?<=\.\s+))(\d+\s+rounds?\b)/gi;
-    let lastIdx = 0;
+    const lastIdx = 0;
     let match;
     
     // Use a simpler approach: split on ". " followed by digit+round
@@ -475,7 +475,7 @@ function extractSpecificActivityName(text: string): string | null {
   const lower = text.toLowerCase();
   
   // Strip section labels, round counts, timing, rest, and "no rest"
-  let stripped = lower
+  const stripped = lower
     .replace(/\b\d+\s*(?:round|rnd|set|lap|cycle|rep)s?\b/gi, '')
     .replace(/\b(?:warm\s*up|cooldown|cool\s*down)\b/gi, '')
     .replace(/\d+\s*(?:min(?:ute)?s?|sec(?:ond)?s?)\s*(?:each|per\s*round)?/gi, '')
@@ -606,7 +606,7 @@ function parseSupersetFromBlock(text: string): { exercises: SupersetExercise[]; 
   
   if (hasSupersetKeyword) {
     // Remove "superset" keyword and split on "and" / "with" / "&"
-    const afterSuperset = stripped.replace(/.*superset\s*[:\-]?\s*/i, '');
+    const afterSuperset = stripped.replace(/.*superset\s*[:-]?\s*/i, '');
     const splitMatch = afterSuperset.match(/^(.+?)\s+(?:and|with|&)\s+(.+?)(?:\.|$)/i);
     if (splitMatch) {
       // Use greedy-ish: split at the LAST "and"/"with" to handle exercise names with those words

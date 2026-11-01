@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { useWorkoutHistory } from './useWorkoutHistory';
+import { useWorkoutHistory, type WorkoutHistoryEntry } from './useWorkoutHistory';
 import { useProfile } from './useProfile';
 import { startOfWeek, subWeeks, isAfter, isBefore, parseISO } from 'date-fns';
 
@@ -64,7 +64,7 @@ export interface WorkoutStats {
   };
 }
 
-function calculatePeriodStats(entries: any[], weightKg?: number | null): PeriodStats {
+function calculatePeriodStats(entries: WorkoutHistoryEntry[], weightKg?: number | null): PeriodStats {
   let xp = 0;
   let trainingSeconds = 0;
   let rounds = 0;

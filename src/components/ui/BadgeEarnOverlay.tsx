@@ -105,7 +105,7 @@ export function BadgeEarnOverlay({ badge, onComplete }: BadgeEarnOverlayProps) {
 /** Fallback sound if playSoundEffect.badgeEarn doesn't exist */
 function playBadgeSound() {
   try {
-    const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
     if (ctx.state === 'suspended') ctx.resume();
     const now = ctx.currentTime;
 

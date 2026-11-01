@@ -1,7 +1,10 @@
+import type { Database } from '@/integrations/supabase/types';
+import { fromJson, toJson } from '@/lib/json';
+import type { StoredPhase } from '@/lib/storedPhases';
 import { useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/contexts/useAuth';
 import { useWorkoutStore } from '@/stores/workoutStore';
 
 export interface DbWorkout {
@@ -11,7 +14,7 @@ export interface DbWorkout {
   description: string | null;
   duration: number;
   difficulty: string | null;
-  phases: any[];
+  phases: StoredPhase[];
   combos: string[][];
   tags: string[];
   is_preset: boolean;
@@ -22,6 +25,12 @@ export interface DbWorkout {
   updated_at: string;
   sort_order: number;
 }
+
+const toDbWorkout = (row: Database['public']['Tables']['workouts']['Row']): DbWorkout => ({
+  ...row,
+  phases: fromJson<StoredPhase[]>(row.phases),
+  combos: fromJson<string[][]>(row.combos),
+});
 
 export function useWorkouts() {
   const { user, isGuest } = useAuth();
@@ -41,7 +50,7 @@ export function useWorkouts() {
         .order('sort_order', { ascending: true });
       
       if (error) throw error;
-      return data as DbWorkout[];
+      return data.map(toDbWorkout);
     },
     enabled: !!user?.id,
   });
@@ -70,12 +79,12 @@ export function useWorkouts() {
       
       const { data, error } = await supabase
         .from('workouts')
-        .insert({ ...workout, user_id: user.id, sort_order: newSortOrder })
+        .insert({ ...workout, phases: toJson(workout.phases), user_id: user.id, sort_order: newSortOrder })
         .select()
         .single();
       
       if (error) throw error;
-      return data as DbWorkout;
+      return toDbWorkout(data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['workouts', user?.id] });
@@ -89,14 +98,14 @@ export function useWorkouts() {
       
       const { data, error } = await supabase
         .from('workouts')
-        .update(updates)
+        .update({ ...updates, phases: updates.phases && toJson(updates.phases) })
         .eq('id', id)
         .eq('user_id', user.id)
         .select()
         .single();
       
       if (error) throw error;
-      return data as DbWorkout;
+      return toDbWorkout(data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['workouts', user?.id] });
@@ -135,7 +144,7 @@ export function useWorkouts() {
         .single();
       
       if (error) throw error;
-      return data as DbWorkout;
+      return toDbWorkout(data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['workouts', user?.id] });

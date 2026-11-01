@@ -1,6 +1,9 @@
+import type { Database } from '@/integrations/supabase/types';
+import { fromJson, toJson } from '@/lib/json';
+import type { RoundFeedback } from '@/types';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/contexts/useAuth';
 import { useHistoryStore } from '@/stores/historyStore';
 
 export interface WorkoutHistoryEntry {
@@ -14,9 +17,14 @@ export interface WorkoutHistoryEntry {
   difficulty: string | null;
   notes: string | null;
   is_manual_entry: boolean;
-  round_feedback: any[];
+  round_feedback: RoundFeedback[];
   created_at: string;
 }
+
+const toHistoryEntry = (row: Database['public']['Tables']['workout_history']['Row']): WorkoutHistoryEntry => ({
+  ...row,
+  round_feedback: fromJson<RoundFeedback[]>(row.round_feedback),
+});
 
 export function useWorkoutHistory() {
   const { user, isGuest } = useAuth();
@@ -35,7 +43,7 @@ export function useWorkoutHistory() {
         .order('completed_at', { ascending: false });
       
       if (error) throw error;
-      return data as WorkoutHistoryEntry[];
+      return data.map(toHistoryEntry);
     },
     enabled: !!user?.id,
   });
@@ -49,12 +57,12 @@ export function useWorkoutHistory() {
       
       const { data, error } = await supabase
         .from('workout_history')
-        .insert({ ...entry, user_id: user.id })
+        .insert({ ...entry, round_feedback: toJson(entry.round_feedback), user_id: user.id })
         .select()
         .single();
       
       if (error) throw error;
-      return data as WorkoutHistoryEntry;
+      return toHistoryEntry(data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['workout-history', user?.id] });
@@ -68,14 +76,14 @@ export function useWorkoutHistory() {
       
       const { data, error } = await supabase
         .from('workout_history')
-        .update(updates)
+        .update({ ...updates, round_feedback: updates.round_feedback && toJson(updates.round_feedback) })
         .eq('id', id)
         .eq('user_id', user.id)
         .select()
         .single();
       
       if (error) throw error;
-      return data as WorkoutHistoryEntry;
+      return toHistoryEntry(data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['workout-history', user?.id] });

@@ -209,7 +209,7 @@ const History = () => {
                         <div className="mt-3">
                           <p className="text-xs text-muted-foreground mb-2">Round Ratings</p>
                           <div className="flex flex-wrap gap-1">
-                            {workout.round_feedback.map((rf: any) => (
+                            {workout.round_feedback.map((rf) => (
                               <div
                                 key={rf.roundNumber}
                                 className="flex items-center gap-1 bg-surface-2 rounded px-2 py-1"
