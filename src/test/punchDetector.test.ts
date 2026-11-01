@@ -405,6 +405,39 @@ describe('regression: shapes from a real recording', () => {
     });
   });
 
+  it('does not let backward depth jitter on a still hand hide a straight from the other hand', () => {
+    const { punches } = run({
+      fps: 23,
+      armOverride: (side, t) => {
+        if (side === 'right') {
+          const jitter = t >= 2050 && t < 2120 ? 0.2 : 0;
+          return { wrist: [-0.17, -0.06, -0.4 + jitter], elbow: [-0.23, 0.19, -0.15] };
+        }
+        return path('left', [
+          [2000, ...GUARD],
+          [2120, [0.15, -0.2, -0.5], [0.25, 0.08, -0.22]],
+          [2600, ...GUARD],
+        ])(side, t);
+      },
+    });
+    expect(punches.map((p) => p.punch)).toEqual(['jab']);
+  });
+
+  it('flags the other hand by where it sits against its own shoulder, not how far the turn carried it', () => {
+    // The body turns and the guard hand swings a long way forward and across, but stays up
+    const carried = run({
+      fps: 23,
+      armOverride: (side, t) => {
+        if (side !== 'left') return null;
+        const k = Math.min(1, Math.max(0, (t - 2000) / 170));
+        return { wrist: [0.17 + 0.1 * k, -0.06, -0.4 + 0.1 * k], elbow: [0.23, 0.19, -0.15] };
+      },
+      punches: [{ hand: 'rear', shape: 'straight', at: 2000 }],
+    });
+    expect(carried.punches.map((p) => p.punch)).toEqual(['cross']);
+    expect(carried.punches[0].issues).not.toContain('other_hand_left_guard');
+  });
+
   it('does not count the other hand being dragged back by a body turn, or coming home after', () => {
     const { punches } = run({
       fps: 23,

@@ -4,6 +4,9 @@
  * Set from boxing biomechanics and synthetic motion, then adjusted against one recording of one
  * person on one camera (2026-11-01, odd reps only, even reps held out). That is thin evidence, so
  * treat them as starting points and expect to change them as more people use this.
+ *
+ * The form limits have less behind them: nobody knows which reps in that recording had real faults,
+ * so they were set so a normal rep stays quiet, and they have never been checked against known faults.
  * Distances are in shoulder widths (SW), speeds in SW per second, angles in degrees.
  */
 export const PUNCH_CONFIG = {
@@ -30,7 +33,11 @@ export const PUNCH_CONFIG = {
     /** How far back the start speed may have happened. */
     recentSpeedMs: 150,
     /** The smallest and slowest movement that still counts as a punch. */
-    minPeakDistance: 0.33,
+    minPeakDistance: 0.3,
+    /** A straight at the camera: the wrist moves only this far, if the elbow moves this far in the picture. */
+    minWristMoveWithElbow: 0.2,
+    minElbowMove: 0.35,
+    elbowStartMove: 0.25,
     /** While the other hand is moving, a body turn can carry this one this far without a punch. */
     minPeakDistanceOtherBusy: 0.6,
     /** How far the wrist must move relative to its own shoulder. */
@@ -154,9 +161,8 @@ export const PUNCH_CONFIG = {
   },
 
   form: {
-    /** The other hand moving this far during a punch has left the guard. */
-    otherHandDistance: 0.6,
-    otherHandForwardShare: 0.5,
+    /** The other hand this far below its own shoulder at the peak of a punch has left the guard. */
+    otherHandBelowShoulder: 0.12,
     /** How long a hand gets to come back, one beat. */
     returnWindowMs: 700,
     /** A hand must stay below the chin this long between punches to be flagged. */
@@ -164,12 +170,18 @@ export const PUNCH_CONFIG = {
     /** Only nag about low hands within this long of the last punch. */
     activeWindowMs: 5000,
     handsLowCooldownMs: 3000,
-    /** Straights are flagged only when both the elbow angle and the reach fall short of these. */
-    fullExtensionElbow: 140,
-    fullExtensionReach: 0.9,
-    /** Hook elbow limits relative to the shoulder of that arm. */
+    /**
+     * Straights are flagged only when both the elbow angle and the reach fall short of these. Low,
+     * because the model reads real full jabs at about 105 to 120 degrees from the front.
+     */
+    fullExtensionElbow: 95,
+    fullExtensionReach: 0.75,
+    /**
+     * Hook elbow limits relative to the shoulder of that arm. High, because the model puts a normal
+     * hook's elbow about 0.3 to 0.5 above the shoulder.
+     */
     flareOutward: 0.7,
-    flareAboveShoulder: 0.25,
+    flareAboveShoulder: 0.6,
     /** A cross with less rotation than both of these is flagged. */
     minShoulderRotation: 12,
     minHipRotation: 6,

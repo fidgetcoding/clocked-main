@@ -1,7 +1,7 @@
 import { BodyTracker, LM, dist, type Vec3 } from './body';
 import { PUNCH_CONFIG, type PunchConfig } from './config';
 import { PunchDetector } from './detector';
-import type { PunchDetected, PunchClass, Landmark, Stance, Hand } from './types';
+import type { FormIssue, PunchDetected, PunchClass, Landmark, Stance, Hand } from './types';
 
 /** Landmarks only. A recording never holds a pixel of video. */
 export const RECORDING_FORMAT = 'clocked-punch-landmarks';
@@ -69,6 +69,16 @@ export function parseRecording(text: string): PunchRecording {
   return data as PunchRecording;
 }
 
+/** Which form cues fired in each step. Throw a known fault for a whole step to test that cue. */
+export function formatCues(result: ReplayResult): string {
+  return result.rows
+    .map((row) => {
+      const cues = Object.entries(row.cues).map(([cue, count]) => `${cue} ${count}`);
+      return `${row.label.padEnd(15)}${String(row.total).padStart(3)} punches  ${cues.join(', ') || 'no cues'}`;
+    })
+    .join('\n');
+}
+
 export const CONFUSION_COLUMNS: PunchClass[] = [
   'jab',
   'cross',
@@ -86,6 +96,8 @@ export interface ConfusionRow {
   total: number;
   /** Punches thrown by the hand the prompt didn't ask for. */
   wrongHand: number;
+  /** Form cues raised during this step, at the peak of a punch or after it. */
+  cues: Partial<Record<FormIssue, number>>;
 }
 
 export interface ReplayResult {
@@ -115,6 +127,7 @@ export function replayRecording(recording: PunchRecording, config: PunchConfig =
     counts: { jab: 0, cross: 0, lead_hook: 0, rear_hook: 0, lead_uppercut: 0, rear_uppercut: 0, punch: 0 },
     total: 0,
     wrongHand: 0,
+    cues: {},
   }));
   const events: ReplayResult['events'] = [];
   let outsideSteps = 0;
@@ -127,8 +140,10 @@ export function replayRecording(recording: PunchRecording, config: PunchConfig =
       if (frame.image[LM.LEFT_SHOULDER][0] > frame.image[LM.RIGHT_SHOULDER][0]) leftOnRight += 1;
     }
     for (const event of detector.push({ t: frame.t, landmarks: unpack(frame.world) })) {
-      if (event.type !== 'punch') continue;
       const index = recording.segments.findIndex((s) => event.t >= s.startT && event.t <= s.endT);
+      const raised = event.type === 'punch' ? event.issues : [event.issue];
+      if (index >= 0) for (const cue of raised) rows[index].cues[cue] = (rows[index].cues[cue] ?? 0) + 1;
+      if (event.type !== 'punch') continue;
       if (index < 0) {
         outsideSteps += 1;
         events.push({ label: null, punch: event });

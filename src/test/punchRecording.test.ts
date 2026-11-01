@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   findReps,
   formatConfusion,
+  formatCues,
   formatRepScore,
   packLandmarks,
   parseRecording,
@@ -144,6 +145,21 @@ describe('recording replay', () => {
     expect(even.accuracy).toBe(1);
     expect(even.extras).toBe(0);
     expect(formatRepScore(even)).toContain('even reps: 6 of 6 labelled what was asked for (100%)');
+  });
+
+  it('lists the form cues raised in each step', () => {
+    const recording = fakeRecording('orthodox');
+    const quiet = formatCues(replayRecording(recording));
+    expect(quiet).toContain('no cues');
+    const start = recording.segments[1].startT;
+    const frames = simulate({ stance: 'orthodox', startMs: start, durationMs: 1500, lowHands: ['rear'], punches: [{ hand: 'lead', shape: 'straight', at: start + 800 }] });
+    const faulty = {
+      ...recording,
+      segments: [{ label: 'jab' as const, expected: 1, startT: start, endT: start + 1500 }],
+      frames: frames.map((frame) => ({ t: frame.t, image: null, world: packLandmarks(frame.landmarks) })),
+    };
+    expect(replayRecording(faulty).rows[0].cues.chin_exposed).toBeGreaterThanOrEqual(1);
+    expect(formatCues(replayRecording(faulty))).toContain('chin_exposed');
   });
 
   it('counts a wrong label as a miss and a second punch as an extra', () => {

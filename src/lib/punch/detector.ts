@@ -17,6 +17,8 @@ interface HandState {
   phase: Phase;
   /** Where the hand rests, in body coordinates. */
   anchor: Vec3 | null;
+  /** Where the elbow was at the same time. */
+  elbowAnchor: Vec3 | null;
   /** Where the hand last rested with the chin covered. */
   guardRest: Vec3 | null;
   /** Where the current extension started: the anchor, or the low point of a partial return. */
@@ -51,7 +53,6 @@ interface HandState {
   /** State of the other hand while this one extends. */
   otherStartedIdle: boolean;
   otherStartedLow: boolean;
-  otherFarthest: number;
 }
 
 const newHand = (side: Side, hand: Hand): HandState => ({
@@ -59,6 +60,7 @@ const newHand = (side: Side, hand: Hand): HandState => ({
   hand,
   phase: 'idle',
   anchor: null,
+  elbowAnchor: null,
   guardRest: null,
   origin: null,
   samples: [],
@@ -83,11 +85,11 @@ const newHand = (side: Side, hand: Hand): HandState => ({
   restPose: null,
   otherStartedIdle: false,
   otherStartedLow: false,
-  otherFarthest: 0,
 });
 
 const armOf = (pose: BodyPose, side: Side): ArmPose => (side === 'left' ? pose.left : pose.right);
 const degrees = (radians: number) => (radians * 180) / Math.PI;
+const planarDistance = (a: Vec3, b: Vec3) => Math.hypot(a.x - b.x, a.y - b.y);
 const elbowAngleOf = (arm: ArmPose) =>
   arm.wrist && arm.elbow ? jointAngle(arm.shoulder, arm.elbow, arm.wrist) : null;
 
@@ -225,14 +227,22 @@ export class PunchDetector {
 
     const distance = dist(wrist, state.anchor);
     // Recent, because at low frame rates the fast part of a short punch can land just before the distance does
+    const elbow = armOf(pose, state.side).elbow;
+    const elbowMoved = elbow && state.elbowAnchor ? planarDistance(elbow, state.elbowAnchor) : 0;
     const movingAway = distance > state.lastRestDistance;
     state.lastRestDistance = distance;
-    if (movingAway && distance >= motion.startDistance && this.recentSpeed(state, pose.t) >= motion.startSpeed) {
+    // Thrown at the camera, a straight barely moves the wrist in the picture but it lifts the elbow
+    // Depth only counts toward the camera: the model's depth jitters backward on a still hand, and
+    // that hand then looks busy and hides the real punch from the other one
+    const seenMove = Math.hypot(wrist.x - state.anchor.x, wrist.y - state.anchor.y, Math.max(0, wrist.z - state.anchor.z));
+    const started = seenMove >= motion.startDistance || (other.phase === 'idle' && elbowMoved >= motion.elbowStartMove);
+    if (movingAway && started && this.recentSpeed(state, pose.t) >= motion.startSpeed) {
       this.beginExtension(state, other, pose, wrist, state.anchor);
       return;
     }
     if (state.speed < rest.settleSpeed) {
       state.restPose = pose;
+      if (elbow) state.elbowAnchor = elbow;
       if (!this.isLow(wrist, pose)) state.guardRest = wrist;
       const alpha = 1 - Math.exp(-dt / rest.anchorTauMs);
       state.anchor = {
@@ -257,23 +267,14 @@ export class PunchDetector {
     state.lowSince = null;
     state.otherStartedIdle = other.openPunchId === null;
     state.otherStartedLow = !!otherWrist && this.isLow(otherWrist, state.restPose ?? pose);
-    state.otherFarthest = 0;
   }
 
   private stepExtending(state: HandState, other: HandState, pose: BodyPose, wrist: Vec3, events: PunchEvent[]) {
-    const { motion, form } = this.config;
+    const { motion } = this.config;
     const distance = dist(wrist, state.origin!);
     state.samples.push({ pose, wrist, distance });
     state.peakSpeed = Math.max(state.peakSpeed, state.speed);
     if (distance >= state.samples[state.peakIndex].distance) state.peakIndex = state.samples.length - 1;
-
-    // The other hand moving forward is probably the next punch, not a guard coming down
-    const otherWrist = armOf(pose, other.side).wrist;
-    if (otherWrist && other.anchor) {
-      const moved = sub(otherWrist, other.anchor);
-      const away = dist(otherWrist, other.anchor);
-      if (moved.z < form.otherHandForwardShare * away) state.otherFarthest = Math.max(state.otherFarthest, away);
-    }
 
     const peak = state.samples[state.peakIndex];
     state.slowFrames = state.speed < motion.holdSpeed ? state.slowFrames + 1 : 0;
@@ -326,12 +327,18 @@ export class PunchDetector {
       delta.z < -motion.recoilBackShare * distance &&
       delta.y < motion.recoilMaxRise &&
       Math.abs(state.side === 'left' ? -delta.x : delta.x) < motion.recoilMaxAcross;
+    const peakElbow = armOf(peak.pose, state.side).elbow;
+    const elbowMoved = peakElbow && state.elbowAnchor ? planarDistance(peakElbow, state.elbowAnchor) : 0;
+    const movedEnough =
+      other.phase === 'idle'
+        ? (distance >= motion.minPeakDistance && armMoved >= motion.minArmMove) ||
+          (distance >= motion.minWristMoveWithElbow && elbowMoved >= motion.minElbowMove)
+        : distance >= motion.minPeakDistanceOtherBusy && armMoved >= motion.minArmMove;
     if (
       raisesGuard ||
       windsUp ||
       recoils ||
-      armMoved < motion.minArmMove ||
-      distance < (other.phase === 'idle' ? motion.minPeakDistance : motion.minPeakDistanceOtherBusy) ||
+      !movedEnough ||
       state.peakSpeed < motion.minPeakSpeed ||
       durationMs < motion.minDurationMs ||
       durationMs > motion.maxDurationMs ||
@@ -393,7 +400,7 @@ export class PunchDetector {
     const hipRotation = (startPose.hipYaw - peak.pose.hipYaw) * rearForward;
 
     const armShort = elbow < form.fullExtensionElbow && reach < form.fullExtensionReach;
-    const issues = this.peakIssues(state, result.punch, result.depthUnreliable, armShort, shoulderRotation, hipRotation);
+    const issues = this.peakIssues(state, other, peak, result.punch, result.depthUnreliable, armShort, shoulderRotation, hipRotation);
     const id = this.nextId++;
     this.lastPunchT = peak.pose.t;
     state.openPunchId = id;
@@ -433,6 +440,8 @@ export class PunchDetector {
 
   private peakIssues(
     state: HandState,
+    other: HandState,
+    peak: ExtensionSample,
     punch: PunchClass,
     depthUnreliable: boolean,
     armShort: boolean,
@@ -444,7 +453,7 @@ export class PunchDetector {
 
     if (state.otherStartedIdle) {
       if (state.otherStartedLow) issues.push('chin_exposed');
-      else if (state.otherFarthest >= form.otherHandDistance) issues.push('other_hand_left_guard');
+      else if (this.otherHandDropped(other, peak.pose)) issues.push('other_hand_left_guard');
     }
 
     if ((punch === 'jab' || punch === 'cross') && !depthUnreliable && armShort) {
@@ -453,10 +462,19 @@ export class PunchDetector {
     if ((punch === 'lead_hook' || punch === 'rear_hook') && this.elbowFlared(state)) {
       issues.push('elbow_flare');
     }
-    if (punch === 'cross' && !depthUnreliable && shoulderRotation < form.minShoulderRotation && hipRotation < form.minHipRotation) {
+    if (punch === 'cross' && shoulderRotation < form.minShoulderRotation && hipRotation < form.minHipRotation) {
       issues.push('no_rotation');
     }
     return issues;
+  }
+
+  /**
+   * Measured against that arm's own shoulder and in the picture only. The model's depth, and the
+   * shoulders turning, move a guard hand a long way relative to the chest when it hasn't left.
+   */
+  private otherHandDropped(other: HandState, pose: BodyPose) {
+    const arm = armOf(pose, other.side);
+    return !!arm.wrist && arm.shoulder.y - arm.wrist.y > this.config.form.otherHandBelowShoulder;
   }
 
   private elbowFlared(state: HandState) {

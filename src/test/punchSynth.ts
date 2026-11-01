@@ -122,12 +122,12 @@ function punchPath(side: Side, punch: SynthPunch) {
       return { start, via: lerp(start, peak, 0.5), peak, pole: [s, 0.6, 0.2] as V };
     }
     case 'hook': {
-      const peak: V = [-s * 0.14, -0.54, -0.36];
+      const peak: V = [-s * 0.14, punch.flaredElbow ? -0.62 : -0.54, -0.36];
       return {
         start,
         via: [s * 0.36, -0.56, -0.36] as V,
         peak,
-        pole: (punch.flaredElbow ? [s, -1.2, 0] : [s, 0, 0.1]) as V,
+        pole: (punch.flaredElbow ? [s, -2.5, 0] : [s, 0, 0.1]) as V,
       };
     }
     case 'uppercut': {

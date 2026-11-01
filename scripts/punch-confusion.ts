@@ -6,10 +6,11 @@
  *   npm run punch:confusion -- file.json --events
  *   npm run punch:confusion -- file.json --set classify.minArcEvidence=0.6
  *   npm run punch:confusion -- file.json --split    Scores odd and even reps separately. Tune on odd only.
+ *   npm run punch:confusion -- file.json --cues     Lists the form cues that fired in each step.
  */
 import { readFileSync } from 'node:fs';
 import { PUNCH_CONFIG, type PunchConfig } from '../src/lib/punch/config';
-import { findReps, formatConfusion, formatRepScore, parseRecording, replayRecording, scoreReps } from '../src/lib/punch/recording';
+import { findReps, formatConfusion, formatCues, formatRepScore, parseRecording, replayRecording, scoreReps } from '../src/lib/punch/recording';
 
 function withOverride(config: PunchConfig, assignment: string): PunchConfig {
   const [path, raw] = assignment.split('=');
@@ -48,6 +49,8 @@ const result = replayRecording(recording, config);
 
 console.log(`${file}: ${recording.stance}, recorded ${recording.createdAt}\n`);
 console.log(formatConfusion(result));
+
+if (args.includes('--cues')) console.log(`\n${formatCues(result)}`);
 
 if (args.includes('--split')) {
   const reps = findReps(recording);
