@@ -61,6 +61,25 @@ export function useWorkouts() {
   );
   const workouts = isGuest ? guestWorkouts : dbWorkouts;
 
+  const { data: dbArchivedWorkouts = [] } = useQuery({
+    queryKey: ['workouts', user?.id, 'archived'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('workouts')
+        .select('*')
+        .eq('user_id', user!.id)
+        .eq('is_archived', true)
+        .order('updated_at', { ascending: false });
+      if (error) throw error;
+      return (data ?? []).map(toDbWorkout);
+    },
+    enabled: !!user?.id && !isGuest,
+  });
+  const archivedWorkouts = useMemo(
+    () => (isGuest ? guestRows.filter((w) => w.is_archived) : dbArchivedWorkouts),
+    [isGuest, guestRows, dbArchivedWorkouts],
+  );
+
   const addWorkout = useMutation({
     mutationFn: async (workout: Omit<DbWorkout, 'id' | 'user_id' | 'created_at' | 'updated_at' | 'sort_order'>) => {
       if (isGuest) return useWorkoutStore.getState().addGuestWorkout(workout);
@@ -180,6 +199,7 @@ export function useWorkouts() {
     updateWorkout,
     deleteWorkout,
     archiveWorkout,
+    archivedWorkouts,
     reorderWorkouts,
   };
 }

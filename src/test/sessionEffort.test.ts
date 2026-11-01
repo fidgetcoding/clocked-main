@@ -113,6 +113,14 @@ describe('badges reflect what the session did', () => {
     expect(earned(FORTY_MINUTES - 1, finished)).not.toContain('beast_mode_achiever');
   });
 
+  it('finishing a workout that runs for 40 minutes counts as 40, even if a throttled tab lost a few seconds', () => {
+    const fortyMinutePlan = { ...finished, plannedMinutes: 40 };
+    expect(earned(FORTY_MINUTES - 5, fortyMinutePlan)).toContain('beast_mode_achiever');
+    expect(earned(FORTY_MINUTES - 5, { ...fortyMinutePlan, plannedMinutes: 39 })).not.toContain('beast_mode_achiever');
+    expect(toSessionFacts({ ...FRESH_SESSION, ranToEnd: true }, [{ name: 'Round', type: 'active', duration: 2400 }]).plannedMinutes).toBe(40);
+    expect(toSessionFacts({ ...FRESH_SESSION, ranToEnd: true, cutShort: true }, [{ name: 'Round', type: 'active', duration: 2400 }]).plannedMinutes).toBe(0);
+  });
+
   it('Rapid Fire needs a finished workout with 10 combo rounds', () => {
     expect(earned(MIN_REWARD_SECONDS, { ...finished, comboRounds: 10 })).toContain('rapid_fire');
     expect(earned(MIN_REWARD_SECONDS, { ...finished, comboRounds: 9 })).not.toContain('rapid_fire');

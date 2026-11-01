@@ -126,7 +126,7 @@ const Index = () => {
       archiveWorkout.mutate(workoutToDelete, {
         onSuccess: () => {
           setWorkoutToDelete(null);
-          toast.success('Workout archived. Access it in Settings.');
+          toast.success('Workout archived. Find it under Edit Profile.');
         },
         onError: (error) => {
           toast.error('Failed to archive: ' + error.message);

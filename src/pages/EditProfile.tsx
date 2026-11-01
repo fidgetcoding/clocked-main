@@ -1,11 +1,11 @@
 import { useLatest } from '@/hooks/useLatest';
-import { useState, useRef, useEffect, useMemo } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { ArrowLeft, User, Pencil, Archive, RotateCcw, Trash2, ChevronRight, Camera, Loader2, Check } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Input } from '@/components/ui/input';
 import { useUserStore } from '@/stores/userStore';
-import { useWorkoutStore } from '@/stores/workoutStore';
+import { useWorkouts } from '@/hooks/useWorkouts';
 import { useAuth } from '@/contexts/useAuth';
 import { useProfile } from '@/hooks/useProfile';
 import { supabase } from '@/integrations/supabase/client';
@@ -27,11 +27,11 @@ const EditProfile = () => {
   const navigate = useNavigate();
   const user = useUserStore((state) => state.user);
   const updateUser = useUserStore((state) => state.updateUser);
-  const { archivedWorkouts: localArchived, restoreWorkout, permanentlyDeleteArchived, guestWorkouts, updateGuestWorkout, deleteGuestWorkout } = useWorkoutStore();
+  const { archivedWorkouts, updateWorkout, deleteWorkout } = useWorkouts();
   const { user: authUser, isGuest } = useAuth();
-  const guestArchived = useMemo(() => guestWorkouts.filter((w) => w.is_archived), [guestWorkouts]);
-  const archivedWorkouts: { id: string; name: string; difficulty: string | null }[] = isGuest ? guestArchived : localArchived;
   const { profile, updateProfile } = useProfile();
+  // The profile row is the record. The local copy can lag behind a change made on another device.
+  const currentName = profile?.name || user?.name || 'Fighter';
   
   const [showArchives, setShowArchives] = useState(false);
   const [workoutToDelete, setWorkoutToDelete] = useState<string | null>(null);
@@ -39,7 +39,7 @@ const EditProfile = () => {
   const [isEditingName, setIsEditingName] = useState(false);
   const [isEditingHandle, setIsEditingHandle] = useState(false);
   const [isEditingBio, setIsEditingBio] = useState(false);
-  const [editedName, setEditedName] = useState(user?.name || '');
+  const [editedName, setEditedName] = useState('');
   const [editedHandle, setEditedHandle] = useState(profile?.handle || '');
   const [editedBio, setEditedBio] = useState(profile?.bio || '');
   const [useImperial, setUseImperial] = useState(true);
@@ -85,6 +85,7 @@ const EditProfile = () => {
 
   const handlePhotoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
+    e.target.value = ''; // So picking the same file again still fires a change
     if (file && isGuest) {
       promptEmailLink('add a profile photo');
       return;
@@ -143,9 +144,14 @@ const EditProfile = () => {
       return;
     }
     
-    if (trimmed !== user?.name) {
+    if (trimmed !== currentName) {
+      try {
+        await updateProfile.mutateAsync({ name: trimmed });
+      } catch {
+        toast.error('Failed to update name');
+        return;
+      }
       updateUser({ name: trimmed });
-      await updateProfile.mutateAsync({ name: trimmed });
       toast.success('Name updated!');
     }
     setIsEditingName(false);
@@ -197,17 +203,28 @@ const EditProfile = () => {
   };
 
   const handleRestore = (id: string) => {
-    if (isGuest) updateGuestWorkout(id, { is_archived: false });
-    else restoreWorkout(id);
-    toast.success('Workout restored to your sets');
+    updateWorkout.mutate({ id, is_archived: false }, {
+      onSuccess: () => toast.success('Workout restored to your sets'),
+      onError: () => toast.error('Failed to restore workout'),
+    });
   };
 
   const handlePermanentDelete = () => {
     if (workoutToDelete) {
-      if (isGuest) deleteGuestWorkout(workoutToDelete);
-      else permanentlyDeleteArchived(workoutToDelete);
+      deleteWorkout.mutate(workoutToDelete, {
+        onSuccess: () => toast.success('Workout permanently deleted'),
+        onError: () => toast.error('Failed to delete workout'),
+      });
       setWorkoutToDelete(null);
-      toast.success('Workout permanently deleted');
+    }
+  };
+
+  // Saved as the field loses focus, so a refusal has nowhere else to show
+  const saveBodyMetric = async (updates: { weight_kg?: number; height_cm?: number }) => {
+    try {
+      await updateProfile.mutateAsync(updates);
+    } catch {
+      toast.error("Couldn't save that. Check the number and try again.");
     }
   };
 
@@ -278,10 +295,10 @@ const EditProfile = () => {
                   </div>
                 ) : (
                   <div className="flex items-center gap-2">
-                    <h2 className="text-xl font-bold text-foreground truncate min-w-0">{user?.name || 'Fighter'}</h2>
+                    <h2 className="text-xl font-bold text-foreground truncate min-w-0">{currentName}</h2>
                     <button 
                       onClick={() => {
-                        setEditedName(user?.name || '');
+                        setEditedName(currentName);
                         setIsEditingName(true);
                       }}
                       className="text-muted-foreground hover:text-foreground"
@@ -393,7 +410,7 @@ const EditProfile = () => {
                     const val = parseFloat(weightInput);
                     if (!isNaN(val) && val > 0) {
                       const kg = useImperial ? Math.round(val / 2.20462 * 10) / 10 : val;
-                      await updateProfile.mutateAsync({ weight_kg: kg });
+                      await saveBodyMetric({ weight_kg: kg });
                     }
                   }}
                   placeholder={useImperial ? '165' : '75'}
@@ -412,7 +429,7 @@ const EditProfile = () => {
                         const ft = parseFloat(heightFt) || 0;
                         const inches = parseFloat(heightIn) || 0;
                         const cm = Math.round((ft * 12 + inches) * 2.54 * 10) / 10;
-                        if (cm > 0) await updateProfile.mutateAsync({ height_cm: cm });
+                        if (cm > 0) await saveBodyMetric({ height_cm: cm });
                       }}
                       placeholder="5"
                       className="bg-surface-2 border-surface-3 text-foreground"
@@ -428,7 +445,7 @@ const EditProfile = () => {
                         const ft = parseFloat(heightFt) || 0;
                         const inches = parseFloat(heightIn) || 0;
                         const cm = Math.round((ft * 12 + inches) * 2.54 * 10) / 10;
-                        if (cm > 0) await updateProfile.mutateAsync({ height_cm: cm });
+                        if (cm > 0) await saveBodyMetric({ height_cm: cm });
                       }}
                       placeholder="10"
                       className="bg-surface-2 border-surface-3 text-foreground"
@@ -445,7 +462,7 @@ const EditProfile = () => {
                     onBlur={async () => {
                       const val = parseFloat(heightCm);
                       if (!isNaN(val) && val > 0) {
-                        await updateProfile.mutateAsync({ height_cm: val });
+                        await saveBodyMetric({ height_cm: val });
                       }
                     }}
                     placeholder="175"

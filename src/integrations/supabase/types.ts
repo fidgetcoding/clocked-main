@@ -758,6 +758,29 @@ export type Database = {
         Args: { target_user_id: string }
         Returns: number
       }
+      get_club_member_counts: {
+        Args: never
+        Returns: {
+          club_id: string
+          member_count: number
+        }[]
+      }
+      get_club_ranks: {
+        Args: { target_club_id: string }
+        Returns: {
+          avatar_url: string
+          name: string
+          total_xp: number
+          user_id: string
+        }[]
+      }
+      get_follow_counts: {
+        Args: { target_user_id: string }
+        Returns: {
+          followers: number
+          following: number
+        }[]
+      }
       get_workout_rating_summary: {
         Args: { target_workout_id: string }
         Returns: {

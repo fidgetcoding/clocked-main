@@ -105,3 +105,15 @@ test("pausing costs Push Through, and skipping costs Full Send too", async ({ pa
   await page.getByText("WORKOUT COMPLETE!").waitFor();
   await expect(page.getByText("Full Send")).toHaveCount(0);
 });
+
+test("a loadout labelled 40 minutes, run start to finish, reaches Beast Mode", async ({ page }) => {
+  test.setTimeout(240_000); // Every tick of the 41 minutes really runs, just not in real time
+  await expect(page.getByText("40 MIN").first()).toBeVisible();
+  await startHomeWorkout(page);
+  await page.clock.runFor((30 + 41 * 60) * 1000);
+  await page.getByText("WORKOUT COMPLETE!").waitFor();
+  await expect(page.getByText("41:00").first()).toBeVisible();
+  await expect(page.getByText("Beast Mode Achiever").first()).toBeVisible();
+  await expect(page.getByText("Full Send").first()).toBeVisible();
+  await expect(page.getByText("Push Through").first()).toBeVisible();
+});

@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/useAuth';
 import { toast } from 'sonner';
+import { ClubRankRow, rankClubMembers } from '@/lib/clubs';
 
 export interface Club {
   id: string;
@@ -21,9 +22,6 @@ export interface ClubMember {
   role: 'member' | 'moderator' | 'admin';
   joined_at: string;
 }
-
-// Fixed Early Adopters club ID
-export const EARLY_ADOPTERS_CLUB_ID = 'ea000000-0000-0000-0000-000000000001';
 
 export function useClubs() {
   const { user } = useAuth();
@@ -60,21 +58,21 @@ export function useClubs() {
     enabled: !!user?.id,
   });
 
-  // Fetch member count for a specific club
-  const useClubMemberCount = (clubId: string) => {
-    return useQuery({
-      queryKey: ['club-member-count', clubId],
-      queryFn: async () => {
-        const { count, error } = await supabase
-          .from('club_members')
-          .select('*', { count: 'exact', head: true })
-          .eq('club_id', clubId);
-        
-        if (error) throw error;
-        return count ?? 0;
-      },
-      enabled: !!clubId && !!user,
-    });
+  // Member counts for every club this fighter can see
+  const { data: memberCounts = {} } = useQuery({
+    queryKey: ['club-member-counts'],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc('get_club_member_counts');
+      if (error) throw error;
+      return Object.fromEntries((data ?? []).map((row) => [row.club_id, Number(row.member_count)])) as Record<string, number>;
+    },
+    enabled: !!user,
+  });
+
+  const refreshAfterMembershipChange = () => {
+    queryClient.invalidateQueries({ queryKey: ['club-memberships', user?.id] });
+    queryClient.invalidateQueries({ queryKey: ['club-member-counts'] });
+    queryClient.invalidateQueries({ queryKey: ['club-ranks'] });
   };
 
   // Join a club
@@ -110,8 +108,7 @@ export function useClubs() {
       return data as ClubMember;
     },
     onSuccess: (_, clubId) => {
-      queryClient.invalidateQueries({ queryKey: ['club-memberships', user?.id] });
-      queryClient.invalidateQueries({ queryKey: ['club-member-count', clubId] });
+      refreshAfterMembershipChange();
       const club = clubs.find(c => c.id === clubId);
       toast.success(`Joined ${club?.name || 'club'}! 🎉`);
     },
@@ -134,8 +131,7 @@ export function useClubs() {
       if (error) throw error;
     },
     onSuccess: (_, clubId) => {
-      queryClient.invalidateQueries({ queryKey: ['club-memberships', user?.id] });
-      queryClient.invalidateQueries({ queryKey: ['club-member-count', clubId] });
+      refreshAfterMembershipChange();
       const club = clubs.find(c => c.id === clubId);
       toast.success(`Left ${club?.name || 'club'}`);
     },
@@ -157,6 +153,21 @@ export function useClubs() {
     joinClub,
     leaveClub,
     isMemberOf,
-    useClubMemberCount,
+    memberCounts,
   };
+}
+
+/** A club's members, best first. Only its own members can read this. */
+export function useClubRanks(clubId: string | undefined) {
+  const { user } = useAuth();
+
+  return useQuery({
+    queryKey: ['club-ranks', clubId, user?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc('get_club_ranks', { target_club_id: clubId! });
+      if (error) throw error;
+      return rankClubMembers((data ?? []) as ClubRankRow[], user?.id);
+    },
+    enabled: !!clubId && !!user,
+  });
 }
