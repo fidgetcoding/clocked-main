@@ -1,11 +1,11 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.90.1";
 import { type GenerateRequest, MAX_BODY_LENGTH, validateGenerateRequest } from "./validate.ts";
+import { resolveAiConfig } from "./ai.ts";
 
-const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
-const AI_GATEWAY_URL = 'https://ai.gateway.lovable.dev/v1/chat/completions';
-const MODEL = 'google/gemini-2.5-flash';
 const DAILY_GENERATION_LIMIT = 25;
+// Thinking models spend part of this on reasoning, and running out truncates the JSON
+const MAX_OUTPUT_TOKENS = 8192;
 
 const CORS_HEADERS = {
   'Access-Control-Allow-Origin': '*',
@@ -435,7 +435,7 @@ serve(async (req) => {
   }
 
   try {
-    // Require authenticated caller — prevents abuse of the AI gateway key
+    // Require authenticated caller — prevents abuse of the AI key
     const authHeader = req.headers.get('Authorization');
     if (!authHeader?.startsWith('Bearer ')) {
       return new Response(
@@ -486,11 +486,11 @@ serve(async (req) => {
     }
     const body: GenerateRequest = validation.value;
 
-    if (!LOVABLE_API_KEY) {
-      console.error('LOVABLE_API_KEY not configured');
+    const ai = resolveAiConfig((name) => Deno.env.get(name));
+    if (!ai) {
       return new Response(
-        JSON.stringify({ error: 'AI service not configured', fallback: true }),
-        { status: 500, headers: { 'Content-Type': 'application/json', ...CORS_HEADERS } }
+        JSON.stringify({ error: 'AI is not configured on this server. Set AI_API_KEY to enable it.', fallback: true }),
+        { status: 503, headers: { 'Content-Type': 'application/json', ...CORS_HEADERS } }
       );
     }
 
@@ -518,15 +518,15 @@ serve(async (req) => {
       );
     }
 
-    const aiResponse = await fetch(AI_GATEWAY_URL, {
+    const aiResponse = await fetch(ai.chatCompletionsUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${LOVABLE_API_KEY}`,
+        'Authorization': `Bearer ${ai.apiKey}`,
       },
       body: JSON.stringify({
-        model: MODEL,
-        max_tokens: 2000,
+        model: ai.model,
+        max_tokens: MAX_OUTPUT_TOKENS,
         messages: [
           { role: 'system', content: SYSTEM_PROMPT },
           { role: 'user', content: buildUserMessage(body) },
@@ -536,7 +536,7 @@ serve(async (req) => {
 
     if (!aiResponse.ok) {
       const errorText = await aiResponse.text();
-      console.error('AI gateway error:', aiResponse.status, errorText);
+      console.error('AI provider error:', aiResponse.status, errorText);
       return new Response(
         JSON.stringify({ error: 'AI generation failed', fallback: true }),
         { status: 502, headers: { 'Content-Type': 'application/json', ...CORS_HEADERS } }
