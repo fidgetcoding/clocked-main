@@ -48,7 +48,7 @@ export interface PunchMetrics {
   startBelowShoulder: number;
   forearmFromVertical: number;
   forearmFromLevel: number;
-  upperArmFromLevel: number;
+  upperArmBelowLevel: number;
   shoulderRotation: number;
   hipRotation: number;
   scores: { straight: number; hook: number; uppercut: number; byElimination: boolean };

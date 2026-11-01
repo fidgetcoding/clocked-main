@@ -1,4 +1,4 @@
-import { LM } from './body';
+import { BodyTracker, LM, dist, type Vec3 } from './body';
 import { PUNCH_CONFIG, type PunchConfig } from './config';
 import { PunchDetector } from './detector';
 import type { PunchDetected, PunchClass, Landmark, Stance, Hand } from './types';
@@ -189,5 +189,170 @@ export function formatConfusion(result: ReplayResult): string {
   lines.push(
     `Left shoulder on the image's right: ${Math.round(result.leftOnImageRight * 100)}% of frames (low means a mirrored feed or facing away)`,
   );
+  return lines.join('\n');
+}
+
+export interface PromptedRep {
+  label: RecordLabel;
+  /** Position within its step, from 1. Odd and even reps make a tuning set and a held-out set. */
+  index: number;
+  /** When the prompted wrist was farthest from rest. */
+  peakT: number;
+  startT: number;
+  endT: number;
+}
+
+export interface RepOptions {
+  /** How long before a step's first prompt to look, because people start on the prompt. */
+  leadInMs?: number;
+  minGapMs?: number;
+  /** A rep's movement must reach this share of the step's typical peak movement. */
+  minShare?: number;
+}
+
+const median = (values: number[]) => [...values].sort((a, b) => a - b)[Math.floor(values.length / 2)];
+
+/**
+ * Finds the reps in each prompted step from how far the prompted wrist moves, without using the
+ * detector, so that tuning the detector can't change what it is scored against.
+ */
+export function findReps(recording: PunchRecording, options: RepOptions = {}): PromptedRep[] {
+  const { leadInMs = 3000, minGapMs = 550, minShare = 0.6 } = options;
+  const tracker = new BodyTracker();
+  const poses = recording.frames.flatMap((frame) => {
+    const landmarks = unpack(frame.world);
+    const pose = landmarks && tracker.push(frame.t, landmarks);
+    return pose ? [pose] : [];
+  });
+  const reps: PromptedRep[] = [];
+
+  recording.segments.forEach((segment, segmentIndex) => {
+    if (segment.label === 'guard') return;
+    const hand = handOfLabel(segment.label);
+    const side = (hand === 'lead') === (recording.stance === 'orthodox') ? 'left' : 'right';
+    const previousEnd = recording.segments[segmentIndex - 1]?.endT ?? -Infinity;
+    const windowStart = Math.max(segment.startT - leadInMs, previousEnd);
+    // Both arms hanging means they're between steps, not punching
+    const trace = poses
+      .filter((pose) => pose.t >= windowStart && pose.t <= segment.endT)
+      .filter((pose) => !(pose.left.wrist && pose.right.wrist && pose.left.wrist.y < -0.9 && pose.right.wrist.y < -0.9))
+      .flatMap((pose) => {
+        const wrist = pose[side].wrist;
+        return wrist ? [{ t: pose.t, wrist }] : [];
+      });
+    if (trace.length === 0) return;
+    const rest: Vec3 = {
+      x: median(trace.map((p) => p.wrist.x)),
+      y: median(trace.map((p) => p.wrist.y)),
+      z: median(trace.map((p) => p.wrist.z)),
+    };
+    const signal = trace.map((p) => dist(p.wrist, rest));
+    // The 90th percentile, because one tracking glitch can be far larger than any punch
+    const typicalPeak = [...signal].sort((a, b) => a - b)[Math.floor(signal.length * 0.9)];
+    const floor = Math.max(typicalPeak * minShare, 0.25);
+
+    const peaks: number[] = [];
+    let above = -1;
+    const closeRun = (end: number) => {
+      let best = above;
+      for (let i = above; i < end; i += 1) if (signal[i] > signal[best]) best = i;
+      const last = peaks[peaks.length - 1];
+      if (last !== undefined && trace[best].t - trace[last].t < minGapMs) {
+        if (signal[best] > signal[last]) peaks[peaks.length - 1] = best;
+      } else {
+        peaks.push(best);
+      }
+    };
+    // A run touching either end of the window is the arms coming up or dropping between steps
+    signal.forEach((value, i) => {
+      if (value >= floor && above < 0) above = i;
+      else if (value < floor * 0.7 && above >= 0) {
+        if (above > 0) closeRun(i);
+        above = -1;
+      }
+    });
+
+    peaks.forEach((peak, i) => {
+      const t = trace[peak].t;
+      const before = i === 0 ? windowStart : (trace[peaks[i - 1]].t + t) / 2;
+      const after = i === peaks.length - 1 ? segment.endT : (t + trace[peaks[i + 1]].t) / 2;
+      reps.push({ label: segment.label, index: i + 1, peakT: t, startT: before, endT: after });
+    });
+  });
+  return reps;
+}
+
+export type RepHalf = 'odd' | 'even' | 'all';
+
+export interface RepScoreRow {
+  label: RecordLabel;
+  reps: number;
+  /** Reps with at least one punch labelled what the prompt asked for. */
+  right: number;
+  counts: Record<PunchClass, number>;
+  /** Punches beyond one per rep. */
+  extras: number;
+}
+
+export interface RepScore {
+  half: RepHalf;
+  rows: RepScoreRow[];
+  reps: number;
+  right: number;
+  extras: number;
+  /** Reps labelled what was asked for, over reps. */
+  accuracy: number;
+}
+
+/** Scores punches against reps. Each half is scored only on its own reps. */
+export function scoreReps(reps: PromptedRep[], punches: Pick<PunchDetected, 't' | 'punch'>[], half: RepHalf): RepScore {
+  const chosen = reps.filter((rep) => half === 'all' || (rep.index % 2 === 1) === (half === 'odd'));
+  const rows: RepScoreRow[] = [];
+  for (const rep of chosen) {
+    let row = rows.find((candidate) => candidate.label === rep.label);
+    if (!row) {
+      row = {
+        label: rep.label,
+        reps: 0,
+        right: 0,
+        extras: 0,
+        counts: { jab: 0, cross: 0, lead_hook: 0, rear_hook: 0, lead_uppercut: 0, rear_uppercut: 0, punch: 0 },
+      };
+      rows.push(row);
+    }
+    const inRep = punches.filter((punch) => punch.t >= rep.startT && punch.t < rep.endT);
+    row.reps += 1;
+    if (inRep.some((punch) => punch.punch === rep.label)) row.right += 1;
+    row.extras += Math.max(0, inRep.length - 1);
+    for (const punch of inRep) row.counts[punch.punch] += 1;
+  }
+  const total = rows.reduce((sum, row) => sum + row.reps, 0);
+  const right = rows.reduce((sum, row) => sum + row.right, 0);
+  return {
+    half,
+    rows,
+    reps: total,
+    right,
+    extras: rows.reduce((sum, row) => sum + row.extras, 0),
+    accuracy: total === 0 ? 0 : right / total,
+  };
+}
+
+export function formatRepScore(score: RepScore): string {
+  const lines = [
+    `${score.half} reps: ${score.right} of ${score.reps} labelled what was asked for (${Math.round(score.accuracy * 100)}%), ${score.extras} extra punches`,
+    ['asked for'.padEnd(15), 'right'.padStart(6), 'reps'.padStart(5), ...CONFUSION_COLUMNS.map((c) => NUMBERS[c].padStart(4)), 'extra'.padStart(7)].join(''),
+  ];
+  for (const row of score.rows) {
+    lines.push(
+      [
+        row.label.padEnd(15),
+        String(row.right).padStart(6),
+        String(row.reps).padStart(5),
+        ...CONFUSION_COLUMNS.map((c) => String(row.counts[c]).padStart(4)),
+        String(row.extras).padStart(7),
+      ].join(''),
+    );
+  }
   return lines.join('\n');
 }

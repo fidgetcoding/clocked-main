@@ -29,7 +29,7 @@ const punchEvent = (id: number, t: number, punch: PunchClass, issues: FormIssue[
     startBelowShoulder: 0,
     forearmFromVertical: 80,
     forearmFromLevel: 10,
-    upperArmFromLevel: 10,
+    upperArmBelowLevel: 10,
     shoulderRotation: 20,
     hipRotation: 10,
     scores: { straight: 1, hook: 0, uppercut: 0, byElimination: false },
@@ -76,6 +76,12 @@ describe('round tally', () => {
     expect(summary.cleanPercent).toBeNull();
     expect(summary.topFix).toBeNull();
     expect(summaryNote(summary)).toBe('0 punches');
+  });
+
+  it('says "1 punch", not "1 punches"', () => {
+    const round = newRound();
+    applyEvent(round, punchEvent(1, 1000, 'jab'));
+    expect(summaryNote(summarize(round))).toMatch(/^1 punch\./);
   });
 
   it('reads combos in the app numbering and starts over after a gap', () => {

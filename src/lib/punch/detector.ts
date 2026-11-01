@@ -37,6 +37,15 @@ interface HandState {
   lastWrist: Vec3 | null;
   lastT: number | null;
   speed: number;
+  speedHistory: { t: number; speed: number }[];
+  /** Last frame's distance from rest: a wrist still heading home must not start a punch. */
+  lastRestDistance: number;
+  /** The last time this wrist was up around the chin, which tells a wind-up from resting low. */
+  lastCoveredT: number;
+  /** The current extension is rising out of a dip, rather than starting from rest. */
+  fromDip: boolean;
+  /** That dip was quick: a wind-up, not a hand coming up from resting low. */
+  fromWindUp: boolean;
   /** The last frame this hand was at rest, the baseline for measuring rotation. */
   restPose: BodyPose | null;
   /** State of the other hand while this one extends. */
@@ -66,6 +75,11 @@ const newHand = (side: Side, hand: Hand): HandState => ({
   lastWrist: null,
   lastT: null,
   speed: 0,
+  speedHistory: [],
+  lastRestDistance: Infinity,
+  lastCoveredT: -Infinity,
+  fromDip: false,
+  fromWindUp: false,
   restPose: null,
   otherStartedIdle: false,
   otherStartedLow: false,
@@ -87,6 +101,8 @@ export class PunchDetector {
   private left: HandState;
   private right: HandState;
   private nextId = 1;
+  private lastPose: BodyPose | null = null;
+  private glitchUntil = -Infinity;
   private lastPunchT = -Infinity;
   private lastLowFlagT = -Infinity;
   private lastT: number | null = null;
@@ -118,9 +134,36 @@ export class PunchDetector {
     if (!pose) return [];
 
     const events: PunchEvent[] = [];
+    if (this.isGlitch(pose, events)) return events;
+
     this.step(this.left, this.right, pose, events);
     this.step(this.right, this.left, pose, events);
     return events;
+  }
+
+  /**
+   * Shoulders can't really turn this fast, so the model has lost the pose for a moment, and both
+   * arms jump with it. Those frames are never judged.
+   */
+  private isGlitch(pose: BodyPose, events: PunchEvent[]) {
+    const { maxYawSpeed, glitchHoldMs } = this.config.input;
+    const last = this.lastPose;
+    this.lastPose = pose;
+    const dt = last ? pose.t - last.t : 0;
+    if (last && dt > 0 && (Math.abs(pose.shoulderYaw - last.shoulderYaw) / dt) * 1000 > maxYawSpeed) {
+      this.glitchUntil = pose.t + glitchHoldMs;
+    }
+    if (pose.t >= this.glitchUntil) return false;
+    // Fast punches are what set this off, so the arm that was furthest into one keeps it, judged
+    // on the good frames so far
+    const moving = [this.left, this.right].filter((state) => state.phase === 'extending');
+    const furthest = (state: HandState) => state.samples[state.peakIndex].distance;
+    const puncher = moving.sort((a, b) => furthest(b) - furthest(a))[0];
+    if (puncher) this.finishExtension(puncher, puncher === this.left ? this.right : this.left, puncher.samples[puncher.peakIndex], events);
+    for (const state of moving) this.beginReturn(state, state.anchor);
+    this.left.lastWrist = null;
+    this.right.lastWrist = null;
+    return true;
   }
 
   private step(state: HandState, other: HandState, pose: BodyPose, events: PunchEvent[]) {
@@ -137,10 +180,18 @@ export class PunchDetector {
     state.speed = state.lastWrist && dt > 0 ? (dist(wrist, state.lastWrist) / dt) * 1000 : 0;
     state.lastWrist = wrist;
     state.lastT = pose.t;
+    state.speedHistory.push({ t: pose.t, speed: state.speed });
+    if (state.speedHistory.length > 8) state.speedHistory.shift();
+    if (!this.isLow(wrist, pose)) state.lastCoveredT = pose.t;
 
     if (state.phase === 'idle') this.stepIdle(state, other, pose, wrist, dt, events);
     else if (state.phase === 'extending') this.stepExtending(state, other, pose, wrist, events);
     else this.stepReturning(state, other, pose, wrist, events);
+  }
+
+  private recentSpeed(state: HandState, t: number) {
+    const { recentSpeedMs } = this.config.motion;
+    return state.speedHistory.reduce((best, sample) => (t - sample.t <= recentSpeedMs ? Math.max(best, sample.speed) : best), 0);
   }
 
   private isLow(wrist: Vec3, pose: BodyPose) {
@@ -173,7 +224,10 @@ export class PunchDetector {
     }
 
     const distance = dist(wrist, state.anchor);
-    if (distance >= motion.startDistance && state.speed >= motion.startSpeed) {
+    // Recent, because at low frame rates the fast part of a short punch can land just before the distance does
+    const movingAway = distance > state.lastRestDistance;
+    state.lastRestDistance = distance;
+    if (movingAway && distance >= motion.startDistance && this.recentSpeed(state, pose.t) >= motion.startSpeed) {
       this.beginExtension(state, other, pose, wrist, state.anchor);
       return;
     }
@@ -190,16 +244,19 @@ export class PunchDetector {
   }
 
   private beginExtension(state: HandState, other: HandState, pose: BodyPose, wrist: Vec3, origin: Vec3) {
-    const otherWrist = armOf(pose, other.side).wrist;
+    // Measured from just before this hand moved, as the guard can start slipping at the same moment
+    const otherWrist = armOf(state.restPose ?? pose, other.side).wrist;
     state.phase = 'extending';
+    state.fromDip = false;
+    state.fromWindUp = false;
     state.origin = origin;
     state.samples = [{ pose, wrist, distance: dist(wrist, origin) }];
     state.peakIndex = 0;
-    state.peakSpeed = state.speed;
+    state.peakSpeed = this.recentSpeed(state, pose.t);
     state.slowFrames = 0;
     state.lowSince = null;
     state.otherStartedIdle = other.openPunchId === null;
-    state.otherStartedLow = other.phase === 'idle' && !!otherWrist && this.isLow(otherWrist, pose);
+    state.otherStartedLow = !!otherWrist && this.isLow(otherWrist, state.restPose ?? pose);
     state.otherFarthest = 0;
   }
 
@@ -222,10 +279,11 @@ export class PunchDetector {
     state.slowFrames = state.speed < motion.holdSpeed ? state.slowFrames + 1 : 0;
     const fellBack = distance < peak.distance - Math.max(peak.distance * motion.peakDropShare, motion.peakDropMin);
     const held = state.slowFrames >= motion.holdFrames;
-    const tooLong = pose.t - state.samples[0].pose.t > motion.maxDurationMs;
-    if (!fellBack && !held && !tooLong) return;
+    // A slow way home shouldn't lose a punch that peaked a while ago
+    const peakIsOld = pose.t - peak.pose.t > motion.peakMaxAgeMs;
+    if (!fellBack && !held && !peakIsOld) return;
 
-    if (!tooLong) this.finishExtension(state, peak, events);
+    this.finishExtension(state, other, peak, events);
     this.beginReturn(state, state.anchor);
     state.turnPose = peak.pose;
   }
@@ -240,7 +298,7 @@ export class PunchDetector {
     state.samples = [];
   }
 
-  private finishExtension(state: HandState, peak: ExtensionSample, events: PunchEvent[]) {
+  private finishExtension(state: HandState, other: HandState, peak: ExtensionSample, events: PunchEvent[]) {
     const { motion, form } = this.config;
     const origin = state.origin!;
     const first = state.samples[0];
@@ -248,7 +306,7 @@ export class PunchDetector {
     const durationMs = peak.pose.t - startPose.t;
     const delta = sub(peak.wrist, origin);
     const distance = dist(peak.wrist, origin);
-    const startsLow = -origin.y > motion.maxStartBelowShoulder;
+    const startsLow = !state.fromWindUp && -origin.y > motion.maxStartBelowShoulder;
     const goesDown = -delta.y > motion.maxDownShare * distance;
     // A punch moves the arm, not just the torso it hangs from, so a twist doesn't count
     const startArm = armOf(startPose, state.side);
@@ -258,11 +316,22 @@ export class PunchDetector {
     const endsAtGuard = state.guardRest
       ? dist(peak.wrist, state.guardRest) < motion.raiseNearGuard
       : peak.wrist.z < motion.upwardMinForward;
-    const raisesGuard = delta.y > motion.upwardShare * distance && endsAtGuard;
+    // Seen by the model, a real uppercut comes back up to about where the guard was. Only a deep,
+    // quick dip tells it from the hands just coming back up.
+    const deepDip = state.fromWindUp && !!state.guardRest && state.guardRest.y - origin.y >= motion.minUppercutDip;
+    const raisesGuard = (state.fromDip || delta.y > motion.upwardShare * distance) && endsAtGuard && !deepDip;
+    // Moving down and not forward is a wind-up, and moving back with no arc is the other hand's recoil
+    const windsUp = delta.y < -motion.windUpDrop && delta.z < motion.windUpForward;
+    const recoils =
+      delta.z < -motion.recoilBackShare * distance &&
+      delta.y < motion.recoilMaxRise &&
+      Math.abs(state.side === 'left' ? -delta.x : delta.x) < motion.recoilMaxAcross;
     if (
       raisesGuard ||
+      windsUp ||
+      recoils ||
       armMoved < motion.minArmMove ||
-      distance < motion.minPeakDistance ||
+      distance < (other.phase === 'idle' ? motion.minPeakDistance : motion.minPeakDistanceOtherBusy) ||
       state.peakSpeed < motion.minPeakSpeed ||
       durationMs < motion.minDurationMs ||
       durationMs > motion.maxDurationMs ||
@@ -286,10 +355,12 @@ export class PunchDetector {
       ? sub(sub(peak.wrist, arm.shoulder), sub(startArm.wrist, startArm.shoulder))
       : delta;
     const armAcross = Math.max(0, state.side === 'left' ? -armDelta.x : armDelta.x);
-    const armTravel = Math.max(Math.hypot(armDelta.x, armDelta.y, armDelta.z), 1e-6);
+    const armTravel = Math.max(Math.hypot(armDelta.x, armDelta.z), 1e-6);
     const forearm = sub(arm.wrist, arm.elbow);
-    const elbowHistory = state.samples
-      .slice(0, state.peakIndex + 1)
+    // The second half of the way to the peak: an uppercut's wind-up starts with the arm long
+    const toPeak = state.samples.slice(0, state.peakIndex + 1);
+    const elbowHistory = toPeak
+      .slice(Math.floor(toPeak.length / 2))
       .map((sample) => elbowAngleOf(armOf(sample.pose, state.side)))
       .filter((angle): angle is number => angle !== null)
       .sort((a, b) => b - a);
@@ -309,10 +380,12 @@ export class PunchDetector {
       startBelowShoulder: (startArm.wrist ? startArm.shoulder.y : origin.y) - origin.y,
       forearmFromVertical: degrees(Math.atan2(Math.abs(forearm.x), forearm.y)),
       forearmFromLevel: degrees(Math.atan2(Math.abs(forearm.y), Math.abs(forearm.x))),
-      upperArmFromLevel: degrees(Math.asin(Math.min(1, Math.abs(arm.elbow.y - arm.shoulder.y) / Math.max(upperArm, 1e-6)))),
+      upperArmBelowLevel: degrees(Math.asin(Math.max(-1, Math.min(1, (arm.shoulder.y - arm.elbow.y) / Math.max(upperArm, 1e-6))))),
       visibility,
     };
     const result = classifyPunch(state.hand, shape, this.config);
+    // Coming up out of a dip with no arc and no long arm is a hand going home, not a straight
+    if (state.fromDip && !deepDip && result.shape === 'straight' && result.scores.byElimination) return;
 
     // Positive when the rear side came forward. The rear side is the right one for orthodox.
     const rearForward = this.stance === 'orthodox' ? 1 : -1;
@@ -350,7 +423,7 @@ export class PunchDetector {
         startBelowShoulder: shape.startBelowShoulder,
         forearmFromVertical: shape.forearmFromVertical,
         forearmFromLevel: shape.forearmFromLevel,
-        upperArmFromLevel: shape.upperArmFromLevel,
+        upperArmBelowLevel: shape.upperArmBelowLevel,
         shoulderRotation,
         hipRotation,
         scores: result.scores,
@@ -411,6 +484,8 @@ export class PunchDetector {
       if (risen >= motion.startDistance && wrist.y - lowest.y >= rest.riseShare * risen) {
         state.restPose = state.turnPose;
         this.beginExtension(state, other, pose, wrist, lowest);
+        state.fromDip = true;
+        state.fromWindUp = state.turnPose!.t - state.lastCoveredT <= motion.windUpMaxMs;
         return;
       }
     }
@@ -419,6 +494,7 @@ export class PunchDetector {
     if (distance <= rest.returnDistance || stoppedInGuard) {
       state.phase = 'idle';
       state.openPunchId = null;
+      state.lastRestDistance = Infinity;
       if (stoppedInGuard) state.anchor = wrist;
       return;
     }

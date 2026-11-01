@@ -1,8 +1,9 @@
 /**
  * Every tunable number for punch detection, in one place.
  *
- * THESE ARE GUESSES. They were set from boxing biomechanics and synthetic motion, not from a
- * labelled set of real punches. Expect to change them after watching real people use this.
+ * Set from boxing biomechanics and synthetic motion, then adjusted against one recording of one
+ * person on one camera (2026-11-01, odd reps only, even reps held out). That is thin evidence, so
+ * treat them as starting points and expect to change them as more people use this.
  * Distances are in shoulder widths (SW), speeds in SW per second, angles in degrees.
  */
 export const PUNCH_CONFIG = {
@@ -17,16 +18,23 @@ export const PUNCH_CONFIG = {
     warmupFrames: 8,
     /** Frames in the rolling shoulder width median. */
     scaleWindowFrames: 45,
+    /** Shoulders turning faster than this, in degrees a second, means the model lost the pose. */
+    maxYawSpeed: 600,
+    glitchHoldMs: 200,
   },
 
   motion: {
     /** The wrist must be this far from rest and moving this fast to start a punch. */
-    startDistance: 0.3,
+    startDistance: 0.22,
     startSpeed: 2,
+    /** How far back the start speed may have happened. */
+    recentSpeedMs: 150,
     /** The smallest and slowest movement that still counts as a punch. */
-    minPeakDistance: 0.45,
+    minPeakDistance: 0.33,
+    /** While the other hand is moving, a body turn can carry this one this far without a punch. */
+    minPeakDistanceOtherBusy: 0.6,
     /** How far the wrist must move relative to its own shoulder. */
-    minArmMove: 0.35,
+    minArmMove: 0.25,
     minPeakSpeed: 2.5,
     minDurationMs: 50,
     maxDurationMs: 900,
@@ -34,9 +42,20 @@ export const PUNCH_CONFIG = {
     maxStartBelowShoulder: 1,
     /** Reject movement that is mostly downward: this is the hands dropping. */
     maxDownShare: 0.5,
+    /** A wrist that drops this far without moving this far forward is winding up, not punching. */
+    windUpDrop: 0.25,
+    windUpForward: 0.2,
+    /** A wrist moving back this much with no rise or sideways travel is recoil from the other hand. */
+    recoilBackShare: 0.3,
+    recoilMaxRise: 0.2,
+    recoilMaxAcross: 0.3,
+    /** Back up within this long of leaving the chin, a low wrist was a wind-up and not resting. */
+    windUpMaxMs: 900,
+    /** How far below the guard a wind-up must go for a rise back to guard height to be an uppercut. */
+    minUppercutDip: 1,
     /** Reject a mostly upward movement that ends where the guard was: this is the guard coming back up. */
     upwardShare: 0.55,
-    raiseNearGuard: 0.25,
+    raiseNearGuard: 0.35,
     /** With no guard seen yet, one that ends this close to the chest counts as the guard coming up. */
     upwardMinForward: 0.55,
     /** The peak is confirmed once the wrist falls back by this share of the distance travelled. */
@@ -44,7 +63,9 @@ export const PUNCH_CONFIG = {
     peakDropMin: 0.1,
     /** Or once the wrist has been this slow for this many frames at the end of the punch. */
     holdSpeed: 1,
-    holdFrames: 2,
+    holdFrames: 3,
+    /** Or once it peaked this long ago. */
+    peakMaxAgeMs: 300,
   },
 
   rest: {
@@ -84,13 +105,16 @@ export const PUNCH_CONFIG = {
       /** A hand moving this much outward isn't extending at all. */
       outwardShareMin: 0.4,
       outwardShareFull: 0.75,
+      /** Starting this far below the shoulder, a big rise isn't a straight. */
+      lowStartMin: 0.4,
+      lowStartFull: 0.7,
       /** At least this much of the movement seen going forward means depth is being read. */
       readableForwardShare: 0.5,
     },
     hook: {
       /** Sideways travel relative to the punching shoulder, so hip rotation doesn't count. */
-      acrossMin: 0.3,
-      acrossFull: 0.55,
+      acrossMin: 0.2,
+      acrossFull: 0.45,
       acrossShareMin: 0.35,
       acrossShareFull: 0.65,
       /** A tight guard opens to about 90 on a hook. Opening further than that is a straight. */
@@ -99,8 +123,8 @@ export const PUNCH_CONFIG = {
       /** The elbow stays near 90: never opening past these on the way, nor closed at the peak. */
       elbowBent: 110,
       elbowOpen: 135,
-      elbowClosed: 45,
-      elbowNinety: 65,
+      elbowClosed: 30,
+      elbowNinety: 50,
       /** Degrees from level at the peak. */
       upperArmLevel: 40,
       upperArmDropped: 60,
@@ -109,16 +133,16 @@ export const PUNCH_CONFIG = {
     },
     uppercut: {
       /** How far below its own shoulder the wrist has to start. */
-      startBelowMin: 0.1,
-      startBelowFull: 0.3,
+      startBelowMin: 0.3,
+      startBelowFull: 0.5,
       /** An uppercut stays about as bent as it started. Opening this much is a straight. */
       elbowOpensFrom: 25,
       elbowOpensFully: 45,
       elbowBent: 125,
       elbowOpen: 150,
       /** Degrees from straight up at the peak. */
-      forearmVertical: 30,
-      forearmTilted: 50,
+      forearmVertical: 35,
+      forearmTilted: 55,
       /** How far up the wrist must travel, so a front-on straight doesn't look like an uppercut. */
       riseMin: 0.45,
       riseFull: 0.75,

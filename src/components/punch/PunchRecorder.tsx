@@ -63,6 +63,13 @@ export function PunchRecorder() {
         setStage('done');
         return;
       }
+      // The step starts with its prompt, because people start throwing as soon as they see it
+      segmentsRef.current.push({
+        label: RECORD_STEPS[index].label,
+        expected: RECORD_STEPS[index].expected,
+        startT: lastTRef.current,
+        endT: Infinity,
+      });
       setStepIndex(index);
       setStage('ready');
       speak(`Next. ${RECORD_STEPS[index].prompt}`);
@@ -78,12 +85,6 @@ export function PunchRecorder() {
   useEffect(() => {
     if (stage !== 'ready') return;
     const timer = setTimeout(() => {
-      segmentsRef.current.push({
-        label: step.label,
-        expected: step.expected,
-        startT: lastTRef.current,
-        endT: Infinity,
-      });
       setRemaining(step.seconds);
       setStage('recording');
       speak('Go');

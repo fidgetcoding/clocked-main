@@ -163,7 +163,7 @@ describe('classifier', () => {
     startBelowShoulder: 0,
     forearmFromVertical: 40,
     forearmFromLevel: 50,
-    upperArmFromLevel: 50,
+    upperArmBelowLevel: 50,
     visibility: 0.95,
   };
   const trueUppercut = {
@@ -183,7 +183,7 @@ describe('classifier', () => {
     upShare: 0.05,
     rise: 0,
     forearmFromLevel: 15,
-    upperArmFromLevel: 15,
+    upperArmBelowLevel: 15,
   };
 
   it('calls a fast punch a straight by default, and marks that depth was not readable', () => {
@@ -220,10 +220,10 @@ describe('classifier', () => {
   it.each([
     ['elbow opened during the arc', { elbowOpening: 70 }],
     ['elbow straightened on the way', { elbowHeldMax: 150 }],
-    ['elbow folded shut', { elbow: 40 }],
-    ['upper arm hanging down', { upperArmFromLevel: 60 }],
+    ['elbow folded shut', { elbow: 25 }],
+    ['upper arm hanging down', { upperArmBelowLevel: 60 }],
     ['forearm not level', { forearmFromLevel: 55 }],
-    ['little sideways travel', { armAcross: 0.25 }],
+    ['little sideways travel', { armAcross: 0.15 }],
   ])('rejects a hook whose %s', (_name, change) => {
     expect(classifyPunch('rear', { ...trueHook, ...change }).punch).toBe('cross');
   });
@@ -342,6 +342,141 @@ describe('regression: straights read as uppercuts and hooks', () => {
   });
 });
 
+/**
+ * Shapes seen in a real recording, 2026-11-01. The landmarks here are synthetic, in the same units
+ * as simulate()'s armOverride: metres from the middle of the shoulders, y down, z away from camera.
+ * Seen by the model, a real uppercut dips deep and comes back up to about guard height, a real hook
+ * swings out and down and then sweeps up with the elbow above the shoulder, and turning the body
+ * drags the other hand back and returns it.
+ */
+describe('regression: shapes from a real recording', () => {
+  type Key = [number, [number, number, number], [number, number, number]];
+  /** Moves through keyframes of [time, wrist, elbow], with x given for the left arm and mirrored for the right. */
+  const path = (armSide: 'left' | 'right', keys: Key[]) => (side: 'left' | 'right', t: number) => {
+    if (side !== armSide) return null;
+    const s = side === 'left' ? 1 : -1;
+    const mirror = (p: [number, number, number]): [number, number, number] => [s * p[0], p[1], p[2]];
+    if (t <= keys[0][0]) return { wrist: mirror(keys[0][1]), elbow: mirror(keys[0][2]) };
+    for (let i = 1; i < keys.length; i += 1) {
+      const [t0, w0, e0] = keys[i - 1];
+      const [t1, w1, e1] = keys[i];
+      if (t <= t1) {
+        const k = (t - t0) / (t1 - t0);
+        const mix = (a: number[], b: number[]) => a.map((v, j) => v + (b[j] - v) * k) as [number, number, number];
+        return { wrist: mirror(mix(w0, w1)), elbow: mirror(mix(e0, e1)) };
+      }
+    }
+    const last = keys[keys.length - 1];
+    return { wrist: mirror(last[1]), elbow: mirror(last[2]) };
+  };
+
+  const GUARD: [[number, number, number], [number, number, number]] = [[0.17, -0.06, -0.4], [0.23, 0.19, -0.15]];
+  const uppercutKeys = (at: number, holdMs = 200): Key[] => [
+    [at, ...GUARD],
+    [at + 200, [0.15, 0.5, -0.1], [0.23, 0.36, -0.08]],
+    [at + 200 + holdMs, [0.15, 0.5, -0.1], [0.23, 0.36, -0.08]],
+    [at + 400 + holdMs, [0.14, -0.12, -0.42], [0.19, 0.13, -0.19]],
+    [at + 800 + holdMs, ...GUARD],
+  ];
+  const hookKeys = (at: number): Key[] => [
+    [at, ...GUARD],
+    [at + 220, [0.46, 0.27, -0.12], [0.42, 0.1, -0.1]],
+    [at + 420, [0.05, -0.27, -0.25], [0.4, -0.2, -0.15]],
+    [at + 900, ...GUARD],
+  ];
+
+  describe.each<[Stance, 'left' | 'right', 'right' | 'left']>([
+    ['orthodox', 'left', 'right'],
+    ['southpaw', 'right', 'left'],
+  ])('%s', (stance, leadSide, rearSide) => {
+    it('counts an uppercut that only comes back up to guard height, for both hands', () => {
+      const lead = run({ stance, fps: 23, armOverride: path(leadSide, uppercutKeys(2000)) });
+      expect(lead.punches.map((p) => p.punch)).toEqual(['lead_uppercut']);
+      const rear = run({ stance, fps: 23, armOverride: path(rearSide, uppercutKeys(2000)) });
+      expect(rear.punches.map((p) => p.punch)).toEqual(['rear_uppercut']);
+    });
+
+    it('counts a hook whose elbow rises above the shoulder as one punch, not its wind-up too', () => {
+      const lead = run({ stance, fps: 23, armOverride: path(leadSide, hookKeys(2000)) });
+      expect(lead.punches.map((p) => p.punch)).toEqual(['lead_hook']);
+      expect(lead.punches[0].metrics.upperArmBelowLevel).toBeLessThan(0);
+      const rear = run({ stance, fps: 23, armOverride: path(rearSide, hookKeys(2000)) });
+      expect(rear.punches.map((p) => p.punch)).toEqual(['rear_hook']);
+    });
+  });
+
+  it('does not count the other hand being dragged back by a body turn, or coming home after', () => {
+    const { punches } = run({
+      fps: 23,
+      armOverride: path('right', [
+        [2000, ...GUARD],
+        [2200, [0.22, 0.06, -0.2], [0.25, 0.26, -0.05]],
+        [2500, [0.22, 0.06, -0.2], [0.25, 0.26, -0.05]],
+        [2750, ...GUARD],
+      ]),
+    });
+    expect(punches).toEqual([]);
+  });
+
+  it('still does not count hands that were resting low coming up, however deep', () => {
+    const { punches } = run({ fps: 23, durationMs: 5000, armOverride: path('left', uppercutKeys(2000, 1400)) });
+    expect(punches).toEqual([]);
+  });
+
+  it('does not count a shallow dip and back as an uppercut', () => {
+    const shallow: Key[] = [
+      [2000, ...GUARD],
+      [2200, [0.17, 0.2, -0.3], [0.23, 0.3, -0.1]],
+      [2400, [0.17, 0.2, -0.3], [0.23, 0.3, -0.1]],
+      [2600, ...GUARD],
+    ];
+    expect(run({ fps: 23, armOverride: path('left', shallow) }).punches).toEqual([]);
+  });
+
+  it('counts one jab when the wrist moves in steps at a low frame rate', () => {
+    const steps: Key[] = [
+      [2000, ...GUARD],
+      [2045, [0.15, -0.16, -0.42], [0.23, 0.1, -0.17]],
+      [2130, [0.15, -0.16, -0.42], [0.23, 0.1, -0.17]],
+      [2175, [0.13, -0.18, -0.52], [0.22, 0.08, -0.24]],
+      [2500, ...GUARD],
+    ];
+    expect(run({ fps: 23, armOverride: path('left', steps) }).punches.map((p) => p.punch)).toEqual(['jab']);
+  });
+
+  it('does not start a new punch on a wrist that is on its way home', () => {
+    const { punches } = run({ fps: 23, punches: [{ hand: 'lead', shape: 'straight', at: 2000, backMs: 500 }] });
+    expect(punches).toHaveLength(1);
+  });
+
+  it('keeps a punch that peaked well before a slow way home', () => {
+    const { punches } = run({ fps: 23, armOverride: path('right', [...uppercutKeys(2000).slice(0, 4), [3400, ...GUARD]]) });
+    expect(punches.map((p) => p.punch)).toEqual(['rear_uppercut']);
+  });
+
+  describe('when the model loses the pose for a moment', () => {
+    // The shoulders appear to spin much faster than any body can turn, and both arms jump
+    const spike = (at: number) => (t: number) => (t >= at && t < at + 90 ? 70 : 0);
+    const jump = (at: number) => (side: 'left' | 'right', t: number) =>
+      t >= at && t < at + 90 ? ({ wrist: [0, -0.1, 0.3], elbow: [side === 'left' ? 0.1 : -0.1, 0.1, 0.1] } as { wrist: [number, number, number]; elbow: [number, number, number] }) : null;
+
+    it('counts nothing if the fighter was standing still', () => {
+      const { punches } = run({ fps: 23, twist: spike(2500), armOverride: jump(2500) });
+      expect(punches).toEqual([]);
+    });
+
+    it('keeps the punch that was under way, once, for the right hand', () => {
+      const { punches } = run({
+        fps: 23,
+        twist: spike(2110),
+        punches: [{ hand: 'rear', shape: 'straight', at: 2000 }],
+      });
+      expect(punches).toHaveLength(1);
+      expect(punches[0].hand).toBe('rear');
+    });
+  });
+});
+
 describe('things that are not punches', () => {
   it('stays silent for a person standing with their guard up', () => {
     expect(run({ durationMs: 10000 }).events).toEqual([]);
@@ -381,7 +516,7 @@ describe('things that are not punches', () => {
 
   it('ignores a small flick', () => {
     const { punches } = run({
-      handOffset: (side, t) => (side === 'left' && t > 2000 && t < 2100 ? [0, 0, -0.14] : [0, 0, 0]),
+      handOffset: (side, t) => (side === 'left' && t > 2000 && t < 2100 ? [0, 0, -0.09] : [0, 0, 0]),
     });
     expect(punches).toEqual([]);
   });

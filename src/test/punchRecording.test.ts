@@ -1,11 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import {
+  findReps,
   formatConfusion,
+  formatRepScore,
   packLandmarks,
   parseRecording,
   RECORD_STEPS,
   RECORDING_FORMAT,
   replayRecording,
+  scoreReps,
   type PunchRecording,
   type RecordLabel,
 } from '@/lib/punch/recording';
@@ -123,5 +126,31 @@ describe('recording replay', () => {
       'lead_uppercut',
       'rear_uppercut',
     ]);
+  });
+
+  it('finds reps from the prompted wrist alone, and scores odd and even apart', () => {
+    const recording = fakeRecording('orthodox');
+    const reps = findReps(recording, { leadInMs: 0 });
+    const labels = ['jab', 'cross', 'lead_hook', 'rear_hook', 'lead_uppercut', 'rear_uppercut'];
+    for (const label of labels) expect(reps.filter((rep) => rep.label === label)).toHaveLength(3);
+
+    const result = replayRecording(recording);
+    const punches = result.events.map((event) => event.punch);
+    const odd = scoreReps(reps, punches, 'odd');
+    const even = scoreReps(reps, punches, 'even');
+    expect(odd.reps).toBe(12);
+    expect(even.reps).toBe(6);
+    expect(odd.accuracy).toBe(1);
+    expect(even.accuracy).toBe(1);
+    expect(even.extras).toBe(0);
+    expect(formatRepScore(even)).toContain('even reps: 6 of 6 labelled what was asked for (100%)');
+  });
+
+  it('counts a wrong label as a miss and a second punch as an extra', () => {
+    const reps = [{ label: 'jab' as const, index: 1, peakT: 100, startT: 0, endT: 200 }];
+    const score = scoreReps(reps, [{ t: 50, punch: 'cross' }, { t: 60, punch: 'cross' }], 'all');
+    expect(score.right).toBe(0);
+    expect(score.extras).toBe(1);
+    expect(score.rows[0].counts.cross).toBe(2);
   });
 });

@@ -162,7 +162,7 @@ export function summaryNote(summary: RoundSummary): string {
   const counts = PUNCH_ORDER.filter((punch) => summary.counts[punch] > 0)
     .map((punch) => `${PUNCH_LABELS[punch]} ${summary.counts[punch]}`)
     .join(', ');
-  const parts = [`${summary.total} punches`];
+  const parts = [`${summary.total} ${summary.total === 1 ? 'punch' : 'punches'}`];
   if (summary.cleanPercent !== null) parts.push(`${summary.cleanPercent}% clean`);
   if (counts) parts.push(counts);
   if (summary.topFix) parts.push(`Top fix: ${summary.topFix.advice}`);

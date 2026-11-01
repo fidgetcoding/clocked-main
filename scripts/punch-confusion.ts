@@ -5,10 +5,11 @@
  *   npm run punch:confusion -- file.json
  *   npm run punch:confusion -- file.json --events
  *   npm run punch:confusion -- file.json --set classify.minArcEvidence=0.6
+ *   npm run punch:confusion -- file.json --split    Scores odd and even reps separately. Tune on odd only.
  */
 import { readFileSync } from 'node:fs';
 import { PUNCH_CONFIG, type PunchConfig } from '../src/lib/punch/config';
-import { formatConfusion, parseRecording, replayRecording } from '../src/lib/punch/recording';
+import { findReps, formatConfusion, formatRepScore, parseRecording, replayRecording, scoreReps } from '../src/lib/punch/recording';
 
 function withOverride(config: PunchConfig, assignment: string): PunchConfig {
   const [path, raw] = assignment.split('=');
@@ -48,6 +49,12 @@ const result = replayRecording(recording, config);
 console.log(`${file}: ${recording.stance}, recorded ${recording.createdAt}\n`);
 console.log(formatConfusion(result));
 
+if (args.includes('--split')) {
+  const reps = findReps(recording);
+  const punches = result.events.map((event) => event.punch);
+  for (const half of ['odd', 'even'] as const) console.log(`\n${formatRepScore(scoreReps(reps, punches, half))}`);
+}
+
 if (args.includes('--events')) {
   console.log('');
   for (const { label, punch } of result.events) {
@@ -67,7 +74,7 @@ if (args.includes('--events')) {
         `rise ${m.rise.toFixed(2)}`,
         `start ${m.startBelowShoulder.toFixed(2)}`,
         `fore ${Math.round(m.forearmFromVertical)}/${Math.round(m.forearmFromLevel)}`,
-        `upper ${Math.round(m.upperArmFromLevel)}`,
+        `upper ${Math.round(m.upperArmBelowLevel)}`,
         `S ${m.scores.straight.toFixed(2)} H ${m.scores.hook.toFixed(2)} U ${m.scores.uppercut.toFixed(2)}`,
       ].join('  '),
     );

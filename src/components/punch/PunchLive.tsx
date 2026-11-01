@@ -134,7 +134,7 @@ export function PunchLive({
               `fwd ${fixed(debugPunch.metrics.forwardShare)} across ${fixed(debugPunch.metrics.armAcross)} rise ${fixed(debugPunch.metrics.rise)}`,
               `start ${fixed(debugPunch.metrics.startBelowShoulder)} below shoulder`,
               `forearm ${Math.round(debugPunch.metrics.forearmFromVertical)} off vert, ${Math.round(debugPunch.metrics.forearmFromLevel)} off level`,
-              `upper arm ${Math.round(debugPunch.metrics.upperArmFromLevel)} off level`,
+              `upper arm ${Math.round(debugPunch.metrics.upperArmBelowLevel)} below level`,
               `S ${fixed(debugPunch.metrics.scores.straight)} H ${fixed(debugPunch.metrics.scores.hook)} U ${fixed(debugPunch.metrics.scores.uppercut)}`,
               `rot sh ${Math.round(debugPunch.metrics.shoulderRotation)} hip ${Math.round(debugPunch.metrics.hipRotation)}`,
               debugPunch.issues.join(', ') || 'clean at peak',

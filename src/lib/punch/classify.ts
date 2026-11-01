@@ -17,6 +17,7 @@ export interface PunchShapeFeatures {
   upShare: number;
   /** Movement relative to the punching shoulder, so that turning the hips doesn't count as an arc. */
   armAcross: number;
+  /** Sideways share of that movement over the floor, leaving out how far it rose. */
   armAcrossShare: number;
   /** Share of the movement that went away from the body's centre line. */
   outwardShare: number;
@@ -28,8 +29,8 @@ export interface PunchShapeFeatures {
   forearmFromVertical: number;
   /** Degrees between the forearm and level at the peak, as seen in the image. */
   forearmFromLevel: number;
-  /** Degrees between the upper arm and level at the peak. */
-  upperArmFromLevel: number;
+  /** Degrees the upper arm hangs below level at the peak. Negative means the elbow is above the shoulder. */
+  upperArmBelowLevel: number;
   visibility: number;
 }
 
@@ -57,14 +58,18 @@ export function scoreShapes(f: PunchShapeFeatures, config: PunchConfig = PUNCH_C
     ramp(f.armAcrossShare, hook.acrossShareMin, hook.acrossShareFull) *
     (1 - ramp(f.elbowHeldMax, hook.elbowBent, hook.elbowOpen)) *
     ramp(f.elbow, hook.elbowClosed, hook.elbowNinety) *
-    (1 - ramp(f.upperArmFromLevel, hook.upperArmLevel, hook.upperArmDropped)) *
+    (1 - ramp(f.upperArmBelowLevel, hook.upperArmLevel, hook.upperArmDropped)) *
     (1 - ramp(f.forearmFromLevel, hook.forearmLevel, hook.forearmTilted));
 
   const extended =
     ramp(f.reach, straight.reachMin, straight.reachFull) * ramp(f.elbow, straight.elbowMin, straight.elbowFull);
-  // Depth is the model's weakest output, so a straight doesn't have to be seen extending
+  // Depth is the model's weakest output, so a straight doesn't have to be seen extending. A big
+  // rise from low down isn't a straight even when it fits no arc.
+  const risesFromLow = ramp(f.startBelowShoulder, straight.lowStartMin, straight.lowStartFull) * ramp(f.rise, uppercut.riseMin, uppercut.riseFull);
   const byDefault =
-    straight.defaultScore * (1 - ramp(f.outwardShare, straight.outwardShareMin, straight.outwardShareFull));
+    straight.defaultScore *
+    (1 - ramp(f.outwardShare, straight.outwardShareMin, straight.outwardShareFull)) *
+    (1 - risesFromLow);
 
   return {
     straight: Math.max(extended, byDefault),
