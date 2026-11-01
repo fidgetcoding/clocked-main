@@ -1,4 +1,5 @@
 import { createContext, useContext, useEffect, useState, ReactNode, useRef, useCallback } from 'react';
+import { flushSync } from 'react-dom';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
@@ -91,14 +92,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         const accountChanged = event === 'SIGNED_OUT' || (previousUserIdRef.current && previousUserIdRef.current !== newUserId);
         previousUserIdRef.current = newUserId;
-        setSession(session);
-        setUser(session?.user ?? null);
-        setLoading(false);
+        const applySession = () => {
+          setSession(session);
+          setUser(session?.user ?? null);
+          setLoading(false);
+        };
 
-        // Last on purpose: the store updates above re-render synchronously, and an empty cache at
-        // that point makes mounted queries refetch with the old user but no session
+        // Store updates render ahead of normal state updates. Clearing the cache before the new
+        // user is committed would make mounted queries refetch as the old user with no session.
         if (accountChanged) {
+          flushSync(applySession);
           queryClientRef.current?.clear();
+        } else {
+          applySession();
         }
       }
     );
@@ -123,10 +129,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signOut = async () => {
     await supabase.auth.signOut();
+    flushSync(() => {
+      setUser(null);
+      setSession(null);
+    });
     clearUserLocalStorage();
     queryClientRef.current?.clear();
-    setUser(null);
-    setSession(null);
   };
 
   return (
