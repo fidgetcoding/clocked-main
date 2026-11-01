@@ -290,7 +290,9 @@ test("nothing covers the workout controls right after Start", async ({ page }) =
   await page.getByRole("button", { name: "Start", exact: true }).click();
   await page.waitForURL("**/session");
   await expect(page.locator("button:has(svg.lucide-play)").first()).toBeVisible();
-  await expect(page.locator("[data-sonner-toast]")).toHaveCount(0);
+  // Read once, after a toast would have landed. A retrying assertion just waits for it to expire.
+  await page.waitForTimeout(500);
+  expect(await page.locator("[data-sonner-toast]").count()).toBe(0);
 });
 
 test("the AI builder fits a small phone", async ({ page }) => {
