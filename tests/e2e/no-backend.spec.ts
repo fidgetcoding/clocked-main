@@ -44,9 +44,19 @@ test("live training and coach tools say coming soon instead of pretending", asyn
     await page.goto(`${NO_BACKEND_URL}/fight-club`);
     const card = page.getByTestId("live-training-placeholder");
     await expect(card).toContainText("Coming soon");
-    await expect(card.getByRole("button")).toHaveCount(0);
     await expect(page.getByRole("button", { name: "Watch" })).toHaveCount(0);
     await expect(page.getByText("LIVE", { exact: true })).toHaveCount(0);
+  });
+
+  await test.step("the preview says it's a preview, with no viewers or chat to mistake for real", async () => {
+    await page.getByRole("button", { name: "See the preview" }).click();
+    const preview = page.getByTestId("live-stream-preview");
+    await expect(preview).toContainText("Nothing is streaming and nobody is watching.");
+    await expect(preview.getByRole("textbox")).toHaveCount(0);
+    await expect(preview.getByText("Live Chat")).toHaveCount(0);
+    await expect(preview.getByRole("button")).toHaveText(["Close"]);
+    await preview.getByRole("button", { name: "Close" }).click();
+    await expect(preview).toHaveCount(0);
   });
 
   await test.step("coach sign-up promises nothing and asks for nothing it can't save", async () => {

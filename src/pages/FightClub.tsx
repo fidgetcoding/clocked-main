@@ -11,6 +11,7 @@ import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import { WORKOUT_CATEGORIES, TrendingWorkout, WorkoutCategory } from '@/data/trendingWorkouts';
 import { WorkoutPreviewModal } from '@/components/WorkoutPreviewModal';
+import { LiveStreamPreview } from '@/components/LiveStreamPreview';
 import { useWorkouts } from '@/hooks/useWorkouts';
 import { useCommunityPosts, CommunityPost, useDeleteCommunityPost } from '@/hooks/useCommunityPosts';
 
@@ -64,7 +65,8 @@ const FightClub = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<WorkoutCategory>('All');
   const [selectedWorkout, setSelectedWorkout] = useState<TrendingWorkout | null>(null);
-  
+  const [showLivePreview, setShowLivePreview] = useState(false);
+
   // User search state
   const [showUserSearch, setShowUserSearch] = useState(false);
   const [userSearchQuery, setUserSearchQuery] = useState('');
@@ -670,6 +672,7 @@ const FightClub = () => {
               )}
 
               {/* Not built yet, and labelled as such rather than faked with a demo stream */}
+              {showLivePreview && <LiveStreamPreview onClose={() => setShowLivePreview(false)} />}
               {feedFilter === 'all' && (
                 <div className="card-workout" data-testid="live-training-placeholder">
                   <div className="flex items-start gap-3">
@@ -686,6 +689,9 @@ const FightClub = () => {
                       <p className="text-sm text-muted-foreground mt-1">
                         Streaming a session and training together isn't built yet.
                       </p>
+                      <Button variant="outline" size="sm" className="mt-3" onClick={() => setShowLivePreview(true)}>
+                        See the preview
+                      </Button>
                     </div>
                   </div>
                 </div>
