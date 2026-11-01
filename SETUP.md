@@ -58,7 +58,7 @@ Miss this and links land on your Site URL instead of finishing sign-in. If that'
 
 **About email delivery:** Supabase's built-in email is only for trying things out. It delivers to your project's team members, and its limit is tight: on my test project, the send right after my first one was already refused. Before inviting anyone else, [set up custom SMTP](https://supabase.com/docs/guides/auth/auth-smtp).
 
-Now run `npm run dev`, open <http://localhost:8080>, and sign in from **Settings > Save your progress**. A new account lands on the "Who are you?" step, and a returning one goes straight home.
+Now run `npm run dev`, open <http://localhost:8080>, and sign in from **Settings > Save your progress**. A new account's email is titled "Confirm your email address", and its link lands on the "Who are you?" step. A returning account goes straight home.
 
 ## 4. Turn on AI workouts
 
