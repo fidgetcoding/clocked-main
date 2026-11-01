@@ -64,6 +64,7 @@ interface FlatSegment {
   phaseName: string;
   section: 'warmup' | 'grind' | 'cooldown';
   combo?: string[];
+  drill?: string[];
   nextCombo?: string[];
   intensity?: string;
   reps?: number;
@@ -85,18 +86,13 @@ function formatTimeCompact(seconds: number): string {
 }
 
 // Helper to convert DB workout to local format for session
+const PREPARATION_SECONDS = 30;
+
 function dbWorkoutToLocal(dbWorkout: DbWorkout) {
-  const { phases, sections, megasetRepeats } = splitStoredPhases(dbWorkout.phases);
+  const { sections, megasetRepeats } = splitStoredPhases(dbWorkout.phases);
   
+  // Each phase carries its own combos now; this list only exists on older workouts
   const combos: string[][] = dbWorkout.combos || [];
-  
-  if (combos.length === 0) {
-    phases.forEach((phase) => {
-      if (phase.combos) {
-        combos.push(...phase.combos);
-      }
-    });
-  }
   
   return {
     id: dbWorkout.id,
@@ -270,8 +266,10 @@ const WorkoutSession = () => {
     
     const phaseComboLists: Map<string, { list: string[][]; cursor: number }> = new Map();
     
-    const getPhaseCombo = (phase: WorkoutPhase, phaseKey: string): string[] | undefined => {
-      if (totalCombos === 0 && !(phase.combos && phase.combos.length > 0)) return undefined;
+    const getPhaseCombo = (phase: WorkoutPhase, phaseKey: string, sectionName: TempSegment['sectionName']): string[] | undefined => {
+      const hasOwnCombos = !!phase.combos && phase.combos.length > 0;
+      // A workout-wide combo list is for the rounds. A warmup or cooldown without combos stays freestyle.
+      if (!hasOwnCombos && (totalCombos === 0 || sectionName !== 'grind')) return undefined;
       if (!phaseComboLists.has(phaseKey)) {
         phaseComboLists.set(phaseKey, { list: getComboListForPhase(phase), cursor: 0 });
       }
@@ -284,14 +282,14 @@ const WorkoutSession = () => {
     const roundComboCache: Map<string, string[]> = new Map();
     
     for (const idx of allBoxingIndices) {
-      const { phase, repeatIndex } = tempSegments[idx];
+      const { phase, repeatIndex, sectionName } = tempSegments[idx];
       const roundKey = `${phase.id}-${repeatIndex}`;
       
       if (roundComboCache.has(roundKey)) {
         comboAssignments.set(idx, roundComboCache.get(roundKey)!);
       } else {
         const phaseKey = `${phase.id}`;
-        const combo = getPhaseCombo(phase, phaseKey);
+        const combo = getPhaseCombo(phase, phaseKey, sectionName);
         if (combo) {
           roundComboCache.set(roundKey, combo);
           comboAssignments.set(idx, combo);
@@ -299,6 +297,31 @@ const WorkoutSession = () => {
       }
     }
     
+    // Speed bag and double-end segments show what was picked for them, from their own list when
+    // a phase mixes drills and punches. Kept apart from combos, which also drive XP.
+    const isDrillEntry = (entry: string[]) =>
+      entry.some((token) => !/^\d/.test(token) && !/^(SLIP|ROLL|DUCK|PULL|BLOCK|PARRY|STEP|CIRCLE|PIVOT|FREESTYLE)/.test(token));
+    const bagLists = new Map<string, string[][]>();
+    const bagRounds = new Map<string, string[] | undefined>();
+    const bagDrillFor = ({ segment, phase, repeatIndex }: TempSegment): string[] | undefined => {
+      if (segment.segmentType !== 'speedbag' && segment.segmentType !== 'doubleend') return undefined;
+      const roundKey = `${phase.id}-${repeatIndex}-${segment.segmentType}`;
+      if (bagRounds.has(roundKey)) return bagRounds.get(roundKey);
+      const listKey = `${phase.id}-${segment.segmentType}`;
+      if (!bagLists.has(listKey)) {
+        const types = phase.segments.map((s) => s.segmentType);
+        const mixed = types.includes('speedbag') && types.some((type) => type === 'combo' || type === 'shadowboxing' || type === 'doubleend');
+        const list = ((phase.combos as string[][] | undefined) ?? []).filter(
+          (entry) => !mixed || isDrillEntry(entry) === (segment.segmentType === 'speedbag'),
+        );
+        if (phase.comboOrder === 'random') list.sort(() => Math.random() - 0.5);
+        bagLists.set(listKey, list);
+      }
+      const drill = bagLists.get(listKey)!.shift();
+      bagRounds.set(roundKey, drill);
+      return drill;
+    };
+
     let cumulativeRound = 0;
     let lastPhaseId = '';
     let lastRepeatIndex = -1;
@@ -338,6 +361,7 @@ const WorkoutSession = () => {
         phaseName: phase.name,
         section: sectionName,
         combo,
+        drill: bagDrillFor(item),
         nextCombo,
         intensity: segment.intensity,
         reps: segment.reps,
@@ -351,7 +375,7 @@ const WorkoutSession = () => {
   }, [workout]);
 
   const [currentSegmentIndex, setCurrentSegmentIndex] = useState(0);
-  const [timeRemaining, setTimeRemaining] = useState(30);
+  const [timeRemaining, setTimeRemaining] = useState(PREPARATION_SECONDS);
   const [totalElapsed, setTotalElapsed] = useState(0);
   const [isRunning, setIsRunning] = useState(false);
   const [isPaused, setIsPaused] = useState(true);
@@ -735,7 +759,7 @@ const WorkoutSession = () => {
                                     currentSegment.segmentType === 'combo' || 
                                     currentSegment.segmentType === 'doubleend' ||
                                     currentSegment.segmentType === 'speedbag';
-        const combo = currentSegment.combo;
+        const combo = currentSegment.combo ?? currentSegment.drill;
         if (combo && combo.length > 0 && isBoxingTypeSegment && preferences?.voiceComboCallouts !== false) {
           setTimeout(() => {
             const speakableCombo = combo.map(move => {
@@ -827,7 +851,7 @@ const WorkoutSession = () => {
 
   const handleReset = () => {
     setCurrentSegmentIndex(0);
-    setTimeRemaining(10);
+    setTimeRemaining(PREPARATION_SECONDS);
     setTotalElapsed(0);
     setAccumulatedXP(0);
     setIsRunning(false);
@@ -860,7 +884,7 @@ const WorkoutSession = () => {
     cancelSpeech();
     setShowRestartConfirm(false);
     setCurrentSegmentIndex(0);
-    setTimeRemaining(10);
+    setTimeRemaining(PREPARATION_SECONDS);
     setTotalElapsed(0);
     setAccumulatedXP(0);
     setIsRunning(false);
@@ -881,7 +905,7 @@ const WorkoutSession = () => {
       setTimeRemaining(prevSegment.duration);
     } else {
       setIsPreparation(true);
-      setTimeRemaining(10);
+      setTimeRemaining(PREPARATION_SECONDS);
     }
   };
 
@@ -1068,7 +1092,7 @@ const WorkoutSession = () => {
                          currentSegment?.name.toLowerCase().includes('technique');
   const isSpeedbag = currentSegment?.segmentType === 'speedbag';
   const isDoubleend = currentSegment?.segmentType === 'doubleend';
-  const rawCombo = (isSpeedbag || isDoubleend) ? undefined : (isShadowboxing ? (currentSegment?.combo || currentSegment?.nextCombo) : currentSegment?.combo);
+  const rawCombo = (isSpeedbag || isDoubleend) ? currentSegment?.drill : (isShadowboxing ? (currentSegment?.combo || currentSegment?.nextCombo) : currentSegment?.combo);
   const isFreestyleCombo = rawCombo?.length === 1 && rawCombo[0] === 'FREESTYLE';
   const displayCombo = isFreestyleCombo ? undefined : rawCombo;
 
@@ -1156,7 +1180,7 @@ const WorkoutSession = () => {
             {xpBubble && (
               <div 
                 key={xpBubble.id}
-                className={cn("absolute right-full mr-2 top-1/2 -translate-y-1/2 font-bold text-sm whitespace-nowrap animate-xp-bubble", accentText)}
+                className={cn("absolute right-full mr-2 top-1/2 -translate-y-1/2 font-bold text-sm whitespace-nowrap animate-xp-bubble pointer-events-none", accentText)}
               >
                 +{xpBubble.amount} XP
               </div>
@@ -1237,10 +1261,10 @@ const WorkoutSession = () => {
         )}
 
         {/* Main Timer — middle area between top bar and bottom bar */}
-        {/* On short screens the two layers stack in normal flow, so a combo card can never land on the timer or the controls */}
-        <div className="flex-1 relative px-4 min-h-[26rem] [@media(max-height:700px)]:min-h-0 [@media(max-height:700px)]:flex [@media(max-height:700px)]:flex-col [@media(max-height:700px)]:justify-center [@media(max-height:700px)]:gap-2">
+        {/* On short screens and laptops the two layers stack in normal flow, so a combo card can never land on the timer or the controls */}
+        <div className="flex-1 relative px-4 min-h-[26rem] [@media(max-height:700px)]:min-h-0 [@media(max-height:700px)]:flex [@media(max-height:700px)]:flex-col [@media(max-height:700px)]:justify-center [@media(max-height:700px)]:gap-2 md:[@media(max-height:900px)]:min-h-0 md:[@media(max-height:900px)]:flex md:[@media(max-height:900px)]:flex-col md:[@media(max-height:900px)]:justify-center md:[@media(max-height:900px)]:gap-2">
           {/* Layer 1: Fixed, vertically centered — phase name, timer, segment */}
-          <div className="absolute inset-0 flex flex-col items-center justify-center px-4 -mt-[24%] md:mt-0 [@media(max-height:700px)]:static [@media(max-height:700px)]:mt-0">
+          <div className="absolute inset-0 flex flex-col items-center justify-center px-4 -mt-[24%] md:mt-0 [@media(max-height:700px)]:static [@media(max-height:700px)]:mt-0 md:[@media(max-height:900px)]:static">
                 {/* Phase Name */}
                 {isPreparation ? (
                   <p className="text-xs text-muted-foreground uppercase tracking-widest mb-2">GET READY</p>
@@ -1261,7 +1285,7 @@ const WorkoutSession = () => {
 
                 {/* Timer with 270° arc ring */}
                 <div className="relative w-full flex items-center justify-center">
-                  <div className="relative flex items-center justify-center w-[280px] h-[280px] [@media(max-height:700px)]:w-[max(150px,27vh)] [@media(max-height:700px)]:h-[max(150px,27vh)]">
+                  <div className="relative flex items-center justify-center w-[280px] h-[280px] [@media(max-height:700px)]:w-[max(150px,27vh)] [@media(max-height:700px)]:h-[max(150px,27vh)] md:[@media(max-height:760px)]:w-[max(150px,27vh)] md:[@media(max-height:760px)]:h-[max(150px,27vh)]">
                     {/* SVG Arc Ring — 270° open at bottom */}
                     <svg className="absolute inset-0" viewBox="0 0 280 280">
                       {(() => {
@@ -1271,7 +1295,7 @@ const WorkoutSession = () => {
                         const arcLen = circumference * arcFrac;
                         const gapLen = circumference - arcLen;
                         const startAngle = 135;
-                        const segDuration = isPreparation ? 10 : (currentSegment?.duration || 1);
+                        const segDuration = isPreparation ? PREPARATION_SECONDS : (currentSegment?.duration || 1);
                         const progress = Math.min(1, Math.max(0, timeRemaining / segDuration));
                         const filledLen = arcLen * progress;
                         return (
@@ -1285,7 +1309,7 @@ const WorkoutSession = () => {
                     </svg>
                     <span className={cn(
                       "timer-display font-black",
-                      "timer-display text-7xl font-black [@media(max-height:700px)]:text-[length:max(36px,7vh)]",
+                      "timer-display text-7xl font-black [@media(max-height:700px)]:text-[length:max(36px,7vh)] md:[@media(max-height:760px)]:text-[length:max(36px,7vh)]",
                       isChampionship 
                         ? "text-championship-gold animate-gold-shimmer" 
                         : isCooldown ? "text-cooldown-blue" : "text-volt text-glow-volt"
@@ -1335,7 +1359,7 @@ const WorkoutSession = () => {
           {/* END Layer 1 */}
 
           {/* Layer 2: absolute, lower portion only — combo/UP NEXT cards */}
-          <div className="absolute left-4 right-4 flex flex-col items-center justify-start pointer-events-none top-[80%] md:top-[78%] [@media(max-height:700px)]:static [@media(max-height:700px)]:min-h-[5.5rem]">
+          <div className="absolute left-4 right-4 flex flex-col items-center justify-start pointer-events-none top-[80%] md:top-[78%] [@media(max-height:700px)]:static [@media(max-height:700px)]:min-h-[5.5rem] md:[@media(max-height:900px)]:static md:[@media(max-height:900px)]:min-h-[5.5rem]">
             <div className="pointer-events-auto w-full flex flex-col items-center">
           {/* Rest Screen - Clean Next Preview */}
           {isRestSegment && (
@@ -1536,7 +1560,7 @@ const WorkoutSession = () => {
               <AlertDialogTitle>Restart Workout?</AlertDialogTitle>
               <AlertDialogDescription>
                 {accumulatedXP > 0 
-                  ? `Your current progress (+${Math.round(accumulatedXP)} XP) will be saved before restarting.`
+                  ? `This starts over from the beginning and drops the +${Math.round(accumulatedXP)} XP from this run.`
                   : "This will reset the workout to the beginning."}
               </AlertDialogDescription>
             </AlertDialogHeader>

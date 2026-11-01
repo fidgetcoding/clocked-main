@@ -258,12 +258,13 @@ const EditProfile = () => {
                   className="hidden"
                 />
               </div>
-              <div className="flex-1">
+              <div className="flex-1 min-w-0">
                 {isEditingName ? (
                   <div className="flex items-center gap-2">
                     <Input
                       value={editedName}
                       onChange={(e) => setEditedName(e.target.value)}
+                      maxLength={30}
                       className="bg-surface-2 border-surface-3 text-foreground"
                       autoFocus
                       onKeyDown={(e) => e.key === 'Enter' && handleSaveName()}
@@ -277,7 +278,7 @@ const EditProfile = () => {
                   </div>
                 ) : (
                   <div className="flex items-center gap-2">
-                    <h2 className="text-xl font-bold text-foreground">{user?.name || 'Fighter'}</h2>
+                    <h2 className="text-xl font-bold text-foreground truncate min-w-0">{user?.name || 'Fighter'}</h2>
                     <button 
                       onClick={() => {
                         setEditedName(user?.name || '');
@@ -310,7 +311,7 @@ const EditProfile = () => {
                   </div>
                 ) : (
                   <div className="flex items-center gap-1 mt-1">
-                    <p className="text-sm text-muted-foreground">@{currentHandle}</p>
+                    <p className="text-sm text-muted-foreground truncate min-w-0">@{currentHandle}</p>
                     <button 
                       onClick={() => {
                         setEditedHandle(currentHandle);
@@ -318,7 +319,7 @@ const EditProfile = () => {
                       }}
                       className="text-muted-foreground hover:text-foreground"
                     >
-                      <Pencil className="w-3 h-3" />
+                      <Pencil className="w-3 h-3 shrink-0" />
                     </button>
                   </div>
                 )}

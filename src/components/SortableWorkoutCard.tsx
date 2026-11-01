@@ -14,7 +14,7 @@ interface SortableWorkoutCardProps {
 
 function formatDuration(seconds: number): string {
   const mins = Math.floor(seconds / 60);
-  return `${mins} MIN`;
+  return mins === 0 && seconds > 0 ? '<1 MIN' : `${mins} MIN`;
 }
 
 function getWorkoutStats(workout: DbWorkout) {
@@ -75,7 +75,7 @@ export function SortableWorkoutCard({ workout, onDelete, isReorderMode }: Sortab
             </span>
             <span className="flex items-center gap-1">
               <RotateCcw className="w-4 h-4" />
-              {totalPhases} PHASES
+              {totalPhases} {totalPhases === 1 ? 'PHASE' : 'PHASES'}
             </span>
           </div>
 

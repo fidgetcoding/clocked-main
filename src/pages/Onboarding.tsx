@@ -137,7 +137,7 @@ const Onboarding = () => {
     // Update profile in database with prestige and other onboarding data
     try {
       await updateProfile.mutateAsync({
-        name: name || (role === 'coach' ? 'Coach' : 'Fighter'),
+        name: name.trim() || (role === 'coach' ? 'Coach' : 'Fighter'),
         role,
         experience_level: finalExperience,
         equipment: finalEquipmentWithBag as UserProfile['equipment'],
@@ -153,7 +153,7 @@ const Onboarding = () => {
     // Also update local store for immediate UI feedback
     completeOnboarding({
       role,
-      name: name || (role === 'coach' ? 'Coach' : 'Fighter'),
+      name: name.trim() || (role === 'coach' ? 'Coach' : 'Fighter'),
       experienceLevel: finalExperience as UserProfile['experienceLevel'],
       equipment: finalEquipmentWithBag as UserProfile['equipment'],
       goals: goals as UserProfile['goals'],
@@ -352,6 +352,7 @@ const Onboarding = () => {
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="Your name"
+              maxLength={30}
               className="h-14 text-lg bg-surface-1 border-surface-3 text-center mb-6"
               autoFocus
             />

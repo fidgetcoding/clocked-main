@@ -184,7 +184,7 @@ const Profile = () => {
                   <User className="w-8 h-8 text-volt" />
                 )}
               </div>
-              <h2 className="text-sm font-bold text-foreground mt-1.5 text-center max-w-[120px] truncate">{profileName}</h2>
+              <h2 className="text-sm font-bold text-foreground mt-1.5 text-center max-w-[88px] min-[360px]:max-w-[120px] truncate">{profileName}</h2>
             </div>
 
             {/* Stats + Action Buttons */}
@@ -291,7 +291,7 @@ const Profile = () => {
                 </>
               )}
               <span className="text-muted-foreground/50">•</span>
-              <p className="text-sm text-muted-foreground">{profileHandle}</p>
+              <p className="text-sm text-muted-foreground truncate min-w-0 max-w-full">{profileHandle}</p>
             </div>
           </div>
 

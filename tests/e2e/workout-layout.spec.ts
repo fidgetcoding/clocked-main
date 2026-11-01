@@ -8,6 +8,8 @@ for (const viewport of [
   { width: 375, height: 667 },
   { width: 390, height: 664 },
   { width: 390, height: 844 },
+  { width: 1280, height: 720 },
+  { width: 1440, height: 800 },
 ]) {
   test(`the timer buttons stay clear of the combo card at ${viewport.width}x${viewport.height}`, async ({ page }) => {
     await page.setViewportSize(viewport);

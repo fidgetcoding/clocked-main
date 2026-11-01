@@ -175,3 +175,111 @@ test("the builder won't save or start a workout with nothing to run", async ({ p
   await expect(page.getByText('Give "Shadowboxing" a time first')).toBeVisible();
   expect(new URL(page.url()).pathname).toBe("/build");
 });
+
+test("a warmup with no combos stays freestyle when the rounds have some", async ({ page }) => {
+  await page.goto(`${NO_BACKEND_URL}/build`);
+  await page.getByRole("button", { name: "WARMUP" }).click();
+  await page.getByRole("button", { name: "Add Phase" }).click();
+  await page.getByRole("button", { name: "ROUNDS" }).click();
+  await page.getByRole("button", { name: "Add Phase" }).click();
+  await page.getByRole("button", { name: "Add", exact: true }).click();
+  const sheet = page.locator(".fixed.inset-0");
+  await sheet.getByRole("button", { name: "Custom", exact: true }).click();
+  await sheet.getByRole("button", { name: "1", exact: true }).click();
+  await sheet.getByRole("button", { name: "Save", exact: true }).click();
+  await page.getByRole("button", { name: "Start", exact: true }).click();
+  await page.waitForURL("**/session");
+
+  await page.locator("button:has(svg.lucide-play)").first().click();
+  const skip = page.locator("button:has(svg.lucide-skip-forward)");
+  await skip.click();
+  await expect(page.getByText("FREESTYLE")).toBeVisible();
+  await skip.click();
+  await skip.click();
+  await expect(page.getByText("INCOMING COMBO")).toBeVisible();
+});
+
+test("restarting gets the same preparation and doesn't promise to save XP", async ({ page }) => {
+  await startFirstSet(page);
+  await page.getByTitle("Restart from beginning").click();
+  await expect(page.getByText(/drops the \+10 XP/)).toBeVisible();
+  await page.getByRole("button", { name: "Restart", exact: true }).click();
+  await expect(page.getByText("0:30")).toBeVisible();
+});
+
+test("drills picked for a speed bag round show up in the session", async ({ page }) => {
+  await page.goto(`${NO_BACKEND_URL}/build`);
+  await page.getByRole("button", { name: "Add Phase" }).click();
+  await page.locator("button.w-8.h-8.rounded-lg").first().click();
+  await page.getByRole("button", { name: "Add", exact: true }).click();
+  await page.getByText("Double Left Lead").click();
+  await page.getByRole("button", { name: "Start", exact: true }).click();
+  await page.waitForURL("**/session");
+  await page.locator("button:has(svg.lucide-play)").first().click();
+  await page.locator("button:has(svg.lucide-skip-forward)").click();
+  await expect(page.locator("h2")).toHaveText(/speed bag/i);
+  await expect(page.getByText("Double Left Lead")).toBeVisible();
+});
+
+test("combos picked for a double-end round show up in the session", async ({ page }) => {
+  await page.goto(`${NO_BACKEND_URL}/build`);
+  await page.getByRole("button", { name: "Add Phase" }).click();
+  const type = page.locator("button.w-8.h-8.rounded-lg").first();
+  for (let i = 0; i < 3; i++) await type.click();
+  await page.getByRole("button", { name: "Add", exact: true }).click();
+  const sheet = page.locator(".fixed.inset-0");
+  await sheet.getByRole("button", { name: "Custom", exact: true }).click();
+  await sheet.getByRole("button", { name: "1", exact: true }).click();
+  await sheet.getByRole("button", { name: "2", exact: true }).click();
+  await sheet.getByRole("button", { name: "Save", exact: true }).click();
+  await page.getByRole("button", { name: "Start", exact: true }).click();
+  await page.waitForURL("**/session");
+  await page.locator("button:has(svg.lucide-play)").first().click();
+  await page.locator("button:has(svg.lucide-skip-forward)").click();
+  await expect(page.locator("h2")).toHaveText(/double end/i);
+  await expect(page.getByText("FREESTYLE")).toHaveCount(0);
+});
+
+test("a short set's card reads right", async ({ page }) => {
+  await page.goto(`${NO_BACKEND_URL}/build`);
+  await page.getByPlaceholder("Workout Name").fill("Quick One");
+  await page.getByRole("button", { name: "Add Phase" }).click();
+  await page.locator("input[type=number]").first().fill("30");
+  await page.getByRole("button", { name: "Save Workout" }).click();
+  await page.getByText("Your Sets").waitFor();
+  await expect(page.getByText("1 PHASE", { exact: true })).toBeVisible();
+  await expect(page.getByText("<1 MIN", { exact: true })).toBeVisible();
+});
+
+test("a long name can't push the profile sideways", async ({ page }) => {
+  await page.setViewportSize({ width: 320, height: 568 });
+  const long = `Rocky ${"x".repeat(70)}`;
+  await page.evaluate((name) => {
+    const stored = JSON.parse(localStorage.getItem("get-clocked-user") as string);
+    stored.state.user.name = name;
+    stored.state.guestProfile = { ...stored.state.guestProfile, name };
+    localStorage.setItem("get-clocked-user", JSON.stringify(stored));
+  }, long);
+  for (const route of ["/profile", "/edit-profile"]) {
+    await page.goto(`${NO_BACKEND_URL}${route}`);
+    await expect(page.getByText(/@rocky/).first()).toBeVisible();
+    expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBe(0);
+  }
+});
+
+test("onboarding caps the name and treats spaces as no name", async ({ page }) => {
+  await page.evaluate(() => localStorage.clear());
+  await page.goto(`${NO_BACKEND_URL}/onboarding`);
+  await page.getByRole("button", { name: "GET STARTED" }).click();
+  await page.getByText("I'M A FIGHTER").click();
+  const name = page.getByPlaceholder("Your name");
+  await name.fill("x".repeat(70));
+  await expect(name).toHaveValue("x".repeat(30));
+  await name.fill("   ");
+  const start = page.getByRole("button", { name: "START TRAINING" });
+  while (!(await start.isVisible())) await page.getByRole("button", { name: "Continue" }).click();
+  await start.click();
+  await page.getByText("Your Sets").waitFor();
+  await page.goto(`${NO_BACKEND_URL}/profile`);
+  await expect(page.getByText("@fighter")).toBeVisible();
+});
