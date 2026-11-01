@@ -1,5 +1,7 @@
 import { supabase } from '@/integrations/supabase/client';
 import { Prestige, getLevelFromXP } from '@/lib/xpSystem';
+import { GUEST_USER_ID } from '@/lib/guest';
+import { useHistoryStore } from '@/stores/historyStore';
 
 /**
  * Calculate streak and workout count after logging a session.
@@ -8,33 +10,44 @@ import { Prestige, getLevelFromXP } from '@/lib/xpSystem';
 export async function computePostLogStats(
   userId: string,
   profile: {
+    user_id?: string;
     last_workout_date: string | null;
     current_streak: number;
     longest_streak: number;
   }
 ) {
-  // 1. Self-healing workout count: get actual count from workout_history
-  const { count, error } = await supabase
-    .from('workout_history')
-    .select('id', { count: 'exact', head: true })
-    .eq('user_id', userId);
+  let workoutsCompleted: number;
+  let totalTrainingSeconds: number | undefined;
 
-  if (error) {
-    console.error('Failed to count workout history:', error);
-    return null;
+  if (profile.user_id === GUEST_USER_ID) {
+    // Guest history lives in the browser, so the same totals come from there
+    const { guestHistory } = useHistoryStore.getState();
+    workoutsCompleted = guestHistory.length;
+    totalTrainingSeconds = guestHistory.reduce((sum, entry) => sum + (entry.duration || 0), 0);
+  } else {
+    // 1. Self-healing workout count: get actual count from workout_history
+    const { count, error } = await supabase
+      .from('workout_history')
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', userId);
+
+    if (error) {
+      console.error('Failed to count workout history:', error);
+      return null;
+    }
+
+    workoutsCompleted = count || 0;
+
+    // 2. Self-healing total training seconds: sum all durations from workout_history
+    const { data: durationData, error: durationError } = await supabase
+      .rpc('get_total_training_seconds' as any, { target_user_id: userId });
+
+    if (durationError) {
+      console.error('Failed to sum training seconds:', durationError);
+    }
+
+    totalTrainingSeconds = durationError ? undefined : ((durationData as number) || 0);
   }
-
-  const workoutsCompleted = count || 0;
-
-  // 2. Self-healing total training seconds: sum all durations from workout_history
-  const { data: durationData, error: durationError } = await supabase
-    .rpc('get_total_training_seconds' as any, { target_user_id: userId });
-
-  if (durationError) {
-    console.error('Failed to sum training seconds:', durationError);
-  }
-
-  const totalTrainingSeconds = durationError ? undefined : (durationData || 0);
 
   // 3. Streak logic
   const today = new Date();

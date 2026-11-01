@@ -4,6 +4,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useProfile } from '@/hooks/useProfile';
 import { useQueryClient } from '@tanstack/react-query';
 import { generateLoadoutWorkout, UserEquipmentConfig } from '@/lib/loadoutGenerator';
+import { useUserStore } from '@/stores/userStore';
+import { useWorkoutStore } from '@/stores/workoutStore';
 
 /**
  * This hook seeds a single loadout workout for new users based on their
@@ -11,10 +13,44 @@ import { generateLoadoutWorkout, UserEquipmentConfig } from '@/lib/loadoutGenera
  * workouts, it does nothing.
  */
 export function usePresetSeeding() {
-  const { user } = useAuth();
+  const { user, isGuest } = useAuth();
   const { profile } = useProfile();
   const queryClient = useQueryClient();
   const hasSeededRef = useRef(false);
+
+  useEffect(() => {
+    if (!isGuest || !profile || hasSeededRef.current) return;
+    if (!useUserStore.getState().hasCompletedOnboarding) return;
+
+    hasSeededRef.current = true;
+    const { guestWorkouts, addGuestWorkout } = useWorkoutStore.getState();
+    if (guestWorkouts.length > 0) return;
+
+    const eq = (profile.equipment as Record<string, any>) || {};
+    const loadout = generateLoadoutWorkout(profile.experience_level || 'beginner', {
+      gloves: !!eq.gloves,
+      wraps: !!eq.wraps,
+      jumpRope: !!eq.jumpRope,
+      heavyBag: !!eq.heavyBag,
+      doubleEndBag: !!eq.doubleEndBag,
+      speedBag: !!eq.speedBag,
+      treadmill: !!eq.treadmill,
+      primaryBag: eq.primaryBag || 'none',
+    });
+    addGuestWorkout({
+      name: loadout.name,
+      description: loadout.description,
+      duration: loadout.duration,
+      difficulty: loadout.difficulty,
+      phases: loadout.phases,
+      combos: loadout.combos,
+      tags: loadout.tags,
+      is_preset: loadout.is_preset,
+      is_archived: false,
+      times_completed: 0,
+      last_used_at: null,
+    });
+  }, [isGuest, profile]);
 
   useEffect(() => {
     if (!user?.id || !profile || hasSeededRef.current) return;

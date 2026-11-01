@@ -168,7 +168,8 @@ export function usePostWorkoutComplete() {
       xpEarned: number;
       duration: number;
     }) => {
-      if (!user) throw new Error('Must be logged in');
+      // Posted automatically after a session, so a guest just skips it
+      if (!user) return null;
 
       const mins = Math.floor(duration / 60);
       const message = `Completed "${workoutName}" — ${mins}m, +${xpEarned} XP 🔥`;

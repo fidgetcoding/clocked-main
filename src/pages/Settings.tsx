@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import { ArrowLeft, LogOut, Volume2, Timer, Shield } from 'lucide-react';
+import { ArrowLeft, LogOut, Volume2, Timer, Shield, Mail } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Switch } from '@/components/ui/switch';
@@ -25,8 +25,7 @@ const Settings = () => {
   const navigate = useNavigate();
   const user = useUserStore((state) => state.user);
   const updateUser = useUserStore((state) => state.updateUser);
-  const setUser = useUserStore((state) => state.setUser);
-  const { signOut, user: authUser } = useAuth();
+  const { signOut, user: authUser, isGuest } = useAuth();
   const { data: version } = useAppVersion();
   const { isAdmin } = useUserRole();
   const { profile, updateProfile } = useProfile();
@@ -46,9 +45,8 @@ const Settings = () => {
     setIsSigningOut(true);
     try {
       await signOut();
-      setUser(null);
-      useUserStore.setState({ hasCompletedOnboarding: false });
-      navigate('/onboarding');
+      // Index sends anyone without a finished onboarding on to /onboarding
+      navigate('/');
       toast.success('Signed out successfully');
     } catch (error) {
       toast.error('Failed to sign out');
@@ -190,14 +188,16 @@ const Settings = () => {
           <h1 className="text-2xl font-black text-foreground tracking-wider flex-1">
             SETTINGS
           </h1>
-          <button 
-            onClick={handleSignOut}
-            disabled={isSigningOut}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors disabled:opacity-50 text-sm font-medium"
-          >
-            <LogOut className="w-4 h-4" />
-            <span>{isSigningOut ? 'Signing Out...' : 'Sign Out'}</span>
-          </button>
+          {!isGuest && (
+            <button 
+              onClick={handleSignOut}
+              disabled={isSigningOut}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors disabled:opacity-50 text-sm font-medium"
+            >
+              <LogOut className="w-4 h-4" />
+              <span>{isSigningOut ? 'Signing Out...' : 'Sign Out'}</span>
+            </button>
+          )}
         </header>
 
         <div className="px-4 space-y-6 pb-24">
@@ -217,6 +217,23 @@ const Settings = () => {
               ))}
             </div>
           </div>
+
+          {/* Save Your Progress */}
+          {isGuest && (
+            <button
+              onClick={() => navigate('/auth')}
+              className="card-workout flex items-center gap-3 w-full text-left"
+            >
+              <div className="w-8 h-8 rounded-lg bg-surface-2 flex items-center justify-center">
+                <Mail className="w-4 h-4 text-muted-foreground" />
+              </div>
+              <div className="flex-1">
+                <p className="text-foreground font-bold">Save your progress</p>
+                <p className="text-xs text-muted-foreground">Your training is stored on this device. Sign in with an email link to use an account.</p>
+              </div>
+              <ArrowLeft className="w-4 h-4 text-muted-foreground rotate-180" />
+            </button>
+          )}
 
           {/* Admin Portal */}
           {isAdmin && (

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Settings, User, Link as LinkIcon, UserPlus, UserCheck, Clock, Trophy, Flame, ChevronRight, X, Search, Check, Share2 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { useUserSearch } from '@/hooks/useUserSearch';
@@ -16,6 +16,7 @@ import { PrestigeAvailableBanner, PrestigePrompt } from '@/components/workout/Pr
 import { LevelUpOverlay } from '@/components/ui/LevelUpOverlay';
 import { useUserRole } from '@/hooks/useUserRole';
 import { cn } from '@/lib/utils';
+import { promptEmailLink } from '@/lib/guest';
 import { toast } from 'sonner';
 import { BadgeCollection } from '@/components/BadgeCollection';
 import { SharedWorkoutsModal } from '@/components/SharedWorkoutsModal';
@@ -37,7 +38,7 @@ const Profile = () => {
   const navigate = useNavigate();
   const { userId } = useParams<{ userId?: string }>();
   const { profile, updateProfile } = useProfile();
-  const { user: authUser } = useAuth();
+  const { user: authUser, isGuest } = useAuth();
   const { data: publicProfile, isLoading: isLoadingPublic } = usePublicProfile(userId);
   const { followersCount, followingCount, followersList, followingList, isFollowing, follow, unfollow } = useFollows(userId);
   const [listModal, setListModal] = useState<ListModalType>(null);
@@ -48,6 +49,14 @@ const Profile = () => {
   const { isAdmin } = useUserRole();
   const { equippedGlove, unlockedGloves } = useGloves();
   const { results: searchResults, isLoading: isSearching, hasQuery } = useUserSearch(searchQuery);
+
+  // Other fighters' profiles are only readable with an account
+  useEffect(() => {
+    if (isGuest && userId) {
+      promptEmailLink("view other fighters' profiles");
+      navigate('/profile', { replace: true });
+    }
+  }, [isGuest, userId, navigate]);
 
   // Determine if viewing own profile or someone else's
   const isOwnProfile = !userId || userId === authUser?.id;
@@ -101,6 +110,10 @@ const Profile = () => {
   };
 
   const handleOpenSearch = () => {
+    if (isGuest) {
+      promptEmailLink('find other fighters');
+      return;
+    }
     setSearchQuery('');
     setListModal('search');
   };
@@ -200,6 +213,10 @@ const Profile = () => {
                   </Button>
                   <Button 
                     onClick={() => {
+                      if (isGuest) {
+                        promptEmailLink('share your profile');
+                        return;
+                      }
                       navigator.clipboard.writeText(window.location.href);
                       toast.success('Profile link copied!');
                     }}

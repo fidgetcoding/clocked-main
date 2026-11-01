@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 import { Prestige, getLevelFromXP } from '@/lib/xpSystem';
 
 export interface PublicProfile {
@@ -24,6 +25,8 @@ export interface PublicProfile {
  * Uses a SECURITY DEFINER function that only exposes safe public fields
  */
 export function usePublicProfile(userId: string | undefined) {
+  const { user } = useAuth();
+
   return useQuery({
     queryKey: ['public-profile', userId],
     queryFn: async (): Promise<PublicProfile | null> => {
@@ -65,7 +68,7 @@ export function usePublicProfile(userId: string | undefined) {
         created_at: profile.created_at,
       };
     },
-    enabled: !!userId,
+    enabled: !!userId && !!user,
     staleTime: 60000, // Cache for 1 minute
   });
 }

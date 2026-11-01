@@ -3,21 +3,26 @@ import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
 import { useUserStore } from '@/stores/userStore';
+import { useWorkoutStore } from '@/stores/workoutStore';
+import { useHistoryStore } from '@/stores/historyStore';
 
 interface AuthContextType {
   user: User | null;
   session: Session | null;
   loading: boolean;
+  isGuest: boolean;
   signOut: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 // Helper to clear all user-specific localStorage data
+// Guest rows live in these same stores and stay put: SIGNED_OUT can fire on an anonymous
+// load when a stale session is discarded, and guest data isn't the account's to wipe.
 function clearUserLocalStorage() {
-  localStorage.removeItem('get-clocked-workouts');
-  localStorage.removeItem('get-clocked-user');
-  localStorage.removeItem('get-clocked-history');
+  useUserStore.getState().clearAccount();
+  useWorkoutStore.setState({ workouts: [], archivedWorkouts: [], presetsLoaded: false });
+  useHistoryStore.setState({ completedWorkouts: [] });
   localStorage.removeItem('get-clocked-timer');
 }
 
@@ -38,6 +43,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // Sync profile from DB to local store when user signs in
   const syncProfileToStore = useCallback(async (userId: string) => {
+    useUserStore.getState().enterAccount();
     const { hasCompletedOnboarding, completeOnboarding } = useUserStore.getState();
     if (hasCompletedOnboarding) return; // Already synced
 
@@ -74,6 +80,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           clearUserLocalStorage();
           queryClientRef.current?.clear();
         }
+
+        if (!session) {
+          useUserStore.getState().enterGuest();
+        }
         
         // Sync profile on sign in (covers OAuth redirects)
         if (event === 'SIGNED_IN' && newUserId) {
@@ -97,6 +107,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Also sync on initial load if session exists
       if (session?.user?.id) {
         syncProfileToStore(session.user.id);
+      } else {
+        useUserStore.getState().enterGuest();
       }
     });
 
@@ -114,7 +126,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, session, loading, signOut }}>
+    <AuthContext.Provider value={{ user, session, loading, isGuest: !loading && !user, signOut }}>
       {children}
     </AuthContext.Provider>
   );

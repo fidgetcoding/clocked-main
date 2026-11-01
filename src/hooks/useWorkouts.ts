@@ -1,6 +1,8 @@
+import { useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { useWorkoutStore } from '@/stores/workoutStore';
 
 export interface DbWorkout {
   id: string;
@@ -22,10 +24,11 @@ export interface DbWorkout {
 }
 
 export function useWorkouts() {
-  const { user } = useAuth();
+  const { user, isGuest } = useAuth();
   const queryClient = useQueryClient();
+  const guestRows = useWorkoutStore((state) => state.guestWorkouts);
 
-  const { data: workouts = [], isLoading, error } = useQuery({
+  const { data: dbWorkouts = [], isLoading, error } = useQuery({
     queryKey: ['workouts', user?.id],
     queryFn: async () => {
       if (!user?.id) return [];
@@ -43,8 +46,15 @@ export function useWorkouts() {
     enabled: !!user?.id,
   });
 
+  const guestWorkouts = useMemo(
+    () => guestRows.filter((w) => !w.is_archived).sort((a, b) => a.sort_order - b.sort_order),
+    [guestRows]
+  );
+  const workouts = isGuest ? guestWorkouts : dbWorkouts;
+
   const addWorkout = useMutation({
     mutationFn: async (workout: Omit<DbWorkout, 'id' | 'user_id' | 'created_at' | 'updated_at' | 'sort_order'>) => {
+      if (isGuest) return useWorkoutStore.getState().addGuestWorkout(workout);
       if (!user?.id) throw new Error('Not authenticated');
       
       // Get max sort_order for this user
@@ -74,6 +84,7 @@ export function useWorkouts() {
 
   const updateWorkout = useMutation({
     mutationFn: async ({ id, ...updates }: Partial<DbWorkout> & { id: string }) => {
+      if (isGuest) return useWorkoutStore.getState().updateGuestWorkout(id, updates);
       if (!user?.id) throw new Error('Not authenticated');
       
       const { data, error } = await supabase
@@ -94,6 +105,7 @@ export function useWorkouts() {
 
   const deleteWorkout = useMutation({
     mutationFn: async (id: string) => {
+      if (isGuest) return useWorkoutStore.getState().deleteGuestWorkout(id);
       if (!user?.id) throw new Error('Not authenticated');
       
       const { error } = await supabase
@@ -111,6 +123,7 @@ export function useWorkouts() {
 
   const archiveWorkout = useMutation({
     mutationFn: async (id: string) => {
+      if (isGuest) return useWorkoutStore.getState().updateGuestWorkout(id, { is_archived: true });
       if (!user?.id) throw new Error('Not authenticated');
       
       const { data, error } = await supabase
@@ -131,6 +144,7 @@ export function useWorkouts() {
 
   const reorderWorkouts = useMutation({
     mutationFn: async (orderedIds: string[]) => {
+      if (isGuest) return useWorkoutStore.getState().reorderGuestWorkouts(orderedIds);
       if (!user?.id) throw new Error('Not authenticated');
       
       // Update each workout's sort_order

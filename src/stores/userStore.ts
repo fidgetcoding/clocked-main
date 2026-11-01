@@ -3,6 +3,8 @@ import { persist } from 'zustand/middleware';
 import { UserProfile } from '@/types';
 import { getLevelFromXP, Prestige } from '@/lib/xpSystem';
 import { playSoundEffect } from '@/hooks/useSoundEffects';
+import type { Profile } from '@/hooks/useProfile';
+import type { EarnedBadge } from '@/hooks/useBadges';
 
 interface UserStore {
   user: UserProfile | null;
@@ -13,6 +15,17 @@ interface UserStore {
   addXP: (amount: number, playSound?: boolean) => void;
   incrementStreak: () => void;
   resetStreak: () => void;
+  // Guest state. `user` and `hasCompletedOnboarding` belong to whoever is active right now;
+  // while an account is signed in, the guest's copy of them waits in stashedGuest.
+  userIsGuest: boolean;
+  stashedGuest: { user: UserProfile | null; hasCompletedOnboarding: boolean } | null;
+  guestProfile: Partial<Profile> | null;
+  guestBadges: EarnedBadge[];
+  enterGuest: () => void;
+  enterAccount: () => void;
+  clearAccount: () => void;
+  updateGuestProfile: (updates: Partial<Profile>) => void;
+  addGuestBadges: (badges: Pick<EarnedBadge, 'badge_id' | 'xp_rewarded'>[]) => void;
 }
 
 const defaultPreferences = {
@@ -21,11 +34,88 @@ const defaultPreferences = {
   voiceAnnouncements: true,
 };
 
+const buildLocalUser = (profile: Partial<UserProfile>) =>
+  ({
+    id: crypto.randomUUID(),
+    createdAt: new Date(),
+    onboardingComplete: true,
+    role: profile.role || 'fighter',
+    name: profile.name || 'Fighter',
+    isActive: true,
+    isInWorkout: false,
+    lastActiveAt: new Date(),
+    totalXP: 0,
+    currentStreak: 0,
+    longestStreak: 0,
+    workoutsCompleted: 0,
+    prestige: profile.prestige || 'beginner',
+    currentLevel: profile.currentLevel || 1,
+    preferences: { ...defaultPreferences, ...profile.preferences },
+    experienceLevel: profile.experienceLevel,
+    equipment: profile.equipment,
+    goals: profile.goals,
+  }) as UserProfile;
+
 export const useUserStore = create<UserStore>()(
   persist(
     (set) => ({
       user: null,
       hasCompletedOnboarding: false,
+      userIsGuest: false,
+      stashedGuest: null,
+      guestProfile: null,
+      guestBadges: [],
+
+      // No session: become the guest again, picking up where they left off
+      enterGuest: () =>
+        set((state) => {
+          if (state.userIsGuest) return state;
+          return {
+            userIsGuest: true,
+            user: state.stashedGuest?.user ?? buildLocalUser({}),
+            hasCompletedOnboarding: state.stashedGuest?.hasCompletedOnboarding ?? false,
+            stashedGuest: null,
+          };
+        }),
+
+      // Session arrived: set the guest aside so account data never mixes with it
+      enterAccount: () =>
+        set((state) => {
+          if (!state.userIsGuest) return state;
+          return {
+            userIsGuest: false,
+            stashedGuest: { user: state.user, hasCompletedOnboarding: state.hasCompletedOnboarding },
+            user: null,
+            hasCompletedOnboarding: false,
+          };
+        }),
+
+      clearAccount: () =>
+        set((state) => (state.userIsGuest ? state : { user: null, hasCompletedOnboarding: false })),
+
+      updateGuestProfile: (updates) =>
+        set((state) => ({
+          guestProfile: {
+            created_at: new Date().toISOString(),
+            ...state.guestProfile,
+            ...updates,
+            updated_at: new Date().toISOString(),
+          },
+        })),
+
+      addGuestBadges: (badges) =>
+        set((state) => {
+          const owned = new Set(state.guestBadges.map((b) => b.badge_id));
+          const earned_at = new Date().toISOString();
+          return {
+            guestBadges: [
+              ...state.guestBadges,
+              ...badges
+                .filter((b) => !owned.has(b.badge_id))
+                .map((b) => ({ ...b, id: crypto.randomUUID(), earned_at })),
+            ],
+          };
+        }),
 
       setUser: (user) => set({ user }),
 
@@ -37,26 +127,7 @@ export const useUserStore = create<UserStore>()(
       completeOnboarding: (profile) =>
         set({
           hasCompletedOnboarding: true,
-          user: {
-            id: crypto.randomUUID(),
-            createdAt: new Date(),
-            onboardingComplete: true,
-            role: profile.role || 'fighter',
-            name: profile.name || 'Fighter',
-            isActive: true,
-            isInWorkout: false,
-            lastActiveAt: new Date(),
-            totalXP: 0,
-            currentStreak: 0,
-            longestStreak: 0,
-            workoutsCompleted: 0,
-            prestige: profile.prestige || 'beginner',
-            currentLevel: profile.currentLevel || 1,
-            preferences: { ...defaultPreferences, ...profile.preferences },
-            experienceLevel: profile.experienceLevel,
-            equipment: profile.equipment,
-            goals: profile.goals,
-          } as UserProfile,
+          user: buildLocalUser(profile),
         }),
 
       addXP: (amount, playSound = false) =>

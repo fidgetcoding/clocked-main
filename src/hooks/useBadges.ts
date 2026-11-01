@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useProfile } from '@/hooks/useProfile';
+import { useUserStore } from '@/stores/userStore';
 import { ALL_BADGES, checkBadges, sumBadgeXP, getBadgeProgress, Badge, BadgeStats, BadgeCategory, BADGE_CATEGORY_COLORS, BADGE_CATEGORY_NAMES } from '@/data/badges';
 import { ALL_POST_L100_BADGES, PostL100Badge, PostL100Category, PostL100Stats, POST_L100_CATEGORY_COLORS, POST_L100_CATEGORY_NAMES, POST_L100_BADGE_CATEGORIES, checkPostL100Badges, getPostL100BadgeProgress } from '@/data/postL100Badges';
 
@@ -13,12 +14,13 @@ export interface EarnedBadge {
 }
 
 export function useBadges() {
-  const { user } = useAuth();
+  const { user, isGuest } = useAuth();
   const { profile } = useProfile();
   const queryClient = useQueryClient();
+  const guestBadges = useUserStore((state) => state.guestBadges);
 
   // Fetch earned badges from DB
-  const { data: earnedBadges = [], isLoading } = useQuery({
+  const { data: dbBadges = [], isLoading } = useQuery({
     queryKey: ['badges', user?.id],
     queryFn: async () => {
       if (!user?.id) return [];
@@ -32,6 +34,7 @@ export function useBadges() {
     enabled: !!user?.id,
   });
 
+  const earnedBadges = isGuest ? guestBadges : dbBadges;
   const earnedBadgeIds = earnedBadges.map(b => b.badge_id);
 
   // Build current stats from profile
@@ -97,6 +100,10 @@ export function useBadges() {
   // Award badges mutation
   const awardBadges = useMutation({
     mutationFn: async (badges: (Badge | PostL100Badge)[]) => {
+      if (isGuest) {
+        useUserStore.getState().addGuestBadges(badges.map(b => ({ badge_id: b.id, xp_rewarded: b.xpReward })));
+        return [];
+      }
       if (!user?.id || badges.length === 0) return [];
       
       const rows = badges.map(b => ({

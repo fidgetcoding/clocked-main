@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { useWorkoutStore } from '@/stores/workoutStore';
 
 export interface CustomExercise {
   id: string;
@@ -10,10 +11,11 @@ export interface CustomExercise {
 }
 
 export function useCustomExercises() {
-  const { user } = useAuth();
+  const { user, isGuest } = useAuth();
   const queryClient = useQueryClient();
+  const guestExercises = useWorkoutStore((state) => state.guestExercises);
 
-  const { data: exercises = [], isLoading } = useQuery({
+  const { data: dbExercises = [], isLoading } = useQuery({
     queryKey: ['custom-exercises', user?.id],
     queryFn: async () => {
       if (!user) return [];
@@ -28,8 +30,11 @@ export function useCustomExercises() {
     enabled: !!user,
   });
 
+  const exercises = isGuest ? guestExercises : dbExercises;
+
   const addExercise = useMutation({
     mutationFn: async ({ name, category = 'Custom' }: { name: string; category?: string }) => {
+      if (isGuest) return useWorkoutStore.getState().addGuestExercise(name, category);
       if (!user) throw new Error('Not authenticated');
       const { error } = await supabase
         .from('custom_exercises')
@@ -45,6 +50,7 @@ export function useCustomExercises() {
 
   const removeExercise = useMutation({
     mutationFn: async (id: string) => {
+      if (isGuest) return useWorkoutStore.getState().removeGuestExercise(id);
       if (!user) throw new Error('Not authenticated');
       const { error } = await supabase
         .from('custom_exercises')

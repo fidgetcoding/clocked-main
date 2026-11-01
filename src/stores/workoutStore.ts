@@ -1,6 +1,9 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { Workout } from '@/types';
+import type { DbWorkout } from '@/hooks/useWorkouts';
+import type { CustomExercise } from '@/hooks/useCustomExercises';
+import { GUEST_USER_ID } from '@/lib/guest';
 import { COMPLETE_BEGINNER_PRESET_WORKOUTS, BEGINNER_PRESET_WORKOUTS, INTERMEDIATE_PRESET_WORKOUTS, ADVANCED_PRESET_WORKOUTS, PRO_PRESET_WORKOUTS, COACH_PRESET_WORKOUTS } from '@/data/presetWorkouts';
 
 interface WorkoutStore {
@@ -21,6 +24,15 @@ interface WorkoutStore {
   loadCoachPresets: () => void;
   clearPresets: () => void;
   markWorkoutUsed: (id: string) => void;
+  // Guest rows keep the database row shape so useWorkouts returns the same thing either way
+  guestWorkouts: DbWorkout[];
+  guestExercises: CustomExercise[];
+  addGuestWorkout: (workout: Omit<DbWorkout, 'id' | 'user_id' | 'created_at' | 'updated_at' | 'sort_order'>) => DbWorkout;
+  updateGuestWorkout: (id: string, updates: Partial<DbWorkout>) => DbWorkout;
+  deleteGuestWorkout: (id: string) => void;
+  reorderGuestWorkouts: (orderedIds: string[]) => void;
+  addGuestExercise: (name: string, category: string) => void;
+  removeGuestExercise: (id: string) => void;
 }
 
 export const useWorkoutStore = create<WorkoutStore>()(
@@ -29,6 +41,63 @@ export const useWorkoutStore = create<WorkoutStore>()(
       workouts: [],
       archivedWorkouts: [],
       presetsLoaded: false,
+      guestWorkouts: [],
+      guestExercises: [],
+
+      addGuestWorkout: (workout) => {
+        const now = new Date().toISOString();
+        const maxOrder = Math.max(0, ...get().guestWorkouts.map((w) => w.sort_order));
+        const row: DbWorkout = {
+          ...workout,
+          id: crypto.randomUUID(),
+          user_id: GUEST_USER_ID,
+          sort_order: maxOrder + 1,
+          created_at: now,
+          updated_at: now,
+        };
+        set((state) => ({ guestWorkouts: [...state.guestWorkouts, row] }));
+        return row;
+      },
+
+      updateGuestWorkout: (id, updates) => {
+        const existing = get().guestWorkouts.find((w) => w.id === id);
+        if (!existing) throw new Error('Workout not found');
+        const row: DbWorkout = { ...existing, ...updates, updated_at: new Date().toISOString() };
+        set((state) => ({
+          guestWorkouts: state.guestWorkouts.map((w) => (w.id === id ? row : w)),
+        }));
+        return row;
+      },
+
+      deleteGuestWorkout: (id) =>
+        set((state) => ({
+          guestWorkouts: state.guestWorkouts.filter((w) => w.id !== id),
+        })),
+
+      reorderGuestWorkouts: (orderedIds) =>
+        set((state) => ({
+          guestWorkouts: state.guestWorkouts.map((w) => {
+            const index = orderedIds.indexOf(w.id);
+            return index === -1 ? w : { ...w, sort_order: index };
+          }),
+        })),
+
+      addGuestExercise: (name, category) =>
+        set((state) => {
+          // Same rule as the database's unique constraint: a repeat is a no-op
+          if (state.guestExercises.some((e) => e.name.toLowerCase() === name.toLowerCase())) return state;
+          return {
+            guestExercises: [
+              ...state.guestExercises,
+              { id: crypto.randomUUID(), name, category, created_at: new Date().toISOString() },
+            ].sort((a, b) => a.name.localeCompare(b.name)),
+          };
+        }),
+
+      removeGuestExercise: (id) =>
+        set((state) => ({
+          guestExercises: state.guestExercises.filter((e) => e.id !== id),
+        })),
 
       addWorkout: (workout) =>
         set((state) => ({

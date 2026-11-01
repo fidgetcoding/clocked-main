@@ -14,6 +14,7 @@ import { analyzeWorkoutHistory, getInsightsSummary, HistoryInsights } from '@/li
 import { detectBagType, detectAllSpeedBagDrills, containsSpeedBagVocabulary } from '@/data/speedBagDrills';
 import { getAllPresets } from '@/data/comboPresets';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface AIBuilderModalProps {
   onClose: () => void;
@@ -185,8 +186,10 @@ export async function generateWorkoutFromPrompt(
   userEquipment?: Record<string, boolean>
 ): Promise<Workout> {
   // --- Layer 1: Try AI agent via edge function ---
+  // Only accounts call it; guests go straight to the on-device parser below
   try {
-    const { data, error } = await supabase.functions.invoke('generate-workout', {
+    const { data: { session } } = await supabase.auth.getSession();
+    const { data, error } = !session ? { data: null, error: null } : await supabase.functions.invoke('generate-workout', {
       body: {
         prompt,
         userTier: userLevel,
@@ -318,6 +321,7 @@ export async function generateWorkoutFromPrompt(
 export const AIBuilderModal = ({ onClose, onGenerate, baseWorkout, onWorkoutGenerated }: AIBuilderModalProps) => {
   const navigate = useNavigate();
   const user = useUserStore((state) => state.user);
+  const { isGuest } = useAuth();
   const { history } = useWorkoutHistory();
   
   const [prompt, setPrompt] = useState('');
@@ -661,6 +665,12 @@ export const AIBuilderModal = ({ onClose, onGenerate, baseWorkout, onWorkoutGene
 
         {/* Actions */}
         <div className="p-4 border-t border-surface-3 space-y-3">
+          {isGuest && !isGenerating && (
+            <p className="text-xs text-muted-foreground text-center">
+              AI generation needs an account. Without one, we build this from your text on this device.
+            </p>
+          )}
+
           {/* Progress Bar (visible during generation) */}
           {isGenerating && (
             <div className="space-y-2">

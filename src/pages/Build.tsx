@@ -22,6 +22,8 @@ import {
 import { SPEED_BAG_DRILLS } from '@/data/speedBagDrills';
 import { ExercisePickerModal, isBuiltinExercise } from '@/components/ExercisePickerModal';
 import { useCustomExercises } from '@/hooks/useCustomExercises';
+import { useAuth } from '@/contexts/AuthContext';
+import { promptEmailLink } from '@/lib/guest';
 import { AIBuilderModal } from '@/components/AIBuilderModal';
 import { useShareWorkout } from '@/hooks/useCommunityPosts';
 import { useClubs } from '@/hooks/useClubs';
@@ -281,6 +283,7 @@ const Build = () => {
   const { workouts, addWorkout, updateWorkout } = useWorkouts();
   const user = useUserStore((state) => state.user);
   const { addExercise: addCustomExercise, isInLibrary } = useCustomExercises();
+  const { isGuest } = useAuth();
   
   // Get default difficulty based on user's experience level
   const getDefaultDifficulty = (): ComboDifficulty => {
@@ -799,7 +802,13 @@ const Build = () => {
           </h1>
           {editId ? (
             <button
-              onClick={() => setShowShareDialog(true)}
+              onClick={() => {
+                if (isGuest) {
+                  promptEmailLink('share workouts');
+                  return;
+                }
+                setShowShareDialog(true);
+              }}
               className="flex items-center gap-1.5 text-muted-foreground hover:text-volt transition-colors text-sm font-medium"
               title="Share to Fight Club"
             >

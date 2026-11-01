@@ -73,7 +73,7 @@ export function useClubs() {
         if (error) throw error;
         return count ?? 0;
       },
-      enabled: !!clubId,
+      enabled: !!clubId && !!user,
     });
   };
 

@@ -4,6 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { RequireAccount } from "@/components/RequireAccount";
 import Index from "./pages/Index";
 import Build from "./pages/Build";
 import Settings from "./pages/Settings";
@@ -45,8 +46,8 @@ const App = () => (
             <Route path="/quick-session" element={<QuickSession />} />
             <Route path="/workout/:id" element={<WorkoutSession />} />
             <Route path="/workout/:id/session" element={<WorkoutSession />} />
-            <Route path="/admin" element={<AdminPortal />} />
-            <Route path="/test/badges" element={<BadgeTests />} />
+            <Route path="/admin" element={<RequireAccount><AdminPortal /></RequireAccount>} />
+            <Route path="/test/badges" element={<RequireAccount><BadgeTests /></RequireAccount>} />
             <Route path="/gloves" element={<Gloves />} />
             <Route path="*" element={<NotFound />} />
           </Routes>

@@ -1,6 +1,9 @@
+import { useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { useUserStore } from '@/stores/userStore';
+import { GUEST_USER_ID } from '@/lib/guest';
 import { Prestige, Ranking, getRankingFromLevel, experienceLevelToPrestige, getLevelFromXP } from '@/lib/xpSystem';
 
 export interface Profile {
@@ -84,11 +87,95 @@ export function getPrestigeFromExperience(experienceLevel: string | null): Prest
   return experienceLevelToPrestige(experienceLevel || 'beginner');
 }
 
-export function useProfile() {
-  const { user } = useAuth();
-  const queryClient = useQueryClient();
+// A brand-new account's profile is a bare trigger row, while finishing onboarding always
+// saves equipment. The XP and session checks catch accounts that predate that step.
+export function hasFinishedOnboarding(profile: Profile): boolean {
+  return (
+    Object.keys(profile.equipment || {}).length > 0 ||
+    (profile.total_xp || 0) > 0 ||
+    (profile.workouts_completed || 0) > 0
+  );
+}
 
-  const { data: profile, isLoading, error } = useQuery({
+// Fills a guest's stored fields out to a full Profile, same defaults as a fresh database row
+export function buildGuestProfile(row: Partial<Profile> | null): Profile {
+  const now = new Date().toISOString();
+  const prestige = (row?.prestige || experienceLevelToPrestige(row?.experience_level || 'beginner')) as Prestige;
+  const totalXP = row?.total_xp || 0;
+
+  return {
+    name: 'Fighter',
+    handle: null,
+    bio: null,
+    role: 'fighter',
+    avatar_url: null,
+    experience_level: 'beginner',
+    equipment: {},
+    goals: [],
+    current_streak: 0,
+    longest_streak: 0,
+    workouts_completed: 0,
+    preferences: { voiceType: 'system', soundEnabled: true, voiceAnnouncements: true },
+    last_active_at: null,
+    created_at: now,
+    updated_at: now,
+    combos_landed: 0,
+    total_training_seconds: 0,
+    sessions_completed_this_year: 0,
+    last_workout_date: null,
+    streak_multiplier: 1.0,
+    weight_kg: null,
+    height_cm: null,
+    total_pushups: 0,
+    total_burpees: 0,
+    total_curlups: 0,
+    total_jog_run_minutes: 0,
+    complex_combos: 0,
+    defense_combos: 0,
+    counter_combos: 0,
+    equipped_glove: 'default',
+    unlocked_gloves: ['default'],
+    comeback_count: 0,
+    double_days: 0,
+    morning_workouts: 0,
+    night_workouts: 0,
+    weekend_workouts: 0,
+    weekday_workouts: 0,
+    punch_1_count: 0,
+    punch_2_count: 0,
+    punch_3_count: 0,
+    punch_4_count: 0,
+    punch_5_count: 0,
+    punch_6_count: 0,
+    punch_7_count: 0,
+    punch_8_count: 0,
+    slips_count: 0,
+    rolls_count: 0,
+    pullbacks_count: 0,
+    circles_count: 0,
+    ...row,
+    id: GUEST_USER_ID,
+    user_id: GUEST_USER_ID,
+    prestige,
+    total_xp: totalXP,
+    current_level: getLevelFromXP(prestige, totalXP),
+  };
+}
+
+// Writes to the browser and hands back the updated profile, like the database branch does
+function updateGuest(updates: Partial<Profile>): Profile {
+  const store = useUserStore.getState();
+  store.updateGuestProfile(updates);
+  return buildGuestProfile(useUserStore.getState().guestProfile);
+}
+
+export function useProfile() {
+  const { user, isGuest } = useAuth();
+  const queryClient = useQueryClient();
+  const guestRow = useUserStore((state) => state.guestProfile);
+  const guestProfile = useMemo(() => buildGuestProfile(guestRow), [guestRow]);
+
+  const { data: dbProfile, isLoading, error } = useQuery({
     queryKey: ['profile', user?.id],
     queryFn: async () => {
       if (!user?.id) return null;
@@ -159,8 +246,11 @@ export function useProfile() {
     enabled: !!user?.id,
   });
 
+  const profile = isGuest ? guestProfile : dbProfile;
+
   const updateProfile = useMutation({
     mutationFn: async (updates: Partial<Omit<Profile, 'id' | 'user_id' | 'created_at'>>) => {
+      if (isGuest) return updateGuest(updates);
       if (!user?.id) throw new Error('Not authenticated');
       
       const { data, error } = await supabase
@@ -180,6 +270,9 @@ export function useProfile() {
 
   const addXP = useMutation({
     mutationFn: async (amount: number) => {
+      if (isGuest) {
+        return updateGuest({ total_xp: (useUserStore.getState().guestProfile?.total_xp || 0) + amount });
+      }
       if (!user?.id || !profile) throw new Error('Not authenticated');
       
       const { data, error } = await supabase
@@ -199,6 +292,13 @@ export function useProfile() {
 
   const incrementStreak = useMutation({
     mutationFn: async () => {
+      if (isGuest) {
+        const newStreak = guestProfile.current_streak + 1;
+        return updateGuest({
+          current_streak: newStreak,
+          longest_streak: Math.max(newStreak, guestProfile.longest_streak),
+        });
+      }
       if (!user?.id || !profile) throw new Error('Not authenticated');
       
       const newStreak = profile.current_streak + 1;
@@ -223,6 +323,13 @@ export function useProfile() {
   // Update prestige based on experience level (for onboarding)
   const setInitialPrestige = useMutation({
     mutationFn: async (experienceLevel: string) => {
+      if (isGuest) {
+        return updateGuest({
+          prestige: experienceLevelToPrestige(experienceLevel),
+          current_level: 1,
+          experience_level: experienceLevel,
+        });
+      }
       if (!user?.id) throw new Error('Not authenticated');
       
       const prestige = experienceLevelToPrestige(experienceLevel);

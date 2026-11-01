@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import { ArrowLeft, User, Pencil, Archive, RotateCcw, Trash2, ChevronRight, Camera, Loader2, Check } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
@@ -8,6 +8,7 @@ import { useWorkoutStore } from '@/stores/workoutStore';
 import { useAuth } from '@/contexts/AuthContext';
 import { useProfile } from '@/hooks/useProfile';
 import { supabase } from '@/integrations/supabase/client';
+import { promptEmailLink } from '@/lib/guest';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import {
@@ -25,8 +26,10 @@ const EditProfile = () => {
   const navigate = useNavigate();
   const user = useUserStore((state) => state.user);
   const updateUser = useUserStore((state) => state.updateUser);
-  const { archivedWorkouts, restoreWorkout, permanentlyDeleteArchived } = useWorkoutStore();
-  const { user: authUser } = useAuth();
+  const { archivedWorkouts: localArchived, restoreWorkout, permanentlyDeleteArchived, guestWorkouts, updateGuestWorkout, deleteGuestWorkout } = useWorkoutStore();
+  const { user: authUser, isGuest } = useAuth();
+  const guestArchived = useMemo(() => guestWorkouts.filter((w) => w.is_archived), [guestWorkouts]);
+  const archivedWorkouts: { id: string; name: string; difficulty: string | null }[] = isGuest ? guestArchived : localArchived;
   const { profile, updateProfile } = useProfile();
   
   const [showArchives, setShowArchives] = useState(false);
@@ -77,6 +80,10 @@ const EditProfile = () => {
 
   const handlePhotoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
+    if (file && isGuest) {
+      promptEmailLink('add a profile photo');
+      return;
+    }
     if (!file || !authUser?.id) return;
 
     if (!file.type.startsWith('image/')) {
@@ -183,13 +190,15 @@ const EditProfile = () => {
   };
 
   const handleRestore = (id: string) => {
-    restoreWorkout(id);
+    if (isGuest) updateGuestWorkout(id, { is_archived: false });
+    else restoreWorkout(id);
     toast.success('Workout restored to your sets');
   };
 
   const handlePermanentDelete = () => {
     if (workoutToDelete) {
-      permanentlyDeleteArchived(workoutToDelete);
+      if (isGuest) deleteGuestWorkout(workoutToDelete);
+      else permanentlyDeleteArchived(workoutToDelete);
       setWorkoutToDelete(null);
       toast.success('Workout permanently deleted');
     }

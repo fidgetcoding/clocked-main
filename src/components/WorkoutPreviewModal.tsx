@@ -5,6 +5,7 @@ import { TrendingWorkout } from '@/data/trendingWorkouts';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
+import { promptEmailLink } from '@/lib/guest';
 
 interface WorkoutPreviewModalProps {
   workout: TrendingWorkout;
@@ -66,7 +67,7 @@ export const WorkoutPreviewModal = ({ workout, onClose, onSave, onCustomize }: W
     setIsSubmitting(true);
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
-      toast.error('Sign in to rate workouts');
+      promptEmailLink('rate workouts');
       setIsSubmitting(false);
       return;
     }

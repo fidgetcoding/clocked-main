@@ -17,6 +17,7 @@ import { useUserSearch } from '@/hooks/useUserSearch';
 import { useFollows } from '@/hooks/useFollows';
 import { useClubs, EARLY_ADOPTERS_CLUB_ID } from '@/hooks/useClubs';
 import { useAuth } from '@/contexts/AuthContext';
+import { promptEmailLink } from '@/lib/guest';
 import { useTierPresets, TierPresetWithLoadout } from '@/hooks/useTierPresets';
 
 type Tab = 'feed' | 'clubs' | 'presets';
@@ -61,7 +62,7 @@ const FightClub = () => {
   const { follow } = useFollows();
   
   // Clubs
-  const { user } = useAuth();
+  const { user, isGuest } = useAuth();
   const { clubs, isMemberOf, joinClub, leaveClub, useClubMemberCount } = useClubs();
   const { data: earlyAdoptersMemberCount = 0 } = useClubMemberCount(EARLY_ADOPTERS_CLUB_ID);
   const earlyAdoptersClub = clubs.find(c => c.id === EARLY_ADOPTERS_CLUB_ID);
@@ -169,8 +170,7 @@ const FightClub = () => {
   const handleJoinClub = (clubId: string, e: React.MouseEvent) => {
     e.stopPropagation();
     if (!user) {
-      toast.error('Please sign in to join clubs');
-      navigate('/auth');
+      promptEmailLink('join clubs');
       return;
     }
     joinClub.mutate(clubId);
@@ -572,7 +572,13 @@ const FightClub = () => {
                   </button>
                 </div>
                 <button
-                  onClick={() => setShowUserSearch(true)}
+                  onClick={() => {
+                    if (isGuest) {
+                      promptEmailLink('find other fighters');
+                      return;
+                    }
+                    setShowUserSearch(true);
+                  }}
                   className="w-10 h-10 rounded-lg bg-surface-1 flex items-center justify-center text-muted-foreground hover:text-volt hover:bg-surface-2 transition-colors"
                 >
                   <UserPlus className="w-5 h-5" />
@@ -671,8 +677,15 @@ const FightClub = () => {
                 </div>
               )}
 
+              {/* The community feed is only readable with an account */}
+              {isGuest && (
+                <div className="text-center py-8">
+                  <p className="text-muted-foreground">Sign in with an email link to see the community feed.</p>
+                </div>
+              )}
+
               {/* Empty state for Following filter */}
-              {!postsLoading && feedFilter === 'following' && (!communityPosts || communityPosts.length === 0) && (
+              {!isGuest && !postsLoading && feedFilter === 'following' && (!communityPosts || communityPosts.length === 0) && (
                 <div className="text-center py-8">
                   <p className="text-muted-foreground">No posts from people you follow yet.</p>
                   <p className="text-sm text-muted-foreground mt-1">Follow more fighters to see their posts here!</p>
@@ -839,17 +852,22 @@ const FightClub = () => {
                     </div>
                     <div className="flex-1">
                       <h4 className="font-semibold text-foreground">{club.name}</h4>
-                      <p className="text-sm text-muted-foreground">
-                        {club.memberCount} / {earlyAdoptersCap} members
-                      </p>
-                      {spotsRemaining > 0 ? (
-                        <p className="text-xs text-volt mt-1">
-                          {spotsRemaining} {spotsRemaining === 1 ? 'spot' : 'spots'} remaining! 🔥
-                        </p>
-                      ) : (
-                        <p className="text-xs text-destructive mt-1">
-                          Club full
-                        </p>
+                      {/* Membership is only readable with an account, so guests have no real count to show */}
+                      {!isGuest && (
+                        <>
+                          <p className="text-sm text-muted-foreground">
+                            {club.memberCount} / {earlyAdoptersCap} members
+                          </p>
+                          {spotsRemaining > 0 ? (
+                            <p className="text-xs text-volt mt-1">
+                              {spotsRemaining} {spotsRemaining === 1 ? 'spot' : 'spots'} remaining! 🔥
+                            </p>
+                          ) : (
+                            <p className="text-xs text-destructive mt-1">
+                              Club full
+                            </p>
+                          )}
+                        </>
                       )}
                     </div>
                     <Button

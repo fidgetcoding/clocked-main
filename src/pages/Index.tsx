@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Plus, History, Archive, GripVertical, Check, Timer, X } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { Navigate, useNavigate } from 'react-router-dom';
 import {
   DndContext,
   closestCenter,
@@ -57,8 +57,7 @@ const Index = () => {
 
   // Redirect to onboarding if not completed
   if (!hasCompletedOnboarding) {
-    navigate('/onboarding');
-    return null;
+    return <Navigate to="/onboarding" replace />;
   }
 
   // Filter active workouts (not archived)

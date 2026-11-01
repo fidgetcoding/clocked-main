@@ -12,7 +12,7 @@ export interface FollowUser {
 export function useFollows(userId?: string) {
   const { user } = useAuth();
   const queryClient = useQueryClient();
-  const targetUserId = userId || user?.id;
+  const targetUserId = user ? userId || user.id : undefined;
 
   // Get followers count
   const { data: followersCount = 0 } = useQuery({

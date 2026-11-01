@@ -6,10 +6,11 @@ import { Input } from '@/components/ui/input';
 import { useUserStore } from '@/stores/userStore';
 import { useWorkouts } from '@/hooks/useWorkouts';
 import { useAuth } from '@/contexts/AuthContext';
-import { useProfile } from '@/hooks/useProfile';
+import { hasFinishedOnboarding, useProfile } from '@/hooks/useProfile';
 import { experienceLevelToPrestige } from '@/lib/xpSystem';
 import { generateLoadoutWorkout } from '@/lib/loadoutGenerator';
 import { cn } from '@/lib/utils';
+import { toast } from 'sonner';
 import clockedLogo from '@/assets/clocked-logo.png';
 
 type Step = 'welcome' | 'role' | 'name' | 'experience' | 'equipment' | 'fightClub' | 'goals' | 'complete';
@@ -54,9 +55,9 @@ const coachGoalOptions = [
 const Onboarding = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const { completeOnboarding } = useUserStore();
-  const { profile, updateProfile, setInitialPrestige } = useProfile();
+  const { profile, isLoading: profileLoading, updateProfile, setInitialPrestige } = useProfile();
   // workoutStore preset methods removed — loadout generator handles everything
   const { addWorkout: addWorkoutToDb } = useWorkouts();
   
@@ -81,6 +82,30 @@ const Onboarding = () => {
       setStep('role');
     }
   }, [shouldContinue, user, step]);
+
+  // The email link lands every account here, new or returning. Returning accounts go
+  // straight to the app so finishing onboarding can't reset their prestige and level.
+  useEffect(() => {
+    if (user && profile && hasFinishedOnboarding(profile)) {
+      completeOnboarding({
+        name: profile.name,
+        role: profile.role,
+        experienceLevel: profile.experience_level as any,
+        prestige: profile.prestige,
+        currentLevel: profile.current_level,
+      });
+      navigate('/', { replace: true });
+    }
+  }, [user, profile, completeOnboarding, navigate]);
+
+  // An expired or already-used link comes back with the reason in the URL hash
+  useEffect(() => {
+    const hash = new URLSearchParams(window.location.hash.slice(1));
+    if (hash.get('error')) {
+      toast.error('That sign-in link has expired. Request a new one.');
+      navigate('/auth', { replace: true });
+    }
+  }, [navigate]);
 
   const handleNext = (selectedRole?: 'fighter' | 'coach') => {
     const roleToUse = selectedRole || role;
@@ -204,6 +229,11 @@ const Onboarding = () => {
       : ['role', 'name', 'experience', 'equipment', 'goals'];
   };
 
+  // Hold the first screen until we know whether a signed-in account has been here before
+  if ((shouldContinue && authLoading) || (user && profileLoading)) {
+    return <div className="min-h-screen bg-background" />;
+  }
+
   return (
     <div className="min-h-screen bg-background flex flex-col relative overflow-hidden">
       {/* Progress dots */}
@@ -236,14 +266,14 @@ const Onboarding = () => {
             </p>
             <div className="flex flex-col items-center gap-3">
               <Button 
-                onClick={() => navigate('/auth?mode=signup')} 
+                onClick={() => handleNext()} 
                 className="btn-primary-glow w-40 py-2 h-auto text-sm"
               >
                 GET STARTED
                 <ArrowRight className="w-4 h-4 ml-2" />
               </Button>
               <Button 
-                onClick={() => navigate('/auth?mode=login')} 
+                onClick={() => navigate('/auth')} 
                 variant="outline"
                 className="w-40 py-2 h-auto text-sm bg-surface-1 border-surface-3 hover:bg-surface-2"
               >

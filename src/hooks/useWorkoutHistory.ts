@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { useHistoryStore } from '@/stores/historyStore';
 
 export interface WorkoutHistoryEntry {
   id: string;
@@ -18,10 +19,11 @@ export interface WorkoutHistoryEntry {
 }
 
 export function useWorkoutHistory() {
-  const { user } = useAuth();
+  const { user, isGuest } = useAuth();
   const queryClient = useQueryClient();
+  const guestHistory = useHistoryStore((state) => state.guestHistory);
 
-  const { data: history = [], isLoading, error } = useQuery({
+  const { data: dbHistory = [], isLoading, error } = useQuery({
     queryKey: ['workout-history', user?.id],
     queryFn: async () => {
       if (!user?.id) return [];
@@ -38,8 +40,11 @@ export function useWorkoutHistory() {
     enabled: !!user?.id,
   });
 
+  const history = isGuest ? guestHistory : dbHistory;
+
   const addHistoryEntry = useMutation({
     mutationFn: async (entry: Omit<WorkoutHistoryEntry, 'id' | 'user_id' | 'created_at'>) => {
+      if (isGuest) return useHistoryStore.getState().addGuestEntry(entry);
       if (!user?.id) throw new Error('Not authenticated');
       
       const { data, error } = await supabase
@@ -58,6 +63,7 @@ export function useWorkoutHistory() {
 
   const updateHistoryEntry = useMutation({
     mutationFn: async ({ id, ...updates }: Partial<WorkoutHistoryEntry> & { id: string }) => {
+      if (isGuest) return useHistoryStore.getState().updateGuestEntry(id, updates);
       if (!user?.id) throw new Error('Not authenticated');
       
       const { data, error } = await supabase
@@ -78,6 +84,7 @@ export function useWorkoutHistory() {
 
   const deleteHistoryEntry = useMutation({
     mutationFn: async (id: string) => {
+      if (isGuest) return useHistoryStore.getState().deleteGuestEntry(id);
       if (!user?.id) throw new Error('Not authenticated');
       
       const { error } = await supabase
