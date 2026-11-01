@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Mail, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { supabase } from '@/integrations/supabase/client';
+import { isBackendConfigured, supabase } from '@/integrations/supabase/client';
 import clockedLogo from '@/assets/clocked-logo.png';
 
 const describeAuthError = (error: { status?: number; code?: string; message?: string }) => {
@@ -54,7 +54,16 @@ const Auth = () => {
         className="w-32 h-32 object-contain mb-4"
       />
 
-      {sentTo ? (
+      {!isBackendConfigured ? (
+        <>
+          <h1 className="text-2xl font-black text-foreground mb-2">
+            NO BACKEND CONFIGURED
+          </h1>
+          <p className="w-full max-w-sm text-muted-foreground text-center">
+            This copy of Clocked isn't connected to a Supabase project, so sign-in is off. Your training is still saved in this browser. To add accounts, follow SETUP.md in the repo.
+          </p>
+        </>
+      ) : sentTo ? (
         <>
           <h1 className="text-2xl font-black text-foreground mb-2">
             CHECK YOUR EMAIL

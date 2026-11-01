@@ -23,7 +23,8 @@ dist-ssr
 *.sln
 *.sw?
 
-# Secrets. .env itself stays tracked for now: the deploy reads it and it holds only the anon key.
+# Secrets
 .env*
+!.env.example
 *.pem
 *.key
