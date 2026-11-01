@@ -1,6 +1,7 @@
 // What only a signed-in fighter can do, with real accounts in separate browsers against the real backend.
 import type { Browser, Page } from "@playwright/test";
 import { expect, test } from "./silent";
+import { playButton, skipButton } from "./controls";
 import { APP_URL, finishAccountOnboarding, readStore, service } from "./helpers";
 
 const ONE_PIXEL_PNG = Buffer.from(
@@ -418,8 +419,8 @@ test.describe("clubs and the feed", () => {
       expect((data?.phases as unknown[])?.length ?? 0).toBeGreaterThan(0);
       await saver.page.goto(`${APP_URL}/workout/${data?.id}`);
       await expect(saver.page.getByText("Workout not found")).toHaveCount(0);
-      await saver.page.locator("button:has(svg.lucide-play)").first().click();
-      await saver.page.locator("button:has(svg.lucide-skip-forward)").click();
+      await playButton(saver.page).click();
+      await skipButton(saver.page).click();
       await expect(saver.page.locator("h2").first()).not.toHaveText("");
     });
 

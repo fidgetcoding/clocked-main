@@ -5,8 +5,8 @@
 import type { Page } from "@playwright/test";
 import { simulate, type SynthPunch } from "../../src/test/punchSynth";
 import { expect, test } from "./silent";
-import {
 import { finishSessionButton, playButton } from "./controls";
+import {
   APP_URL,
   clickNewestEmailLink,
   finishAccountOnboarding,

@@ -117,7 +117,7 @@ function PortraitFeed({ view, actions, flash, cameraOn, feed, counting, onDismis
             <StageHeadline view={view} />
             <SegmentTitle view={view} className="pl-1" />
           </div>
-          <ClockFace view={view} className="h-[14cqh] w-[42cqw]" />
+          <ClockFace view={view} className="h-[14cqh] w-[42cqw] [@media(max-height:620px)]:h-[10cqh]" />
         </div>
       )}
 
@@ -125,18 +125,18 @@ function PortraitFeed({ view, actions, flash, cameraOn, feed, counting, onDismis
         {feed?.cue && <CuePlate cue={feed.cue} className="mb-2" textClass="text-[3.5rem] whitespace-normal max-w-[85cqw]" />}
         {bellXP != null && <BellPlate view={view} xp={bellXP} className="mb-1" />}
         {hasCombo ? (
-          <ComboBlock view={view} className="h-[27cqh] px-4" />
+          <ComboBlock view={view} className="h-[27cqh] px-4 [@media(max-height:620px)]:h-[23cqh]" />
         ) : view.kind === 'freestyle' ? (
           <div className="h-[9cqh] px-4">
             <FreestylePlate />
           </div>
         ) : null}
         {!hasCombo && <SegmentTitle view={view} className="mx-4" />}
-        {!hasCombo && <ClockFace view={view} className="mx-3 h-[26cqh]" />}
-        {hasCombo && <NextComboRow view={view} className="mx-4 mt-1" />}
+        {!hasCombo && <ClockFace view={view} className="mx-3 h-[26cqh] [@media(max-height:620px)]:h-[20cqh]" />}
+        {hasCombo && <NextComboRow view={view} className="mx-4 mt-1 [@media(max-height:620px)]:hidden" />}
         <div className="mt-1 flex items-center gap-3 px-4">
           <PunchCount feed={feed} counting={counting} size="text-[3.75rem]" className="shrink-0" />
-          {liveLog ? <div className="min-w-0 flex-1">{liveLog}</div> : <PunchStats feed={feed} className="min-w-0 flex-1" />}
+          {liveLog ? <div className="min-w-0 flex-1">{liveLog}</div> : <PunchStats feed={feed} className="min-w-0 flex-1 [@media(max-height:620px)]:hidden" />}
         </div>
         {view.paused && <TimeAdjust onAdjust={actions.onAdjust} className="mx-5 mt-2" />}
         <Transport view={view} actions={actions} className="mx-5 my-2.5" />
