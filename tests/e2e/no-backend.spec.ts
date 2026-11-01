@@ -1,5 +1,5 @@
 // The build with no Supabase settings at all, which is what a stranger gets on a fresh clone.
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./silent";
 import { finishGuestOnboarding, NO_BACKEND_URL, readStore, trainAndFinish } from "./helpers";
 
 test("every glove on the gloves page shows real art", async ({ page }) => {

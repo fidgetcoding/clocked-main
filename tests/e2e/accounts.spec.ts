@@ -1,5 +1,5 @@
 // A real browser, the real auth server, and the real email: the link is clicked in the mail catcher.
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./silent";
 import {
   APP_URL,
   clickNewestEmailLink,

@@ -1,6 +1,6 @@
 // The reward gate, measured in the database a real session writes to. The browser's clock is moved
 // forward, so these run in seconds rather than minutes.
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./silent";
 import { APP_URL, clickNewestEmailLink, finishAccountOnboarding, requestSignInEmail, service, trainAndFinish, userIdFor } from "./helpers";
 
 const profileOf = async (userId: string) =>
