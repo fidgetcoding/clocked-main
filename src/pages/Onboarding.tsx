@@ -1,7 +1,7 @@
 import type { UserProfile } from '@/types';
 import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { ArrowRight, User, Users, Dumbbell, Target, Home as HomeIcon, Swords, Trophy, Check, Lock, Globe, GraduationCap, ClipboardList, Users2, TrendingUp, LogIn, Star } from 'lucide-react';
+import { ArrowRight, User, Users, Dumbbell, Target, Home as HomeIcon, Swords, Trophy, Check, GraduationCap, ClipboardList, Users2, TrendingUp, LogIn, Star } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useUserStore } from '@/stores/userStore';
@@ -16,7 +16,7 @@ import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import clockedLogo from '@/assets/clocked-logo.png';
 
-type Step = 'welcome' | 'role' | 'name' | 'stance' | 'experience' | 'equipment' | 'fightClub' | 'goals' | 'complete';
+type Step = 'welcome' | 'role' | 'name' | 'stance' | 'experience' | 'equipment' | 'coachTools' | 'goals' | 'complete';
 
 const experienceLevels = [
   { id: 'complete_beginner', label: 'Rookie', desc: 'Never trained combat sports' },
@@ -75,11 +75,6 @@ const Onboarding = () => {
   const [primaryBag, setPrimaryBag] = useState<'heavy' | 'double_end' | 'none'>('none');
   const [goals, setGoals] = useState<string[]>([]);
   
-  // Coach-specific state
-  const [fightClubName, setFightClubName] = useState('');
-  const [fightClubType, setFightClubType] = useState<'private' | 'public'>('private');
-  const [athleteCount, setAthleteCount] = useState('');
-
   // If user is logged in and we have continue param, start at role selection
   useEffect(() => {
     if (shouldContinue && user && step === 'welcome') {
@@ -113,9 +108,9 @@ const Onboarding = () => {
 
   const handleNext = (selectedRole?: 'fighter' | 'coach') => {
     const roleToUse = selectedRole || role;
-    // Coaches skip equipment (they have all), but get fightClub step
+    // Coaches skip equipment (they have all), and hear that coach tools aren't built yet
     const steps: Step[] = roleToUse === 'coach'
-      ? ['welcome', 'role', 'name', 'stance', 'fightClub', 'goals', 'complete']
+      ? ['welcome', 'role', 'name', 'stance', 'coachTools', 'goals', 'complete']
       : ['welcome', 'role', 'name', 'stance', 'experience', 'equipment', 'goals', 'complete'];
     
     const currentIndex = steps.indexOf(step);
@@ -230,7 +225,7 @@ const Onboarding = () => {
   // Get step count for progress dots
   const getSteps = () => {
     return role === 'coach'
-      ? ['role', 'name', 'stance', 'fightClub', 'goals']
+      ? ['role', 'name', 'stance', 'coachTools', 'goals']
       : ['role', 'name', 'stance', 'experience', 'equipment', 'goals'];
   };
 
@@ -335,7 +330,7 @@ const Onboarding = () => {
                   </div>
                   <div>
                     <h3 className="text-lg font-bold text-foreground">I'M A COACH</h3>
-                    <p className="text-sm text-muted-foreground">Train fighters, create programs</p>
+                    <p className="text-sm text-muted-foreground">Train here today. Coach tools are coming soon.</p>
                   </div>
                 </div>
               </button>
@@ -507,88 +502,23 @@ const Onboarding = () => {
           </div>
         )}
 
-        {/* Fight Club Setup (coaches only) */}
-        {step === 'fightClub' && (
-          <div className="w-full max-w-md animate-fade-in">
-            <h2 className="text-2xl font-black text-foreground text-center mb-2">
-              Set Up Your Fight Club
+        {/* Coach tools aren't built yet, so this says so instead of collecting a roster nothing would save */}
+        {step === 'coachTools' && (
+          <div className="w-full max-w-md animate-fade-in text-center">
+            <span className="inline-block text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-surface-2 text-muted-foreground mb-4">
+              Coming soon
+            </span>
+            <h2 className="text-2xl font-black text-foreground mb-2">
+              Coach Tools Are Coming
             </h2>
-            <p className="text-muted-foreground text-center mb-8">
-              Create a space for your athletes to train together
+            <p className="text-muted-foreground mb-8">
+              Rosters, programs and a coach marketplace aren't built yet. You can use all of Clocked's training today, and your profile will show you as a coach.
             </p>
-
-            <div className="space-y-4 mb-6">
-              <div>
-                <label className="text-sm font-medium text-foreground mb-2 block">
-                  Fight Club Name
-                </label>
-                <Input
-                  value={fightClubName}
-                  onChange={(e) => setFightClubName(e.target.value)}
-                  placeholder="e.g. Iron Fist Boxing"
-                  className="h-12 bg-surface-1 border-surface-3"
-                />
-              </div>
-
-              <div>
-                <label className="text-sm font-medium text-foreground mb-2 block">
-                  Number of Athletes
-                </label>
-                <Input
-                  type="number"
-                  value={athleteCount}
-                  onChange={(e) => setAthleteCount(e.target.value)}
-                  placeholder="How many fighters on your roster?"
-                  className="h-12 bg-surface-1 border-surface-3"
-                />
-              </div>
-
-              <div>
-                <label className="text-sm font-medium text-foreground mb-3 block">
-                  Visibility
-                </label>
-                <div className="grid grid-cols-2 gap-3">
-                  <button
-                    onClick={() => setFightClubType('private')}
-                    className={cn(
-                      'p-4 rounded-xl border text-left transition-all',
-                      fightClubType === 'private' 
-                        ? 'border-volt bg-volt/10' 
-                        : 'border-surface-3 bg-surface-1'
-                    )}
-                  >
-                    <Lock className="w-5 h-5 text-volt mb-2" />
-                    <h3 className="font-semibold text-foreground text-sm">Private</h3>
-                    <p className="text-xs text-muted-foreground">Invite only</p>
-                  </button>
-                  <button
-                    onClick={() => setFightClubType('public')}
-                    className={cn(
-                      'p-4 rounded-xl border text-left transition-all',
-                      fightClubType === 'public' 
-                        ? 'border-volt bg-volt/10' 
-                        : 'border-surface-3 bg-surface-1'
-                    )}
-                  >
-                    <Globe className="w-5 h-5 text-volt mb-2" />
-                    <h3 className="font-semibold text-foreground text-sm">Public</h3>
-                    <p className="text-xs text-muted-foreground">Anyone can join</p>
-                  </button>
-                </div>
-              </div>
-            </div>
 
             <Button onClick={() => handleNext()} className="btn-primary-glow w-full h-14 text-lg">
               Continue
               <ArrowRight className="w-5 h-5 ml-2" />
             </Button>
-            
-            <button 
-              onClick={() => handleNext()} 
-              className="w-full text-center text-sm text-muted-foreground mt-4 hover:text-foreground transition-colors"
-            >
-              Skip for now
-            </button>
           </div>
         )}
 
@@ -648,7 +578,7 @@ const Onboarding = () => {
             </h2>
             <p className="text-muted-foreground mb-8 max-w-sm">
               {role === 'coach' 
-                ? "Your Fight Club is ready. Start building workouts for your athletes."
+                ? "Your loadout is ready. Coach tools are on the way, so for now, let's train."
                 : "Your personalized loadout is ready. Let's get to work."
               }
             </p>

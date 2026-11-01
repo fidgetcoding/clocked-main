@@ -3,7 +3,7 @@ import type { WorkoutSection } from '@/types';
 import { getSpeechRecognizerClass } from '@/lib/speechRecognition';
 import { splitStoredPhases } from '@/lib/storedPhases';
 import { useState } from 'react';
-import { ArrowLeft, Users, Newspaper, Trophy, Search, MessageCircle, BarChart3, Send, ChevronRight, Mic, MicOff, Download, X, UserPlus, LogIn, LogOut, Trash2, Star } from 'lucide-react';
+import { ArrowLeft, Users, Newspaper, Trophy, Search, MessageCircle, BarChart3, Send, ChevronRight, Mic, MicOff, Download, X, UserPlus, LogIn, LogOut, Trash2, Star, Radio } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
@@ -12,7 +12,6 @@ import { cn } from '@/lib/utils';
 import { WORKOUT_CATEGORIES, TrendingWorkout, WorkoutCategory } from '@/data/trendingWorkouts';
 import { WorkoutPreviewModal } from '@/components/WorkoutPreviewModal';
 import { AIBuilderModal } from '@/components/AIBuilderModal';
-import { LiveStreamModal } from '@/components/LiveStreamModal';
 import { useWorkouts } from '@/hooks/useWorkouts';
 import { useCommunityPosts, CommunityPost, useDeleteCommunityPost } from '@/hooks/useCommunityPosts';
 
@@ -68,7 +67,6 @@ const FightClub = () => {
   const [selectedWorkout, setSelectedWorkout] = useState<TrendingWorkout | null>(null);
   const [showAIBuilder, setShowAIBuilder] = useState(false);
   const [customizeWorkout, setCustomizeWorkout] = useState<TrendingWorkout | undefined>(undefined);
-  const [watchingStream, setWatchingStream] = useState<{userName: string; userAvatar: string; workoutName: string; elapsed: string} | null>(null);
   
   // User search state
   const [showUserSearch, setShowUserSearch] = useState(false);
@@ -196,27 +194,6 @@ const FightClub = () => {
     leaveClub.mutate(clubId);
   };
 
-  // Demo feed post - shows LIVE feature example
-  type MockFeedPost = {
-    id: string;
-    userName: string;
-    avatar: string;
-    status: 'live' | 'active';
-    type: 'currently_training' | 'workout_complete' | 'rank_up';
-    workoutName?: string;
-    elapsed?: string;
-    xpEarned?: number;
-    message?: string;
-    timeAgo?: string;
-    likes?: number;
-    comments?: number;
-    newRank?: string;
-  };
-  
-  const mockFeedPosts: MockFeedPost[] = [
-    { id: 'demo-live', userName: 'Demo', status: 'live', type: 'currently_training', workoutName: 'Heavy Bag Blast', elapsed: '18:34', avatar: '🤖' },
-  ];
-
   // Helper to format time ago
   const formatTimeAgo = (dateString: string) => {
     const date = new Date(dateString);
@@ -290,7 +267,7 @@ const FightClub = () => {
   };
 
   // Club leaderboard - empty for now, will be populated from database
-  const clubLeaderboard: {rank: number; name: string; xp: number; avatar: string; isLive: boolean; isYou?: boolean}[] = [];
+  const clubLeaderboard: {rank: number; name: string; xp: number; avatar: string; isYou?: boolean}[] = [];
 
   // Club Detail View
   if (selectedClub) {
@@ -500,9 +477,6 @@ const FightClub = () => {
                     </div>
                     <div className="w-10 h-10 rounded-full bg-surface-2 flex items-center justify-center text-xl relative">
                       {member.avatar}
-                      {member.isLive && (
-                        <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-volt rounded-full border-2 border-background" />
-                      )}
                     </div>
                     <div className="flex-1">
                       <p className={cn('font-semibold', member.isYou ? 'text-volt' : 'text-foreground')}>
@@ -510,9 +484,6 @@ const FightClub = () => {
                       </p>
                       <p className="text-xs text-muted-foreground">{member.xp.toLocaleString()} XP</p>
                     </div>
-                    {member.isLive && (
-                      <span className="text-xs text-volt font-medium">LIVE</span>
-                    )}
                   </div>
                 ))}
               </div>
@@ -707,87 +678,27 @@ const FightClub = () => {
                 </div>
               )}
 
-              {/* Mock feed posts as demo/fallback - only show on "All" tab */}
-              {feedFilter === 'all' && mockFeedPosts.map((post) => (
-                <div key={post.id} className="card-workout">
+              {/* Not built yet, and labelled as such rather than faked with a demo stream */}
+              {feedFilter === 'all' && (
+                <div className="card-workout" data-testid="live-training-placeholder">
                   <div className="flex items-start gap-3">
-                    {/* Clickable Avatar */}
-                    <button 
-                      onClick={() => navigate(`/profile/${post.userName.toLowerCase().replace(/\s+/g, '-')}`)}
-                      className="w-10 h-10 rounded-full bg-surface-2 flex items-center justify-center text-xl hover:ring-2 hover:ring-volt transition-all flex-shrink-0"
-                    >
-                      {post.avatar}
-                    </button>
+                    <div className="w-10 h-10 rounded-full bg-surface-2 flex items-center justify-center flex-shrink-0">
+                      <Radio className="w-5 h-5 text-muted-foreground" />
+                    </div>
                     <div className="flex-1">
                       <div className="flex items-center gap-2">
-                        <button 
-                          onClick={() => navigate(`/profile/${post.userName.toLowerCase().replace(/\s+/g, '-')}`)}
-                          className="font-semibold text-foreground hover:text-volt transition-colors"
-                        >
-                          {post.userName}
-                        </button>
-                        {post.status === 'live' && (
-                          <span className="flex items-center gap-1 text-xs text-volt font-medium">
-                            <span className="w-2 h-2 rounded-full bg-volt animate-pulse" />
-                            LIVE
-                          </span>
-                        )}
+                        <h4 className="font-semibold text-foreground">Live training</h4>
+                        <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-surface-2 text-muted-foreground">
+                          Coming soon
+                        </span>
                       </div>
-
-                      {post.type === 'currently_training' && (
-                        <>
-                          <p className="text-sm text-muted-foreground mt-1">
-                            Currently doing: <span className="text-foreground">{post.workoutName}</span>
-                          </p>
-                          <p className="text-xs text-volt mt-1">{post.elapsed} elapsed</p>
-                          <Button 
-                            size="sm" 
-                            className="mt-2 bg-surface-2 hover:bg-surface-3 text-foreground text-xs"
-                            onClick={() => setWatchingStream({
-                              userName: post.userName,
-                              userAvatar: post.avatar,
-                              workoutName: post.workoutName!,
-                              elapsed: post.elapsed!,
-                            })}
-                          >
-                            Watch
-                          </Button>
-                        </>
-                      )}
-
-                      {post.type === 'workout_complete' && (
-                        <>
-                          <p className="text-sm text-foreground mt-1">
-                            Completed "{post.workoutName}" 🔥
-                          </p>
-                          <p className="text-xs text-volt">{post.xpEarned} XP earned</p>
-                          {post.message && (
-                            <p className="text-sm text-muted-foreground mt-2 italic">"{post.message}"</p>
-                          )}
-                          <div className="flex items-center gap-4 mt-3 text-xs text-muted-foreground">
-                            <span>❤️ {post.likes}</span>
-                            <span>💬 {post.comments}</span>
-                            <span className="ml-auto">{post.timeAgo}</span>
-                          </div>
-                        </>
-                      )}
-
-                      {post.type === 'rank_up' && (
-                        <>
-                          <p className="text-sm text-foreground mt-1">
-                            Ranked up to <span className="text-volt font-bold">{post.newRank}</span>! 🏆
-                          </p>
-                          <div className="flex items-center gap-4 mt-3 text-xs text-muted-foreground">
-                            <span>❤️ {post.likes}</span>
-                            <span>💬 {post.comments}</span>
-                            <span className="ml-auto">{post.timeAgo}</span>
-                          </div>
-                        </>
-                      )}
+                      <p className="text-sm text-muted-foreground mt-1">
+                        Streaming a session and training together isn't built yet.
+                      </p>
                     </div>
                   </div>
                 </div>
-              ))}
+              )}
             </div>
           )}
 
@@ -1109,16 +1020,6 @@ const FightClub = () => {
         />
       )}
 
-      {/* Live Stream Modal */}
-      {watchingStream && (
-        <LiveStreamModal
-          userName={watchingStream.userName}
-          userAvatar={watchingStream.userAvatar}
-          workoutName={watchingStream.workoutName}
-          elapsed={watchingStream.elapsed}
-          onClose={() => setWatchingStream(null)}
-        />
-      )}
 
       {/* User Search Modal */}
       {showUserSearch && (

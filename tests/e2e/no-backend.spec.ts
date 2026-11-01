@@ -34,3 +34,41 @@ test("a fresh clone runs as a guest, gates rewards, and never calls a backend", 
 
   expect(backendCalls).toEqual([]);
 });
+
+test("live training and coach tools say coming soon instead of pretending", async ({ page }) => {
+  const pageErrors: string[] = [];
+  page.on("pageerror", (error) => pageErrors.push(error.message));
+
+  await test.step("the feed labels live training and offers nothing to watch", async () => {
+    await finishGuestOnboarding(page, NO_BACKEND_URL, "Placeholder Check");
+    await page.goto(`${NO_BACKEND_URL}/fight-club`);
+    const card = page.getByTestId("live-training-placeholder");
+    await expect(card).toContainText("Coming soon");
+    await expect(card.getByRole("button")).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "Watch" })).toHaveCount(0);
+    await expect(page.getByText("LIVE", { exact: true })).toHaveCount(0);
+  });
+
+  await test.step("coach sign-up promises nothing and asks for nothing it can't save", async () => {
+    await page.evaluate(() => localStorage.clear());
+    await page.goto(`${NO_BACKEND_URL}/onboarding`);
+    await page.getByRole("button", { name: "GET STARTED" }).click();
+    await expect(page.getByRole("button", { name: /I'M A COACH/ })).toContainText("Coach tools are coming soon");
+    await page.getByText("I'M A COACH").click();
+    await page.getByPlaceholder("Your name").fill("Placeholder Coach");
+
+    const next = page.getByRole("button", { name: "Continue" });
+    await next.click();
+    await next.click();
+    await page.getByRole("heading", { name: "Coach Tools Are Coming" }).waitFor();
+    await expect(page.getByPlaceholder("e.g. Iron Fist Boxing")).toHaveCount(0);
+
+    await next.click();
+    await next.click();
+    await expect(page.getByText("Your Fight Club is ready")).toHaveCount(0);
+    await page.getByRole("button", { name: "LET'S WORK" }).click();
+    await page.getByText("Your Sets").waitFor();
+  });
+
+  expect(pageErrors).toEqual([]);
+});
