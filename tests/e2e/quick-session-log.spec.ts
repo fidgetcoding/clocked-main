@@ -96,11 +96,9 @@ for (const viewport of [{ width: 1366, height: 768 }, { width: 390, height: 844 
     const timer = (await page.locator(".timer-display").boundingBox())!;
     expect(panel.y + panel.height <= timer.y || panel.x + panel.width <= timer.x).toBe(true);
 
-    if (process.env.STACK_SHOTS) await page.screenshot({ path: `${process.env.STACK_SHOTS}/live-${viewport.width}.png`, fullPage: true });
     await finish.click();
     await page.getByText("SESSION COMPLETE!").waitFor();
     await expectSummary(page);
-    if (process.env.STACK_SHOTS) await page.screenshot({ path: `${process.env.STACK_SHOTS}/summary-${viewport.width}.png`, fullPage: true });
     await page.getByRole("button", { name: /log/i }).first().click();
 
     const saved = await page.evaluate(() => JSON.parse(localStorage.getItem("get-clocked-history") as string).state.guestHistory[0]);

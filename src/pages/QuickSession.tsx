@@ -254,7 +254,7 @@ const QuickSession = () => {
 
     return (
       <AppLayout hideNav>
-        <div className="min-h-screen flex flex-col items-center justify-center px-4 bg-background">
+        <div className="min-h-screen flex flex-col items-center justify-center px-4 py-8 bg-background">
           <div className="text-6xl mb-6">⏱️</div>
           <h1 className="text-3xl font-black text-foreground mb-2">SESSION COMPLETE!</h1>
           <p className="text-muted-foreground mb-6">Quick Session</p>
