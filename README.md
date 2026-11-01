@@ -2,6 +2,10 @@
 
 Knockout Intelligence: a boxing trainer that lives in your browser and yells combos at you so your coach can have a day off.
 
+## ▶ [Try it live, no login: clocked-main.vercel.app](https://clocked-main.vercel.app)
+
+Jump straight to the camera with [Punch Check](https://clocked-main.vercel.app/punch-check). The live copy runs in guest mode, so accounts and the AI builder need your own backend.
+
 Open it and start swinging. There's no account wall, no signup, no "enter your email to see the workouts." Everything you do is saved right there in your browser until you decide you'd like an account.
 
 ## What's in the corner
