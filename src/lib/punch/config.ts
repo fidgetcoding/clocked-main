@@ -262,6 +262,8 @@ export const PUNCH_CONFIG = {
     minVisibility: 0.5,
     /** Key joints must sit at least this far inside the image. */
     edgeMargin: 0.01,
+    /** Tracking gets shaky with the head this close to the top of the picture, as a share of its height. */
+    minHeadroom: 0.08,
     /** Shoulder width as a share of image width. */
     tooCloseWidth: 0.42,
     tooFarWidth: 0.09,

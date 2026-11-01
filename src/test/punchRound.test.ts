@@ -22,6 +22,8 @@ const punchEvent = (id: number, t: number, punch: PunchClass, issues: FormIssue[
     elbow: 160,
     elbowHeldMax: 160,
     elbowOpening: 60,
+    pathBend: 0,
+    viewYaw: 0,
     forwardShare: 0.9,
     armAcross: 0.1,
     upShare: 0.1,

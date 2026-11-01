@@ -11,7 +11,8 @@ import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
 import { VerticalXPBar } from '@/components/ui/VerticalXPBar';
 import { ResumeSessionDialog } from '@/components/workout/ResumeSessionDialog';
-import { clearSession, findResumableSession, saveSession, type SessionSnapshot } from '@/lib/sessionRecovery';
+import type { PunchLog } from '@/lib/punch/sessionLog';
+import { clearSession, findResumableSession, findSessionPunches, saveSession, saveSessionPunches, type SessionSnapshot } from '@/lib/sessionRecovery';
 
 import { ComboXPPop } from '@/components/ui/ComboXPPop';
 import {
@@ -888,6 +889,10 @@ const WorkoutSession = () => {
   const resumeChecked = useRef(false);
   const sessionEnded = useRef(false);
 
+  const elapsedRef = useRef(0);
+  elapsedRef.current = totalElapsed;
+  const [resumedPunchLog, setResumedPunchLog] = useState<PunchLog | null>(null);
+
   const endSession = () => {
     sessionEnded.current = true;
     clearSession();
@@ -919,6 +924,7 @@ const WorkoutSession = () => {
     setIsPreparation(saved.isPreparation);
     setAccumulatedXP(saved.timerXP);
     setSessionLog(saved.log);
+    setResumedPunchLog(findSessionPunches());
     startBonusPaidRef.current = true;
     setHasStartedOnce(true);
     setIsPaused(true);
@@ -1094,7 +1100,7 @@ const WorkoutSession = () => {
       xp_earned: sessionResult.sessionTotal,
       difficulty: difficultyRating || null,
       notes: [notes, punchSummary?.total ? punchSummary.note : ''].filter(Boolean).join('\n') || null,
-      punch_log: punchSummary?.log ?? null,
+      punch_log: punchSummary?.log ?? resumedPunchLog,
       is_manual_entry: false,
       round_feedback: feedbackMode === 'advanced' ? roundFeedback : [],
     }, {
@@ -1298,11 +1304,16 @@ const WorkoutSession = () => {
           <Suspense fallback={null}>
             <PunchCameraPanel
               key={cameraSession}
+              sessionSeconds={() => elapsedRef.current}
+              initialLog={resumedPunchLog}
               counting={
                 isRunning && !isPaused && !isPreparation && !!currentSegment &&
                 currentSegment.type !== 'rest' && (isBoxingSegment(currentSegment) || isShadowboxing)
               }
-              onSummary={setPunchSummary}
+              onSummary={(report) => {
+                setPunchSummary(report);
+                saveSessionPunches(report.log);
+              }}
               className="fixed left-4 top-[4.5rem] z-10"
             />
           </Suspense>

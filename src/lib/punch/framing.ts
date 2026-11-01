@@ -19,7 +19,7 @@ export const FRAMING_MESSAGES: Record<Exclude<FramingStatus, 'ok'>, string> = {
   out_of_frame: 'Get your head, shoulders and hips in the picture.',
   too_close: 'Too close. Step back to about 6 to 8 feet.',
   too_far: 'Too far away. Step in to about 6 to 8 feet.',
-  head_cut: 'Your head is cut off. Tilt the screen back or step back.',
+  head_cut: 'Your head is at the top of the picture. Tilt the screen back or step back.',
 };
 
 /** Judges one frame of image-space landmarks (x and y from 0 to 1, image not mirrored). */
@@ -57,7 +57,7 @@ export function assessFraming(
   if (width > framing.tooCloseWidth) return 'too_close';
   if (width < framing.tooFarWidth) return 'too_far';
   const nose = landmarks[LM.NOSE];
-  if (!nose || !inFrame(nose)) return 'head_cut';
+  if (!nose || !inFrame(nose) || nose.y < framing.minHeadroom) return 'head_cut';
   return 'ok';
 }
 

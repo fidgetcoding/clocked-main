@@ -41,7 +41,7 @@ const PunchRound = () => {
     [speak],
   );
 
-  const { videoRef, canvasRef, status, problem, paused, hud, lastPunch, start, stop, reset, getSummary } =
+  const { videoRef, canvasRef, status, problem, paused, hud, lastPunch, start, stop, reset, getSummary, check, runStartCheck, skipStartCheck } =
     usePunchTracking({ stance, onCue });
 
   // The clock only runs while the camera is on
@@ -170,6 +170,9 @@ const PunchRound = () => {
           onExit={() => navigate('/')}
           onFinish={finish}
           onResume={() => void start()}
+          check={check}
+          onSkipCheck={skipStartCheck}
+          onRerunCheck={runStartCheck}
         />
       )}
       {screen === 'summary' && summary && (

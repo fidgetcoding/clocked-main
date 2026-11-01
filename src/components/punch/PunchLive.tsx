@@ -1,6 +1,7 @@
 import type { RefObject } from 'react';
 import { ArrowLeft, Home, Loader2, Lock, Square } from 'lucide-react';
-import type { TrackingHud } from '@/hooks/usePunchTracking';
+import type { StartCheckHud, TrackingHud } from '@/hooks/usePunchTracking';
+import { StartCheckStatus } from '@/components/punch/StartCheckStatus';
 import { formatClock, punchWord } from '@/lib/punch/round';
 import type { PunchDetected } from '@/lib/punch/types';
 
@@ -20,6 +21,9 @@ interface PunchLiveProps {
   onExit: () => void;
   onFinish: () => void;
   onResume: () => void;
+  check: StartCheckHud;
+  onSkipCheck: () => void;
+  onRerunCheck: () => void;
 }
 
 const fixed = (value: number, digits = 2) => value.toFixed(digits);
@@ -34,6 +38,9 @@ export function PunchLive({
   onExit,
   onFinish,
   onResume,
+  check,
+  onSkipCheck,
+  onRerunCheck,
 }: PunchLiveProps) {
   return (
     <div
@@ -78,6 +85,10 @@ export function PunchLive({
           <Lock className="w-3 h-3 text-volt" />
           Stays on this device
         </span>
+
+        {!hud.paused && !loading && (
+          <StartCheckStatus check={check} onSkip={onSkipCheck} onRerun={onRerunCheck} className="absolute bottom-2 left-2 max-w-[70%]" />
+        )}
 
         {hud.warning && !hud.paused && !loading && (
           <div
