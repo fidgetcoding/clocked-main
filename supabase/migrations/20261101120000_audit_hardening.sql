@@ -177,3 +177,9 @@ CREATE POLICY "Users can update their own posts"
     auth.uid() = user_id
     AND (destination IS DISTINCT FROM 'club' OR public.is_club_member(club_id))
   );
+
+-- ===== C5: limit what can be uploaded as an avatar =====
+UPDATE storage.buckets
+SET file_size_limit = 5242880,
+    allowed_mime_types = '{image/jpeg,image/png,image/webp}'
+WHERE id = 'avatars';

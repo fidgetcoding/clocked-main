@@ -86,8 +86,9 @@ const EditProfile = () => {
     }
     if (!file || !authUser?.id) return;
 
-    if (!file.type.startsWith('image/')) {
-      toast.error('Please select an image file');
+    // Same list the avatars bucket enforces, so a GIF or HEIC gets a clear message here
+    if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
+      toast.error('Please select a JPEG, PNG or WebP image');
       return;
     }
 
@@ -246,7 +247,7 @@ const EditProfile = () => {
                 <input
                   ref={fileInputRef}
                   type="file"
-                  accept="image/*"
+                  accept="image/jpeg,image/png,image/webp"
                   onChange={handlePhotoChange}
                   className="hidden"
                 />
