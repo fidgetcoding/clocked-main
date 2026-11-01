@@ -1,0 +1,408 @@
+/* The run screen. Layouts are in components/broadcast/run, this is what they stand on. */
+
+.stage {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  container-type: size;
+  background: hsl(var(--tech-black));
+  color: hsl(var(--foreground));
+  padding-top: env(safe-area-inset-top);
+}
+
+.stage-feed {
+  position: absolute;
+  inset: 0;
+}
+
+.stage[data-camera="off"] .stage-feed {
+  display: none;
+}
+
+.stage-col {
+  position: relative;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+
+.stage-toprow {
+  position: relative;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding-top: 0.5rem;
+  flex: none;
+}
+
+.clock-face {
+  color: hsl(var(--foreground));
+}
+
+/* The ground the numbers stand on when the camera's on */
+.stage-floor {
+  background: linear-gradient(transparent, hsl(var(--tech-black) / 0.86) 3.5rem);
+  flex: none;
+}
+
+/* Combos */
+.combo-grid {
+  display: grid;
+  grid-template-columns: repeat(var(--combo-cols), minmax(0, 1fr));
+  grid-template-rows: repeat(var(--combo-rows), minmax(0, 1fr));
+  gap: 0.75rem 1.25rem;
+  padding: 0 0.625rem;
+}
+
+.combo-cell {
+  container-type: size;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  text-align: center;
+}
+
+/* However tall the plate gets, its slanted corners stay inside the cell */
+.combo-plate {
+  flex: 1;
+  width: calc(100% - 22cqh);
+  margin-inline: auto;
+  min-height: 0;
+  padding: 0.25rem 0.5rem;
+}
+
+.combo-glyph {
+  height: 92%;
+}
+
+.combo-plate-text {
+  padding: 0.25rem 1.25rem;
+}
+
+.combo-name {
+  flex: none;
+  padding-top: 0.3rem;
+  font-size: clamp(1.0625rem, 4.2cqw, 1.75rem);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Tones */
+.stage[data-tone="rest"] .clock-face {
+  color: hsl(var(--foreground));
+}
+
+.stage[data-tone="prep"]:not([data-camera="on"]),
+.stage-bg-slash {
+  background-image: linear-gradient(
+    104deg,
+    transparent 58%,
+    hsl(var(--surface-1)) 58%,
+    hsl(var(--surface-1)) 76%,
+    transparent 76%,
+    transparent 80%,
+    hsl(var(--surface-1)) 80%,
+    hsl(var(--surface-1)) 84%,
+    transparent 84%
+  );
+}
+
+.stage[data-tone="gold"] .clock-face {
+  color: hsl(var(--championship-gold));
+}
+
+.stage[data-tone="gold"][data-camera="off"] {
+  background-image: linear-gradient(104deg, #1a1505 0 40%, transparent 40% 44%, #1a1505 44% 46%, transparent 46%);
+}
+
+.stage[data-tone="gold"] .combo-plate.plate-lime,
+.stage[data-tone="gold"] .plate-lime {
+  --plate-bg: hsl(var(--championship-gold));
+}
+
+/* The conditioning segments and the last ten flip the whole screen. Two colours only. */
+.stage[data-tone="white"],
+.stage[data-tone="last10"] {
+  --foreground: var(--tech-black);
+  --muted-foreground: 222 12% 26%;
+  --electric-volt: var(--tech-black);
+  --surface-1: var(--tech-black);
+  --surface-2: var(--tech-black);
+  --surface-3: var(--tech-black);
+}
+
+.stage[data-tone="white"] {
+  background: hsl(80 14% 96%);
+}
+
+.stage[data-tone="last10"] {
+  background: hsl(70 100% 50%);
+  animation: last-ten-flash 1s steps(2) infinite;
+}
+
+@keyframes last-ten-flash {
+  50% {
+    background-color: hsl(var(--lime-press));
+  }
+}
+
+.stage[data-tone="white"] .plate-graphite,
+.stage[data-tone="white"] .plate-steel,
+.stage[data-tone="last10"] .plate-graphite,
+.stage[data-tone="last10"] .plate-steel {
+  color: hsl(80 14% 96%);
+}
+
+.stage[data-tone="white"] .plate-white,
+.stage[data-tone="last10"] .plate-white {
+  --plate-bg: hsl(225 22% 3.5%);
+  color: hsl(80 14% 96%);
+}
+
+.stage[data-tone="white"] .plate-lime,
+.stage[data-tone="last10"] .plate-lime {
+  color: hsl(70 100% 50%);
+}
+
+.stage[data-tone="white"] .ticker,
+.stage[data-tone="last10"] .ticker {
+  background: hsl(225 22% 3.5%);
+  color: hsl(70 100% 50%);
+}
+
+.stage[data-tone="live-urgent"] .clock-face {
+  color: hsl(var(--electric-volt));
+}
+
+.stage[data-tone="white"] .seg-bar i,
+.stage[data-tone="last10"] .seg-bar i {
+  background: hsl(225 22% 3.5% / 0.18);
+}
+
+.stage[data-tone="white"] .seg-bar i.seg-on,
+.stage[data-tone="white"] .seg-bar i.seg-now,
+.stage[data-tone="last10"] .seg-bar i.seg-on,
+.stage[data-tone="last10"] .seg-bar i.seg-now {
+  background: hsl(225 22% 3.5%);
+}
+
+/* Narrow phones: the same graphics, tighter */
+@container (max-width: 360px) {
+  .tool-strip {
+    gap: 0.375rem;
+    font-size: 1rem;
+  }
+
+  .tool-strip .plate {
+    padding-inline: 0.25rem;
+  }
+
+  .tool-strip-icon {
+    display: none;
+  }
+
+  .score-bug {
+    font-size: 1.1875rem;
+    gap: 0.25rem;
+  }
+
+  .score-bug .plate {
+    padding: 0 0.625rem;
+  }
+
+  .score-bug-logo .brand-logo {
+    width: 4.5rem;
+  }
+
+  .stage .on-air {
+    font-size: 0;
+    gap: 0;
+  }
+}
+
+/* Laptop, camera off */
+.stage[data-layout="wide"] .score-bug {
+  height: 3rem;
+  font-size: 2.125rem;
+  flex: none;
+}
+
+.stage[data-layout="wide"] .score-bug .plate {
+  padding: 0 1.5rem;
+}
+
+.stage[data-layout="wide"] .score-bug-logo {
+  padding: 0 1.75rem 0 2rem !important;
+}
+
+.stage[data-layout="wide"] .score-bug-logo .brand-logo {
+  width: 9.375rem;
+  height: 1.25rem;
+}
+
+.stage[data-layout="wide"] .stage-toprow {
+  padding: 1.25rem 2rem 0 0;
+}
+
+.stage-air {
+  font-size: 1rem;
+}
+
+.stage-wide-plain {
+  position: relative;
+  z-index: 10;
+  display: grid;
+  height: 100%;
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+  grid-template-rows: auto minmax(0, 1fr) auto;
+}
+
+.ticker-wide {
+  height: 2.125rem;
+  font-size: 1.25rem;
+  line-height: 2.1875rem;
+}
+
+/* Laptop, camera on: panel left, clock and combo right, the fighter in the middle */
+.stage-wide-body {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: stretch;
+}
+
+.stage-panel {
+  align-self: flex-start;
+  width: 25.5rem;
+  max-width: 34cqw;
+  margin-top: 1rem;
+  padding: 1rem 3.5rem 1.125rem 2rem;
+  background: linear-gradient(104deg, hsl(var(--tech-black) / 0.86) 88%, transparent 88%);
+}
+
+.stage-wide-right {
+  display: flex;
+  flex-direction: column;
+  width: 36cqw;
+  min-width: 0;
+  min-height: 0;
+  padding: 0.75rem 2rem 0.75rem 0;
+}
+
+.stage-shadow,
+.stage[data-camera="on"] .clock-face {
+  text-shadow: 0 2px 18px hsl(var(--tech-black) / 0.65);
+}
+
+/* Phone on its side, camera off */
+.stage-land-plain {
+  position: relative;
+  z-index: 10;
+  display: grid;
+  height: 100%;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 0.75rem;
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
+}
+
+.stage-land-plain .stage-toprow {
+  padding-right: 0.25rem;
+}
+
+/* Phone on its side, camera on: the feed left, cut on the slant, a column stepping along it */
+.stage[data-layout="landscape"][data-camera="on"] .stage-feed {
+  right: auto;
+  width: 62cqw;
+  clip-path: polygon(0 0, 100% 0, calc(100% - 24.93cqh) 100%, 0 100%);
+}
+
+.stage-land-col {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  right: max(0.75rem, env(safe-area-inset-right));
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  width: 44cqw;
+  padding: 0.375rem 0 0.5rem;
+}
+
+/* Waiting on the feed */
+.stage-incoming {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  text-align: center;
+  padding: 1rem;
+  background: hsl(var(--tech-black) / 0.72);
+}
+
+.stage[data-layout="landscape"] .stage-incoming {
+  right: 38cqw;
+}
+
+/* Round start */
+.round-wipe {
+  position: absolute;
+  inset: 0;
+  z-index: 40;
+  background: hsl(var(--electric-volt));
+  color: hsl(var(--tech-black));
+  pointer-events: none;
+  animation: round-wipe 1300ms cubic-bezier(0.2, 0.9, 0.2, 1) both;
+}
+
+@keyframes round-wipe {
+  0% {
+    clip-path: polygon(-30% 0, -30% 0, -60% 100%, -60% 100%);
+  }
+  14%,
+  84% {
+    clip-path: polygon(-30% 0, 130% 0, 130% 100%, -60% 100%);
+  }
+  100% {
+    clip-path: polygon(130% 0, 130% 0, 130% 100%, 100% 100%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .round-wipe {
+    display: none;
+  }
+
+  .stage[data-tone="last10"] {
+    animation: none;
+  }
+}
+
+/* A number lifting off and going */
+@keyframes xp-out {
+  0%,
+  70% {
+    opacity: 1;
+    translate: 0 0;
+  }
+  100% {
+    opacity: 0;
+    translate: 0 -1.25rem;
+  }
+}
+
+.xp-out {
+  animation: xp-out 2s ease-out forwards;
+}

@@ -1,78 +1,10 @@
+@import "./styles/tokens.css";
+@import "./styles/broadcast.css";
+@import "./styles/stage.css";
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap');
-
-@layer base {
-  :root {
-    /* Primary */
-    --electric-volt: 72 100% 55%;
-    --tech-black: 240 7% 4%;
-    
-    /* Secondary */
-    --alert-red: 3 100% 59%; /* #FF3B30 */
-    --championship-gold: 43 96% 56%; /* #FFD700 gold */
-    --cooldown-blue: 199 89% 48%; /* sky-500 */
-    
-    /* Neutrals */
-    --white: 0 0% 100%;
-    --text-primary: 240 6% 95%;
-    --text-secondary: 240 4% 56%;
-    --text-tertiary: 240 4% 38%;
-    
-    /* Surface Colors */
-    --surface-1: 240 6% 12%;
-    --surface-2: 240 5% 18%;
-    --surface-3: 240 4% 24%;
-    
-    /* Semantic mappings */
-    --background: var(--tech-black);
-    --foreground: var(--text-primary);
-    
-    --card: var(--surface-1);
-    --card-foreground: var(--text-primary);
-    
-    --popover: var(--surface-1);
-    --popover-foreground: var(--text-primary);
-    
-    --primary: var(--electric-volt);
-    --primary-foreground: var(--tech-black);
-    
-    --secondary: var(--surface-2);
-    --secondary-foreground: var(--text-primary);
-    
-    --muted: var(--surface-2);
-    --muted-foreground: var(--text-secondary);
-    
-    --accent: var(--surface-2);
-    --accent-foreground: var(--text-primary);
-    
-    --destructive: var(--alert-red);
-    --destructive-foreground: var(--white);
-    
-    --border: var(--surface-3);
-    --input: var(--surface-2);
-    --ring: var(--electric-volt);
-    
-    --radius: 0.75rem;
-    
-    /* Sidebar - dark variant */
-    --sidebar-background: var(--tech-black);
-    --sidebar-foreground: var(--text-primary);
-    --sidebar-primary: var(--electric-volt);
-    --sidebar-primary-foreground: var(--tech-black);
-    --sidebar-accent: var(--surface-1);
-    --sidebar-accent-foreground: var(--text-primary);
-    --sidebar-border: var(--surface-3);
-    --sidebar-ring: var(--electric-volt);
-  }
-
-  .dark {
-    --background: var(--tech-black);
-    --foreground: var(--text-primary);
-  }
-}
 
 @layer base {
   * {
@@ -81,51 +13,155 @@
 
   html {
     -webkit-tap-highlight-color: transparent;
+    overflow-x: clip;
   }
 
   body {
     @apply bg-background text-foreground antialiased;
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    font-family: var(--font-text);
+    font-weight: 500;
+    font-size: 1.0625rem;
+    line-height: 1.3;
+    overflow-x: clip;
+  }
+
+  h1,
+  h2,
+  h3 {
+    font-family: var(--font-display);
+    font-weight: 900;
+    font-style: italic;
+    text-transform: uppercase;
+    letter-spacing: -0.003em;
+    line-height: 0.92;
+  }
+
+  :focus-visible {
+    outline: 2px solid hsl(var(--ring));
+    outline-offset: 2px;
+  }
+
+  input,
+  textarea,
+  select {
+    font-size: 1.0625rem;
   }
 }
 
 @layer components {
-  /* Timer Display Typography */
+  /* Numbers on a clock keep their width, so a running timer doesn't shake */
   .timer-display {
-    font-family: 'SF Mono', 'Roboto Mono', 'Consolas', monospace;
+    font-family: var(--font-display);
+    font-weight: 900;
+    font-style: italic;
     font-variant-numeric: tabular-nums;
-    letter-spacing: -0.02em;
   }
 
-  /* Glow Effects */
-  .glow-volt {
-    box-shadow: 0 0 20px hsl(var(--electric-volt) / 0.4),
-                0 0 40px hsl(var(--electric-volt) / 0.2);
+  /* A flat panel. Lists on it are ruled, not boxed. */
+  .card-workout {
+    @apply bg-surface-1 p-4;
   }
 
-  .glow-volt-soft {
-    box-shadow: 0 0 15px hsl(var(--electric-volt) / 0.25);
+  .card-action {
+    @apply bg-surface-1 p-4 relative overflow-hidden transition-colors duration-100;
   }
 
-  .glow-gold {
-    box-shadow: 0 0 20px hsl(var(--championship-gold) / 0.4),
-                0 0 40px hsl(var(--championship-gold) / 0.2);
+  .card-action:hover {
+    @apply bg-surface-2;
   }
 
-
-  /* Text Glow */
-  .text-glow-volt {
-    text-shadow: 0 0 10px hsl(var(--electric-volt) / 0.5),
-                 0 0 20px hsl(var(--electric-volt) / 0.3);
+  .tag {
+    display: inline-block;
+    font-size: 0.8125rem;
+    line-height: 1.15;
+    letter-spacing: 0.11em;
+    text-transform: uppercase;
+    font-weight: 700;
+    color: hsl(var(--muted-foreground));
   }
 
-  /* Gradient Backgrounds */
-  .bg-gradient-volt {
-    background: linear-gradient(135deg, hsl(var(--electric-volt)) 0%, hsl(82 100% 45%) 100%);
+  .safe-bottom {
+    padding-bottom: max(0.5rem, env(safe-area-inset-bottom));
   }
 
-  .bg-gradient-dark {
-    background: linear-gradient(180deg, hsl(var(--surface-1)) 0%, hsl(var(--tech-black)) 100%);
+  .safe-top {
+    padding-top: max(0.5rem, env(safe-area-inset-top));
+  }
+
+  .phase-header {
+    @apply flex items-center gap-3 p-3 bg-surface-1;
+  }
+
+  .phase-header-active {
+    box-shadow: inset 4px 0 0 hsl(var(--electric-volt));
+  }
+
+  .segment-row {
+    @apply flex items-center gap-2 p-3 bg-surface-2;
+  }
+
+  .combo-button {
+    @apply w-11 h-11 bg-surface-2 text-foreground transition-colors;
+    font-family: var(--font-display);
+    font-weight: 900;
+    font-style: italic;
+    font-size: 1.5rem;
+    transform: skewX(calc(var(--plate-angle) * -1));
+  }
+
+  .combo-button:hover {
+    @apply bg-surface-3;
+  }
+
+  .combo-tag {
+    @apply px-2 py-1 bg-volt text-primary-foreground flex items-center gap-1;
+    font-family: var(--font-display);
+    font-weight: 900;
+    font-style: italic;
+    font-size: 1.125rem;
+    line-height: 1;
+  }
+}
+
+@layer utilities {
+  /* Anything set in black weight is on-air type */
+  .font-black {
+    font-family: var(--font-display);
+    font-style: italic;
+    text-transform: uppercase;
+    letter-spacing: -0.003em;
+  }
+
+  .bg-surface-1 {
+    background-color: hsl(var(--surface-1));
+  }
+
+  .bg-surface-2 {
+    background-color: hsl(var(--surface-2));
+  }
+
+  .bg-surface-3 {
+    background-color: hsl(var(--surface-3));
+  }
+
+  .text-volt {
+    color: hsl(var(--electric-volt));
+  }
+
+  .bg-volt {
+    background-color: hsl(var(--electric-volt));
+  }
+
+  .border-volt {
+    border-color: hsl(var(--electric-volt));
+  }
+
+  .text-alert-red {
+    color: hsl(var(--alert-red));
+  }
+
+  .bg-alert-red {
+    background-color: hsl(var(--alert-red));
   }
 
   .text-cooldown-blue {
@@ -184,185 +220,6 @@
     color: hsl(var(--championship-gold) / 0.8);
   }
 
-  /* Card Variants */
-  .card-workout {
-    @apply bg-card rounded-xl p-4 border border-border/50 transition-all duration-200;
-  }
-
-  .card-workout:hover {
-    @apply border-primary/30;
-    box-shadow: 0 0 20px hsl(var(--electric-volt) / 0.1);
-  }
-
-  .card-action {
-    @apply bg-surface-1 rounded-2xl p-6 border border-border/30 relative overflow-hidden transition-all duration-200;
-  }
-
-  .card-action:hover {
-    @apply border-primary/30;
-    transform: scale(1.02);
-    box-shadow: 0 0 20px hsl(var(--electric-volt) / 0.1);
-  }
-
-  /* Bottom Navigation */
-  .nav-item {
-    @apply flex flex-col items-center justify-center gap-1 py-3 px-4 text-muted-foreground transition-colors duration-200;
-  }
-
-  .nav-item-active {
-    @apply text-primary;
-  }
-
-  .nav-item-active .nav-icon {
-    @apply text-primary;
-    filter: drop-shadow(0 0 8px hsl(var(--electric-volt) / 0.6));
-  }
-
-  /* XP Bar */
-  .xp-bar {
-    @apply h-1.5 rounded-full bg-surface-3 overflow-hidden;
-  }
-
-  .xp-bar-fill {
-    @apply h-full rounded-full;
-    background: linear-gradient(90deg, hsl(var(--electric-volt)) 0%, hsl(82 100% 60%) 100%);
-  }
-
-  /* Buttons */
-  .btn-primary-glow {
-    @apply bg-gradient-volt text-primary-foreground font-bold rounded-xl px-6 py-3 transition-all duration-200;
-    box-shadow: 0 4px 15px hsl(var(--electric-volt) / 0.3);
-  }
-
-  .btn-primary-glow:hover {
-    box-shadow: 0 6px 25px hsl(var(--electric-volt) / 0.5);
-    transform: translateY(-1px);
-  }
-
-  .btn-primary-glow:active {
-    transform: translateY(0);
-  }
-
-  /* Tags */
-  .tag {
-    @apply px-2.5 py-1 rounded-lg text-xs font-medium uppercase tracking-wide;
-    background: hsl(var(--surface-2));
-    border: 1px solid hsl(var(--surface-3));
-  }
-
-  /* Safe Area Padding for PWA */
-  .safe-bottom {
-    padding-bottom: max(1rem, env(safe-area-inset-bottom));
-  }
-
-  .safe-top {
-    padding-top: max(1rem, env(safe-area-inset-top));
-  }
-
-  /* Phase Header */
-  .phase-header {
-    @apply flex items-center gap-3 p-3 rounded-xl bg-surface-1 border border-surface-3;
-  }
-
-  .phase-header-active {
-    @apply border-primary;
-    box-shadow: 0 0 0 1px hsl(var(--electric-volt));
-  }
-
-  /* Segment Row */
-  .segment-row {
-    @apply flex items-center gap-2 p-3 rounded-lg bg-surface-2 border border-surface-3;
-  }
-
-  /* Combo Builder */
-  .combo-button {
-    @apply w-10 h-10 rounded-lg bg-surface-2 border border-surface-3 text-foreground font-bold text-sm transition-all;
-  }
-
-  .combo-button:hover {
-    @apply border-primary bg-surface-1;
-  }
-
-  .combo-tag {
-    @apply px-2 py-1 rounded bg-primary/20 text-primary text-xs font-semibold flex items-center gap-1;
-  }
-}
-
-@layer utilities {
-  .bg-surface-1 {
-    background-color: hsl(var(--surface-1));
-  }
-
-  .bg-surface-2 {
-    background-color: hsl(var(--surface-2));
-  }
-
-  .bg-surface-3 {
-    background-color: hsl(var(--surface-3));
-  }
-
-  .text-volt {
-    color: hsl(var(--electric-volt));
-  }
-
-  .bg-volt {
-    background-color: hsl(var(--electric-volt));
-  }
-
-  .border-volt {
-    border-color: hsl(var(--electric-volt));
-  }
-
-  .text-alert-red {
-    color: hsl(var(--alert-red));
-  }
-
-  .bg-alert-red {
-    background-color: hsl(var(--alert-red));
-  }
-
-  /* Level Up Animation */
-  @keyframes level-up-flash {
-    0% { opacity: 0; }
-    8% { opacity: 1; }
-    40% { opacity: 1; }
-    70% { opacity: 1; }
-    100% { opacity: 0; }
-  }
-
-  @keyframes level-up-text {
-    0% { opacity: 0; transform: scale(0.3); }
-    10% { opacity: 1; transform: scale(1.15); }
-    20% { opacity: 1; transform: scale(1); }
-    65% { opacity: 1; transform: scale(1); }
-    100% { opacity: 0; transform: scale(0.8); }
-  }
-
-  /* Badge Earn Overlay */
-  @keyframes badge-overlay-in {
-    0% { opacity: 0; }
-    100% { opacity: 1; }
-  }
-  @keyframes badge-overlay-out {
-    0% { opacity: 1; }
-    100% { opacity: 0; }
-  }
-  @keyframes badge-pulse {
-    0%, 100% { transform: scale(1); }
-    50% { transform: scale(1.08); }
-  }
-
-  .animate-badge-overlay-in {
-    animation: badge-overlay-in 0.4s ease-out forwards;
-  }
-  .animate-badge-overlay-out {
-    animation: badge-overlay-out 0.6s ease-out forwards;
-  }
-  .animate-badge-pulse {
-    animation: badge-pulse 1s ease-in-out infinite;
-  }
-
-  /* Hide scrollbar but keep functionality */
   .scrollbar-hide {
     -ms-overflow-style: none;
     scrollbar-width: none;
@@ -370,5 +227,21 @@
 
   .scrollbar-hide::-webkit-scrollbar {
     display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  .ticker-track {
+    animation: none !important;
+    transform: none !important;
   }
 }

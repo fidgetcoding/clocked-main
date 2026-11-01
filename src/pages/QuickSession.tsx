@@ -3,10 +3,11 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { ResumeSessionDialog } from '@/components/workout/ResumeSessionDialog';
 import { FRESH_SESSION } from '@/lib/sessionEffort';
 import { clearSession, findResumableSession, QUICK_SESSION_ID, saveSession, type SessionSnapshot } from '@/lib/sessionRecovery';
-import { ArrowLeft, Home, Play, Pause, Square, Camera } from 'lucide-react';
+import { RunStage } from '@/components/broadcast/run/RunStage';
+import type { RunView } from '@/components/broadcast/run/types';
+import type { CameraFeedState } from '@/components/punch/feedState';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
-import { VerticalXPBar } from '@/components/ui/VerticalXPBar';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -21,13 +22,12 @@ import { useWorkoutHistory } from '@/hooks/useWorkoutHistory';
 import { useUserStore } from '@/stores/userStore';
 import { useProfile } from '@/hooks/useProfile';
 import { cn } from '@/lib/utils';
-import { getStreakMultiplier, getLevelFromXP } from '@/lib/xpSystem';
+import { getStreakMultiplier, getLevelFromXP, getLevelProgress, getXPWithinCurrentLevel } from '@/lib/xpSystem';
 import { LevelUpOverlay } from '@/components/ui/LevelUpOverlay';
 import { useSoundEffects } from '@/hooks/useSoundEffects';
 import { computePostLogStats } from '@/lib/workoutTracking';
 import { wholeSecondsSince } from '@/lib/sessionClock';
 import { MIN_REWARD_SECONDS, qualifiesForRewards } from '@/lib/sessionEffort';
-import { Switch } from '@/components/ui/switch';
 import { usePunchPrefsStore } from '@/stores/punchPrefsStore';
 import type { PunchSessionReport } from '@/lib/punch/round';
 
@@ -73,6 +73,8 @@ const QuickSession = () => {
   const [punchSummary, setPunchSummary] = useState<PunchSessionReport | null>(null);
   const cameraOn = usePunchPrefsStore((state) => state.quickSessionCamera);
   const setCameraOn = usePunchPrefsStore((state) => state.setQuickSessionCamera);
+  const [feed, setFeed] = useState<CameraFeedState | null>(null);
+  const [feedProblemDismissed, setFeedProblemDismissed] = useState(false);
 
   const lastTickTimeRef = useRef<number>(Date.now());
   const xpAwardedRef = useRef(false);
@@ -333,118 +335,81 @@ const QuickSession = () => {
     );
   }
 
+  const totalXP = (profile?.total_xp || 0) + accumulatedXP;
+  const prestige = profile?.prestige || 'beginner';
+  const within = getXPWithinCurrentLevel(prestige, totalXP);
+
+  const runView: RunView = {
+    workoutName: 'QUICK SESSION',
+    phaseName: 'QUICK SESSION',
+    segmentName: 'FREEFORM',
+    kind: 'freeform',
+    idle: !isRunning,
+    paused: isPaused,
+    clock: formatTime(totalElapsed),
+    remaining: 0,
+    duration: 0,
+    round: null,
+    roundLabel: null,
+    championship: false,
+    cooldown: false,
+    comboLabel: null,
+    combo: [],
+    nextCombo: null,
+    upNext: '',
+    upNextSeconds: null,
+    segmentIndex: 0,
+    segmentCount: 0,
+    elapsed: formatTimeCompact(totalElapsed),
+    sessionXP: Math.round(accumulatedXP),
+    streak: profile?.current_streak || 0,
+    multiplier: streakMultiplier,
+    level: liveLevel,
+    levelPercent: getLevelProgress(prestige, liveLevel, totalXP),
+    xpToNext: liveLevel >= 100 ? null : Math.max(0, Math.ceil(within.required - within.current)),
+  };
+
   // Active timer screen
   return (
     <AppLayout hideNav>
-      <div className="min-h-screen flex flex-col bg-background">
-        {/* Top Bar */}
-        <header className="flex items-start justify-between px-4 py-3 safe-top">
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => {
-                if (isRunning && totalElapsed > 0) {
-                  setShowExitConfirm(true);
-                } else {
-                  navigate('/');
-                }
-              }}
-              className="flex items-center gap-2 px-3 py-2 rounded-full bg-surface-1 border border-surface-3"
-            >
-              <ArrowLeft className="w-4 h-4" />
-              <Home className="w-4 h-4" />
-            </button>
-          </div>
+      {/* Level Up Overlay */}
+      {levelUpLevel !== null && (
+        <LevelUpOverlay level={levelUpLevel} onComplete={() => setLevelUpLevel(null)} />
+      )}
 
-          {/* XP counter */}
-          <span className="text-sm font-bold text-volt/60">
-            +{Math.round(accumulatedXP)} XP
-          </span>
-
-          {/* XP Bar */}
-          <div className="flex items-center">
-            <VerticalXPBar
-              prestige={profile?.prestige || 'beginner'}
-              level={liveLevel}
-              totalXP={(profile?.total_xp || 0) + accumulatedXP}
-            />
-          </div>
-        </header>
-
-        {/* Level Up Overlay */}
-        {levelUpLevel !== null && (
-          <LevelUpOverlay level={levelUpLevel} onComplete={() => setLevelUpLevel(null)} />
-        )}
-
-        {/* The camera asks for permission here, once the session has started */}
-        {cameraOn && isRunning && (
-          <Suspense fallback={null}>
-            <PunchCameraPanel counting={!isPaused} onSummary={setPunchSummary} className="fixed left-4 top-[4.5rem] z-10" />
-          </Suspense>
-        )}
-
-        {/* Main Timer */}
-        <div className="flex-1 flex flex-col items-center justify-center px-4">
-          <h2 className="text-2xl font-black text-foreground mb-2 uppercase tracking-wider">
-            QUICK SESSION
-          </h2>
-
-          {/* Count-up timer */}
-          <span className="timer-display text-8xl font-black text-volt text-glow-volt mb-2">
-            {formatTime(totalElapsed)}
-          </span>
-
-          {/* Label */}
-          <div className="flex items-center gap-2 mb-8">
-            <div className="h-px w-12 bg-surface-3" />
-            <span className="text-xs text-muted-foreground uppercase tracking-widest">
-              FREEFORM
-            </span>
-            <div className="h-px w-12 bg-surface-3" />
-          </div>
-
-          {/* Controls */}
-          <div className="flex items-center gap-6">
-            {!isRunning ? (
-              <button
-                onClick={handleStart}
-                className="w-20 h-20 rounded-full bg-volt flex items-center justify-center shadow-lg shadow-volt/30 active:scale-95 transition-transform"
-              >
-                <Play className="w-8 h-8 text-primary-foreground ml-1" />
-              </button>
-            ) : (
-              <>
-                <button
-                  onClick={handlePauseResume}
-                  className="w-16 h-16 rounded-full bg-surface-1 border border-surface-3 flex items-center justify-center active:scale-95 transition-transform"
-                >
-                  {isPaused ? (
-                    <Play className="w-6 h-6 text-volt ml-0.5" />
-                  ) : (
-                    <Pause className="w-6 h-6 text-foreground" />
-                  )}
-                </button>
-                <button
-                  onClick={handleFinish}
-                  className="w-20 h-20 rounded-full bg-volt flex items-center justify-center shadow-lg shadow-volt/30 active:scale-95 transition-transform"
-                >
-                  <Square className="w-7 h-7 text-primary-foreground" />
-                </button>
-              </>
-            )}
-          </div>
-
-          <label className="flex items-center gap-3 mt-8 px-4 py-2 rounded-full bg-surface-1 border border-surface-3 text-sm text-muted-foreground">
-            <Camera className="w-4 h-4 text-volt" />
-            Punch camera
-            <Switch
-              checked={cameraOn}
-              onCheckedChange={setCameraOn}
-              aria-label="Punch camera"
-              className="data-[state=checked]:bg-volt"
-            />
-          </label>
-        </div>
-      </div>
+      <RunStage
+        view={runView}
+        actions={{
+          onPlay: isRunning ? handlePauseResume : handleStart,
+          onPause: handlePauseResume,
+          onFinish: handleFinish,
+          onLeave: () => {
+            if (isRunning && totalElapsed > 0) {
+              setShowExitConfirm(true);
+            } else {
+              navigate('/');
+            }
+          },
+          onToggleCamera: () => {
+            setFeed(null);
+            setFeedProblemDismissed(false);
+            setCameraOn(!cameraOn);
+          },
+        }}
+        cameraOn={cameraOn}
+        camera={
+          // The camera asks for permission here, once the session has started
+          cameraOn && isRunning ? (
+            <Suspense fallback={null}>
+              <PunchCameraPanel counting={!isPaused} onSummary={setPunchSummary} onFeed={setFeed} />
+            </Suspense>
+          ) : undefined
+        }
+        feed={cameraOn ? feed : null}
+        counting={!isPaused}
+        problemDismissed={feedProblemDismissed}
+        onDismissProblem={() => setFeedProblemDismissed(true)}
+      />
 
       {/* Exit Confirmation */}
       {resumable && (

@@ -2,6 +2,7 @@
 import type { Page } from "@playwright/test";
 import { expect, test } from "./silent";
 import { finishGuestOnboarding, NO_BACKEND_URL } from "./helpers";
+import { playButton, pauseButton, skipButton, finishSessionButton, elapsedClock } from "./controls";
 
 const prompt = (page: Page) => page.getByText("Pick up where you left off?");
 const storedXP = (page: Page) =>
@@ -15,14 +16,14 @@ const badgesEarned = async (page: Page) => {
 };
 
 const startFirstSet = async (page: Page) => {
-  await page.locator("button:has(svg.lucide-play)").first().click();
+  await playButton(page).click();
   await page.waitForURL("**/workout/**");
-  await page.locator("button:has(svg.lucide-play)").first().click();
-  await page.locator("button:has(svg.lucide-pause)").waitFor();
+  await playButton(page).click();
+  await pauseButton(page).waitFor();
 };
 
 const train = async (page: Page, seconds: number) => {
-  await page.locator("button:has(svg.lucide-skip-forward)").click();
+  await skipButton(page).click();
   await page.clock.fastForward(seconds * 1000);
   // The live badge check runs on its own timer
   await page.clock.runFor(6000);
@@ -45,18 +46,18 @@ test.beforeEach(async ({ page }) => {
 test("a reload offers to resume, and resuming comes back paused where it was", async ({ page }) => {
   await startFirstSet(page);
   await train(page, 90);
-  const before = await page.locator("span.timer-display.text-2xl").textContent();
+  const before = await elapsedClock(page).textContent();
   await page.reload();
 
   await expect(prompt(page)).toBeVisible();
   await page.getByRole("button", { name: "Resume" }).click();
   await expect(prompt(page)).toHaveCount(0);
-  await expect(page.locator("span.timer-display.text-2xl")).toHaveText(before as string);
-  await expect(page.locator("button:has(svg.lucide-play)").first()).toBeVisible();
+  await expect(elapsedClock(page)).toHaveText(before as string);
+  await expect(playButton(page)).toBeVisible();
   await expect(page.getByText("PREPARATION")).toHaveCount(0);
 
-  await page.locator("button:has(svg.lucide-play)").first().click();
-  await page.locator("button:has(svg.lucide-pause)").waitFor();
+  await playButton(page).click();
+  await pauseButton(page).waitFor();
 });
 
 test("discarding starts clean and doesn't ask again", async ({ page }) => {
@@ -66,7 +67,7 @@ test("discarding starts clean and doesn't ask again", async ({ page }) => {
   await page.getByRole("button", { name: "Discard" }).click();
   await expect(page.getByText("PREPARATION")).toBeVisible();
   await page.reload();
-  await page.locator("button:has(svg.lucide-play)").first().waitFor();
+  await playButton(page).waitFor();
   await expect(prompt(page)).toHaveCount(0);
 });
 
@@ -85,7 +86,7 @@ test("resuming pays the same XP as never reloading, once", async ({ page, contex
   await train(page, 360);
   await page.reload();
   await page.getByRole("button", { name: "Resume" }).click();
-  await page.locator("button:has(svg.lucide-play)").first().click();
+  await playButton(page).click();
   await page.clock.runFor(6000);
   const resumed = await finishAndLog(page);
 
@@ -97,7 +98,7 @@ test("resuming pays the same XP as never reloading, once", async ({ page, contex
   // Logged means done: another reload neither asks nor pays
   expect(await savedSession(page)).toBeNull();
   await page.reload();
-  await page.locator("button:has(svg.lucide-play)").first().waitFor();
+  await playButton(page).waitFor();
   await expect(prompt(page)).toHaveCount(0);
   expect(await storedXP(page)).toBe(resumed.xp);
 });
@@ -151,10 +152,10 @@ test("nothing is saved before a second is trained, or after a restart", async ({
   await page.clock.runFor(2000);
   expect(await savedSession(page)).toBeNull();
   await page.reload();
-  await page.locator("button:has(svg.lucide-play)").first().waitFor();
+  await playButton(page).waitFor();
   await expect(prompt(page)).toHaveCount(0);
 
-  await page.locator("button:has(svg.lucide-play)").first().click();
+  await playButton(page).click();
   await train(page, 30);
   expect(await savedSession(page)).not.toBeNull();
   await page.getByTitle("Restart from beginning").click();
@@ -172,22 +173,22 @@ test("a workout edited since the save doesn't resume into the wrong place", asyn
     localStorage.setItem("get-clocked-session", JSON.stringify(saved));
   });
   await page.reload();
-  await page.locator("button:has(svg.lucide-play)").first().waitFor();
+  await playButton(page).waitFor();
   await expect(prompt(page)).toHaveCount(0);
 });
 
 test("Quick Session has a link home, resumes after a reload, and pays once", async ({ page }) => {
   await page.getByRole("button", { name: /QUICK SESSION/ }).click();
   await page.waitForURL("**/quick-session");
-  await page.locator("button:has(svg.lucide-play)").first().click();
+  await playButton(page).click();
   await page.clock.fastForward(120_000);
   await page.reload();
 
   await expect(page.getByText(/into Quick Session/)).toBeVisible();
   await page.getByRole("button", { name: "Resume" }).click();
-  await page.locator("button:has(svg.lucide-play)").first().click();
+  await playButton(page).click();
   await page.clock.fastForward(60_000);
-  await page.locator("button:has(svg.lucide-square)").click();
+  await finishSessionButton(page).click();
   await page.getByText("SESSION COMPLETE!").waitFor();
   const xp = await earnedXP(page);
   expect(xp).toBeGreaterThan(0);
@@ -223,8 +224,8 @@ test("a shared speed bag phase keeps drills and punches apart", async ({ page })
 
   await page.getByRole("button", { name: "Start", exact: true }).click();
   await page.waitForURL("**/session");
-  await page.locator("button:has(svg.lucide-play)").first().click();
-  const skip = page.locator("button:has(svg.lucide-skip-forward)");
+  await playButton(page).click();
+  const skip = skipButton(page);
   await skip.click();
   await expect(page.getByText("INCOMING COMBO")).toBeVisible();
   await expect(page.getByText("Double Left Lead")).toHaveCount(0);

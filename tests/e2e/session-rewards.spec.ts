@@ -3,14 +3,15 @@
 import { Page } from "@playwright/test";
 import { expect, test } from "./silent";
 import { finishGuestOnboarding, NO_BACKEND_URL, startTraining } from "./helpers";
+import { playButton, pauseButton, skipButton } from "./controls";
 
 const summaryTotal = (page: Page) => page.getByText(/^\+[\d,]+$/).first();
 
 const startHomeWorkout = async (page: Page) => {
-  await page.locator("button:has(svg.lucide-play)").first().click();
+  await playButton(page).click();
   await page.waitForURL("**/workout/**");
-  await page.locator("button:has(svg.lucide-play)").first().click();
-  await page.locator("button:has(svg.lucide-pause)").waitFor();
+  await playButton(page).click();
+  await pauseButton(page).waitFor();
 };
 
 const finishEarly = async (page: Page) => {
@@ -28,7 +29,7 @@ test("pressing -30 until a run ends trains nothing and earns nothing", async ({ 
   await page.getByRole("button", { name: "Add Phase" }).click();
   await page.getByRole("button", { name: "Start", exact: true }).click();
   await page.waitForURL("**/session");
-  await page.locator("button:has(svg.lucide-play)").first().click();
+  await playButton(page).click();
   // Still in the preparation, and frozen there. A frozen clock stops Playwright's checks too, so dispatch the clicks.
   await page.clock.pauseAt(Date.now() + 2000);
 
@@ -57,7 +58,7 @@ test("waiting out the preparation isn't training", async ({ page }) => {
 
 test("the bonus for starting lands with the first second trained", async ({ page }) => {
   await startHomeWorkout(page);
-  await page.locator("button:has(svg.lucide-skip-forward)").click();
+  await skipButton(page).click();
   await page.clock.fastForward(1000);
   await expect(page.getByText("00:01").first()).toBeVisible();
   await finishEarly(page);
@@ -90,8 +91,8 @@ test("a whole workout run to its end earns the finishing badges", async ({ page 
 
 test("pausing costs Push Through, and skipping costs Full Send too", async ({ page }) => {
   await startTraining(page);
-  await page.locator("button:has(svg.lucide-pause)").click();
-  await page.locator("button:has(svg.lucide-play)").first().click();
+  await pauseButton(page).click();
+  await playButton(page).click();
   await page.clock.fastForward(45 * 60 * 1000);
   await page.getByText("WORKOUT COMPLETE!").waitFor();
   await expect(page.getByText("Full Send").first()).toBeVisible();
@@ -100,7 +101,7 @@ test("pausing costs Push Through, and skipping costs Full Send too", async ({ pa
   await page.getByRole("button", { name: "Back to Home" }).click();
   await page.getByText("Your Sets").waitFor();
   await startTraining(page);
-  await page.locator("button:has(svg.lucide-skip-forward)").click();
+  await skipButton(page).click();
   await page.clock.fastForward(45 * 60 * 1000);
   await page.getByText("WORKOUT COMPLETE!").waitFor();
   await expect(page.getByText("Full Send")).toHaveCount(0);

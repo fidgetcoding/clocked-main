@@ -1,5 +1,6 @@
 // The workout screen has to fit on the phones people actually hold. Needs only a served build of the app.
 import { expect, test } from "./silent";
+import { playButton, pauseButton, skipButton } from "./controls";
 
 const base = process.env.STACK_NO_BACKEND_URL as string;
 
@@ -22,17 +23,17 @@ for (const viewport of [
     await start.click();
     await page.getByText("Your Sets").waitFor();
 
-    await page.locator("button:has(svg.lucide-play)").first().click();
+    await playButton(page).click();
     await page.waitForURL("**/workout/**");
-    await page.locator("button:has(svg.lucide-play)").first().click();
+    await playButton(page).click();
     const combo = page.getByText("INCOMING COMBO");
-    const skip = page.locator("button:has(svg.lucide-skip-forward)");
+    const skip = skipButton(page);
     for (let i = 0; i < 60 && !(await combo.isVisible()); i++) await skip.click();
     await expect(combo).toBeVisible();
 
     const adjust = await page.getByRole("button", { name: "+30s" }).boundingBox();
     const card = await combo.locator("..").boundingBox();
-    const play = await page.locator("button:has(svg.lucide-pause)").boundingBox();
+    const play = await pauseButton(page).boundingBox();
     expect(adjust!.y + adjust!.height).toBeLessThanOrEqual(card!.y);
     expect(card!.y + card!.height).toBeLessThanOrEqual(play!.y);
     expect(play!.y + play!.height).toBeLessThanOrEqual(viewport.height);

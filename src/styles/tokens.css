@@ -1,0 +1,63 @@
+/* Ringside. Change the look here: palette, type and the slant all come from these tokens. */
+:root {
+  /* Palette */
+  --electric-volt: 70 100% 50%; /* lime #D4FF00 */
+  --tech-black: 225 22% 3.5%; /* ink #07080B */
+  --alert-red: 5 100% 56%; /* #FF3120: only for "live" and "here's what to fix" */
+  --championship-gold: 45 82% 61%; /* #EDC44B: only for the championship rounds */
+  --cooldown-blue: 80 14% 96%; /* the cooldown runs on plain white */
+  --lime-press: 70 100% 44%;
+
+  --white: 80 14% 96%; /* #F5F6F3 */
+  --text-primary: 80 14% 96%;
+  --text-secondary: 220 8% 66%; /* #A1A6B0 */
+  --text-tertiary: 220 6% 52%;
+
+  --surface-1: 223 16% 8.4%; /* #121419 */
+  --surface-2: 222 14% 14%; /* #1F2229 */
+  --surface-3: 222 12% 20.6%; /* #2E323B */
+
+  /* Type */
+  --font-display: "Sofia Sans Extra Condensed", "Arial Narrow", Impact, sans-serif;
+  --font-text: "Barlow Condensed", "Arial Narrow", -apple-system, BlinkMacSystemFont, sans-serif;
+
+  /* The one angle everything sits on: plates, bars, split screens */
+  --plate-angle: 14deg;
+
+  /* Graphics timing */
+  --wipe-in: 260ms;
+  --wipe-stagger: 70ms;
+  --crawl-speed: 26s;
+
+  /* Semantic mappings for shadcn components */
+  --background: var(--tech-black);
+  --foreground: var(--text-primary);
+  --card: var(--surface-1);
+  --card-foreground: var(--text-primary);
+  --popover: var(--surface-1);
+  --popover-foreground: var(--text-primary);
+  --primary: var(--electric-volt);
+  --primary-foreground: var(--tech-black);
+  --secondary: var(--surface-2);
+  --secondary-foreground: var(--text-primary);
+  --muted: var(--surface-2);
+  --muted-foreground: var(--text-secondary);
+  --accent: var(--surface-2);
+  --accent-foreground: var(--text-primary);
+  --destructive: var(--alert-red);
+  --destructive-foreground: var(--white);
+  --border: var(--surface-3);
+  --input: var(--surface-3);
+  --ring: var(--electric-volt);
+  --radius: 0rem;
+  --success: var(--electric-volt);
+  --success-foreground: var(--tech-black);
+  --sidebar-background: var(--tech-black);
+  --sidebar-foreground: var(--text-primary);
+  --sidebar-primary: var(--electric-volt);
+  --sidebar-primary-foreground: var(--tech-black);
+  --sidebar-accent: var(--surface-1);
+  --sidebar-accent-foreground: var(--text-primary);
+  --sidebar-border: var(--surface-3);
+  --sidebar-ring: var(--electric-volt);
+}

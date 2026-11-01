@@ -4,16 +4,17 @@ import type { PostL100Badge } from '@/data/postL100Badges';
 import { splitStoredPhases } from '@/lib/storedPhases';
 import { lazy, Suspense, useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { ArrowLeft, Home, Play, Pause, RotateCcw, SkipForward, SkipBack, ChevronRight, MoreVertical, CheckCircle, Zap, Flame, Trophy, Camera } from 'lucide-react';
 import { RoundFeedbackPanel } from '@/components/workout/RoundFeedbackPanel';
 import { RoundFeedback } from '@/types';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
-import { VerticalXPBar } from '@/components/ui/VerticalXPBar';
+import { RunStage } from '@/components/broadcast/run/RunStage';
+import { comboText, toComboMove } from '@/components/broadcast/run/moves';
+import type { RunKind, RunView } from '@/components/broadcast/run/types';
+import type { CameraFeedState } from '@/components/punch/feedState';
 import { ResumeSessionDialog } from '@/components/workout/ResumeSessionDialog';
 import { clearSession, findResumableSession, saveSession, type SessionSnapshot } from '@/lib/sessionRecovery';
 
-import { ComboXPPop } from '@/components/ui/ComboXPPop';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -33,8 +34,7 @@ import { useSpeechSynthesis } from '@/hooks/useSpeechSynthesis';
 import { useSoundEffects } from '@/hooks/useSoundEffects';
 import { useBadges } from '@/hooks/useBadges';
 import { useRepeatingCheck } from '@/hooks/useRepeatingCheck';
-import { cn } from '@/lib/utils';
-import { ACTIVITY_XP_RATES, ActivityType, getStreakMultiplier, getActivityTypeFromName, calculateComboXP, getLevelFromXP, Prestige, isPrestigeEligible as checkPrestigeEligible, isMaxLevel as checkIsMaxLevel } from '@/lib/xpSystem';
+import { ACTIVITY_XP_RATES, ActivityType, getStreakMultiplier, getActivityTypeFromName, calculateComboXP, getLevelFromXP, getLevelProgress, getXPWithinCurrentLevel, Prestige, isPrestigeEligible as checkPrestigeEligible, isMaxLevel as checkIsMaxLevel } from '@/lib/xpSystem';
 import { computePostLogStats, computePostL100Increments } from '@/lib/workoutTracking';
 import { buildSessionBadgeStats, FRESH_SESSION, getSessionCredit, getSessionEffort, noteTraining, qualifiesForRewards, SessionLog, toSessionFacts } from '@/lib/sessionEffort';
 import { checkBadges, sumBadgeXP } from '@/data/badges';
@@ -410,6 +410,8 @@ const WorkoutSession = () => {
   const [cameraSession, setCameraSession] = useState(0);
   const cameraOn = usePunchPrefsStore((state) => state.workoutCamera);
   const setCameraOn = usePunchPrefsStore((state) => state.setWorkoutCamera);
+  const [feed, setFeed] = useState<CameraFeedState | null>(null);
+  const [feedProblemDismissed, setFeedProblemDismissed] = useState(false);
   const [sessionResult, setSessionResult] = useState<SessionXPBreakdown | null>(null);
   
   // Badge system
@@ -449,7 +451,6 @@ const WorkoutSession = () => {
   const currentSegment = flatSegments[currentSegmentIndex];
   const nextSegment = flatSegments[currentSegmentIndex + 1];
   const totalSegments = flatSegments.length;
-  const progressPercent = totalSegments > 0 ? (currentSegmentIndex / totalSegments) * 100 : 0;
   const isChampionship = !isPreparation && !!currentSegment && 
     currentSegment.phaseName.toLowerCase().includes('championship');
   const isCooldown = !isPreparation && (
@@ -457,10 +458,6 @@ const WorkoutSession = () => {
     currentSegment?.phaseName?.toLowerCase() === 'cooldown'
   );
   
-  const accentText = isChampionship ? 'text-championship-gold' : isCooldown ? 'text-cooldown-blue' : 'text-volt';
-  const accentText60 = isChampionship ? 'text-championship-gold/60' : isCooldown ? 'text-cooldown-blue/60' : 'text-volt/60';
-  const accentHsl = isChampionship ? 'hsl(var(--championship-gold))' : isCooldown ? 'hsl(var(--cooldown-blue))' : 'hsl(var(--electric-volt))';
-
   const streakMultiplier = getStreakMultiplier(profile?.current_streak || 0);
   
   const getActivityTypeFromSegment = (segment: FlatSegment | undefined): ActivityType => {
@@ -1199,429 +1196,114 @@ const WorkoutSession = () => {
     !(rawRestCombo.length === 1 && rawRestCombo[0] === 'FREESTYLE') 
     ? rawRestCombo : undefined;
 
-  const getDisplayMove = (move: string): { display: string; type: 'punch' | 'defense' | 'movement' } => {
-    const m = move.toUpperCase();
-    if (m === 'JAB') return { display: '1', type: 'punch' };
-    if (m === 'CROSS' || m === 'STRAIGHT') return { display: '2', type: 'punch' };
-    if (m === 'LEAD HOOK' || m === 'LEFT HOOK') return { display: '3', type: 'punch' };
-    if (m === 'REAR HOOK' || m === 'RIGHT HOOK') return { display: '4', type: 'punch' };
-    if (m === 'LEAD UPPERCUT' || m === 'LEFT UPPERCUT') return { display: '5', type: 'punch' };
-    if (m === 'REAR UPPERCUT' || m === 'RIGHT UPPERCUT') return { display: '6', type: 'punch' };
-    if (m === 'LEAD BODY HOOK' || m === 'LEFT BODY') return { display: '7', type: 'punch' };
-    if (m === 'REAR BODY HOOK' || m === 'RIGHT BODY') return { display: '8', type: 'punch' };
-    if (m.includes('SLIP L')) return { display: 'SL', type: 'defense' };
-    if (m.includes('SLIP R')) return { display: 'SR', type: 'defense' };
-    if (m.includes('ROLL L')) return { display: 'RL', type: 'defense' };
-    if (m.includes('ROLL R')) return { display: 'RR', type: 'defense' };
-    if (m === 'PULL') return { display: 'PL', type: 'defense' };
-    if (m === 'BLOCK') return { display: 'BK', type: 'defense' };
-    if (m.includes('CIRCLE L')) return { display: '↺', type: 'movement' };
-    if (m.includes('CIRCLE R')) return { display: '↻', type: 'movement' };
-    if (m.includes('STEP IN')) return { display: '→', type: 'movement' };
-    if (m.includes('STEP OUT')) return { display: '←', type: 'movement' };
-    if (['1', '2', '3', '4', '5', '6', '7', '8', '9', '10'].includes(m)) return { display: m, type: 'punch' };
-    if (['SL', 'SR', 'RL', 'RR', 'PL', 'BK'].includes(m)) return { display: m, type: 'defense' };
-    if (['↺', '↻', '→', '←'].includes(m)) return { display: m, type: 'movement' };
-    return { display: move, type: 'punch' };
+  const toMoves = (combo: string[] | undefined) => (combo ?? []).map(toComboMove);
+  const usesCombos = isShadowboxing || currentSegment?.segmentType === 'combo' || isSpeedbag || isDoubleend;
+  const shownCombo = !isPreparation && !isRestSegment && usesCombos ? toMoves(displayCombo) : [];
+  const kind: RunKind = isPreparation
+    ? 'prep'
+    : isRestSegment
+      ? 'rest'
+      : shownCombo.length > 0
+        ? isSpeedbag || isDoubleend ? 'drill' : 'combo'
+        : usesCombos
+          ? 'freestyle'
+          : 'exercise';
+  const nextWithCombo = flatSegments.slice(isPreparation ? 0 : currentSegmentIndex + 1).find((segment) => segment.combo?.length && segment.combo[0] !== 'FREESTYLE');
+  const preview = isRestSegment && restComboPreview ? restComboPreview : nextWithCombo?.combo;
+  const totalRounds = flatSegments.reduce((most, segment) => Math.max(most, segment.cumulativeRound ?? 0), 0);
+  const round = !isPreparation ? currentSegment?.cumulativeRound ?? null : null;
+  const totalXP = (profile?.total_xp || 0) + currentXP;
+  const prestige = profile?.prestige || 'beginner';
+  const within = getXPWithinCurrentLevel(prestige, totalXP);
+
+  const runView: RunView = {
+    workoutName: workout.name,
+    phaseName: isPreparation ? 'PREP' : currentSegment?.phaseName || 'WARMUP',
+    segmentName: isPreparation ? 'PREPARATION' : currentSegment?.name || 'WORK',
+    kind,
+    idle: !hasStartedOnce,
+    paused: isPaused,
+    clock: formatTime(Math.max(0, timeRemaining)),
+    remaining: timeRemaining,
+    duration: isPreparation ? PREPARATION_SECONDS : currentSegment?.duration || 1,
+    round,
+    roundLabel: round ? `Round ${round} of ${totalRounds}` : null,
+    championship: isChampionship,
+    cooldown: isCooldown,
+    comboLabel: shownCombo.length === 0 ? null : isShadowboxing ? 'INCOMING COMBO' : isSpeedbag || isDoubleend ? 'DRILL' : 'COMBO',
+    combo: shownCombo,
+    nextCombo: preview ? comboText(toMoves(preview)) : null,
+    upNext: isPreparation ? flatSegments[0]?.name || 'WORK' : nextSegment?.name || 'FINISH',
+    upNextSeconds: isPreparation ? flatSegments[0]?.duration ?? null : nextSegment?.duration ?? null,
+    segmentIndex: isPreparation ? 0 : currentSegmentIndex + 1,
+    segmentCount: totalSegments,
+    elapsed: formatTimeCompact(totalElapsed),
+    sessionXP: Math.round(currentXP),
+    streak: profile?.current_streak || 0,
+    multiplier: streakMultiplier,
+    level: liveLevel,
+    levelPercent: getLevelProgress(prestige, liveLevel, totalXP),
+    xpToNext: liveLevel >= 100 ? null : Math.max(0, Math.ceil(within.required - within.current)),
   };
+
+  const counting = isRunning && !isPaused && !isPreparation && !!currentSegment &&
+    currentSegment.type !== 'rest' && (isBoxingSegment(currentSegment) || isShadowboxing);
 
   // Active workout screen
   return (
     <AppLayout hideNav>
-      <div className="min-h-screen flex flex-col bg-background">
-        {/* Top Bar */}
-        <header className="flex items-start justify-between px-4 py-3 safe-top relative z-10">
-          <div className="flex items-center gap-2">
-            <button 
-              onClick={() => setShowExitConfirm(true)}
-              className="flex items-center gap-2 px-3 py-2 rounded-full bg-surface-1 border border-surface-3"
-            >
-              <ArrowLeft className="w-4 h-4" />
-              <Home className="w-4 h-4" />
-            </button>
-            <button
-              onClick={() => setShowRestartConfirm(true)}
-              className="px-3 py-2 rounded-full bg-surface-1 border border-surface-3 text-muted-foreground hover:text-foreground transition-colors"
-              title="Restart from beginning"
-            >
-              <RotateCcw className="w-4 h-4" />
-            </button>
-            <button
-              onClick={handleCompleteEarly}
-              className={cn("px-3 py-2 rounded-full bg-surface-1 border border-surface-3 transition-colors", isChampionship ? "text-championship-gold" : isCooldown ? "text-cooldown-blue" : "text-volt")}
-              title="Complete workout early"
-            >
-              <CheckCircle className="w-4 h-4" />
-            </button>
-            <button
-              onClick={() => setCameraOn(!cameraOn)}
-              aria-label="Punch camera"
-              aria-pressed={cameraOn}
-              title="Punch camera"
-              className={cn(
-                "px-3 py-2 rounded-full border transition-colors",
-                cameraOn ? "bg-volt/20 border-volt/40 text-volt" : "bg-surface-1 border-surface-3 text-muted-foreground hover:text-foreground"
-              )}
-            >
-              <Camera className="w-4 h-4" />
-            </button>
-          </div>
-          
-          <div className="flex flex-col items-end gap-1 relative">
-            {xpBubble && (
-              <div 
-                key={xpBubble.id}
-                className={cn("absolute right-full mr-2 top-1/2 -translate-y-1/2 font-bold text-sm whitespace-nowrap animate-xp-bubble pointer-events-none", accentText)}
-              >
-                +{xpBubble.amount} XP
-              </div>
-            )}
-            <div className="flex items-center gap-2">
-              <span className={cn("timer-display text-2xl font-black", accentText60)}>
-                {formatTimeCompact(totalElapsed)}
-              </span>
-            </div>
-            {(profile?.current_streak || 0) > 0 && (
-              <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-orange-500/10 border border-orange-500/20">
-                <Flame className="w-3 h-3 text-orange-400" />
-                <span className="text-[10px] font-bold text-orange-400">
-                  {profile?.current_streak}d — {streakMultiplier}x
-                </span>
-              </div>
-            )}
-          </div>
-        </header>
-
-        {/* Sits in the corner clear of the timer and combos. Only boxing segments are counted. */}
-        {cameraOn && hasStartedOnce && (
-          <Suspense fallback={null}>
-            <PunchCameraPanel
-              key={cameraSession}
-              counting={
-                isRunning && !isPaused && !isPreparation && !!currentSegment &&
-                currentSegment.type !== 'rest' && (isBoxingSegment(currentSegment) || isShadowboxing)
-              }
-              onSummary={setPunchSummary}
-              className="fixed left-4 top-[4.5rem] z-10"
-            />
-          </Suspense>
-        )}
-
-        {/* Level Up Overlay */}
-        {levelUpLevel !== null && (
-          <LevelUpOverlay
-            level={levelUpLevel}
-            variant={isChampionship ? 'championship' : isCooldown ? 'cooldown' : 'volt'}
-            onComplete={() => setLevelUpLevel(null)}
-          />
-        )}
-
-        {/* BUG 3: Live Badge Notification — shows earned badges during workout */}
-        {latestBadgePop && (
-          <div 
-            key={latestBadgePop.id}
-            className="flex items-center justify-center gap-2 px-4 py-2 z-20 relative"
-            style={{ animation: 'badge-overlay-in 0.4s ease-out forwards' }}
-          >
-            <div className={cn(
-              "flex items-center gap-2 px-4 py-2 rounded-full border",
-              "bg-championship-gold/15 border-championship-gold/30"
-            )}
-            style={{ animation: 'badge-pulse 1s ease-in-out infinite' }}
-            >
-              <Trophy className="w-4 h-4 text-championship-gold" />
-              <span className="text-xs font-bold text-championship-gold uppercase tracking-wide">
-                {latestBadgePop.badge.name}
-              </span>
-              <span className="text-xs font-black text-volt">
-                +{latestBadgePop.badge.xpReward.toLocaleString()} XP
-              </span>
-            </div>
-          </div>
-        )}
-        {/* Badge tally — persistent count when no pop is active */}
-        {liveBadgesEarned.length > 0 && !latestBadgePop && (
-          <div className="flex items-center justify-center gap-2 px-4 py-1 z-20 relative">
-            <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-championship-gold/15 border border-championship-gold/30">
-              <Trophy className="w-3 h-3 text-championship-gold" />
-              <span className="text-[10px] font-bold text-championship-gold">
-                {liveBadgesEarned.length} badge{liveBadgesEarned.length !== 1 ? 's' : ''} · +{liveBadgesEarned.reduce((s, lb) => s + lb.badge.xpReward, 0).toLocaleString()} XP
-              </span>
-            </div>
-          </div>
-        )}
-
-        {/* Main Timer — middle area between top bar and bottom bar */}
-        {/* On short screens and laptops the two layers stack in normal flow, so a combo card can never land on the timer or the controls */}
-        <div className="flex-1 relative px-4 min-h-[26rem] [@media(max-height:700px)]:min-h-0 [@media(max-height:700px)]:flex [@media(max-height:700px)]:flex-col [@media(max-height:700px)]:justify-center [@media(max-height:700px)]:gap-2 md:[@media(max-height:900px)]:min-h-0 md:[@media(max-height:900px)]:flex md:[@media(max-height:900px)]:flex-col md:[@media(max-height:900px)]:justify-center md:[@media(max-height:900px)]:gap-2">
-          {/* Layer 1: Fixed, vertically centered — phase name, timer, segment */}
-          <div className="absolute inset-0 flex flex-col items-center justify-center px-4 -mt-[24%] md:mt-0 [@media(max-height:700px)]:static [@media(max-height:700px)]:mt-0 md:[@media(max-height:900px)]:static">
-                {/* Phase Name */}
-                {isPreparation ? (
-                  <p className="text-xs text-muted-foreground uppercase tracking-widest mb-2">GET READY</p>
-                ) : isChampionship ? (
-                  <p className="text-xs font-black text-championship-gold uppercase tracking-widest mb-2 flex items-center gap-1.5 animate-[pulse_3s_ease-in-out_infinite]">
-                    <Zap className="w-3 h-3 text-championship-gold" />
-                    {currentSegment?.phaseName || 'CHAMPIONSHIP'}
-                    <Zap className="w-3 h-3 text-championship-gold" />
-                  </p>
-                ) : (
-                  <p className={cn(
-                    "text-xs uppercase tracking-widest mb-2",
-                    isCooldown ? "text-cooldown-blue/70" : "text-muted-foreground"
-                  )}>
-                    {currentSegment?.phaseName || 'WARMUP'}
-                  </p>
-                )}
-
-                {/* Timer with 270° arc ring */}
-                <div className="relative w-full flex items-center justify-center">
-                  <div className="relative flex items-center justify-center w-[280px] h-[280px] [@media(max-height:700px)]:w-[max(150px,27vh)] [@media(max-height:700px)]:h-[max(150px,27vh)] md:[@media(max-height:760px)]:w-[max(150px,27vh)] md:[@media(max-height:760px)]:h-[max(150px,27vh)]">
-                    {/* SVG Arc Ring — 270° open at bottom */}
-                    <svg className="absolute inset-0" viewBox="0 0 280 280">
-                      {(() => {
-                        const r = 128;
-                        const circumference = 2 * Math.PI * r;
-                        const arcFrac = 0.75;
-                        const arcLen = circumference * arcFrac;
-                        const gapLen = circumference - arcLen;
-                        const startAngle = 135;
-                        const segDuration = isPreparation ? PREPARATION_SECONDS : (currentSegment?.duration || 1);
-                        const progress = Math.min(1, Math.max(0, timeRemaining / segDuration));
-                        const filledLen = arcLen * progress;
-                        return (
-                          <>
-                            <circle cx="140" cy="140" r={r} fill="none" stroke="hsl(var(--surface-3))" strokeWidth="5" strokeDasharray={`${arcLen} ${gapLen}`} strokeDashoffset={-circumference * (startAngle / 360)} strokeLinecap="round" />
-                            <circle cx="140" cy="140" r={r} fill="none" stroke={accentHsl} strokeWidth="10" strokeDasharray={`${filledLen} ${circumference - filledLen}`} strokeDashoffset={-circumference * (startAngle / 360)} strokeLinecap="round" filter="blur(4px)" className="animate-arc-glow-pulse" style={{ transition: 'stroke-dasharray 0.3s linear' }} />
-                            <circle cx="140" cy="140" r={r} fill="none" stroke={accentHsl} strokeWidth="5" strokeDasharray={`${filledLen} ${circumference - filledLen}`} strokeDashoffset={-circumference * (startAngle / 360)} strokeLinecap="round" style={{ transition: 'stroke-dasharray 0.3s linear' }} />
-                          </>
-                        );
-                      })()}
-                    </svg>
-                    <span className={cn(
-                      "timer-display font-black",
-                      "timer-display text-7xl font-black [@media(max-height:700px)]:text-[length:max(36px,7vh)] md:[@media(max-height:760px)]:text-[length:max(36px,7vh)]",
-                      isChampionship 
-                        ? "text-championship-gold animate-gold-shimmer" 
-                        : isCooldown ? "text-cooldown-blue" : "text-volt text-glow-volt"
-                    )}>
-                      {formatTime(timeRemaining)}
-                    </span>
-                    <div className="absolute -top-2 left-1/2 -translate-x-1/2">
-                      <ComboXPPop pop={comboXPPop} />
-                    </div>
-                  </div>
-                  {/* Vertical XP Bar — pinned to right wall */}
-                  <div className="absolute right-0 top-0 bottom-4 flex items-stretch">
-                    <VerticalXPBar prestige={profile?.prestige || 'beginner'} level={liveLevel} totalXP={(profile?.total_xp || 0) + currentXP} badgeStats={currentStats} earnedBadgeIds={earnedBadgeIds} isChampionship={isChampionship} isCooldown={isCooldown} />
-                  </div>
-                </div>
-
-          {/* Segment Name */}
-          <div className="flex items-center gap-3 mb-4 whitespace-nowrap w-full max-w-sm mx-auto">
-            <div className={cn("h-px flex-1 min-w-4", isChampionship ? "bg-championship-gold/40" : isCooldown ? "bg-cooldown-blue/40" : "bg-muted-foreground/30")} />
-            <h2 className={cn(
-              "text-xl font-black uppercase tracking-wider text-center shrink-0",
-              isChampionship ? "text-championship-gold" : isCooldown ? "text-cooldown-blue" : "text-foreground"
-            )}>
-              {isPreparation ? 'PREPARATION' : (
-                <>
-                  {currentSegment?.name || 'WORK'}
-                  {isChampionship && <span className="text-championship-gold"> / 2XP</span>}
-                </>
-              )}
-            </h2>
-            <div className={cn("h-px flex-1 min-w-4", isChampionship ? "bg-championship-gold/40" : isCooldown ? "bg-cooldown-blue/40" : "bg-muted-foreground/30")} />
-          </div>
-
-          <div className="flex gap-2 relative z-10">
-            {['-30', '-15', '+15', '+30'].map((val) => (
-              <button
-                key={val}
-                onClick={() => adjustTime(parseInt(val))}
-                className="px-3 py-1.5 rounded-full border border-surface-3 text-muted-foreground text-xs font-medium hover:bg-surface-1 transition-colors"
-              >
-                {val}s
-              </button>
-            ))}
-          </div>
-
-          </div>
-          {/* END Layer 1 */}
-
-          {/* Layer 2: absolute, lower portion only — combo/UP NEXT cards */}
-          <div className="absolute left-4 right-4 flex flex-col items-center justify-start pointer-events-none top-[80%] md:top-[78%] [@media(max-height:700px)]:static [@media(max-height:700px)]:min-h-[5.5rem] md:[@media(max-height:900px)]:static md:[@media(max-height:900px)]:min-h-[5.5rem]">
-            <div className="pointer-events-auto w-full flex flex-col items-center">
-          {/* Rest Screen - Clean Next Preview */}
-          {isRestSegment && (
-            <div className={cn("w-full max-w-xs rounded-xl p-3 border", isChampionship ? "bg-championship-gold/5 border-championship-gold/30" : isCooldown ? "bg-cooldown-blue/5 border-cooldown-blue/30" : "bg-surface-1 border-surface-3")}>
-              <p className={cn("text-[10px] uppercase tracking-wider mb-1 text-center", isChampionship ? "text-championship-gold/60" : isCooldown ? "text-cooldown-blue/60" : "text-muted-foreground")}>UP NEXT</p>
-              <p className={cn("text-lg font-black text-center uppercase", isChampionship ? "text-championship-gold" : isCooldown ? "text-cooldown-blue" : "text-foreground")}>
-                {nextSegment?.name || 'FINISH'}
-              </p>
-            </div>
-          )}
-
-          {/* Combo Display - for shadowboxing */}
-          {isShadowboxing && !isPreparation && (
-            <div className="w-full max-w-xs bg-surface-1 rounded-xl p-3 border border-surface-3">
-              {displayCombo && displayCombo.length > 0 ? (
-                <>
-                  <p className={cn("text-xs font-bold mb-3 text-center animate-pulse", accentText)}>INCOMING COMBO</p>
-                  <div className="flex items-center justify-center gap-2 flex-wrap">
-                    {displayCombo.map((move, idx) => {
-                      const displayMove = (() => {
-                        const m = move.toUpperCase();
-                        if (m === 'JAB') return '1';
-                        if (m === 'CROSS' || m === 'STRAIGHT') return '2';
-                        if (m === 'LEAD HOOK' || m === 'LEFT HOOK') return '3';
-                        if (m === 'REAR HOOK' || m === 'RIGHT HOOK') return '4';
-                        if (m === 'LEAD UPPERCUT' || m === 'LEFT UPPERCUT') return '5';
-                        if (m === 'REAR UPPERCUT' || m === 'RIGHT UPPERCUT') return '6';
-                        if (m === 'LEAD BODY HOOK' || m === 'LEFT BODY') return '7';
-                        if (m === 'REAR BODY HOOK' || m === 'RIGHT BODY') return '8';
-                        if (m.includes('SLIP L')) return 'SL';
-                        if (m.includes('SLIP R')) return 'SR';
-                        if (m.includes('ROLL L')) return 'RL';
-                        if (m.includes('ROLL R')) return 'RR';
-                        if (m === 'PULL') return 'PL';
-                        if (m === 'BLOCK') return 'BK';
-                        if (m.includes('CIRCLE L')) return '↺';
-                        if (m.includes('CIRCLE R')) return '↻';
-                        if (m.includes('STEP IN')) return '→';
-                        if (m.includes('STEP OUT')) return '←';
-                        return move;
-                      })();
-                      
-                      return (
-                        <div key={idx} className="flex items-center gap-1">
-                          <span className={cn('text-2xl font-black', accentText)}>
-                            {displayMove}
-                          </span>
-                          {idx < displayCombo.length - 1 && (
-                            <ChevronRight className="w-3 h-3 text-muted-foreground" />
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
-                </>
-              ) : (
-                <p className={cn("text-2xl font-black text-center", accentText)}>FREESTYLE</p>
-              )}
-            </div>
-          )}
-          
-          {/* Combo Display for combo segments */}
-          {!isShadowboxing && displayCombo && displayCombo.length > 0 && !isPreparation && (currentSegment?.segmentType === 'combo' || currentSegment?.segmentType === 'speedbag' || currentSegment?.segmentType === 'doubleend') && (
-            <div className="w-full max-w-xs bg-surface-1 rounded-xl p-3 border border-surface-3">
-              <div className="flex items-center justify-center gap-2 flex-wrap">
-                {displayCombo.map((move, idx) => {
-                  const displayMove = (() => {
-                    const m = move.toUpperCase();
-                    if (m === 'JAB') return '1';
-                    if (m === 'CROSS' || m === 'STRAIGHT') return '2';
-                    if (m === 'LEAD HOOK' || m === 'LEFT HOOK') return '3';
-                    if (m === 'REAR HOOK' || m === 'RIGHT HOOK') return '4';
-                    if (m === 'LEAD UPPERCUT' || m === 'LEFT UPPERCUT') return '5';
-                    if (m === 'REAR UPPERCUT' || m === 'RIGHT UPPERCUT') return '6';
-                    if (m === 'LEAD BODY HOOK' || m === 'LEFT BODY') return '7';
-                    if (m === 'REAR BODY HOOK' || m === 'RIGHT BODY') return '8';
-                    if (m.includes('SLIP L')) return 'SL';
-                    if (m.includes('SLIP R')) return 'SR';
-                    if (m.includes('ROLL L')) return 'RL';
-                    if (m.includes('ROLL R')) return 'RR';
-                    if (m === 'PULL') return 'PL';
-                    if (m === 'BLOCK') return 'BK';
-                    if (m.includes('CIRCLE L')) return '↺';
-                    if (m.includes('CIRCLE R')) return '↻';
-                    if (m.includes('STEP IN')) return '→';
-                    if (m.includes('STEP OUT')) return '←';
-                    return move;
-                  })();
-                  
-                  return (
-                    <div key={idx} className="flex items-center gap-1">
-                          <span className={cn('text-2xl font-black', accentText)}>
-                        {displayMove}
-                      </span>
-                      {idx < displayCombo.length - 1 && (
-                        <ChevronRight className="w-3 h-3 text-muted-foreground" />
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-
-          {/* Freestyle Display */}
-          {!isShadowboxing && !isPreparation && currentSegment?.type === 'active' && 
-           (currentSegment?.segmentType === 'combo' || currentSegment?.segmentType === 'speedbag' || currentSegment?.segmentType === 'doubleend') &&
-           (!displayCombo || displayCombo.length === 0) && (
-            <div className="w-full max-w-xs bg-surface-1 rounded-xl p-3 border border-surface-3">
-              <p className={cn("text-2xl font-black text-center", accentText)}>FREESTYLE</p>
-            </div>
-          )}
-            </div>
-          </div>
-          {/* END Layer 2 */}
-        </div>
-
-        {/* Bottom Section */}
-        <div className="px-4 pb-6 safe-bottom">
-          {/* Compact Phase + Progress */}
-          <div className="flex items-center justify-between text-[10px] text-muted-foreground uppercase tracking-wider mb-1">
-            <span className="font-bold text-foreground text-xs">
-              {isPreparation ? 'PREP' : currentSegment?.phaseName || 'WARMUP'}
-            </span>
-            <div className="flex items-center gap-1.5">
-              <span className={cn("w-1.5 h-1.5 rounded-full", isChampionship ? "bg-championship-gold" : isCooldown ? "bg-cooldown-blue" : "bg-volt")} />
-              <span className="text-xs">{isPreparation ? flatSegments[0]?.name : nextSegment?.name || 'FINISH'}</span>
-            </div>
-          </div>
-          <div className="h-1 bg-surface-2 rounded-full overflow-hidden mb-1">
-            <div 
-              className={cn("h-full transition-all duration-300", isChampionship ? "bg-championship-gold" : isCooldown ? "bg-cooldown-blue" : "bg-volt")}
-              style={{ width: `${progressPercent}%` }}
-            />
-          </div>
-          <div className="flex justify-between text-[10px] text-muted-foreground mb-2">
-            <span>{isPreparation ? 'PREP' : currentSegment?.section?.toUpperCase()}</span>
-            <span className={cn("font-bold", isChampionship ? "text-championship-gold" : isCooldown ? "text-cooldown-blue" : "text-volt")}>
-              {isPreparation ? '0' : currentSegmentIndex + 1}/{totalSegments}
-            </span>
-          </div>
-
-          {/* Controls */}
-          <div className="flex items-center justify-center gap-4">
-            <button
-              onClick={handleBack}
-              disabled={isPreparation}
-              className="w-12 h-12 rounded-full bg-surface-1 border border-surface-3 flex items-center justify-center disabled:opacity-30"
-            >
-              <SkipBack className="w-5 h-5 text-foreground" />
-            </button>
-
-            <button
-              onClick={isPaused ? handleStart : handlePauseResume}
-              className={cn("w-20 h-20 rounded-full flex items-center justify-center", isChampionship ? "bg-championship-gold glow-gold" : isCooldown ? "bg-cooldown-blue" : "bg-volt glow-volt")}
-            >
-              {isPaused ? (
-                <Play className="w-8 h-8 text-primary-foreground ml-1" fill="currentColor" />
-              ) : (
-                <Pause className="w-8 h-8 text-primary-foreground" />
-              )}
-            </button>
-
-            <button
-              onClick={handleSkip}
-              className="w-12 h-12 rounded-full bg-surface-1 border border-surface-3 flex items-center justify-center"
-            >
-              <SkipForward className="w-5 h-5 text-foreground" />
-            </button>
-          </div>
-        </div>
+      {/* Level Up Overlay */}
+      {levelUpLevel !== null && (
+        <LevelUpOverlay
+          level={levelUpLevel}
+          variant={isChampionship ? 'championship' : isCooldown ? 'cooldown' : 'volt'}
+          onComplete={() => setLevelUpLevel(null)}
+        />
+      )}
+      <RunStage
+        view={runView}
+        actions={{
+          onPlay: handleStart,
+          onPause: handlePauseResume,
+          onBack: handleBack,
+          onSkip: handleSkip,
+          onFinish: handleCompleteEarly,
+          onLeave: () => setShowExitConfirm(true),
+          onRestart: () => setShowRestartConfirm(true),
+          onAdjust: adjustTime,
+          onToggleCamera: () => {
+            setFeed(null);
+            setFeedProblemDismissed(false);
+            setCameraOn(!cameraOn);
+          },
+        }}
+        flash={{
+          xp: xpBubble,
+          comboXP: comboXPPop,
+          badge: latestBadgePop && {
+            id: latestBadgePop.id,
+            name: latestBadgePop.badge.name,
+            xp: latestBadgePop.badge.xpReward,
+            artId: latestBadgePop.badge.id,
+          },
+          badgeTally: liveBadgesEarned.length > 0
+            ? { count: liveBadgesEarned.length, xp: liveBadgesEarned.reduce((sum, earned) => sum + earned.badge.xpReward, 0) }
+            : null,
+        }}
+        cameraOn={cameraOn}
+        camera={
+          // Asks for the camera once the session has started. Only boxing segments are counted.
+          cameraOn && hasStartedOnce ? (
+            <Suspense fallback={null}>
+              <PunchCameraPanel key={cameraSession} counting={counting} onSummary={setPunchSummary} onFeed={setFeed} />
+            </Suspense>
+          ) : undefined
+        }
+        feed={cameraOn ? feed : null}
+        counting={counting}
+        problemDismissed={feedProblemDismissed}
+        onDismissProblem={() => setFeedProblemDismissed(true)}
+      >
         {resumable && (
           <ResumeSessionDialog
             name={workout.name}
@@ -1676,7 +1358,7 @@ const WorkoutSession = () => {
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
-      </div>
+      </RunStage>
     </AppLayout>
   );
 };

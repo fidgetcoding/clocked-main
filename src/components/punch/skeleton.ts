@@ -24,7 +24,9 @@ const JOINTS = [
   LM.RIGHT_HIP,
 ];
 
-const VOLT = 'hsl(72 100% 55%)';
+const BONE = '#D4FF00';
+const JOINT = '#F5F6F3';
+const JOINT_EDGE = '#07080B';
 const MIN_VISIBILITY = 0.5;
 
 /** Draws the tracked body onto a canvas sized to the video. The caller's CSS does the mirroring. */
@@ -42,8 +44,8 @@ export function drawSkeleton(canvas: HTMLCanvasElement, video: HTMLVideoElement,
   const seen = (point: Landmark | undefined): point is Landmark =>
     !!point && (point.visibility ?? 1) >= MIN_VISIBILITY;
 
-  context.strokeStyle = VOLT;
-  context.lineWidth = 3 * scale;
+  context.strokeStyle = BONE;
+  context.lineWidth = 4 * scale;
   context.lineCap = 'round';
   context.beginPath();
   for (const [from, to] of BONES) {
@@ -55,12 +57,15 @@ export function drawSkeleton(canvas: HTMLCanvasElement, video: HTMLVideoElement,
   }
   context.stroke();
 
-  context.fillStyle = VOLT;
+  context.fillStyle = JOINT;
+  context.strokeStyle = JOINT_EDGE;
+  context.lineWidth = 1.5 * scale;
   for (const index of JOINTS) {
     const point = landmarks[index];
     if (!seen(point)) continue;
     context.beginPath();
-    context.arc(point.x * canvas.width, point.y * canvas.height, 4 * scale, 0, Math.PI * 2);
+    context.arc(point.x * canvas.width, point.y * canvas.height, 4.5 * scale, 0, Math.PI * 2);
     context.fill();
+    context.stroke();
   }
 }

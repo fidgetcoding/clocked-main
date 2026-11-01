@@ -1,5 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
 import { expect, Page } from "@playwright/test";
+import { playButton, pauseButton, skipButton } from "./controls";
 
 function required(name: string): string {
   const value = process.env[name];
@@ -96,11 +97,11 @@ export async function userIdFor(email: string): Promise<string> {
 
 /** Start the first workout on the home screen and get past the preparation, which doesn't count as training. */
 export async function startTraining(page: Page): Promise<void> {
-  await page.locator("button:has(svg.lucide-play)").first().click();
+  await playButton(page).click();
   await page.waitForURL("**/workout/**");
-  await page.locator("button:has(svg.lucide-play)").first().click();
-  await page.locator("button:has(svg.lucide-pause)").waitFor();
-  await page.locator("button:has(svg.lucide-skip-forward)").click();
+  await playButton(page).click();
+  await pauseButton(page).waitFor();
+  await skipButton(page).click();
 }
 
 /** Start the first workout on the home screen, leave the timer running, and finish it early. */

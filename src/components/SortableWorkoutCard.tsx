@@ -1,7 +1,8 @@
 import { splitStoredPhases } from '@/lib/storedPhases';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { Play, Pencil, Trash2, Clock, RotateCcw, GripVertical } from 'lucide-react';
+import { Pencil, Trash2, Clock, RotateCcw, GripVertical } from 'lucide-react';
+import { PlayIcon } from '@/components/broadcast/icons';
 import { useNavigate } from 'react-router-dom';
 import { DbWorkout } from '@/hooks/useWorkouts';
 import { cn } from '@/lib/utils';
@@ -92,9 +93,10 @@ export function SortableWorkoutCard({ workout, onDelete, isReorderMode }: Sortab
             {/* Play Button */}
             <button
               onClick={() => navigate(`/workout/${workout.id}`)}
-              className="w-12 h-12 rounded-full bg-volt flex items-center justify-center transition-transform duration-200 group-hover:scale-125 active:scale-95"
+              aria-label={`Start ${workout.name}`}
+              className="plate plate-lime h-11 w-14"
             >
-              <Play className="w-5 h-5 text-primary-foreground ml-0.5" fill="currentColor" />
+              <PlayIcon className="size-4" />
             </button>
 
             {/* Edit and Delete */}

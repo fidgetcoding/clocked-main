@@ -33,3 +33,5 @@ dist-ssr
 
 # Supabase CLI working files
 supabase/.temp
+
+.rs-dist

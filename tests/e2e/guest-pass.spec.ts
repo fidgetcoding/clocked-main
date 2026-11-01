@@ -2,6 +2,7 @@
 import { Page } from "@playwright/test";
 import { expect, test } from "./silent";
 import { finishGuestOnboarding, NO_BACKEND_URL } from "./helpers";
+import { playButton, pauseButton, skipButton } from "./controls";
 
 const seedHistory = (page: Page, entries: { name: string; duration: number; at: string }[]) =>
   page.evaluate((rows) => {
@@ -28,10 +29,10 @@ const openPresets = async (page: Page) => {
 };
 
 const startFirstSet = async (page: Page) => {
-  await page.locator("button:has(svg.lucide-play)").first().click();
+  await playButton(page).click();
   await page.waitForURL("**/workout/**");
-  await page.locator("button:has(svg.lucide-play)").first().click();
-  await page.locator("button:has(svg.lucide-pause)").waitFor();
+  await playButton(page).click();
+  await pauseButton(page).waitFor();
 };
 
 test.beforeEach(async ({ page }) => {
@@ -47,8 +48,8 @@ test("a saved preset keeps its phases and runs", async ({ page }) => {
   await expect(card).not.toContainText("0 PHASES");
   await card.locator("button:has(svg.lucide-play)").click();
   await page.waitForURL("**/workout/**");
-  await page.locator("button:has(svg.lucide-play)").first().click();
-  await page.locator("button:has(svg.lucide-skip-forward)").click();
+  await playButton(page).click();
+  await skipButton(page).click();
   await expect(page.locator("h2")).not.toHaveText("PREPARATION");
 });
 
@@ -130,8 +131,8 @@ test("skipping the last segment finishes the workout", async ({ page }) => {
   await page.getByRole("button", { name: "Add Phase" }).click();
   await page.getByRole("button", { name: "Start", exact: true }).click();
   await page.waitForURL("**/session");
-  await page.locator("button:has(svg.lucide-play)").first().click();
-  const skip = page.locator("button:has(svg.lucide-skip-forward)");
+  await playButton(page).click();
+  const skip = skipButton(page);
   await skip.click();
   await expect(page.locator("h2")).toHaveText(/shadowboxing/i);
   await skip.click();
@@ -190,8 +191,8 @@ test("a warmup with no combos stays freestyle when the rounds have some", async 
   await page.getByRole("button", { name: "Start", exact: true }).click();
   await page.waitForURL("**/session");
 
-  await page.locator("button:has(svg.lucide-play)").first().click();
-  const skip = page.locator("button:has(svg.lucide-skip-forward)");
+  await playButton(page).click();
+  const skip = skipButton(page);
   await skip.click();
   await expect(page.getByText("FREESTYLE")).toBeVisible();
   await skip.click();
@@ -201,7 +202,7 @@ test("a warmup with no combos stays freestyle when the rounds have some", async 
 
 test("restarting gets the same preparation and doesn't promise to save XP", async ({ page }) => {
   await startFirstSet(page);
-  await page.locator("button:has(svg.lucide-skip-forward)").click();
+  await skipButton(page).click();
   await expect(page.getByText("00:01").first()).toBeVisible();
   await page.getByTitle("Restart from beginning").click();
   await expect(page.getByText(/drops the \+1\d XP/)).toBeVisible();
@@ -223,8 +224,8 @@ test("drills picked for a speed bag round show up in the session", async ({ page
   await page.getByText("Double Left Lead").click();
   await page.getByRole("button", { name: "Start", exact: true }).click();
   await page.waitForURL("**/session");
-  await page.locator("button:has(svg.lucide-play)").first().click();
-  await page.locator("button:has(svg.lucide-skip-forward)").click();
+  await playButton(page).click();
+  await skipButton(page).click();
   await expect(page.locator("h2")).toHaveText(/speed bag/i);
   await expect(page.getByText("Double Left Lead")).toBeVisible();
 });
@@ -242,8 +243,8 @@ test("combos picked for a double-end round show up in the session", async ({ pag
   await sheet.getByRole("button", { name: "Save", exact: true }).click();
   await page.getByRole("button", { name: "Start", exact: true }).click();
   await page.waitForURL("**/session");
-  await page.locator("button:has(svg.lucide-play)").first().click();
-  await page.locator("button:has(svg.lucide-skip-forward)").click();
+  await playButton(page).click();
+  await skipButton(page).click();
   await expect(page.locator("h2")).toHaveText(/double end/i);
   await expect(page.getByText("FREESTYLE")).toHaveCount(0);
 });
@@ -297,7 +298,7 @@ test("nothing covers the workout controls right after Start", async ({ page }) =
   await page.getByRole("button", { name: "Add Phase" }).click();
   await page.getByRole("button", { name: "Start", exact: true }).click();
   await page.waitForURL("**/session");
-  await expect(page.locator("button:has(svg.lucide-play)").first()).toBeVisible();
+  await expect(playButton(page)).toBeVisible();
   // Read once, after a toast would have landed. A retrying assertion just waits for it to expire.
   await page.waitForTimeout(500);
   expect(await page.locator("[data-sonner-toast]").count()).toBe(0);

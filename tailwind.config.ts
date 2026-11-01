@@ -13,6 +13,35 @@ export default {
         "2xl": "1400px",
       },
     },
+    // Square corners everywhere: the shape language is the slanted plate. `dot` is for the on-air light.
+    borderRadius: {
+      none: "0",
+      sm: "0",
+      DEFAULT: "0",
+      md: "0",
+      lg: "0",
+      xl: "0",
+      "2xl": "0",
+      "3xl": "0",
+      full: "0",
+      dot: "9999px",
+    },
+    // A step up from the Tailwind defaults, because condensed faces run about 20% narrower
+    fontSize: {
+      xs: ["0.8125rem", { lineHeight: "1.2" }],
+      sm: ["0.9375rem", { lineHeight: "1.28" }],
+      base: ["1.0625rem", { lineHeight: "1.3" }],
+      lg: ["1.25rem", { lineHeight: "1.2" }],
+      xl: ["1.5rem", { lineHeight: "1.05" }],
+      "2xl": ["1.875rem", { lineHeight: "1" }],
+      "3xl": ["2.375rem", { lineHeight: "0.96" }],
+      "4xl": ["3rem", { lineHeight: "0.92" }],
+      "5xl": ["3.75rem", { lineHeight: "0.9" }],
+      "6xl": ["4.5rem", { lineHeight: "0.88" }],
+      "7xl": ["5.75rem", { lineHeight: "0.86" }],
+      "8xl": ["7.5rem", { lineHeight: "0.86" }],
+      "9xl": ["10rem", { lineHeight: "0.86" }],
+    },
     extend: {
       colors: {
         border: "hsl(var(--border))",
@@ -73,14 +102,13 @@ export default {
         "championship-gold": "hsl(var(--championship-gold) / <alpha-value>)",
         "cooldown-blue": "hsl(var(--cooldown-blue) / <alpha-value>)",
       },
-      borderRadius: {
-        lg: "var(--radius)",
-        md: "calc(var(--radius) - 2px)",
-        sm: "calc(var(--radius) - 4px)",
+      fontFamily: {
+        sans: "var(--font-text)",
+        display: "var(--font-display)",
       },
       fontSize: {
-        timer: ["4.5rem", { lineHeight: "1", letterSpacing: "-0.02em" }],
-        "timer-lg": ["6rem", { lineHeight: "1", letterSpacing: "-0.02em" }],
+        timer: ["4.5rem", { lineHeight: "0.86" }],
+        "timer-lg": ["6rem", { lineHeight: "0.86" }],
       },
       keyframes: {
         "accordion-down": {
@@ -90,22 +118,6 @@ export default {
         "accordion-up": {
           from: { height: "var(--radix-accordion-content-height)" },
           to: { height: "0" },
-        },
-        "pulse-volt": {
-          "0%, 100%": { 
-            boxShadow: "0 0 0 0 hsl(var(--electric-volt) / 0.7)" 
-          },
-          "50%": { 
-            boxShadow: "0 0 0 10px hsl(var(--electric-volt) / 0)" 
-          },
-        },
-        "glow-pulse": {
-          "0%, 100%": { 
-            boxShadow: "0 0 20px hsl(var(--electric-volt) / 0.4)" 
-          },
-          "50%": { 
-            boxShadow: "0 0 40px hsl(var(--electric-volt) / 0.6)" 
-          },
         },
         "slide-up": {
           from: { transform: "translateY(100%)", opacity: "0" },
@@ -132,69 +144,16 @@ export default {
           "50%": { opacity: "0.7" },
           "100%": { transform: "translateY(-24px)", opacity: "0" },
         },
-        "gold-shimmer": {
-          "0%, 100%": { textShadow: "0 0 10px hsl(43 96% 56% / 0.6), 0 0 20px hsl(43 96% 56% / 0.3)" },
-          "50%": { textShadow: "0 0 20px hsl(43 96% 56% / 0.8), 0 0 40px hsl(43 96% 56% / 0.4)" },
-        },
-        "arc-glow-pulse": {
-          "0%, 100%": { opacity: "0.2" },
-          "50%": { opacity: "0.55" },
-        },
-        // Metaball blob animations
-        "blob-1": {
-          "0%, 100%": { transform: "translate(0, 0) scale(1)" },
-          "25%": { transform: "translate(30px, -50px) scale(1.1)" },
-          "50%": { transform: "translate(-20px, 30px) scale(0.9)" },
-          "75%": { transform: "translate(50px, 20px) scale(1.05)" },
-        },
-        "blob-2": {
-          "0%, 100%": { transform: "translate(0, 0) scale(1.1)" },
-          "33%": { transform: "translate(-60px, 40px) scale(0.95)" },
-          "66%": { transform: "translate(40px, -30px) scale(1.15)" },
-        },
-        "blob-3": {
-          "0%, 100%": { transform: "translate(0, 0) scale(1)" },
-          "20%": { transform: "translate(70px, 30px) scale(1.1)" },
-          "40%": { transform: "translate(-30px, 60px) scale(0.85)" },
-          "60%": { transform: "translate(50px, -40px) scale(1.05)" },
-          "80%": { transform: "translate(-50px, -20px) scale(0.95)" },
-        },
-        "blob-4": {
-          "0%, 100%": { transform: "translate(0, 0) scale(1)" },
-          "50%": { transform: "translate(-80px, -40px) scale(1.2)" },
-        },
-        "blob-5": {
-          "0%, 100%": { transform: "translate(0, 0) scale(1)" },
-          "25%": { transform: "translate(-40px, 50px) scale(1.15)" },
-          "50%": { transform: "translate(60px, 20px) scale(0.9)" },
-          "75%": { transform: "translate(20px, -60px) scale(1.1)" },
-        },
-        "blob-6": {
-          "0%, 100%": { transform: "translate(0, 0) scale(1.05)" },
-          "40%": { transform: "translate(50px, 60px) scale(0.9)" },
-          "70%": { transform: "translate(-40px, -30px) scale(1.15)" },
-        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
-        "pulse-volt": "pulse-volt 2s infinite",
-        "glow-pulse": "glow-pulse 2s infinite",
         "slide-up": "slide-up 0.3s ease-out",
         "slide-down": "slide-down 0.3s ease-out",
         "fade-in": "fade-in 0.2s ease-out",
         "scale-in": "scale-in 0.2s ease-out",
         "xp-bubble": "xp-bubble 2s ease-out forwards",
         "combo-xp-pop": "combo-xp-pop 1.2s ease-out forwards",
-        "gold-shimmer": "gold-shimmer 2s ease-in-out infinite",
-        "arc-glow-pulse": "arc-glow-pulse 2s ease-in-out infinite",
-        // Metaball blob animations
-        "blob-1": "blob-1 18s ease-in-out infinite",
-        "blob-2": "blob-2 22s ease-in-out infinite",
-        "blob-3": "blob-3 25s ease-in-out infinite",
-        "blob-4": "blob-4 30s ease-in-out infinite",
-        "blob-5": "blob-5 20s ease-in-out infinite",
-        "blob-6": "blob-6 28s ease-in-out infinite",
       },
       spacing: {
         "safe-bottom": "env(safe-area-inset-bottom)",
