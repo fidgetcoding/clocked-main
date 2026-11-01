@@ -17,6 +17,49 @@ export interface PoseModel {
   close: () => void;
 }
 
+/** How long an unused model stays loaded, so that turning the camera off and on doesn't reload it. */
+const KEEP_LOADED_MS = 30000;
+
+let shared: Promise<PoseModel> | null = null;
+let holders = 0;
+let closeTimer: ReturnType<typeof setTimeout> | null = null;
+
+const closeShared = () => {
+  const closing = shared;
+  shared = null;
+  closing?.then((model) => model.close()).catch(() => undefined);
+};
+
+/** Takes a hold on the one loaded model, loading it if needed. Pair with releasePoseModel. */
+export function acquirePoseModel(): Promise<PoseModel> {
+  if (closeTimer) clearTimeout(closeTimer);
+  closeTimer = null;
+  holders += 1;
+  shared ??= createPoseModel('GPU');
+  // A failed load mustn't stick around for the next try
+  const loading = shared;
+  loading.catch(() => {
+    if (shared === loading) shared = null;
+  });
+  return loading;
+}
+
+export function releasePoseModel() {
+  holders = Math.max(0, holders - 1);
+  if (holders > 0 || closeTimer) return;
+  closeTimer = setTimeout(() => {
+    closeTimer = null;
+    if (holders === 0) closeShared();
+  }, KEEP_LOADED_MS);
+}
+
+/** Replaces the loaded model with one on the CPU, after the GPU one has failed in use. */
+export function replacePoseModelWithCpu(): Promise<PoseModel> {
+  closeShared();
+  shared = createPoseModel('CPU');
+  return shared;
+}
+
 /** The browser can't run the only wasm build we ship. */
 export class PoseUnsupportedError extends Error {}
 

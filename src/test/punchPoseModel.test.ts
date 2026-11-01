@@ -1,5 +1,5 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { createPoseModel, PoseUnsupportedError } from '@/lib/punch/poseModel';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { acquirePoseModel, createPoseModel, PoseUnsupportedError, releasePoseModel, replacePoseModelWithCpu } from '@/lib/punch/poseModel';
 
 const vision = vi.hoisted(() => ({
   forVisionTasks: vi.fn(async (path: string) => ({ path })),
@@ -67,6 +67,83 @@ describe('createPoseModel', () => {
     const result = model.detect({} as HTMLVideoElement, 1);
     expect(result.world?.[0].visibility).toBe(0.9);
     expect(result.image?.[0].x).toBe(0.5);
+  });
+
+  describe('the shared model', () => {
+    const settle = async (ms: number) => {
+      await vi.advanceTimersByTimeAsync(ms);
+    };
+    const freshClose = () => {
+      const close = vi.fn();
+      vision.createFromOptions.mockResolvedValue({ ...landmarker, close });
+      return close;
+    };
+
+    beforeEach(() => vi.useFakeTimers());
+    afterEach(async () => {
+      // Runs out the keep-loaded timer so one test's model can't reach the next
+      await settle(60000);
+      vi.useRealTimers();
+    });
+
+    it('turning the camera off and on keeps one model, loaded once', async () => {
+      const close = freshClose();
+      const first = await acquirePoseModel();
+      releasePoseModel();
+      await settle(5000);
+      const second = await acquirePoseModel();
+      expect(second).toBe(first);
+      expect(vision.createFromOptions).toHaveBeenCalledTimes(1);
+      expect(close).not.toHaveBeenCalled();
+      releasePoseModel();
+    });
+
+    it('frees the model once nobody has needed it for a while', async () => {
+      const close = freshClose();
+      await acquirePoseModel();
+      releasePoseModel();
+      await settle(29000);
+      expect(close).not.toHaveBeenCalled();
+      await settle(2000);
+      expect(close).toHaveBeenCalledTimes(1);
+      await acquirePoseModel();
+      expect(vision.createFromOptions).toHaveBeenCalledTimes(2);
+      releasePoseModel();
+    });
+
+    it('stays loaded while anyone still holds it', async () => {
+      const close = freshClose();
+      await acquirePoseModel();
+      await acquirePoseModel();
+      releasePoseModel();
+      await settle(60000);
+      expect(close).not.toHaveBeenCalled();
+      releasePoseModel();
+    });
+
+    it('tries again after a load that failed', async () => {
+      vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+      vision.createFromOptions.mockRejectedValue(new Error('broken'));
+      await expect(acquirePoseModel()).rejects.toThrow('broken');
+      releasePoseModel();
+      freshClose();
+      vision.createFromOptions.mockClear();
+      await expect(acquirePoseModel()).resolves.toBeTruthy();
+      expect(vision.createFromOptions).toHaveBeenCalledTimes(1);
+      releasePoseModel();
+    });
+
+    it('swaps to the CPU in place when the GPU fails in use', async () => {
+      const close = freshClose();
+      await acquirePoseModel();
+      const cpu = await replacePoseModelWithCpu();
+      await settle(0);
+      expect(cpu.delegate).toBe('CPU');
+      expect(close).toHaveBeenCalledTimes(1);
+      expect(await acquirePoseModel()).toBe(cpu);
+      releasePoseModel();
+      releasePoseModel();
+    });
   });
 
   it('returns nulls when there is no person', async () => {

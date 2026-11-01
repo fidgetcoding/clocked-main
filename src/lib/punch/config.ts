@@ -45,6 +45,8 @@ export const PUNCH_CONFIG = {
     minPeakSpeed: 2.5,
     minDurationMs: 50,
     maxDurationMs: 900,
+    /** Give up on an extension that has run this long. */
+    maxExtensionMs: 3000,
     /** A wrist further than this below the shoulder line is resting, not starting a punch. */
     maxStartBelowShoulder: 1,
     /** Reject movement that is mostly downward: this is the hands dropping. */

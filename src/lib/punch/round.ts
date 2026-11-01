@@ -8,6 +8,9 @@ export function cuesFor(event: PunchEvent): string[] {
   return event.issues.map((issue) => cueFor(issue, issue === 'other_hand_left_guard' ? opposite : event.hand));
 }
 
+/** "1 punch", "2 punches", for a count on screen or in the log. */
+export const punchWord = (count: number) => (count === 1 ? 'punch' : 'punches');
+
 export function formatClock(seconds: number): string {
   const whole = Math.max(0, Math.ceil(seconds));
   return `${Math.floor(whole / 60)}:${String(whole % 60).padStart(2, '0')}`;
@@ -78,7 +81,9 @@ export interface RoundState {
   punchIssues: Map<number, Set<FormIssue>>;
   /** Issues flagged between punches, which are not tied to any one punch. */
   idleIssues: Partial<Record<FormIssue, number>>;
+  /** The latest punches in the current combo, capped for the readout. */
   combo: string[];
+  comboLength: number;
   comboLastT: number;
   longestCombo: number;
 }
@@ -90,10 +95,13 @@ export function newRound(): RoundState {
     punchIssues: new Map(),
     idleIssues: {},
     combo: [],
+    comboLength: 0,
     comboLastT: -Infinity,
     longestCombo: 0,
   };
 }
+
+const COMBO_READOUT_LENGTH = 8;
 
 /** Updates the round in place with one detector event. */
 export function applyEvent(round: RoundState, event: PunchEvent, config: PunchConfig = PUNCH_CONFIG) {
@@ -111,10 +119,14 @@ export function applyEvent(round: RoundState, event: PunchEvent, config: PunchCo
   round.counts[event.punch] += 1;
   round.total += 1;
   if (event.issues.length > 0) round.punchIssues.set(event.id, new Set(event.issues));
-  if (event.t - round.comboLastT > config.combo.gapMs) round.combo = [];
-  round.combo = [...round.combo, PUNCH_NUMBERS[event.punch]];
+  if (event.t - round.comboLastT > config.combo.gapMs) {
+    round.combo = [];
+    round.comboLength = 0;
+  }
+  round.combo = [...round.combo, PUNCH_NUMBERS[event.punch]].slice(-COMBO_READOUT_LENGTH);
+  round.comboLength += 1;
   round.comboLastT = event.t;
-  round.longestCombo = Math.max(round.longestCombo, round.combo.length);
+  round.longestCombo = Math.max(round.longestCombo, round.comboLength);
 }
 
 /** The combo being thrown, or the last one until it has gone stale. */
@@ -162,7 +174,7 @@ export function summaryNote(summary: RoundSummary): string {
   const counts = PUNCH_ORDER.filter((punch) => summary.counts[punch] > 0)
     .map((punch) => `${PUNCH_LABELS[punch]} ${summary.counts[punch]}`)
     .join(', ');
-  const parts = [`${summary.total} ${summary.total === 1 ? 'punch' : 'punches'}`];
+  const parts = [`${summary.total} ${punchWord(summary.total)}`];
   if (summary.cleanPercent !== null) parts.push(`${summary.cleanPercent}% clean`);
   if (counts) parts.push(counts);
   if (summary.topFix) parts.push(`Top fix: ${summary.topFix.advice}`);

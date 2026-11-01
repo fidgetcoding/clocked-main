@@ -1,6 +1,14 @@
 import { useCallback, useEffect, useRef, useState, type RefObject } from 'react';
 import { cameraProblemFrom, checkSupport, meanLumaOf, type CameraProblem } from '@/lib/punch/framing';
-import { createPoseModel, PoseUnsupportedError, type PoseDelegate, type PoseModel, type PoseResult } from '@/lib/punch/poseModel';
+import {
+  acquirePoseModel,
+  PoseUnsupportedError,
+  releasePoseModel,
+  replacePoseModelWithCpu,
+  type PoseDelegate,
+  type PoseModel,
+  type PoseResult,
+} from '@/lib/punch/poseModel';
 
 export type CameraStatus = 'off' | 'starting' | 'live';
 
@@ -37,6 +45,7 @@ export function usePunchCamera({ videoRef, onPose, processing = true }: Options)
 
   const streamRef = useRef<MediaStream | null>(null);
   const modelRef = useRef<PoseModel | null>(null);
+  const mountedRef = useRef(true);
   // Bumped by every start and stop, so that anything still pending from an older run gives up
   const runRef = useRef(0);
   const onPoseRef = useRef(onPose);
@@ -110,10 +119,9 @@ export function usePunchCamera({ videoRef, onPose, processing = true }: Options)
             console.error('Pose detection failed:', error);
             if (model.delegate === 'GPU' && !retriedOnCpu) {
               retriedOnCpu = true;
-              model.close();
               modelRef.current = null;
               try {
-                modelRef.current = await createPoseModel('CPU');
+                modelRef.current = await replacePoseModelWithCpu();
                 statsRef.current.delegate = 'CPU';
               } catch (cpuError) {
                 console.error('Pose model failed on the CPU too:', cpuError);
@@ -159,8 +167,6 @@ export function usePunchCamera({ videoRef, onPose, processing = true }: Options)
     }
 
     setStatus('starting');
-    const modelLoad = modelRef.current ? Promise.resolve(modelRef.current) : createPoseModel('GPU');
-    modelLoad.catch(() => undefined);
 
     let stream: MediaStream;
     try {
@@ -181,24 +187,39 @@ export function usePunchCamera({ videoRef, onPose, processing = true }: Options)
       fail('unknown');
       return;
     }
+    // Safari only autoplays with these set as attributes, and React sets muted as a property
+    video.muted = true;
+    video.setAttribute('muted', '');
+    video.setAttribute('playsinline', '');
     video.srcObject = stream;
     try {
       await video.play();
     } catch (error) {
-      // Interrupted by a stop() is expected, anything else is not
-      if (run === runRef.current) fail(cameraProblemFrom(error));
+      // Interrupted by a stop() is expected. Anything else isn't a camera permission problem,
+      // because by now the camera has already been granted.
+      console.error('Camera picture would not play:', error);
+      if (run === runRef.current) fail('unknown');
       return;
     }
 
-    let model: PoseModel;
-    try {
-      model = await modelLoad;
-    } catch (error) {
-      console.error('Pose model failed to load:', error);
-      if (run === runRef.current) fail(error instanceof PoseUnsupportedError ? 'unsupported' : 'model_failed');
-      return;
+    // Only now, so that someone who says no to the camera never downloads the model
+    let model = modelRef.current;
+    if (!model) {
+      try {
+        model = await acquirePoseModel();
+      } catch (error) {
+        releasePoseModel();
+        console.error('Pose model failed to load:', error);
+        if (run === runRef.current) fail(error instanceof PoseUnsupportedError ? 'unsupported' : 'model_failed');
+        return;
+      }
+      // They may have left while it loaded, with nothing now to give it back
+      if (!mountedRef.current) {
+        releasePoseModel();
+        return;
+      }
+      modelRef.current = model;
     }
-    modelRef.current = model;
     if (run !== runRef.current) return;
 
     statsRef.current = { fps: 0, inferenceMs: 0, delegate: model.delegate, frames: 0 };
@@ -206,16 +227,17 @@ export function usePunchCamera({ videoRef, onPose, processing = true }: Options)
     loop(run, video);
   }, [fail, loop, videoRef]);
 
-  useEffect(
-    () => () => {
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
       runRef.current += 1;
       streamRef.current?.getTracks().forEach((track) => track.stop());
       streamRef.current = null;
-      modelRef.current?.close();
+      if (modelRef.current) releasePoseModel();
       modelRef.current = null;
-    },
-    [],
-  );
+    };
+  }, []);
 
   return { status, problem, statsRef, start, stop };
 }

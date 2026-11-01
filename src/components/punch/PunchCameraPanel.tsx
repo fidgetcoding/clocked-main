@@ -71,7 +71,8 @@ const PunchCameraPanel = ({ counting, onSummary, onCue, className }: PunchCamera
 
   return (
     <div
-      className={cn('w-24', className)}
+      // Narrower on short screens, where the timer comes up beside it
+      className={cn('w-24 [@media(max-height:700px)]:w-14', className)}
       data-testid="camera-panel"
       data-frames={hud.frames}
       data-fps={hud.fps.toFixed(1)}
@@ -122,7 +123,7 @@ const PunchCameraPanel = ({ counting, onSummary, onCue, className }: PunchCamera
           role="status"
           data-testid="camera-panel-message"
           className={cn(
-            'mt-1 w-max max-w-[11rem] px-2 py-1 rounded-lg text-[11px] font-bold leading-tight',
+            'mt-1 w-max max-w-[11rem] [@media(max-height:700px)]:max-w-[3.5rem] px-2 py-1 rounded-lg text-[11px] font-bold leading-tight',
             hud.cue ? 'bg-volt text-primary-foreground' : 'bg-surface-1 border border-surface-3 text-foreground',
           )}
         >

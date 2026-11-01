@@ -385,7 +385,7 @@ export function PostWorkoutSummary({
       {!!punchSummary?.total && (
         <div className="card-workout w-full text-center mb-4" data-testid="workout-punches">
           <p className="text-2xl font-bold text-volt">{punchSummary.total}</p>
-          <p className="text-sm text-muted-foreground">Punches seen, {punchSummary.cleanPercent}% clean</p>
+          <p className="text-sm text-muted-foreground">{punchSummary.total === 1 ? 'Punch' : 'Punches'} seen, {punchSummary.cleanPercent}% clean</p>
           {punchSummary.topFix && <p className="text-xs text-muted-foreground mt-1">{punchSummary.topFix.advice}</p>}
         </div>
       )}

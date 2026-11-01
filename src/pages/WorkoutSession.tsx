@@ -39,6 +39,7 @@ import { checkPostL100Badges } from '@/data/postL100Badges';
 import { LevelUpOverlay } from '@/components/ui/LevelUpOverlay';
 import { PostWorkoutSummary, SessionXPBreakdown } from '@/components/workout/PostWorkoutSummary';
 import { usePostWorkoutComplete } from '@/hooks/useCommunityPosts';
+import { wholeSecondsSince } from '@/lib/sessionClock';
 import { usePunchPrefsStore } from '@/stores/punchPrefsStore';
 import type { PunchSessionReport } from '@/lib/punch/round';
 
@@ -657,9 +658,9 @@ const WorkoutSession = () => {
       
       interval = setInterval(() => {
         const now = Date.now();
-        const delta = Math.floor((now - lastTickTimeRef.current) / 1000);
+        const { seconds: delta, lastTick } = wholeSecondsSince(lastTickTimeRef.current, now);
         if (delta < 1) return;
-        lastTickTimeRef.current = now;
+        lastTickTimeRef.current = lastTick;
 
         setTotalElapsed(prev => prev + delta);
         setTimeRemaining(prev => prev - delta);
@@ -1227,7 +1228,8 @@ const WorkoutSession = () => {
         )}
 
         {/* Main Timer — middle area between top bar and bottom bar */}
-        <div className="flex-1 relative px-4">
+        {/* The layers below are absolute, so without a minimum height they run over the controls on short screens */}
+        <div className="flex-1 relative px-4 min-h-[26rem] [@media(max-height:500px)]:min-h-[42rem]">
           {/* Layer 1: Fixed, vertically centered — phase name, timer, segment */}
           <div className="absolute inset-0 flex flex-col items-center justify-center px-4 -mt-[24%] md:mt-0">
                 {/* Phase Name */}

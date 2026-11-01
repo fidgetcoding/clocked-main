@@ -22,6 +22,7 @@ import { getStreakMultiplier, getLevelFromXP } from '@/lib/xpSystem';
 import { LevelUpOverlay } from '@/components/ui/LevelUpOverlay';
 import { useSoundEffects } from '@/hooks/useSoundEffects';
 import { computePostLogStats } from '@/lib/workoutTracking';
+import { wholeSecondsSince } from '@/lib/sessionClock';
 import { MIN_REWARD_SECONDS, qualifiesForRewards } from '@/lib/sessionEffort';
 import { Switch } from '@/components/ui/switch';
 import { usePunchPrefsStore } from '@/stores/punchPrefsStore';
@@ -100,9 +101,9 @@ const QuickSession = () => {
 
       interval = setInterval(() => {
         const now = Date.now();
-        const delta = Math.floor((now - lastTickTimeRef.current) / 1000);
+        const { seconds: delta, lastTick } = wholeSecondsSince(lastTickTimeRef.current, now);
         if (delta < 1) return;
-        lastTickTimeRef.current = now;
+        lastTickTimeRef.current = lastTick;
 
         setTotalElapsed(prev => prev + delta);
         setAccumulatedXP(prev => prev + (QUICK_SESSION_XP_RATE * streakMultiplier * delta));
@@ -214,7 +215,7 @@ const QuickSession = () => {
             <div className="card-workout w-full max-w-xs text-center mb-6" data-testid="quick-punches">
               <p className="text-2xl font-bold text-volt">{punchSummary.total}</p>
               <p className="text-sm text-muted-foreground">
-                Punches seen, {punchSummary.cleanPercent}% clean
+                {punchSummary.total === 1 ? 'Punch' : 'Punches'} seen, {punchSummary.cleanPercent}% clean
               </p>
               {punchSummary.topFix && <p className="text-xs text-muted-foreground mt-1">{punchSummary.topFix.advice}</p>}
             </div>

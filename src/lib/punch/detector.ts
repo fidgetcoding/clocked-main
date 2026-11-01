@@ -125,6 +125,8 @@ export class PunchDetector {
 
   /** Feed one frame. Timestamps must increase. Returns whatever this frame completed. */
   push(frame: PoseFrame): PunchEvent[] {
+    // Anything measured over time would run backward on a frame out of order
+    if (this.lastT !== null && frame.t <= this.lastT) return [];
     if (this.lastT !== null && frame.t - this.lastT > this.config.input.maxGapMs) {
       this.body.reset();
       this.resetHands();
@@ -282,6 +284,11 @@ export class PunchDetector {
     const held = state.slowFrames >= motion.holdFrames;
     // A slow way home shouldn't lose a punch that peaked a while ago
     const peakIsOld = pose.t - peak.pose.t > motion.peakMaxAgeMs;
+    // A wrist that keeps drifting out at speed is no punch, and this is what bounds the samples
+    if (pose.t - state.samples[0].pose.t > motion.maxExtensionMs) {
+      this.beginReturn(state, state.anchor);
+      return;
+    }
     if (!fellBack && !held && !peakIsOld) return;
 
     this.finishExtension(state, other, peak, events);

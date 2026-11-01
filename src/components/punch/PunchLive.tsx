@@ -1,7 +1,7 @@
 import type { RefObject } from 'react';
 import { ArrowLeft, Home, Loader2, Lock, Square } from 'lucide-react';
 import type { TrackingHud } from '@/hooks/usePunchTracking';
-import { formatClock } from '@/lib/punch/round';
+import { formatClock, punchWord } from '@/lib/punch/round';
 import type { PunchDetected } from '@/lib/punch/types';
 
 export interface PunchHud extends TrackingHud {
@@ -148,7 +148,7 @@ export function PunchLive({
           <p className="timer-display text-5xl font-black text-volt text-glow-volt leading-none" data-testid="punch-count">
             {hud.count}
           </p>
-          <p className="text-xs text-muted-foreground uppercase tracking-widest mt-1">Punches</p>
+          <p className="text-xs text-muted-foreground uppercase tracking-widest mt-1">{punchWord(hud.count)}</p>
         </div>
 
         <div className="flex-1 min-w-0 text-center">

@@ -1,5 +1,5 @@
 import { Button } from '@/components/ui/button';
-import { formatClock, PUNCH_LABELS, PUNCH_ORDER, type RoundSummary } from '@/lib/punch/round';
+import { formatClock, PUNCH_LABELS, PUNCH_ORDER, punchWord, type RoundSummary } from '@/lib/punch/round';
 
 interface PunchSummaryProps {
   summary: RoundSummary;
@@ -23,7 +23,7 @@ export function PunchSummary({ summary, seconds, logged, logging, logFailed, onL
       <div className="grid grid-cols-3 gap-3 mb-4 w-full max-w-sm">
         <div className="card-workout text-center">
           <p className="text-2xl font-bold text-volt" data-testid="summary-total">{summary.total}</p>
-          <p className="text-sm text-muted-foreground">Punches</p>
+          <p className="text-sm text-muted-foreground capitalize">{punchWord(summary.total)}</p>
         </div>
         <div className="card-workout text-center">
           <p className="text-2xl font-bold text-volt" data-testid="summary-clean">
@@ -59,7 +59,7 @@ export function PunchSummary({ summary, seconds, logged, logging, logFailed, onL
         <div className="card-workout w-full max-w-sm mb-4" data-testid="summary-fix">
           <p className="text-xs text-muted-foreground uppercase tracking-widest mb-1">Top fix</p>
           <p className="text-sm font-semibold text-foreground">{summary.topFix.advice}</p>
-          <p className="text-xs text-muted-foreground mt-1">Flagged {summary.topFix.count} times this round</p>
+          <p className="text-xs text-muted-foreground mt-1">Flagged {summary.topFix.count === 1 ? 'once' : `${summary.topFix.count} times`} this round</p>
         </div>
       )}
 

@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { cameraProblemFrom, assessFraming, checkSupport, FramingMonitor, meanLumaOf } from '@/lib/punch/framing';
-import { applyEvent, comboReadout, CueQueue, cueFor, newRound, summarize, summaryNote } from '@/lib/punch/round';
+import { applyEvent, comboReadout, CueQueue, cueFor, newRound, punchWord, summarize, summaryNote } from '@/lib/punch/round';
 import { LM } from '@/lib/punch/body';
 import type { FormIssue, Landmark, PunchClass, PunchDetected } from '@/lib/punch/types';
 
@@ -82,6 +82,18 @@ describe('round tally', () => {
     const round = newRound();
     applyEvent(round, punchEvent(1, 1000, 'jab'));
     expect(summaryNote(summarize(round))).toMatch(/^1 punch\./);
+  });
+
+  it('uses the right word for a count', () => {
+    expect([0, 1, 2].map(punchWord)).toEqual(['punches', 'punch', 'punches']);
+  });
+
+  it('keeps a combo readout short however long the combo runs, and still counts it', () => {
+    const round = newRound();
+    for (let i = 0; i < 2000; i += 1) applyEvent(round, punchEvent(i, 1000 + i * 500, 'jab'));
+    expect(round.combo.length).toBeLessThanOrEqual(8);
+    expect(comboReadout(round, 1000 + 1999 * 500)).toBe('1-1-1-1-1-1-1-1');
+    expect(summarize(round).longestCombo).toBe(2000);
   });
 
   it('reads combos in the app numbering and starts over after a gap', () => {

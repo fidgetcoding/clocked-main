@@ -586,6 +586,90 @@ describe('things that are not punches', () => {
   });
 });
 
+describe('long sessions', () => {
+  const heldState = (detector: PunchDetector) => detector as unknown as Record<'left' | 'right', { samples: unknown[]; speedHistory: unknown[] }>;
+
+  it('counts fast punches with the same hand when it never settles between them', () => {
+    const punches = Array.from({ length: 20 }, (_, i) => ({ hand: 'lead' as const, shape: 'straight' as const, at: 2000 + i * 600, outMs: 150, backMs: 200 }));
+    const { punches: seen } = run({ durationMs: 16000, punches });
+    expect(seen.filter((p) => p.punch === 'jab')).toHaveLength(20);
+  });
+
+  it('counts punches from hands that keep moving between them', () => {
+    // Fidgeting fast enough that the wrist never reads as settled
+    const fidget = (side: 'left' | 'right', t: number): [number, number, number] => [0.03 * Math.sin(t / 40), 0.03 * Math.cos(t / 40), 0];
+    const punches = Array.from({ length: 12 }, (_, i) => ({ hand: 'lead' as const, shape: 'straight' as const, at: 3000 + i * 1200 }));
+    const { punches: seen } = run({ durationMs: 18000, punches, handOffset: fidget });
+    expect(seen.filter((p) => p.punch === 'jab').length).toBeGreaterThanOrEqual(10);
+  });
+
+  it('holds a 30-minute workout at a steady cost, with bounded state, and no punches from rests', () => {
+    const shapes: Shape[] = ['straight', 'hook', 'uppercut'];
+    const minutes = 30;
+    const punches = [];
+    // Three minutes on, one minute off
+    for (let t = 2000; t < minutes * 60000; t += 1500) {
+      if (t % 240000 < 180000) punches.push({ hand: (t % 3000 < 1500 ? 'lead' : 'rear') as HandName, shape: shapes[Math.floor(t / 1500) % 3], at: t });
+    }
+    const frames = simulate({ durationMs: minutes * 60000, startMs: 1000, punches, noise: 0.004 });
+    const detector = new PunchDetector('orthodox');
+    const ids = new Set<number>();
+    let seen = 0;
+    let largest = 0;
+    let duringRest = 0;
+    const stepMs: number[] = [];
+    frames.forEach((frame, i) => {
+      const before = performance.now();
+      const events = detector.push(frame);
+      if (i % 1000 === 0) stepMs.push(performance.now() - before);
+      for (const event of events) {
+        if (event.type !== 'punch') continue;
+        seen += 1;
+        ids.add(event.id);
+        if (event.t % 240000 > 181000 && event.t % 240000 < 239000) duringRest += 1;
+      }
+      const state = heldState(detector);
+      largest = Math.max(largest, state.left.samples.length, state.right.samples.length, state.left.speedHistory.length, state.right.speedHistory.length);
+    });
+    expect(frames.length).toBeGreaterThan(50000);
+    expect(seen).toBeGreaterThan(punches.length * 0.8);
+    expect(ids.size).toBe(seen);
+    expect(duringRest).toBe(0);
+    expect(largest).toBeLessThan(100);
+  }, 60000);
+
+  it('gives up on a wrist that keeps drifting out at speed, and carries on', () => {
+    const detector = new PunchDetector('orthodox');
+    const state = heldState(detector);
+    let longest = 0;
+    for (const frame of simulate({ durationMs: 30000, handOffset: (side, t) => (side === 'left' && t > 2000 ? [0, 0, -((t - 2000) / 1000) * 0.4] : [0, 0, 0]) })) {
+      detector.push(frame);
+      longest = Math.max(longest, state.left.samples.length);
+    }
+    expect(longest).toBeLessThan(120);
+  });
+
+  it('ignores a frame that arrives out of order', () => {
+    const detector = new PunchDetector('orthodox');
+    const frames = simulate({ punches: [{ hand: 'lead', shape: 'straight', at: 2000 }] });
+    const events: PunchEvent[] = [];
+    frames.forEach((frame, i) => {
+      events.push(...detector.push(frame));
+      if (i % 10 === 5) events.push(...detector.push({ t: frame.t - 500, landmarks: frame.landmarks }));
+    });
+    expect(events.filter((e) => e.type === 'punch')).toHaveLength(1);
+  });
+
+  it('survives tracking coming and going all session', () => {
+    const { punches } = run({
+      durationMs: 120000,
+      dropFrame: (t) => t % 7000 > 6000,
+      punches: Array.from({ length: 40 }, (_, i) => ({ hand: 'lead' as const, shape: 'straight' as const, at: 2000 + i * 2800 })),
+    });
+    expect(punches.length).toBeGreaterThan(20);
+  });
+});
+
 describe('missing data', () => {
   const jab = { hand: 'lead' as const, shape: 'straight' as const, at: 2500 };
 
