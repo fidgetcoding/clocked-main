@@ -1,7 +1,7 @@
 import { splitStoredPhases } from '@/lib/storedPhases';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { Pencil, Trash2, Clock, RotateCcw, GripVertical } from 'lucide-react';
+import { Pencil, Trash2, GripVertical } from 'lucide-react';
 import { PlayIcon } from '@/components/broadcast/icons';
 import { useNavigate } from 'react-router-dom';
 import { DbWorkout } from '@/hooks/useWorkouts';
@@ -47,50 +47,52 @@ export function SortableWorkoutCard({ workout, onDelete, isReorderMode }: Sortab
       ref={setNodeRef}
       style={style}
       className={cn(
-        'card-workout group',
-        isDragging && 'opacity-50 shadow-2xl z-50',
+        'border-b border-surface-2 px-4 py-2.5',
+        isDragging && 'relative z-50 bg-surface-2',
         isReorderMode && 'cursor-grab active:cursor-grabbing'
       )}
     >
-      <div className="flex items-start gap-4">
+      <div className="flex items-center gap-3">
         {/* Drag Handle - only show in reorder mode */}
         {isReorderMode && (
           <div
             {...attributes}
             {...listeners}
-            className="flex-shrink-0 p-2 -ml-2 cursor-grab active:cursor-grabbing touch-none"
+            aria-label={`Move ${workout.name}`}
+            className="flex h-11 w-8 flex-shrink-0 cursor-grab touch-none items-center justify-center active:cursor-grabbing"
           >
             <GripVertical className="w-5 h-5 text-muted-foreground" />
           </div>
         )}
 
-        {/* Content */}
-        <div className="flex-1">
-          <h3 className="text-xl font-black text-foreground uppercase mb-1 transition-colors group-hover:text-volt">
-            {workout.name}
-          </h3>
-          <div className="flex items-center gap-4 text-sm text-muted-foreground mb-3">
-            <span className="flex items-center gap-1">
-              <Clock className="w-4 h-4" />
-              {formatDuration(workout.duration)}
-            </span>
-            <span className="flex items-center gap-1">
-              <RotateCcw className="w-4 h-4" />
-              {totalPhases} {totalPhases === 1 ? 'PHASE' : 'PHASES'}
-            </span>
-          </div>
-
-          {/* Tags */}
-          <div className="flex flex-wrap gap-2">
-            <span className="tag">{(workout.difficulty || 'beginner').toUpperCase()}</span>
-            <span className="tag">BOXING</span>
+        <div className="min-w-0 flex-1">
+          <h3 className="fx truncate text-3xl">{workout.name}</h3>
+          <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5">
+            <span className="lab">{formatDuration(workout.duration)}</span>
+            <span className="lab">{totalPhases} {totalPhases === 1 ? 'PHASE' : 'PHASES'}</span>
+            <span className="lab">{(workout.difficulty || 'beginner').toUpperCase()}</span>
+            <span className="lab">BOXING</span>
           </div>
         </div>
 
-        {/* Play button and actions column - hide in reorder mode */}
         {!isReorderMode && (
-          <div className="flex flex-col items-center gap-3 flex-shrink-0">
-            {/* Play Button */}
+          <div className="flex flex-shrink-0 items-center gap-1.5">
+            <button
+              onClick={(e) => { e.stopPropagation(); navigate(`/build?edit=${workout.id}`); }}
+              onPointerDown={(e) => e.stopPropagation()}
+              aria-label={`Edit ${workout.name}`}
+              className="flex h-11 w-9 items-center justify-center text-muted-foreground hover:text-foreground"
+            >
+              <Pencil className="w-4 h-4" />
+            </button>
+            <button
+              onClick={(e) => { e.stopPropagation(); onDelete(workout.id); }}
+              onPointerDown={(e) => e.stopPropagation()}
+              aria-label={`Remove ${workout.name}`}
+              className="flex h-11 w-9 items-center justify-center text-muted-foreground hover:text-destructive"
+            >
+              <Trash2 className="w-4 h-4" />
+            </button>
             <button
               onClick={() => navigate(`/workout/${workout.id}`)}
               aria-label={`Start ${workout.name}`}
@@ -98,24 +100,6 @@ export function SortableWorkoutCard({ workout, onDelete, isReorderMode }: Sortab
             >
               <PlayIcon className="size-4" />
             </button>
-
-            {/* Edit and Delete */}
-            <div className="flex items-center gap-3">
-              <button
-                onClick={(e) => { e.stopPropagation(); navigate(`/build?edit=${workout.id}`); }}
-                onPointerDown={(e) => e.stopPropagation()}
-                className="text-muted-foreground hover:text-foreground transition-colors p-1"
-              >
-                <Pencil className="w-4 h-4" />
-              </button>
-              <button
-                onClick={(e) => { e.stopPropagation(); onDelete(workout.id); }}
-                onPointerDown={(e) => e.stopPropagation()}
-                className="text-muted-foreground hover:text-destructive transition-colors p-1"
-              >
-                <Trash2 className="w-4 h-4" />
-              </button>
-            </div>
           </div>
         )}
       </div>

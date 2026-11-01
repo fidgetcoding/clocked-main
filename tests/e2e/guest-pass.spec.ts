@@ -44,9 +44,9 @@ test("a saved preset keeps its phases and runs", async ({ page }) => {
   await page.getByText("Pro Loadout").first().click();
   await page.getByRole("button", { name: "Save to My Workouts" }).click();
   await page.goto(NO_BACKEND_URL);
-  const card = page.locator("div:has(button:has(svg.lucide-play))").filter({ hasText: /^Pro Loadout/i }).last();
-  await expect(card).not.toContainText("0 PHASES");
-  await card.locator("button:has(svg.lucide-play)").click();
+  const start = page.getByRole("button", { name: /^Start Pro Loadout/i }).last();
+  await expect(start.locator("xpath=ancestor::div[2]")).not.toContainText("0 PHASES");
+  await start.click();
   await page.waitForURL("**/workout/**");
   await playButton(page).click();
   await skipButton(page).click();

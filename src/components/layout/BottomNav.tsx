@@ -1,60 +1,57 @@
-import { Home, User, BarChart3, Users } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { cn } from '@/lib/utils';
+import { Plate } from '@/components/broadcast/Plate';
+import { Ticker } from '@/components/broadcast/Ticker';
+import { useProfile } from '@/hooks/useProfile';
+import { getRankingFromLevel, getXPWithinCurrentLevel, RANKING_NAMES, RANKING_ORDER } from '@/lib/xpSystem';
 
-interface NavItem {
-  icon: React.ComponentType<{ className?: string }>;
-  label: string;
-  path: string;
-}
-
-const navItems: NavItem[] = [
-  { icon: Home, label: 'HOME', path: '/' },
-  { icon: BarChart3, label: 'MY STATS', path: '/stats' },
-  { icon: Users, label: 'FIGHT CLUB', path: '/fight-club' },
-  { icon: User, label: 'PROFILE', path: '/profile' },
+const channels = [
+  { label: 'HOME', path: '/' },
+  { label: 'MY STATS', path: '/stats' },
+  { label: 'FIGHT CLUB', path: '/fight-club' },
+  { label: 'PROFILE', path: '/profile' },
 ];
+
+/** The ticker carries your real numbers, and only once there's a profile to read them from. */
+function useTickerItems() {
+  const { profile } = useProfile();
+  if (!profile) return [];
+  const level = profile.current_level || 1;
+  const rank = getRankingFromLevel(level);
+  const within = getXPWithinCurrentLevel(profile.prestige, profile.total_xp || 0);
+  const nextRank = RANKING_ORDER[RANKING_ORDER.indexOf(rank) + 1];
+  return [
+    level < 100
+      ? `${RANKING_NAMES[rank]}, Lvl ${level}, ${Math.max(0, Math.ceil(within.required - within.current)).toLocaleString()} XP to Lvl ${level + 1}`
+      : `${RANKING_NAMES[rank]}, Lvl ${level}`,
+    profile.current_streak > 0 && `Streak ${profile.current_streak}`,
+    `Workouts ${profile.workouts_completed || 0}`,
+    nextRank && `${RANKING_NAMES[nextRank]} at Lvl ${RANKING_ORDER.indexOf(nextRank) * 10 + 1}`,
+  ];
+}
 
 export function BottomNav() {
   const location = useLocation();
   const navigate = useNavigate();
-
-  const renderNavItem = (item: NavItem) => {
-    const isActive = location.pathname === item.path;
-    const Icon = item.icon;
-
-    return (
-      <button
-        key={item.path}
-        onClick={() => navigate(item.path)}
-        className={cn(
-          'nav-item flex-1',
-          isActive && 'nav-item-active'
-        )}
-      >
-        <Icon 
-          className={cn(
-            'nav-icon w-6 h-6 transition-all duration-200',
-            isActive ? 'text-volt' : 'text-muted-foreground'
-          )} 
-        />
-        <span 
-          className={cn(
-            'text-[8px] sm:text-[10px] font-semibold tracking-wide sm:tracking-wider transition-colors duration-200',
-            isActive ? 'text-volt' : 'text-muted-foreground'
-          )}
-        >
-          {item.label}
-        </span>
-      </button>
-    );
-  };
+  const items = useTickerItems();
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-40 bg-tech-black border-t border-surface-3">
-      <div className="flex items-center justify-around max-w-lg mx-auto safe-bottom">
-        {navItems.map(renderNavItem)}
+    <div className="app-footer">
+      <div className="app-footer-inner">
+        <Ticker items={items} />
+        <nav className="channel-strip fx" aria-label="Main">
+          {channels.map((channel) => (
+            <Plate
+              as="button"
+              key={channel.path}
+              tone="clear"
+              onClick={() => navigate(channel.path)}
+              aria-current={location.pathname === channel.path ? 'page' : undefined}
+            >
+              {channel.label}
+            </Plate>
+          ))}
+        </nav>
       </div>
-    </nav>
+    </div>
   );
 }

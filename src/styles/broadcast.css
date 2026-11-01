@@ -507,3 +507,28 @@ a.plate:active {
     background: hsl(var(--surface-1));
   }
 }
+
+/* One column of graphics. Bleeding plates stop at its edge, so a laptop gets a clean band down the middle. */
+.page-frame {
+  width: 100%;
+  max-width: 46rem;
+  margin-inline: auto;
+  overflow-x: clip;
+  min-height: 100dvh;
+  background: hsl(var(--tech-black));
+}
+
+/* The footer stack: the ticker riding on the channel strip */
+.app-footer {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 40;
+}
+
+.app-footer-inner {
+  max-width: 46rem;
+  margin-inline: auto;
+  overflow: hidden;
+}

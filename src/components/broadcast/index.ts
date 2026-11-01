@@ -9,3 +9,4 @@ export { SegmentBar } from './SegmentBar';
 export { TaleOfTape, TapeLine, type TapeRow } from './TaleOfTape';
 export { Ticker } from './Ticker';
 export * from './icons';
+export { BroadcastPage, EmptyPlate, SectionChyron, SectionRule, StatRow } from './Page';

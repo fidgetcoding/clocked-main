@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { Plus, History, Archive, GripVertical, Check, Timer, X, Camera } from 'lucide-react';
+import { GripVertical, Check, X } from 'lucide-react';
+import { format } from 'date-fns';
 import { Navigate, useNavigate } from 'react-router-dom';
 import {
   DndContext,
@@ -16,7 +17,12 @@ import {
   sortableKeyboardCoordinates,
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
-import clockedTextLogo from '@/assets/clocked-text-logo.png';
+import { BroadcastPage, EmptyPlate, FitText, LevelBar, PlayIcon, SectionChyron, TaleOfTape } from '@/components/broadcast';
+import { buttonVariants } from '@/components/ui/button-variants';
+import { useProfile } from '@/hooks/useProfile';
+import { useWorkoutHistory } from '@/hooks/useWorkoutHistory';
+import { getLevelProgress } from '@/lib/xpSystem';
+import { tapeHours, weeklyTape } from '@/lib/weeklyTape';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { useWorkouts } from '@/hooks/useWorkouts';
 
@@ -47,6 +53,8 @@ const Index = () => {
   const [workoutToDelete, setWorkoutToDelete] = useState<string | null>(null);
   const [isReorderMode, setIsReorderMode] = useState(false);
   const [localWorkouts, setLocalWorkouts] = useState<typeof workouts | null>(null);
+  const { profile } = useProfile();
+  const { history } = useWorkoutHistory();
 
 
   const sensors = useSensors(
@@ -71,6 +79,9 @@ const Index = () => {
     ? 'Quick Session'
     : workouts.find((w) => w.id === savedSession?.workoutId)?.name;
   const displayWorkouts = localWorkouts ?? activeWorkouts;
+  const mainEvent = isReorderMode ? null : activeWorkouts[0];
+  const tape = weeklyTape(history);
+  const fighterName = profile?.name?.split(' ')[0] || user?.name?.split(' ')[0] || 'You';
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
@@ -137,115 +148,108 @@ const Index = () => {
 
   return (
     <AppLayout>
-      <div className="min-h-screen bg-background">
-        {/* Header */}
-        <header className="px-4 pt-8 pb-6 text-center safe-top">
-          <div className="flex items-center justify-center gap-3">
-            <div className="h-px flex-1 bg-volt/40" />
-            <img 
-              src={clockedTextLogo} 
-              alt="CLOCKED" 
-              className="h-24 object-contain"
-            />
-            <div className="h-px flex-1 bg-volt/40" />
-          </div>
-        </header>
-
+      <BroadcastPage air={<span className="lab lab-w">{format(new Date(), 'EEE MMM d')}</span>}>
         {savedSession && savedSessionName && (
-          <section className="px-4 pb-4">
-            <div className="card-workout flex items-center justify-between gap-3">
-              <p className="text-sm text-foreground min-w-0">{describeSavedSession(savedSessionName, savedSession)}</p>
-              <div className="flex gap-2 shrink-0">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    clearSession();
-                    setSavedSession(null);
-                  }}
-                >
-                  Discard
-                </Button>
-                <Button
-                  size="sm"
-                  onClick={() =>
-                    navigate(savedSession.workoutId === QUICK_SESSION_ID ? '/quick-session' : `/workout/${savedSession.workoutId}/session`, {
-                      state: { resume: true },
-                    })
-                  }
-                >
-                  Resume
-                </Button>
-              </div>
+          <section className="mt-3 bg-surface-1 px-4 py-3">
+            <p className="text-base text-foreground">{describeSavedSession(savedSessionName, savedSession)}</p>
+            <div className="mt-2 flex gap-3">
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => {
+                  clearSession();
+                  setSavedSession(null);
+                }}
+              >
+                Discard
+              </Button>
+              <Button
+                size="sm"
+                onClick={() =>
+                  navigate(savedSession.workoutId === QUICK_SESSION_ID ? '/quick-session' : `/workout/${savedSession.workoutId}/session`, {
+                    state: { resume: true },
+                  })
+                }
+              >
+                Resume
+              </Button>
             </div>
           </section>
         )}
 
-        {/* Action Cards */}
-        <section className="px-4 pb-6">
-          <div className="grid grid-cols-2 gap-3">
-            {/* Create Set */}
-            <button
-              onClick={() => navigate('/build')}
-              className="card-action h-36 group flex flex-col items-start justify-between relative overflow-hidden"
-            >
-              <Plus className="w-5 h-5 text-volt" />
-              <div className="text-left">
-                <h3 className="text-base font-black text-foreground leading-none">CREATE</h3>
-                <p className="text-xs text-muted-foreground leading-none mt-0.5">SET</p>
-              </div>
-              {/* Decorative background icon */}
-              <Plus className="absolute right-1 top-1 w-[5.5rem] h-[5.5rem] text-muted-foreground/10 pointer-events-none md:right-4 md:top-2 md:w-[6.5rem] md:h-[6.5rem]" strokeWidth={1} />
-            </button>
+        {/* Tale of the tape: you against you, from the log */}
+        <section className="mt-3 bg-surface-1 pb-1.5" data-testid="tale-of-tape">
+          <SectionChyron>Tale of the tape</SectionChyron>
+          {tape.hasTape ? (
+            <TaleOfTape
+              left={fighterName}
+              right="Last week"
+              rows={[
+                { label: 'Sessions', left: tape.thisWeek.sessions, right: tape.lastWeek.sessions || '-' },
+                { label: 'Time', left: tapeHours(tape.thisWeek.seconds), right: tape.lastWeek.seconds ? tapeHours(tape.lastWeek.seconds) : '-' },
+                { label: 'XP', left: tape.thisWeek.xp.toLocaleString(), right: tape.lastWeek.xp ? tape.lastWeek.xp.toLocaleString() : '-' },
+              ]}
+            />
+          ) : (
+            <p className="px-4 pb-2 pt-2.5 text-lg text-foreground">
+              <span className="fx mb-1 block text-3xl">No tape on you yet</span>
+              Log your first session. Next week, the one you have to beat is you.
+            </p>
+          )}
+        </section>
 
-            {/* Workout Log */}
-            <button
-              onClick={() => navigate('/history')}
-              className="card-action h-36 group flex flex-col items-start justify-between relative overflow-hidden"
-            >
-              <History className="w-5 h-5 text-volt" />
-              <div className="text-left">
-                <h3 className="text-base font-black text-foreground leading-none">WORKOUT</h3>
-                <p className="text-xs text-muted-foreground leading-none mt-0.5">LOG</p>
-              </div>
-              {/* Decorative background icon */}
-              <History className="absolute right-1 top-1 w-[5.5rem] h-[5.5rem] text-muted-foreground/10 pointer-events-none md:right-4 md:top-2 md:w-[6.5rem] md:h-[6.5rem]" strokeWidth={1} />
-            </button>
+        {/* Main event: the first set on the card */}
+        {mainEvent && (
+          <section className="mt-3 overflow-hidden">
+            <div className="plate plate-lime plate-bleed-l plate-bleed-r flex min-h-[6rem] w-full justify-between gap-3 px-4 py-2">
+              <span className="min-w-0 flex-1 text-left">
+                <span className="block text-[0.8125rem] font-bold uppercase tracking-[0.11em]">
+                  Main event, {Math.floor(mainEvent.duration / 60)} min
+                </span>
+                <FitText className="fx mt-1 h-12" max={60}>{mainEvent.name}</FitText>
+              </span>
+              <button
+                type="button"
+                onClick={() => navigate(`/workout/${mainEvent.id}`)}
+                aria-label={`Start ${mainEvent.name}`}
+                className="plate plate-black h-14 w-16 shrink-0 text-volt"
+              >
+                <PlayIcon className="size-6" />
+              </button>
+            </div>
+          </section>
+        )}
 
-            {/* Quick Session */}
+        {/* The rest of the card */}
+        <section className="mt-2">
+          {[
+            { slot: 'Co-main', title: 'QUICK SESSION', sub: 'JUST START THE CLOCK', path: '/quick-session' },
+            { slot: 'Prelim', title: 'PUNCH CHECK', sub: 'CAMERA FORM GUIDE', path: '/punch-check' },
+            { slot: 'Studio', title: 'CREATE SET', sub: '', path: '/build' },
+            { slot: 'Replays', title: 'WORKOUT LOG', sub: '', path: '/history' },
+          ].map((item) => (
             <button
-              onClick={() => navigate('/quick-session')}
-              className="card-action col-span-2 h-24 group flex items-center justify-between relative overflow-hidden"
+              key={item.path}
+              type="button"
+              onClick={() => navigate(item.path)}
+              className="grid min-h-[3.25rem] w-full grid-cols-[4rem_1fr_auto] items-baseline gap-2 border-b border-surface-2 px-4 py-2 text-left transition-colors hover:bg-surface-1"
             >
-              <div className="text-left">
-                <Timer className="w-5 h-5 text-volt mb-2" />
-                <h3 className="text-base font-black text-foreground leading-none">QUICK SESSION</h3>
-                <p className="text-xs text-muted-foreground leading-none mt-0.5">JUST START THE CLOCK</p>
-              </div>
-              {/* Decorative background icon */}
-              <Timer className="absolute right-1 top-0 w-[5.5rem] h-[5.5rem] text-muted-foreground/10 pointer-events-none md:right-4" strokeWidth={1} />
+              <span className="lab">{item.slot}</span>
+              <span className="fx whitespace-nowrap text-3xl">{item.title}</span>
+              {item.sub && <span className="lab self-center text-right">{item.sub}</span>}
             </button>
-
-            {/* Punch Check */}
-            <button
-              onClick={() => navigate('/punch-check')}
-              className="card-action col-span-2 h-24 group flex items-center justify-between relative overflow-hidden"
-            >
-              <div className="text-left">
-                <Camera className="w-5 h-5 text-volt mb-2" />
-                <h3 className="text-base font-black text-foreground leading-none">PUNCH CHECK</h3>
-                <p className="text-xs text-muted-foreground leading-none mt-0.5">CAMERA FORM GUIDE</p>
-              </div>
-              {/* Decorative background icon */}
-              <Camera className="absolute right-1 top-0 w-[5.5rem] h-[5.5rem] text-muted-foreground/10 pointer-events-none md:right-4" strokeWidth={1} />
-            </button>
-          </div>
+          ))}
+          {profile && (
+            <div className="px-4 pt-3">
+              <LevelBar level={profile.current_level || 1} percent={getLevelProgress(profile.prestige, profile.current_level || 1, profile.total_xp || 0)} />
+            </div>
+          )}
         </section>
 
         {/* Your Sets */}
-        <section className="px-4 pb-24">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-sm font-bold text-muted-foreground uppercase tracking-wider">
+        <section className="pt-5">
+          <div className="flex min-h-11 items-center justify-between border-b border-surface-3 px-4 pb-1">
+            <h2 className="fx text-3xl">
               Your Sets
             </h2>
             {activeWorkouts.length > 1 && (
@@ -253,17 +257,17 @@ const Index = () => {
                 <div className="flex items-center gap-2">
                   <button
                     onClick={handleCancelReorder}
-                    className="w-8 h-8 rounded-full bg-surface-2 flex items-center justify-center hover:bg-surface-3 transition-colors"
+                    className="plate plate-graphite h-11 w-12"
                     aria-label="Cancel reorder"
                   >
                     <X className="w-4 h-4 text-muted-foreground" />
                   </button>
                   <button
                     onClick={handleSaveOrder}
-                    className="w-8 h-8 rounded-full bg-volt/20 flex items-center justify-center hover:bg-volt/30 transition-colors"
+                    className="plate plate-lime h-11 w-12"
                     aria-label="Save order"
                   >
-                    <Check className="w-4 h-4 text-volt" />
+                    <Check className="w-4 h-4" />
                   </button>
                 </div>
               ) : (
@@ -272,7 +276,7 @@ const Index = () => {
                     setIsReorderMode(true);
                     setLocalWorkouts(activeWorkouts);
                   }}
-                  className="text-muted-foreground hover:text-foreground transition-colors p-1"
+                  className="flex h-11 w-11 items-center justify-center text-muted-foreground hover:text-foreground"
                   aria-label="Reorder workouts"
                 >
                   <GripVertical className="w-4 h-4" />
@@ -281,17 +285,11 @@ const Index = () => {
             )}
           </div>
 
-          <div className="space-y-4">
+          <div>
             {activeWorkouts.length === 0 ? (
-              <div className="rounded-2xl border-2 border-dashed border-surface-3 p-8 text-center">
-                <p className="text-muted-foreground mb-4">No workouts yet</p>
-                <Button
-                  onClick={() => navigate('/build')}
-                  className="btn-primary-glow"
-                >
-                  Create Your First Workout
-                </Button>
-              </div>
+              <EmptyPlate title="No workouts yet" body="Nothing on the card. The arena's booked, it just needs a main event.">
+                <Button onClick={() => navigate('/build')}>Create Your First Workout</Button>
+              </EmptyPlate>
             ) : (
               <DndContext
                 sensors={sensors}
@@ -315,31 +313,30 @@ const Index = () => {
             )}
           </div>
         </section>
-      </div>
+      </BroadcastPage>
 
       {/* Delete/Archive Confirmation */}
       <AlertDialog open={!!workoutToDelete} onOpenChange={() => setWorkoutToDelete(null)}>
-        <AlertDialogContent className="bg-surface-1 border-surface-3">
+        <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle className="text-foreground">Remove Workout?</AlertDialogTitle>
-            <AlertDialogDescription className="text-muted-foreground">
+            <AlertDialogTitle>Remove Workout?</AlertDialogTitle>
+            <AlertDialogDescription>
               Choose to archive (can be restored later) or delete permanently.
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter className="flex-col sm:flex-row gap-2">
-            <AlertDialogCancel className="bg-surface-2 border-surface-3 text-foreground">
+          <AlertDialogFooter>
+            <AlertDialogCancel>
               Cancel
             </AlertDialogCancel>
             <AlertDialogAction
               onClick={handleArchive}
-              className="bg-surface-3 text-foreground hover:bg-surface-2 flex items-center gap-2"
+              className={buttonVariants({ variant: 'default' })}
             >
-              <Archive className="w-4 h-4" />
               Archive
             </AlertDialogAction>
             <AlertDialogAction
               onClick={handleDelete}
-              className="bg-destructive text-white hover:bg-destructive/90"
+              className={buttonVariants({ variant: 'destructive' })}
             >
               Delete Forever
             </AlertDialogAction>
