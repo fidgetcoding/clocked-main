@@ -4,6 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUserStore } from '@/stores/userStore';
 import { GUEST_USER_ID } from '@/lib/guest';
+import type { Stance } from '@/lib/punch/types';
 import { Prestige, Ranking, getRankingFromLevel, experienceLevelToPrestige, getLevelFromXP } from '@/lib/xpSystem';
 
 export interface Profile {
@@ -25,6 +26,7 @@ export interface Profile {
     voiceType: string;
     soundEnabled: boolean;
     voiceAnnouncements: boolean;
+    stance?: Stance;
   };
   last_active_at: string | null;
   created_at: string;

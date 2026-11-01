@@ -15,6 +15,8 @@ interface Options {
   videoRef: RefObject<HTMLVideoElement>;
   /** Called for every processed video frame. meanLuma updates about once a second. */
   onPose: (result: PoseResult, t: number, meanLuma: number | null) => void;
+  /** While false the preview stays on but no frames go to the model. Defaults to true. */
+  processing?: boolean;
 }
 
 const VIDEO_CONSTRAINTS: MediaStreamConstraints = {
@@ -28,7 +30,7 @@ const LUMA_INTERVAL_MS = 1000;
  * Runs the camera and pose model. The camera only starts from start(), and stops on stop() and on
  * unmount. Frames go to the model on this device and nowhere else.
  */
-export function usePunchCamera({ videoRef, onPose }: Options) {
+export function usePunchCamera({ videoRef, onPose, processing = true }: Options) {
   const [status, setStatus] = useState<CameraStatus>('off');
   const [problem, setProblem] = useState<CameraProblem | null>(null);
   const statsRef = useRef<PoseStats>({ fps: 0, inferenceMs: 0, delegate: null, frames: 0 });
@@ -39,6 +41,8 @@ export function usePunchCamera({ videoRef, onPose }: Options) {
   const runRef = useRef(0);
   const onPoseRef = useRef(onPose);
   onPoseRef.current = onPose;
+  const processingRef = useRef(processing);
+  processingRef.current = processing;
 
   const stop = useCallback(() => {
     runRef.current += 1;
@@ -83,7 +87,7 @@ export function usePunchCamera({ videoRef, onPose }: Options) {
       const tick = async () => {
         if (run !== runRef.current) return;
         const model = modelRef.current;
-        if (model && video.readyState >= 2 && video.currentTime !== lastVideoTime) {
+        if (processingRef.current && model && video.readyState >= 2 && video.currentTime !== lastVideoTime) {
           lastVideoTime = video.currentTime;
           // The model requires strictly increasing timestamps
           const t = Math.max(performance.now(), lastT + 1);

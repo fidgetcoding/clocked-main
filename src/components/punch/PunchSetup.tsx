@@ -3,12 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { cn } from '@/lib/utils';
 import { usePunchPrefsStore } from '@/stores/punchPrefsStore';
-import type { Stance } from '@/lib/punch/types';
-
-const STANCES: { value: Stance; label: string; hint: string }[] = [
-  { value: 'orthodox', label: 'Orthodox', hint: 'Left hand leads' },
-  { value: 'southpaw', label: 'Southpaw', hint: 'Right hand leads' },
-];
+import { useStance } from '@/hooks/useStance';
 
 const ROUNDS = [
   { value: 0, label: 'No timer' },
@@ -23,7 +18,8 @@ interface PunchSetupProps {
 }
 
 export function PunchSetup({ onStart, onBack }: PunchSetupProps) {
-  const { stance, roundSeconds, voiceCues, setStance, setRoundSeconds, setVoiceCues } = usePunchPrefsStore();
+  const { roundSeconds, voiceCues, setRoundSeconds, setVoiceCues } = usePunchPrefsStore();
+  const { hasChosen, setStance } = useStance();
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
@@ -46,28 +42,14 @@ export function PunchSetup({ onStart, onBack }: PunchSetupProps) {
           </p>
         </div>
 
-        <div>
-          <p className="text-sm text-muted-foreground mb-2">Stance</p>
-          <div className="flex gap-2" role="radiogroup" aria-label="Stance">
-            {STANCES.map((option) => (
-              <button
-                key={option.value}
-                role="radio"
-                aria-checked={stance === option.value}
-                onClick={() => setStance(option.value)}
-                className={cn(
-                  'flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-colors',
-                  stance === option.value
-                    ? 'bg-volt text-primary-foreground'
-                    : 'bg-surface-1 border border-surface-3 text-muted-foreground hover:bg-surface-2',
-                )}
-              >
-                <span className="block">{option.label}</span>
-                <span className="block text-xs font-normal opacity-80">{option.hint}</span>
-              </button>
-            ))}
+        {!hasChosen && (
+          <div className="flex items-center justify-between gap-3 p-3 rounded-xl bg-surface-1 border border-surface-3" data-testid="stance-default">
+            <p className="text-sm text-foreground">Set to orthodox, left hand leading.</p>
+            <button onClick={() => setStance('southpaw')} className="shrink-0 text-sm font-bold text-volt">
+              Southpaw?
+            </button>
           </div>
-        </div>
+        )}
 
         <div>
           <p className="text-sm text-muted-foreground mb-2">Round</p>

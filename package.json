@@ -8,6 +8,7 @@
     "build": "vite build",
     "build:dev": "vite build --mode development",
     "lint": "eslint .",
+    "punch:confusion": "vite-node scripts/punch-confusion.ts",
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest"

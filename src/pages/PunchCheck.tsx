@@ -2,113 +2,51 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
-import { PunchLive, type PunchHud } from '@/components/punch/PunchLive';
+import { PunchLive } from '@/components/punch/PunchLive';
+import { PunchRecorder } from '@/components/punch/PunchRecorder';
 import { PunchSetup } from '@/components/punch/PunchSetup';
 import { PunchSummary } from '@/components/punch/PunchSummary';
-import { drawSkeleton } from '@/components/punch/skeleton';
-import { usePunchCamera } from '@/hooks/usePunchCamera';
+import { usePunchTracking } from '@/hooks/usePunchTracking';
 import { useProfile } from '@/hooks/useProfile';
 import { useSpeechSynthesis } from '@/hooks/useSpeechSynthesis';
+import { useStance } from '@/hooks/useStance';
 import { useWorkoutHistory } from '@/hooks/useWorkoutHistory';
-import { PunchDetector } from '@/lib/punch/detector';
-import { assessFraming, CAMERA_MESSAGES, FRAMING_MESSAGES, FramingMonitor, type FramingStatus } from '@/lib/punch/framing';
-import type { PoseResult } from '@/lib/punch/poseModel';
-import {
-  applyEvent,
-  comboReadout,
-  CueQueue,
-  cueFor,
-  newRound,
-  PUNCH_LABELS,
-  summarize,
-  summaryNote,
-  type RoundState,
-  type RoundSummary,
-} from '@/lib/punch/round';
-import type { PunchDetected } from '@/lib/punch/types';
+import { CAMERA_MESSAGES } from '@/lib/punch/framing';
+import { summaryNote, type RoundSummary } from '@/lib/punch/round';
 import { computePostLogStats } from '@/lib/workoutTracking';
 import { usePunchPrefsStore } from '@/stores/punchPrefsStore';
 
 type Screen = 'setup' | 'live' | 'summary';
 
-const EMPTY_HUD: PunchHud = {
-  count: 0,
-  cue: null,
-  combo: '',
-  lastLabel: null,
-  warning: null,
-  fps: 0,
-  inferenceMs: 0,
-  delegate: null,
-  frames: 0,
-  clock: 0,
-  paused: false,
-};
-
-const PunchCheck = () => {
+const PunchRound = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const showDebug = searchParams.get('debug') === '1';
-  const { stance, roundSeconds, voiceCues } = usePunchPrefsStore();
+  const { stance } = useStance();
+  const { roundSeconds, voiceCues } = usePunchPrefsStore();
   const { addHistoryEntry } = useWorkoutHistory();
   const { profile, updateProfile } = useProfile();
   const { initialize: initializeSpeech, speak, cancel: cancelSpeech } = useSpeechSynthesis();
 
   const [screen, setScreen] = useState<Screen>('setup');
-  const [hud, setHud] = useState<PunchHud>(EMPTY_HUD);
-  const [debugPunch, setDebugPunch] = useState<PunchDetected | null>(null);
   const [summary, setSummary] = useState<RoundSummary | null>(null);
   const [roundLength, setRoundLength] = useState(0);
+  const [clock, setClock] = useState(0);
   const [logged, setLogged] = useState(false);
 
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const detectorRef = useRef<PunchDetector | null>(null);
-  const roundRef = useRef<RoundState>(newRound());
-  const cuesRef = useRef(new CueQueue());
-  const framingRef = useRef(new FramingMonitor());
-  const lumaRef = useRef<number | null>(null);
-  const framingStatusRef = useRef<FramingStatus>('ok');
-  const lastCueRef = useRef<string | null>(null);
-  const lastLabelRef = useRef<string | null>(null);
-  // The clock only runs while the camera is on
-  const elapsedMsRef = useRef(0);
-  const clockStartRef = useRef<number | null>(null);
-
-  const onPose = useCallback(
-    (result: PoseResult, t: number, meanLuma: number | null) => {
-      if (videoRef.current && canvasRef.current) drawSkeleton(canvasRef.current, videoRef.current, result.image);
-      if (meanLuma !== null) lumaRef.current = meanLuma;
-      framingStatusRef.current = framingRef.current.push(assessFraming(result.image, lumaRef.current), t);
-
-      for (const event of detectorRef.current?.push({ t, landmarks: result.world }) ?? []) {
-        applyEvent(roundRef.current, event);
-        if (event.type === 'punch') {
-          lastLabelRef.current = PUNCH_LABELS[event.punch];
-          setDebugPunch(event);
-          // Named for the hand at fault: the other one, when it's the guard that slipped
-          const opposite = event.hand === 'lead' ? 'rear' : 'lead';
-          for (const issue of event.issues) {
-            cuesRef.current.offer(
-              cueFor(issue, issue === 'other_hand_left_guard' ? opposite : event.hand),
-              t,
-            );
-          }
-        } else {
-          cuesRef.current.offer(cueFor(event.issue, event.hand), t);
-        }
-      }
-
-      const cue = cuesRef.current.read(t);
-      if (cue !== lastCueRef.current) {
-        lastCueRef.current = cue;
-        if (cue && usePunchPrefsStore.getState().voiceCues) speak(cue, { rate: 1.1 });
-      }
+  const onCue = useCallback(
+    (cue: string) => {
+      if (usePunchPrefsStore.getState().voiceCues) speak(cue, { rate: 1.1 });
     },
     [speak],
   );
 
-  const { status, problem, statsRef, start, stop } = usePunchCamera({ videoRef, onPose });
+  const { videoRef, canvasRef, status, problem, paused, hud, lastPunch, start, stop, reset, getSummary } =
+    usePunchTracking({ stance, onCue });
+
+  // The clock only runs while the camera is on
+  const elapsedMsRef = useRef(0);
+  const clockStartRef = useRef<number | null>(null);
 
   const stopClock = useCallback(() => {
     if (clockStartRef.current !== null) {
@@ -122,46 +60,39 @@ const PunchCheck = () => {
     else stopClock();
   }, [status, stopClock]);
 
+  useEffect(() => {
+    if (paused) cancelSpeech();
+  }, [cancelSpeech, paused]);
+
   const finish = useCallback(() => {
     stop();
     stopClock();
     cancelSpeech();
-    setSummary(summarize(roundRef.current));
+    setSummary(getSummary());
     setScreen('summary');
-  }, [cancelSpeech, stop, stopClock]);
-
-  const begin = useCallback(() => {
-    detectorRef.current = new PunchDetector(stance);
-    roundRef.current = newRound();
-    cuesRef.current = new CueQueue();
-    framingRef.current = new FramingMonitor();
-    lumaRef.current = null;
-    framingStatusRef.current = 'ok';
-    lastCueRef.current = null;
-    lastLabelRef.current = null;
-    elapsedMsRef.current = 0;
-    clockStartRef.current = null;
-    setRoundLength(roundSeconds);
-    setHud({ ...EMPTY_HUD, clock: roundSeconds });
-    setDebugPunch(null);
-    setLogged(false);
-    addHistoryEntry.reset();
-    if (voiceCues) initializeSpeech();
-    setScreen('live');
-  }, [addHistoryEntry, initializeSpeech, roundSeconds, stance, voiceCues]);
+  }, [cancelSpeech, getSummary, stop, stopClock]);
 
   // The video element only exists on the live screen, so the camera starts once that has rendered
   const [startRequest, setStartRequest] = useState(0);
   useEffect(() => {
     if (startRequest > 0) void start();
-  }, [start, startRequest]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [startRequest]);
 
   const handleStart = () => {
-    begin();
+    reset();
+    elapsedMsRef.current = 0;
+    clockStartRef.current = null;
+    setRoundLength(roundSeconds);
+    setClock(roundSeconds);
+    setLogged(false);
+    addHistoryEntry.reset();
+    if (voiceCues) initializeSpeech();
+    setScreen('live');
     setStartRequest((n) => n + 1);
   };
 
-  // Refresh the display a few times a second, reading the clock off the wall like QuickSession does
+  // Reads the clock off the wall like QuickSession does
   useEffect(() => {
     if (screen !== 'live') return;
     const interval = setInterval(() => {
@@ -171,45 +102,10 @@ const PunchCheck = () => {
         finish();
         return;
       }
-      const round = roundRef.current;
-      const framing = framingStatusRef.current;
-      setHud((previous) => ({
-        ...previous,
-        count: round.total,
-        cue: lastCueRef.current,
-        combo: comboReadout(round, performance.now()),
-        lastLabel: lastLabelRef.current,
-        warning: framing === 'ok' ? null : FRAMING_MESSAGES[framing],
-        fps: statsRef.current.fps,
-        inferenceMs: statsRef.current.inferenceMs,
-        delegate: statsRef.current.delegate,
-        frames: statsRef.current.frames,
-        clock: roundLength > 0 ? roundLength - elapsed : elapsed,
-      }));
+      setClock(roundLength > 0 ? roundLength - elapsed : elapsed);
     }, 100);
     return () => clearInterval(interval);
-  }, [finish, roundLength, screen, statsRef]);
-
-  // Never leave the camera on behind a hidden tab. Coming back takes a tap.
-  useEffect(() => {
-    const handleVisibility = () => {
-      if (document.visibilityState !== 'hidden' || screen !== 'live') return;
-      stop();
-      cancelSpeech();
-      setHud((previous) => ({ ...previous, paused: true }));
-    };
-    document.addEventListener('visibilitychange', handleVisibility);
-    window.addEventListener('pagehide', handleVisibility);
-    return () => {
-      document.removeEventListener('visibilitychange', handleVisibility);
-      window.removeEventListener('pagehide', handleVisibility);
-    };
-  }, [cancelSpeech, screen, stop]);
-
-  const handleResume = () => {
-    setHud((previous) => ({ ...previous, paused: false }));
-    void start();
-  };
+  }, [finish, roundLength, screen]);
 
   const handleLog = () => {
     if (!summary) return;
@@ -267,13 +163,13 @@ const PunchCheck = () => {
         <PunchLive
           videoRef={videoRef}
           canvasRef={canvasRef}
-          loading={status !== 'live' && !hud.paused}
-          hud={hud}
-          debugPunch={debugPunch}
+          loading={status !== 'live' && !paused}
+          hud={{ ...hud, clock, paused }}
+          debugPunch={lastPunch}
           showDebug={showDebug}
           onExit={() => navigate('/')}
           onFinish={finish}
-          onResume={handleResume}
+          onResume={() => void start()}
         />
       )}
       {screen === 'summary' && summary && (
@@ -290,6 +186,12 @@ const PunchCheck = () => {
       )}
     </AppLayout>
   );
+};
+
+/** ?record=1 is the hidden calibration mode. */
+const PunchCheck = () => {
+  const [searchParams] = useSearchParams();
+  return searchParams.get('record') === '1' ? <PunchRecorder /> : <PunchRound />;
 };
 
 export default PunchCheck;

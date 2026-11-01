@@ -1,18 +1,10 @@
 import type { RefObject } from 'react';
 import { ArrowLeft, Home, Loader2, Lock, Square } from 'lucide-react';
+import type { TrackingHud } from '@/hooks/usePunchTracking';
 import { formatClock } from '@/lib/punch/round';
 import type { PunchDetected } from '@/lib/punch/types';
 
-export interface PunchHud {
-  count: number;
-  cue: string | null;
-  combo: string;
-  lastLabel: string | null;
-  warning: string | null;
-  fps: number;
-  inferenceMs: number;
-  delegate: string | null;
-  frames: number;
+export interface PunchHud extends TrackingHud {
   /** Seconds to show on the clock: time left with a timer, time elapsed without. */
   clock: number;
   paused: boolean;

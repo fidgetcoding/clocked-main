@@ -8,6 +8,8 @@ import { useUserStore } from '@/stores/userStore';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUserRole } from '@/hooks/useUserRole';
 import { useProfile } from '@/hooks/useProfile';
+import { STANCE_OPTIONS, useStance } from '@/hooks/useStance';
+import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { useAppVersion } from '@/hooks/useAppVersion';
 import { LevelUpOverlay } from '@/components/ui/LevelUpOverlay';
@@ -28,7 +30,8 @@ const Settings = () => {
   const { signOut, user: authUser, isGuest } = useAuth();
   const { data: version } = useAppVersion();
   const { isAdmin } = useUserRole();
-  const { profile, updateProfile } = useProfile();
+  const { profile } = useProfile();
+  const { stance, setStance } = useStance();
   const queryClient = useQueryClient();
   
   const [isSigningOut, setIsSigningOut] = useState(false);
@@ -201,6 +204,31 @@ const Settings = () => {
         </header>
 
         <div className="px-4 space-y-6 pb-24">
+          {/* Stance */}
+          <div className="card-workout">
+            <h3 className="text-lg font-bold text-foreground mb-2">Stance</h3>
+            <p className="text-xs text-muted-foreground mb-4">Tells the punch camera which hand is your lead</p>
+            <div className="flex gap-2" role="radiogroup" aria-label="Stance">
+              {STANCE_OPTIONS.map((option) => (
+                <button
+                  key={option.value}
+                  role="radio"
+                  aria-checked={stance === option.value}
+                  onClick={() => setStance(option.value)}
+                  className={cn(
+                    'flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-colors',
+                    stance === option.value
+                      ? 'bg-volt text-primary-foreground'
+                      : 'bg-surface-2 border border-surface-3 text-muted-foreground hover:bg-surface-3',
+                  )}
+                >
+                  <span className="block">{option.label}</span>
+                  <span className="block text-xs font-normal opacity-80">{option.hint}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+
           {/* Sound Alerts */}
           <div className="card-workout">
             <h3 className="text-lg font-bold text-foreground mb-2">Sound Alerts</h3>

@@ -7,13 +7,15 @@ import { useUserStore } from '@/stores/userStore';
 import { useWorkouts } from '@/hooks/useWorkouts';
 import { useAuth } from '@/contexts/AuthContext';
 import { hasFinishedOnboarding, useProfile } from '@/hooks/useProfile';
+import { STANCE_OPTIONS } from '@/hooks/useStance';
+import type { Stance } from '@/lib/punch/types';
 import { experienceLevelToPrestige } from '@/lib/xpSystem';
 import { generateLoadoutWorkout } from '@/lib/loadoutGenerator';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import clockedLogo from '@/assets/clocked-logo.png';
 
-type Step = 'welcome' | 'role' | 'name' | 'experience' | 'equipment' | 'fightClub' | 'goals' | 'complete';
+type Step = 'welcome' | 'role' | 'name' | 'stance' | 'experience' | 'equipment' | 'fightClub' | 'goals' | 'complete';
 
 const experienceLevels = [
   { id: 'complete_beginner', label: 'Rookie', desc: 'Never trained combat sports' },
@@ -66,6 +68,7 @@ const Onboarding = () => {
   const [step, setStep] = useState<Step>(shouldContinue && user ? 'role' : 'welcome');
   const [role, setRole] = useState<'fighter' | 'coach'>('fighter');
   const [name, setName] = useState('');
+  const [stance, setStance] = useState<Stance>('orthodox');
   const [experience, setExperience] = useState<string>('beginner');
   const [equipment, setEquipment] = useState<Record<string, boolean>>({});
   const [primaryBag, setPrimaryBag] = useState<'heavy' | 'double_end' | 'none'>('none');
@@ -111,8 +114,8 @@ const Onboarding = () => {
     const roleToUse = selectedRole || role;
     // Coaches skip equipment (they have all), but get fightClub step
     const steps: Step[] = roleToUse === 'coach'
-      ? ['welcome', 'role', 'name', 'fightClub', 'goals', 'complete']
-      : ['welcome', 'role', 'name', 'experience', 'equipment', 'goals', 'complete'];
+      ? ['welcome', 'role', 'name', 'stance', 'fightClub', 'goals', 'complete']
+      : ['welcome', 'role', 'name', 'stance', 'experience', 'equipment', 'goals', 'complete'];
     
     const currentIndex = steps.indexOf(step);
     if (currentIndex < steps.length - 1) {
@@ -145,6 +148,7 @@ const Onboarding = () => {
         goals: goals,
         prestige,
         current_level: 1,
+        preferences: { ...profile?.preferences, stance } as NonNullable<typeof profile>['preferences'],
       });
     } catch (error) {
       console.error('Failed to update profile:', error);
@@ -225,8 +229,8 @@ const Onboarding = () => {
   // Get step count for progress dots
   const getSteps = () => {
     return role === 'coach'
-      ? ['role', 'name', 'fightClub', 'goals']
-      : ['role', 'name', 'experience', 'equipment', 'goals'];
+      ? ['role', 'name', 'stance', 'fightClub', 'goals']
+      : ['role', 'name', 'stance', 'experience', 'equipment', 'goals'];
   };
 
   // Hold the first screen until we know whether a signed-in account has been here before
@@ -355,6 +359,48 @@ const Onboarding = () => {
               className="h-14 text-lg bg-surface-1 border-surface-3 text-center mb-6"
               autoFocus
             />
+
+            <Button onClick={() => handleNext()} className="btn-primary-glow w-full h-14 text-lg">
+              Continue
+              <ArrowRight className="w-5 h-5 ml-2" />
+            </Button>
+          </div>
+        )}
+
+        {/* Stance */}
+        {step === 'stance' && (
+          <div className="w-full max-w-md animate-fade-in">
+            <h2 className="text-2xl font-black text-foreground text-center mb-2">
+              Your Stance
+            </h2>
+            <p className="text-muted-foreground text-center mb-8">
+              Which hand leads? Most right-handers lead with the left.
+            </p>
+
+            <div className="space-y-3 mb-6">
+              {STANCE_OPTIONS.map((option) => (
+                <button
+                  key={option.value}
+                  onClick={() => setStance(option.value)}
+                  className={cn(
+                    'w-full p-4 rounded-xl border text-left transition-all',
+                    stance === option.value
+                      ? 'border-volt bg-volt/10'
+                      : 'border-surface-3 bg-surface-1'
+                  )}
+                >
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="font-semibold text-foreground">{option.label}</h3>
+                      <p className="text-sm text-muted-foreground">{option.hint}</p>
+                    </div>
+                    {stance === option.value && (
+                      <Check className="w-5 h-5 text-volt" />
+                    )}
+                  </div>
+                </button>
+              ))}
+            </div>
 
             <Button onClick={() => handleNext()} className="btn-primary-glow w-full h-14 text-lg">
               Continue

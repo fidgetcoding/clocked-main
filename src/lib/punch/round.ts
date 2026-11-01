@@ -1,6 +1,13 @@
 import { PUNCH_CONFIG, type PunchConfig } from './config';
 import type { FormIssue, Hand, PunchClass, PunchEvent } from './types';
 
+/** The cues a detector event calls for, named for the hand at fault. */
+export function cuesFor(event: PunchEvent): string[] {
+  if (event.type === 'form') return [cueFor(event.issue, event.hand)];
+  const opposite = event.hand === 'lead' ? 'rear' : 'lead';
+  return event.issues.map((issue) => cueFor(issue, issue === 'other_hand_left_guard' ? opposite : event.hand));
+}
+
 export function formatClock(seconds: number): string {
   const whole = Math.max(0, Math.ceil(seconds));
   return `${Math.floor(whole / 60)}:${String(whole % 60).padStart(2, '0')}`;
@@ -142,6 +149,12 @@ export function summarize(round: RoundState): RoundSummary {
     issueCounts,
     longestCombo: round.longestCombo,
   };
+}
+
+/** What a camera panel hands back to the session it sits in. */
+export interface PunchSessionReport extends RoundSummary {
+  /** One line for the workout log. */
+  note: string;
 }
 
 /** One line for the workout log. */
