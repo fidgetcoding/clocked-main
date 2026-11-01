@@ -104,7 +104,7 @@ const Settings = () => {
           duration: loadout.duration,
           difficulty: loadout.difficulty,
           phases: loadout.phases as any,
-          combos: loadout.combos as any,
+          combos: loadout.combos,
           tags: loadout.tags,
           is_preset: loadout.is_preset,
           is_archived: false,
@@ -160,7 +160,7 @@ const Settings = () => {
     description: string;
     icon: React.ComponentType<{ className?: string }>;
   }) => {
-    const isEnabled = (user?.preferences as any)?.[prefKey] !== false;
+    const isEnabled = (user?.preferences)?.[prefKey] !== false;
     
     return (
       <div className="flex items-start gap-3 py-3">

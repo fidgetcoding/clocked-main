@@ -78,7 +78,7 @@ const QuickSession = () => {
 
   // Compute live level from accumulated XP - use profile (database) as source of truth
   const liveLevel = getLevelFromXP(
-    (profile?.prestige || 'beginner') as any,
+    (profile?.prestige || 'beginner'),
     (profile?.total_xp || 0) + accumulatedXP
   );
 

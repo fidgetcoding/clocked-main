@@ -88,7 +88,7 @@ export const SharedWorkoutsModal = ({ onClose }: SharedWorkoutsModalProps) => {
               {displayed.map((post) => (
                 <div key={post.id} className="flex items-center gap-3 p-3 rounded-lg bg-surface-2 border border-surface-3">
                   <div className="w-10 h-10 rounded-xl bg-volt/20 flex items-center justify-center text-xl flex-shrink-0">
-                    {(post.workout_data as any)?.icon || '🥊'}
+                    {(post.workout_data)?.icon || '🥊'}
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="font-semibold text-foreground text-sm truncate">
@@ -96,8 +96,8 @@ export const SharedWorkoutsModal = ({ onClose }: SharedWorkoutsModalProps) => {
                     </p>
                     <p className="text-xs text-muted-foreground">
                       {formatTimeAgo(post.created_at || '')}
-                      {filter === 'private' && (post as any).club_name && (
-                        <span> · {(post as any).club_name}</span>
+                      {filter === 'private' && post.club_name && (
+                        <span> · {post.club_name}</span>
                       )}
                     </p>
                   </div>

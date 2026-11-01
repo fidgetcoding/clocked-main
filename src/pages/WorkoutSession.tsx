@@ -125,8 +125,8 @@ const WorkoutSession = () => {
     voiceComboCallouts?: boolean;
   } | undefined;
 
-  const oneOffLoadout = (location.state as any)?.oneOffLoadout;
-  const oneOffName = (location.state as any)?.workoutName;
+  const oneOffLoadout = (location.state)?.oneOffLoadout;
+  const oneOffName = (location.state)?.workoutName;
 
   const dbWorkout = workouts.find((w) => w.id === id);
   
@@ -446,7 +446,7 @@ const WorkoutSession = () => {
   const { playLevelUpSound } = useSoundEffects();
 
   const liveLevel = getLevelFromXP(
-    (profile?.prestige || 'beginner') as any,
+    (profile?.prestige || 'beginner'),
     (profile?.total_xp || 0) + accumulatedXP
   );
 
@@ -589,13 +589,13 @@ const WorkoutSession = () => {
         intermediateSessionsToL100: (profile as any)?.intermediate_sessions_to_l100 || 0,
         advancedSessionsToL100: (profile as any)?.advanced_sessions_to_l100 || 0,
         proSessionsToL100: (profile as any)?.pro_sessions_to_l100 || 0,
-        doubleDays: (profile as any)?.double_days || 0,
-        morningWorkouts: (profile as any)?.morning_workouts || 0,
-        nightWorkouts: (profile as any)?.night_workouts || 0,
-        weekendWorkouts: (profile as any)?.weekend_workouts || 0,
-        weekdayWorkouts: (profile as any)?.weekday_workouts || 0,
+        doubleDays: (profile)?.double_days || 0,
+        morningWorkouts: (profile)?.morning_workouts || 0,
+        nightWorkouts: (profile)?.night_workouts || 0,
+        weekendWorkouts: (profile)?.weekend_workouts || 0,
+        weekdayWorkouts: (profile)?.weekday_workouts || 0,
         perfectMonths: (profile as any)?.perfect_months || 0,
-        comebackCount: (profile as any)?.comeback_count || 0,
+        comebackCount: (profile)?.comeback_count || 0,
         mondayWorkouts: (profile as any)?.monday_workouts || 0,
         fridayWorkouts: (profile as any)?.friday_workouts || 0,
         sundayWorkouts: (profile as any)?.sunday_workouts || 0,
@@ -607,18 +607,18 @@ const WorkoutSession = () => {
         totalBadges: earnedBadgeIds.length + liveEarnedIds.length + newCoreBadges.length,
         streakRecoveries: (profile as any)?.streak_recoveries || 0,
         avgXpPerSession: profile?.workouts_completed ? Math.round(((profile?.total_xp || 0) + effectiveBase) / ((profile.workouts_completed || 0) + 1)) : effectiveBase,
-        punch1Count: (profile as any)?.punch_1_count || 0,
-        punch2Count: (profile as any)?.punch_2_count || 0,
-        punch3Count: (profile as any)?.punch_3_count || 0,
-        punch4Count: (profile as any)?.punch_4_count || 0,
-        punch5Count: (profile as any)?.punch_5_count || 0,
-        punch6Count: (profile as any)?.punch_6_count || 0,
-        punch7Count: (profile as any)?.punch_7_count || 0,
-        punch8Count: (profile as any)?.punch_8_count || 0,
-        slipsCount: (profile as any)?.slips_count || 0,
-        rollsCount: (profile as any)?.rolls_count || 0,
-        pullbacksCount: (profile as any)?.pullbacks_count || 0,
-        circlesCount: (profile as any)?.circles_count || 0,
+        punch1Count: (profile)?.punch_1_count || 0,
+        punch2Count: (profile)?.punch_2_count || 0,
+        punch3Count: (profile)?.punch_3_count || 0,
+        punch4Count: (profile)?.punch_4_count || 0,
+        punch5Count: (profile)?.punch_5_count || 0,
+        punch6Count: (profile)?.punch_6_count || 0,
+        punch7Count: (profile)?.punch_7_count || 0,
+        punch8Count: (profile)?.punch_8_count || 0,
+        slipsCount: (profile)?.slips_count || 0,
+        rollsCount: (profile)?.rolls_count || 0,
+        pullbacksCount: (profile)?.pullbacks_count || 0,
+        circlesCount: (profile)?.circles_count || 0,
       };
       newPostL100Badges = checkPostL100Badges(postL100StatsForCheck, [...earnedBadgeIds, ...liveEarnedIds, ...newCoreBadges.map(b => b.id)]);
     }
@@ -956,7 +956,7 @@ const WorkoutSession = () => {
         current_level: 1,
         total_xp: 0,
         experience_level: nextPrestige,
-      } as any);
+      });
     } catch (e) {
       console.error('Prestige failed:', e);
     }
@@ -1001,7 +1001,7 @@ const WorkoutSession = () => {
           const postLogStats = await computePostLogStats(profile.user_id, profile, totalElapsed);
           if (postLogStats) {
             const postL100Increments = computePostL100Increments(
-              profile as any,
+              profile,
               sessionResult.sessionTotal,
               flatSegments,
               getSessionEffort(totalElapsed),
@@ -1021,7 +1021,7 @@ const WorkoutSession = () => {
               complex_combos: (profile.complex_combos || 0) + credit.complexCombos,
               defense_combos: (profile.defense_combos || 0) + credit.defenseCombos,
               counter_combos: (profile.counter_combos || 0) + credit.counterCombos,
-            } as any);
+            });
           }
         }
       },

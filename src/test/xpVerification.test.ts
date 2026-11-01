@@ -21,7 +21,7 @@ function approx(actual: number, expected: number): boolean {
 
 // ========== PUNCH_VALUE (8 tests) ==========
 describe('PUNCH_VALUE', () => {
-  const punchData = (testData as any).punch_xp;
+  const punchData = testData.punch_xp;
   for (const [num, info] of Object.entries(punchData)) {
     const { name, xp } = info as { name: string; xp: number };
     it(`Punch ${num} (${name}) = ${xp} XP`, () => {
@@ -32,7 +32,7 @@ describe('PUNCH_VALUE', () => {
 
 // ========== DEFENSE_VALUE (6 tests) ==========
 describe('DEFENSE_VALUE', () => {
-  const defenseData = (testData as any).defense_xp;
+  const defenseData = testData.defense_xp;
   for (const [move, xp] of Object.entries(defenseData)) {
     it(`${move} = ${xp} XP`, () => {
       expect(approx(DEFENSE_XP_VALUES[move], xp as number)).toBe(true);
@@ -86,7 +86,7 @@ describe('STREAK_MULTIPLIER', () => {
 
 // ========== EXERCISE_XP (39 tests) ==========
 describe('EXERCISE_XP', () => {
-  const rates = (testData as any).exercise_rates as Record<string, number>;
+  const rates = testData.exercise_rates as Record<string, number>;
   const durations = [30, 60, 120];
   for (const [activity, rate] of Object.entries(rates)) {
     for (const dur of durations) {
@@ -110,7 +110,7 @@ describe('EXERCISE_XP_CHAMPIONSHIP', () => {
   const durations = [30, 60, 90, 120];
   for (const act of freestyleActivities) {
     for (const dur of durations) {
-      const rate = (testData as any).exercise_rates[act];
+      const rate = testData.exercise_rates[act];
       const expected = rate * dur * 2;
       it(`${act} ${dur}s championship = ${expected.toFixed(1)} XP`, () => {
         const base = calculateActivityXP(act as any, dur);
@@ -122,7 +122,7 @@ describe('EXERCISE_XP_CHAMPIONSHIP', () => {
 
 // ========== COMBO_XP (1,284 tests) ==========
 describe('COMBO_XP', () => {
-  const comboPools = (testData as any).combo_pools as Record<string, Record<string, string[]>>;
+  const comboPools = testData.combo_pools as Record<string, Record<string, string[]>>;
   const durations = [15, 30, 45, 60, 90, 120];
   
   for (const [tier, pools] of Object.entries(comboPools)) {
@@ -149,7 +149,7 @@ describe('COMBO_XP', () => {
 
 // ========== LEVEL_COST (500 tests) ==========
 describe('LEVEL_COST', () => {
-  const levelCosts = (testData as any).level_costs as Record<string, number[]>;
+  const levelCosts = testData.level_costs as Record<string, number[]>;
   const tierMap: Record<string, Prestige> = {
     Rookie: 'rookie',
     Beginner: 'beginner',
@@ -177,8 +177,8 @@ describe('LEVEL_COST', () => {
 
 // ========== FULL_SESSION (10 tests) ==========
 describe('FULL_SESSION', () => {
-  const baseXP = (testData as any).base_xp as Record<string, number>;
-  const bagXP = (testData as any).bag_xp as Record<string, number>;
+  const baseXP = testData.base_xp as Record<string, number>;
+  const bagXP = testData.bag_xp as Record<string, number>;
   
   for (const [tier, expected] of Object.entries(baseXP)) {
     it(`${tier} shadow = ${expected} XP`, () => {
@@ -195,8 +195,8 @@ describe('FULL_SESSION', () => {
 
 // ========== SESSION_WITH_STREAK (170 tests) ==========
 describe('SESSION_WITH_STREAK', () => {
-  const baseXP = (testData as any).base_xp as Record<string, number>;
-  const bagXP = (testData as any).bag_xp as Record<string, number>;
+  const baseXP = testData.base_xp as Record<string, number>;
+  const bagXP = testData.bag_xp as Record<string, number>;
   const streakDays = [0, 1, 2, 3, 5, 7, 10, 14, 20, 29, 30, 45, 59, 60, 75, 99, 100];
   
   for (const [tier, base] of Object.entries(baseXP)) {
@@ -214,7 +214,7 @@ describe('SESSION_WITH_STREAK', () => {
 
 // ========== POOL_AVERAGE (42 tests) ==========
 describe('POOL_AVERAGE', () => {
-  const comboPools = (testData as any).combo_pools as Record<string, Record<string, string[]>>;
+  const comboPools = testData.combo_pools as Record<string, Record<string, string[]>>;
   const durations = [30, 60];
   
   for (const [tier, pools] of Object.entries(comboPools)) {

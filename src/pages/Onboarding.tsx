@@ -178,7 +178,7 @@ const Onboarding = () => {
     
     // Save the single loadout to database
     try {
-      await addWorkoutToDb.mutateAsync(loadout as any);
+      await addWorkoutToDb.mutateAsync(loadout);
     } catch (error) {
       console.error('Failed to save loadout workout:', error);
     }

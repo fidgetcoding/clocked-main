@@ -138,7 +138,7 @@ export function useShareWorkout() {
           custom_name: customName || null,
           destination: destination || 'feed',
           club_id: clubId || null,
-        } as any)
+        })
         .select()
         .single();
 
@@ -179,7 +179,7 @@ export function usePostWorkoutComplete() {
           workout_name: workoutName,
           message,
           destination: 'feed',
-        } as any)
+        })
         .select()
         .single();
 

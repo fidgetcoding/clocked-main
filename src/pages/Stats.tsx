@@ -144,7 +144,7 @@ const Stats = () => {
       current_level: 1,
       total_xp: 0,
       experience_level: next,
-    } as any);
+    });
     setShowPrestigePrompt(false);
   };
 

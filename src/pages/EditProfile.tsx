@@ -386,7 +386,7 @@ const EditProfile = () => {
                     const val = parseFloat(weightInput);
                     if (!isNaN(val) && val > 0) {
                       const kg = useImperial ? Math.round(val / 2.20462 * 10) / 10 : val;
-                      await updateProfile.mutateAsync({ weight_kg: kg } as any);
+                      await updateProfile.mutateAsync({ weight_kg: kg });
                     }
                   }}
                   placeholder={useImperial ? '165' : '75'}
@@ -405,7 +405,7 @@ const EditProfile = () => {
                         const ft = parseFloat(heightFt) || 0;
                         const inches = parseFloat(heightIn) || 0;
                         const cm = Math.round((ft * 12 + inches) * 2.54 * 10) / 10;
-                        if (cm > 0) await updateProfile.mutateAsync({ height_cm: cm } as any);
+                        if (cm > 0) await updateProfile.mutateAsync({ height_cm: cm });
                       }}
                       placeholder="5"
                       className="bg-surface-2 border-surface-3 text-foreground"
@@ -421,7 +421,7 @@ const EditProfile = () => {
                         const ft = parseFloat(heightFt) || 0;
                         const inches = parseFloat(heightIn) || 0;
                         const cm = Math.round((ft * 12 + inches) * 2.54 * 10) / 10;
-                        if (cm > 0) await updateProfile.mutateAsync({ height_cm: cm } as any);
+                        if (cm > 0) await updateProfile.mutateAsync({ height_cm: cm });
                       }}
                       placeholder="10"
                       className="bg-surface-2 border-surface-3 text-foreground"
@@ -438,7 +438,7 @@ const EditProfile = () => {
                     onBlur={async () => {
                       const val = parseFloat(heightCm);
                       if (!isNaN(val) && val > 0) {
-                        await updateProfile.mutateAsync({ height_cm: val } as any);
+                        await updateProfile.mutateAsync({ height_cm: val });
                       }
                     }}
                     placeholder="175"

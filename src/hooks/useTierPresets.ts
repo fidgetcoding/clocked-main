@@ -117,7 +117,7 @@ export function useTierPresets() {
   // Generate loadouts and merge with user counts
   const enrichedPresets: TierPresetWithLoadout[] = (presets || []).map((preset) => {
     const equipConfig = preset.equipment_mode === 'bag' ? BAG_EQUIPMENT : SHADOW_EQUIPMENT;
-    const experienceLevel = (preset.loadout as any)?.experienceLevel || preset.tier;
+    const experienceLevel = (preset.loadout)?.experienceLevel || preset.tier;
     const generatedLoadout = generateLoadoutWorkout(experienceLevel, equipConfig);
     
     // Override generated name with the curated DB name

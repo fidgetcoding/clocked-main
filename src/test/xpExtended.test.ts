@@ -56,7 +56,7 @@ function parseComboString(comboStr: string): string[] {
 
 // ========== COMBO XP (214 tests) ==========
 describe('Extended: Combo XP', () => {
-  const tests = (extendedData as any).combo_xp_tests;
+  const tests = extendedData.combo_xp_tests;
   for (const t of tests) {
     it(`[${t.tier}/${t.group}] "${t.combo}" @ 30s = ${t.xp_30s}`, () => {
       const moves = parseComboString(t.combo);
@@ -73,7 +73,7 @@ describe('Extended: Combo XP', () => {
 
 // ========== EXERCISE DURATION (55 tests) ==========
 describe('Extended: Exercise Duration XP', () => {
-  const tests = (extendedData as any).exercise_duration_tests;
+  const tests = extendedData.exercise_duration_tests;
   for (const t of tests) {
     it(`${t.activity} @ ${t.duration_sec}s = ${t.expected_xp} XP`, () => {
       const actType = t.activity as any;
@@ -87,7 +87,7 @@ describe('Extended: Exercise Duration XP', () => {
 
 // ========== CHAMPIONSHIP (5 tests) ==========
 describe('Extended: Championship Multiplier', () => {
-  const tests = (extendedData as any).championship_tests;
+  const tests = extendedData.championship_tests;
   for (const t of tests) {
     it(`${t.activity} @ ${t.duration}s champ=${t.champ_mult}x → ${t.expected}`, () => {
       const actType = t.activity as any;
@@ -102,7 +102,7 @@ describe('Extended: Championship Multiplier', () => {
 
 // ========== STREAK TABLE (105 tests) ==========
 describe('Extended: Streak Multiplier Table', () => {
-  const tests = (extendedData as any).streak_multiplier_table;
+  const tests = extendedData.streak_multiplier_table;
   for (const t of tests) {
     it(`Day ${t.day} = ${t.multiplier}x`, () => {
       expect(getStreakMultiplier(t.day)).toBe(t.multiplier);
@@ -112,7 +112,7 @@ describe('Extended: Streak Multiplier Table', () => {
 
 // ========== STREAK RESET (5 tests) ==========
 describe('Extended: Streak Reset Scenarios', () => {
-  const tests = (extendedData as any).streak_reset_scenarios;
+  const tests = extendedData.streak_reset_scenarios;
   for (const t of tests) {
     it(t.scenario, () => {
       // Verify multipliers match before/after
@@ -131,7 +131,7 @@ describe('Extended: Streak Reset Scenarios', () => {
 
 // ========== LEVEL BOUNDARY (90 tests) ==========
 describe('Extended: Level Boundary Edge Cases', () => {
-  const tests = (extendedData as any).level_boundary_edge_cases;
+  const tests = extendedData.level_boundary_edge_cases;
   for (const t of tests) {
     it(t.test, () => {
       const prestige = tierMap[t.tier];
@@ -146,7 +146,7 @@ describe('Extended: Level Boundary Edge Cases', () => {
 
 // ========== PRESTIGE (4 tests) ==========
 describe('Extended: Prestige Tests', () => {
-  const tests = (extendedData as any).prestige_tests;
+  const tests = extendedData.prestige_tests;
   for (const t of tests) {
     it(t.test, () => {
       const beforeTier = tierMap[t.before.tier];

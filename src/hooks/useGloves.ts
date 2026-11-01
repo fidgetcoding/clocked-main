@@ -11,8 +11,8 @@ export function useGloves() {
   const { profile } = useProfile();
   const queryClient = useQueryClient();
 
-  const equippedGlove = (profile as any)?.equipped_glove || 'default';
-  const unlockedGloves: string[] = (profile as any)?.unlocked_gloves || ['default'];
+  const equippedGlove = (profile)?.equipped_glove || 'default';
+  const unlockedGloves: string[] = (profile)?.unlocked_gloves || ['default'];
 
   const equipGlove = useMutation({
     mutationFn: async (gloveId: string) => {
@@ -20,7 +20,7 @@ export function useGloves() {
       if (!user?.id) throw new Error('Not authenticated');
       const { error } = await supabase
         .from('profiles')
-        .update({ equipped_glove: gloveId } as any)
+        .update({ equipped_glove: gloveId })
         .eq('user_id', user.id);
       if (error) throw error;
     },
@@ -46,7 +46,7 @@ export function useGloves() {
       } else {
         await supabase
           .from('profiles')
-          .update({ unlocked_gloves: merged } as any)
+          .update({ unlocked_gloves: merged })
           .eq('user_id', user!.id);
       }
       

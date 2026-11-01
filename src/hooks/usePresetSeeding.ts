@@ -101,7 +101,7 @@ export function usePresetSeeding() {
             duration: loadout.duration,
             difficulty: loadout.difficulty,
             phases: loadout.phases as any,
-            combos: loadout.combos as any,
+            combos: loadout.combos,
             tags: loadout.tags,
             is_preset: loadout.is_preset,
             is_archived: false,
