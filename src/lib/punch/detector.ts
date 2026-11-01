@@ -1,4 +1,4 @@
-import { BodyTracker, dist, jointAngle, sub, type ArmPose, type BodyPose, type Vec3 } from './body';
+import { BodyTracker, dist, dot, jointAngle, pictureLength, seenLength, sub, type ArmPose, type BodyPose, type Vec3 } from './body';
 import { classifyPunch } from './classify';
 import { PUNCH_CONFIG, type PunchConfig } from './config';
 import type { FormIssue, Hand, PunchClass, PunchEvent, PoseFrame, Side, Stance } from './types';
@@ -89,7 +89,6 @@ const newHand = (side: Side, hand: Hand): HandState => ({
 
 const armOf = (pose: BodyPose, side: Side): ArmPose => (side === 'left' ? pose.left : pose.right);
 const degrees = (radians: number) => (radians * 180) / Math.PI;
-const planarDistance = (a: Vec3, b: Vec3) => Math.hypot(a.x - b.x, a.y - b.y);
 const elbowAngleOf = (arm: ArmPose) =>
   arm.wrist && arm.elbow ? jointAngle(arm.shoulder, arm.elbow, arm.wrist) : null;
 
@@ -123,6 +122,15 @@ export class PunchDetector {
     this.right = newHand('right', this.right.hand);
   }
 
+  /** Starts each hand from a guard the start check saw, instead of learning it from the first frames. */
+  applyGuard(guard: { left: Vec3; right: Vec3 }) {
+    for (const state of [this.left, this.right]) {
+      if (state.phase !== 'idle') continue;
+      state.anchor = guard[state.side];
+      state.guardRest = guard[state.side];
+    }
+  }
+
   /** Feed one frame. Timestamps must increase. Returns whatever this frame completed. */
   push(frame: PoseFrame): PunchEvent[] {
     // Anything measured over time would run backward on a frame out of order
@@ -134,7 +142,7 @@ export class PunchDetector {
     if (!frame.landmarks) return [];
     this.lastT = frame.t;
 
-    const pose = this.body.push(frame.t, frame.landmarks);
+    const pose = this.body.push(frame.t, frame.landmarks, this.left.phase === 'extending' || this.right.phase === 'extending');
     if (!pose) return [];
 
     const events: PunchEvent[] = [];
@@ -230,13 +238,12 @@ export class PunchDetector {
     const distance = dist(wrist, state.anchor);
     // Recent, because at low frame rates the fast part of a short punch can land just before the distance does
     const elbow = armOf(pose, state.side).elbow;
-    const elbowMoved = elbow && state.elbowAnchor ? planarDistance(elbow, state.elbowAnchor) : 0;
+    const elbowMoved = elbow && state.elbowAnchor ? pictureLength(sub(elbow, state.elbowAnchor), pose.camera) : 0;
     const movingAway = distance > state.lastRestDistance;
     state.lastRestDistance = distance;
     // Thrown at the camera, a straight barely moves the wrist in the picture but it lifts the elbow
-    // Depth only counts toward the camera: the model's depth jitters backward on a still hand, and
-    // that hand then looks busy and hides the real punch from the other one
-    const seenMove = Math.hypot(wrist.x - state.anchor.x, wrist.y - state.anchor.y, Math.max(0, wrist.z - state.anchor.z));
+    // A hand that looks busy from depth jitter would hide the real punch from the other one
+    const seenMove = seenLength(sub(wrist, state.anchor), pose.camera);
     const started = seenMove >= motion.startDistance || (other.phase === 'idle' && elbowMoved >= motion.elbowStartMove);
     if (movingAway && started && this.recentSpeed(state, pose.t) >= motion.startSpeed) {
       this.beginExtension(state, other, pose, wrist, state.anchor);
@@ -307,7 +314,7 @@ export class PunchDetector {
   }
 
   private finishExtension(state: HandState, other: HandState, peak: ExtensionSample, events: PunchEvent[]) {
-    const { motion, form } = this.config;
+    const { motion, form, view } = this.config;
     const origin = state.origin!;
     const first = state.samples[0];
     const startPose = state.restPose ?? first.pose;
@@ -335,7 +342,7 @@ export class PunchDetector {
       delta.y < motion.recoilMaxRise &&
       Math.abs(state.side === 'left' ? -delta.x : delta.x) < motion.recoilMaxAcross;
     const peakElbow = armOf(peak.pose, state.side).elbow;
-    const elbowMoved = peakElbow && state.elbowAnchor ? planarDistance(peakElbow, state.elbowAnchor) : 0;
+    const elbowMoved = peakElbow && state.elbowAnchor ? pictureLength(sub(peakElbow, state.elbowAnchor), peak.pose.camera) : 0;
     const movedEnough =
       other.phase === 'idle'
         ? (distance >= motion.minPeakDistance && armMoved >= motion.minArmMove) ||
@@ -362,8 +369,11 @@ export class PunchDetector {
     const foreArm = dist(arm.elbow, arm.wrist);
     const elbow = jointAngle(arm.shoulder, arm.elbow, arm.wrist);
     const reach = dist(arm.shoulder, arm.wrist) / Math.max(upperArm + foreArm, 1e-6);
-    const visibility =
+    const seenVisibility =
       state.samples.reduce((sum, s) => sum + armOf(s.pose, state.side).visibility, 0) / state.samples.length;
+    // Turned this far from the camera, this arm is behind the body however sure the model sounds
+    const farArm = state.side === 'left' ? peak.pose.viewYaw < -view.farArmYaw : peak.pose.viewYaw > view.farArmYaw;
+    const visibility = farArm ? seenVisibility * view.farArmConfidence : seenVisibility;
 
     const armDelta = startArm.wrist
       ? sub(sub(peak.wrist, arm.shoulder), sub(startArm.wrist, startArm.shoulder))
@@ -371,6 +381,11 @@ export class PunchDetector {
     const armAcross = Math.max(0, state.side === 'left' ? -armDelta.x : armDelta.x);
     const armTravel = Math.max(Math.hypot(armDelta.x, armDelta.z), 1e-6);
     const forearm = sub(arm.wrist, arm.elbow);
+    // Facing the camera, depth is too weak to judge a forearm by. Side on, it's the only sideways there is.
+    const yawRatio = Math.min(1, Math.max(0, (Math.abs(peak.pose.viewYaw) - view.arcDepthFrom) / (view.arcDepthFull - view.arcDepthFrom)));
+    const inDepth = dot(forearm, peak.pose.camera);
+    const inPicture = pictureLength({ x: forearm.x, y: 0, z: forearm.z }, peak.pose.camera);
+    const forearmSideways = Math.hypot(inPicture, inDepth * yawRatio);
     // The second half of the way to the peak: an uppercut's wind-up starts with the arm long
     const toPeak = state.samples.slice(0, state.peakIndex + 1);
     const elbowHistory = toPeak
@@ -392,8 +407,8 @@ export class PunchDetector {
       outwardShare: Math.max(0, -across) / distance,
       rise: Math.max(0, delta.y),
       startBelowShoulder: (startArm.wrist ? startArm.shoulder.y : origin.y) - origin.y,
-      forearmFromVertical: degrees(Math.atan2(Math.abs(forearm.x), forearm.y)),
-      forearmFromLevel: degrees(Math.atan2(Math.abs(forearm.y), Math.abs(forearm.x))),
+      forearmFromVertical: degrees(Math.atan2(forearmSideways, forearm.y)),
+      forearmFromLevel: degrees(Math.atan2(Math.abs(forearm.y), forearmSideways)),
       upperArmBelowLevel: degrees(Math.asin(Math.max(-1, Math.min(1, (arm.shoulder.y - arm.elbow.y) / Math.max(upperArm, 1e-6))))),
       visibility,
     };

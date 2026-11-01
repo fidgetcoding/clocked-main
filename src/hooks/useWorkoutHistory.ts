@@ -1,5 +1,6 @@
 import type { Database } from '@/integrations/supabase/types';
 import { fromJson, toJson } from '@/lib/json';
+import type { PunchLog } from '@/lib/punch/sessionLog';
 import type { RoundFeedback } from '@/types';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -18,6 +19,8 @@ export interface WorkoutHistoryEntry {
   notes: string | null;
   is_manual_entry: boolean;
   round_feedback: RoundFeedback[];
+  /** Everything the camera logged. Guests only for now: accounts need the database column first. */
+  punch_log?: PunchLog | null;
   created_at: string;
 }
 
@@ -55,9 +58,10 @@ export function useWorkoutHistory() {
       if (isGuest) return useHistoryStore.getState().addGuestEntry(entry);
       if (!user?.id) throw new Error('Not authenticated');
       
+      const { punch_log: _punchLog, ...row } = entry;
       const { data, error } = await supabase
         .from('workout_history')
-        .insert({ ...entry, round_feedback: toJson(entry.round_feedback), user_id: user.id })
+        .insert({ ...row, round_feedback: toJson(entry.round_feedback), user_id: user.id })
         .select()
         .single();
       

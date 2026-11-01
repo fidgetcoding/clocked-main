@@ -26,6 +26,27 @@ export const PUNCH_CONFIG = {
     glitchHoldMs: 200,
   },
 
+  view: {
+    /** How quickly the body frame follows the fighter turning. It holds still during a punch. */
+    headingTauMs: 800,
+    /** Scale floor from the torso, for when turning makes the shoulders read narrow. */
+    torsoToShoulderWidth: 0.55,
+    /** Between these turns, measured as the model reads them, arc checks start trusting depth. */
+    arcDepthFrom: 25,
+    arcDepthFull: 60,
+    /** Turned this far, the far arm is mostly hidden behind the body. */
+    farArmYaw: 55,
+    farArmConfidence: 0.5,
+    /**
+     * How far the spine can tilt toward or away from the camera before it's put down to the camera's
+     * height. Within this range a real lean can't be told from a camera angle, so it's left alone.
+     */
+    leanForwardMax: 20,
+    leanBackMax: 15,
+    /** Where the head sits when it's out of the picture, in shoulder widths above the shoulders. */
+    assumedNoseHeight: 0.7,
+  },
+
   motion: {
     /** The wrist must be this far from rest and moving this fast to start a punch. */
     startDistance: 0.22,
@@ -192,6 +213,31 @@ export const PUNCH_CONFIG = {
   combo: {
     /** Punches closer together than this belong to one combo. */
     gapMs: 1200,
+  },
+
+  log: {
+    /** A break this long between punches starts a new round in the session log. */
+    roundGapSeconds: 30,
+  },
+
+  startCheck: {
+    durationMs: 5000,
+    /** Fewer tracked frames than this and it says nothing about the camera. */
+    minPoses: 30,
+    framedShare: 0.6,
+    /** Cut off for this share of the check counts as cut off. */
+    cutShare: 0.6,
+    /** Camera angles, in degrees from straight in front of you. */
+    frontWithin: 20,
+    sideFrom: 70,
+    /** Spine tilt, in degrees, read as the camera looking down or up at you. */
+    highFrom: 25,
+    lowFrom: 25,
+    /** How far apart front to back, in metres for the feet and shoulder widths for the hands, to call a stance. */
+    feetApart: 0.08,
+    handsApart: 0.25,
+    /** A hand moving more than this, in shoulder widths, isn't resting. */
+    guardSteady: 0.2,
   },
 
   cues: {

@@ -1094,6 +1094,7 @@ const WorkoutSession = () => {
       xp_earned: sessionResult.sessionTotal,
       difficulty: difficultyRating || null,
       notes: [notes, punchSummary?.total ? punchSummary.note : ''].filter(Boolean).join('\n') || null,
+      punch_log: punchSummary?.log ?? null,
       is_manual_entry: false,
       round_feedback: feedbackMode === 'advanced' ? roundFeedback : [],
     }, {

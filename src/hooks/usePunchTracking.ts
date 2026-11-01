@@ -5,6 +5,9 @@ import { PunchDetector } from '@/lib/punch/detector';
 import { assessFraming, FRAMING_MESSAGES, FramingMonitor, type FramingStatus } from '@/lib/punch/framing';
 import type { PoseResult } from '@/lib/punch/poseModel';
 import { applyEvent, comboReadout, CueQueue, cuesFor, newRound, PUNCH_LABELS, summarize, type RoundState } from '@/lib/punch/round';
+import { roundFromLog, SessionPunchLog, type PunchLog } from '@/lib/punch/sessionLog';
+import { StartCheck, type StartCheckResult } from '@/lib/punch/startCheck';
+import { usePunchPrefsStore } from '@/stores/punchPrefsStore';
 import type { PunchDetected, Stance } from '@/lib/punch/types';
 
 export interface TrackingHud {
@@ -39,22 +42,39 @@ interface Options {
   onCue?: (cue: string) => void;
   /** Called with every frame's pose, for recording landmarks. */
   onPoseFrame?: (result: PoseResult, t: number) => void;
+  /** The session's own clock in seconds, so logged punches line up with it. Defaults to time since the first punch. */
+  sessionSeconds?: () => number;
+  /** What a resumed session had logged before the reload. */
+  initialLog?: PunchLog | null;
+  /** Off for recording mode, where the prompts already say what to do. */
+  startCheck?: boolean;
+}
+
+export interface StartCheckHud {
+  running: boolean;
+  secondsLeft: number;
+  result: StartCheckResult | null;
 }
 
 /** The whole camera pipeline: camera, pose model, detector, tally, cues and framing checks. */
-export function usePunchTracking({ stance, processing = true, onCue, onPoseFrame }: Options) {
+export function usePunchTracking({ stance, processing = true, onCue, onPoseFrame, sessionSeconds, initialLog = null, startCheck = true }: Options) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const detectorRef = useRef(new PunchDetector(stance));
-  const roundRef = useRef<RoundState>(newRound());
+  const roundRef = useRef<RoundState>(initialLog ? roundFromLog(initialLog) : newRound());
+  const logRef = useRef(new SessionPunchLog(initialLog));
+  const firstEventTRef = useRef<number | null>(null);
+  const startCheckRef = useRef<StartCheck | null>(null);
+  const [check, setCheck] = useState<StartCheckHud>({ running: false, secondsLeft: 0, result: null });
+  const setLastStartCheck = usePunchPrefsStore((state) => state.setLastStartCheck);
   const cuesRef = useRef(new CueQueue());
   const framingRef = useRef(new FramingMonitor());
   const lumaRef = useRef<number | null>(null);
   const framingStatusRef = useRef<FramingStatus>('ok');
   const lastCueRef = useRef<string | null>(null);
   const lastLabelRef = useRef<string | null>(null);
-  const callbacksRef = useRef({ onCue, onPoseFrame });
-  callbacksRef.current = { onCue, onPoseFrame };
+  const callbacksRef = useRef({ onCue, onPoseFrame, sessionSeconds, setLastStartCheck });
+  callbacksRef.current = { onCue, onPoseFrame, sessionSeconds, setLastStartCheck };
 
   const [hud, setHud] = useState<TrackingHud>(EMPTY_HUD);
   const [lastPunch, setLastPunch] = useState<PunchDetected | null>(null);
@@ -69,10 +89,29 @@ export function usePunchTracking({ stance, processing = true, onCue, onPoseFrame
     callbacksRef.current.onPoseFrame?.(result, t);
     if (videoRef.current && canvasRef.current) drawSkeleton(canvasRef.current, videoRef.current, result.image);
     if (meanLuma !== null) lumaRef.current = meanLuma;
-    framingStatusRef.current = framingRef.current.push(assessFraming(result.image, lumaRef.current), t);
+    const video = videoRef.current;
+    const aspect = video?.videoWidth && video.videoHeight ? video.videoWidth / video.videoHeight : undefined;
+    framingStatusRef.current = framingRef.current.push(assessFraming(result.image, lumaRef.current, undefined, aspect), t);
+
+    const running = startCheckRef.current;
+    if (running) {
+      running.push(t, result.world, result.image);
+      if (running.isDone(t)) {
+        const seen = running.result();
+        startCheckRef.current = null;
+        if (seen.guard) detectorRef.current.applyGuard(seen.guard);
+        callbacksRef.current.setLastStartCheck(seen);
+        setCheck({ running: false, secondsLeft: 0, result: seen });
+      } else {
+        const secondsLeft = Math.ceil(running.remaining(t));
+        setCheck((current) => (current.secondsLeft === secondsLeft && current.running ? current : { running: true, secondsLeft, result: null }));
+      }
+    }
 
     for (const event of detectorRef.current.push({ t, landmarks: result.world })) {
       applyEvent(roundRef.current, event);
+      firstEventTRef.current ??= t;
+      logRef.current.add(event, callbacksRef.current.sessionSeconds?.() ?? (t - firstEventTRef.current) / 1000);
       if (event.type === 'punch') {
         lastLabelRef.current = PUNCH_LABELS[event.punch];
         setLastPunch(event);
@@ -93,10 +132,24 @@ export function usePunchTracking({ stance, processing = true, onCue, onPoseFrame
     processing,
   });
 
+  const runStartCheck = useCallback(() => {
+    startCheckRef.current = new StartCheck();
+    setCheck({ running: true, secondsLeft: Math.ceil(new StartCheck().remaining(0)), result: null });
+  }, []);
+
+  /** Skipping falls back to what the last check saw, if anything. */
+  const skipStartCheck = useCallback(() => {
+    startCheckRef.current = null;
+    const last = usePunchPrefsStore.getState().lastStartCheck;
+    if (last?.guard) detectorRef.current.applyGuard(last.guard);
+    setCheck({ running: false, secondsLeft: 0, result: null });
+  }, []);
+
   const start = useCallback(() => {
     setPaused(false);
+    if (startCheck) runStartCheck();
     return startCamera();
-  }, [startCamera]);
+  }, [startCamera, startCheck, runStartCheck]);
 
   const stop = useCallback(() => {
     setPaused(false);
@@ -106,6 +159,8 @@ export function usePunchTracking({ stance, processing = true, onCue, onPoseFrame
   const reset = useCallback(() => {
     detectorRef.current = new PunchDetector(stance);
     roundRef.current = newRound();
+    logRef.current = new SessionPunchLog();
+    firstEventTRef.current = null;
     cuesRef.current = new CueQueue();
     framingRef.current = new FramingMonitor();
     lumaRef.current = null;
@@ -165,6 +220,7 @@ export function usePunchTracking({ stance, processing = true, onCue, onPoseFrame
   }, [status, stopCamera]);
 
   const getSummary = useCallback(() => summarize(roundRef.current), []);
+  const getLog = useCallback(() => logRef.current.snapshot(), []);
 
-  return { videoRef, canvasRef, status, problem, paused, hud, lastPunch, start, stop, reset, getSummary };
+  return { videoRef, canvasRef, status, problem, paused, hud, lastPunch, start, stop, reset, getSummary, getLog, check, runStartCheck, skipStartCheck };
 }

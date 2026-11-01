@@ -4,6 +4,7 @@ import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
 import { useWorkoutHistory } from '@/hooks/useWorkoutHistory';
 import { useProfile } from '@/hooks/useProfile';
+import { PunchLogView } from '@/components/punch/PunchLogView';
 import { AddWorkoutModal } from '@/components/AddWorkoutModal';
 import { cn } from '@/lib/utils';
 import { format, formatDistanceToNow } from 'date-fns';
@@ -228,6 +229,12 @@ const History = () => {
                           <p className="text-sm text-foreground leading-relaxed bg-surface-2 rounded-lg p-3">
                             {workout.notes}
                           </p>
+                        </div>
+                      )}
+
+                      {!!workout.punch_log?.punches.length && (
+                        <div className="mt-3 bg-surface-2 rounded-lg p-3">
+                          <PunchLogView log={workout.punch_log} />
                         </div>
                       )}
 

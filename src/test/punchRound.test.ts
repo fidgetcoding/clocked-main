@@ -171,10 +171,14 @@ describe('framing', () => {
     expect(assessFraming(null, 120)).toBe('no_person');
     expect(assessFraming(person(), 12)).toBe('too_dark');
     expect(assessFraming(person({ [LM.LEFT_HIP]: { y: 1.1 } }), 120)).toBe('out_of_frame');
-    expect(assessFraming(person({ [LM.NOSE]: { y: -0.05 } }), 120)).toBe('out_of_frame');
+    expect(assessFraming(person({ [LM.NOSE]: { y: -0.05 } }), 120)).toBe('head_cut');
     expect(assessFraming(person({ [LM.LEFT_SHOULDER]: { x: 0.98 }, [LM.RIGHT_SHOULDER]: { x: 0.1 } }), 120)).toBe('too_close');
-    expect(assessFraming(person({ [LM.LEFT_SHOULDER]: { x: 0.52 }, [LM.RIGHT_SHOULDER]: { x: 0.49 } }), 120)).toBe('too_far');
-    expect(assessFraming(person({ [LM.LEFT_SHOULDER]: { x: 0.4 }, [LM.RIGHT_SHOULDER]: { x: 0.6 } }), 120)).toBe('facing_away');
+    expect(
+      assessFraming(person({ [LM.LEFT_SHOULDER]: { x: 0.52 }, [LM.RIGHT_SHOULDER]: { x: 0.49 }, [LM.LEFT_HIP]: { y: 0.4 }, [LM.RIGHT_HIP]: { y: 0.4 } }), 120),
+    ).toBe('too_far');
+    // Side on the shoulders line up, or even swap, and that isn't a problem any more
+    expect(assessFraming(person({ [LM.LEFT_SHOULDER]: { x: 0.52 }, [LM.RIGHT_SHOULDER]: { x: 0.49 } }), 120)).toBe('ok');
+    expect(assessFraming(person({ [LM.LEFT_SHOULDER]: { x: 0.4 }, [LM.RIGHT_SHOULDER]: { x: 0.6 } }), 120)).toBe('ok');
     const dim = person();
     for (const index of [LM.NOSE, LM.LEFT_SHOULDER, LM.RIGHT_SHOULDER, LM.LEFT_ELBOW, LM.RIGHT_ELBOW, LM.LEFT_WRIST, LM.RIGHT_WRIST]) {
       dim[index] = { ...dim[index], visibility: 0.1 };

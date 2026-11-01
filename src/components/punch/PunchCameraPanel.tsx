@@ -4,6 +4,8 @@ import { usePunchTracking } from '@/hooks/usePunchTracking';
 import { useStance } from '@/hooks/useStance';
 import { CAMERA_MESSAGES } from '@/lib/punch/framing';
 import { summaryNote, type PunchSessionReport } from '@/lib/punch/round';
+import type { PunchLog } from '@/lib/punch/sessionLog';
+import { StartCheckStatus } from '@/components/punch/StartCheckStatus';
 import { cn } from '@/lib/utils';
 
 interface PunchCameraPanelProps {
@@ -11,16 +13,22 @@ interface PunchCameraPanelProps {
   counting: boolean;
   onSummary?: (report: PunchSessionReport) => void;
   onCue?: (cue: string) => void;
+  /** The session's clock, in seconds, for the punch log. */
+  sessionSeconds?: () => number;
+  /** What a resumed session had already logged. */
+  initialLog?: PunchLog | null;
   className?: string;
 }
 
 /** A small camera picture that counts and cues inside another screen. Failing never affects that screen. */
-const PunchCameraPanel = ({ counting, onSummary, onCue, className }: PunchCameraPanelProps) => {
+const PunchCameraPanel = ({ counting, onSummary, onCue, sessionSeconds, initialLog, className }: PunchCameraPanelProps) => {
   const { stance } = useStance();
-  const { videoRef, canvasRef, status, problem, paused, hud, start, getSummary } = usePunchTracking({
+  const { videoRef, canvasRef, status, problem, paused, hud, start, getSummary, getLog, check, runStartCheck, skipStartCheck } = usePunchTracking({
     stance,
     processing: counting,
     onCue,
+    sessionSeconds,
+    initialLog,
   });
   const [dismissed, setDismissed] = useState(false);
 
@@ -34,20 +42,22 @@ const PunchCameraPanel = ({ counting, onSummary, onCue, className }: PunchCamera
   const onSummaryRef = useRef(onSummary);
   onSummaryRef.current = onSummary;
   useEffect(() => {
-    let lastNote = '';
+    let lastKey = '';
     const report = () => {
       const summary = getSummary();
       const note = summaryNote(summary);
-      if (note === lastNote) return;
-      lastNote = note;
-      onSummaryRef.current?.({ ...summary, note });
+      const log = getLog();
+      const key = `${note}|${log.punches.length}|${JSON.stringify(log.cues)}`;
+      if (key === lastKey) return;
+      lastKey = key;
+      onSummaryRef.current?.({ ...summary, note, log });
     };
     const interval = setInterval(report, 1000);
     return () => {
       clearInterval(interval);
       report();
     };
-  }, [getSummary]);
+  }, [getSummary, getLog]);
 
   if (problem) {
     if (dismissed) return null;
@@ -113,6 +123,10 @@ const PunchCameraPanel = ({ counting, onSummary, onCue, className }: PunchCamera
           </span>
         )}
       </div>
+
+      {!paused && status === 'live' && counting && (
+        <StartCheckStatus check={check} onSkip={skipStartCheck} onRerun={runStartCheck} className="mt-1 w-max max-w-[11rem] [@media(max-height:700px)]:max-w-[3.5rem]" />
+      )}
 
       {!paused && status === 'live' && !counting && (
         <p className="mt-1 text-[10px] text-center text-muted-foreground">Not counting</p>

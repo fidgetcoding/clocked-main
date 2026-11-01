@@ -1,8 +1,10 @@
 import { lazy, Suspense, useState, useEffect, useRef, useCallback } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { ResumeSessionDialog } from '@/components/workout/ResumeSessionDialog';
+import { PunchLogView } from '@/components/punch/PunchLogView';
+import type { PunchLog } from '@/lib/punch/sessionLog';
 import { FRESH_SESSION } from '@/lib/sessionEffort';
-import { clearSession, findResumableSession, QUICK_SESSION_ID, saveSession, type SessionSnapshot } from '@/lib/sessionRecovery';
+import { clearSession, findResumableSession, findSessionPunches, QUICK_SESSION_ID, saveSession, saveSessionPunches, type SessionSnapshot } from '@/lib/sessionRecovery';
 import { ArrowLeft, Home, Play, Pause, Square, Camera } from 'lucide-react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
@@ -119,6 +121,13 @@ const QuickSession = () => {
     };
   }, [isRunning, isPaused, streakMultiplier]);
 
+  const elapsedRef = useRef(0);
+  elapsedRef.current = totalElapsed;
+  const [resumedLog, setResumedLog] = useState<PunchLog | null>(null);
+  // What was logged before a reload, for when the run comes back already finished
+  const [savedLog, setSavedLog] = useState<PunchLog | null>(null);
+  const punchLog = punchSummary?.log ?? savedLog;
+
   // Keep the run in this browser, so a reload or a killed tab can pick it back up
   const [resumable, setResumable] = useState<SessionSnapshot | null>(null);
   const sessionEnded = useRef(false);
@@ -145,6 +154,9 @@ const QuickSession = () => {
   const restoreSession = useCallback((saved: SessionSnapshot) => {
     setTotalElapsed(saved.totalElapsed);
     setAccumulatedXP(saved.timerXP);
+    const punches = findSessionPunches();
+    setResumedLog(punches);
+    if (punches) setSavedLog(punches);
     setIsPaused(true);
     setIsRunning(!saved.isComplete);
     setIsComplete(saved.isComplete);
@@ -223,6 +235,7 @@ const QuickSession = () => {
       xp_earned: xpEarned,
       difficulty: difficultyRating || null,
       notes: [notes, punchSummary?.total ? punchSummary.note : ''].filter(Boolean).join('\n') || null,
+      punch_log: punchLog,
       is_manual_entry: false,
       round_feedback: [],
     }, {
@@ -274,6 +287,11 @@ const QuickSession = () => {
                 {punchSummary.total === 1 ? 'Punch' : 'Punches'} seen, {punchSummary.cleanPercent}% clean
               </p>
               {punchSummary.topFix && <p className="text-xs text-muted-foreground mt-1">{punchSummary.topFix.advice}</p>}
+            </div>
+          )}
+          {!!punchLog?.punches.length && (
+            <div className="card-workout w-full max-w-xs mb-6">
+              <PunchLogView log={punchLog} />
             </div>
           )}
 
@@ -378,7 +396,15 @@ const QuickSession = () => {
         {/* The camera asks for permission here, once the session has started */}
         {cameraOn && isRunning && (
           <Suspense fallback={null}>
-            <PunchCameraPanel counting={!isPaused} onSummary={setPunchSummary} className="fixed left-4 top-[4.5rem] z-10" />
+            <PunchCameraPanel
+              counting={!isPaused}
+              onSummary={(report) => {
+                setPunchSummary(report);
+                saveSessionPunches(report.log);
+              }}
+              sessionSeconds={() => elapsedRef.current}
+              initialLog={resumedLog}
+              className="fixed left-4 top-[4.5rem] z-10" />
           </Suspense>
         )}
 
@@ -401,6 +427,12 @@ const QuickSession = () => {
             </span>
             <div className="h-px w-12 bg-surface-3" />
           </div>
+
+          {cameraOn && isRunning && !!punchSummary?.log.punches.length && (
+            <div className="card-workout w-full max-w-xs mb-6" data-testid="quick-live-log">
+              <PunchLogView log={punchSummary.log} />
+            </div>
+          )}
 
           {/* Controls */}
           <div className="flex items-center gap-6">

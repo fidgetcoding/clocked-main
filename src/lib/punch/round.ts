@@ -1,4 +1,5 @@
 import { PUNCH_CONFIG, type PunchConfig } from './config';
+import type { PunchLog } from './sessionLog';
 import type { FormIssue, Hand, PunchClass, PunchEvent } from './types';
 
 /** The cues a detector event calls for, named for the hand at fault. */
@@ -167,6 +168,8 @@ export function summarize(round: RoundState): RoundSummary {
 export interface PunchSessionReport extends RoundSummary {
   /** One line for the workout log. */
   note: string;
+  /** Every punch, combo, round and cue the camera saw. */
+  log: PunchLog;
 }
 
 /** One line for the workout log. */

@@ -1,9 +1,11 @@
+import { parsePunchLog, type PunchLog } from '@/lib/punch/sessionLog';
 import type { SessionLog } from '@/lib/sessionEffort';
 
 // A running session, saved in this browser so a reload or a killed tab can pick it up again.
 // Nothing here is awarded: XP still lands once, when the session finishes or gets logged.
 
 const KEY = 'get-clocked-session';
+const PUNCHES_KEY = 'get-clocked-session-punches';
 const MAX_AGE_MS = 12 * 60 * 60 * 1000;
 
 export const QUICK_SESSION_ID = 'quick-session';
@@ -49,9 +51,28 @@ export function saveSession(snapshot: Omit<SessionSnapshot, 'savedAt'>, now = Da
   }
 }
 
+/** The punch log goes apart from the rest, since it only changes when a punch lands. */
+export function saveSessionPunches(log: PunchLog): void {
+  try {
+    localStorage.setItem(PUNCHES_KEY, JSON.stringify(log));
+  } catch {
+    // As with the session itself: it keeps running, it just can't be recovered
+  }
+}
+
+export function findSessionPunches(): PunchLog | null {
+  try {
+    const raw = localStorage.getItem(PUNCHES_KEY);
+    return raw ? parsePunchLog(JSON.parse(raw)) : null;
+  } catch {
+    return null;
+  }
+}
+
 export function clearSession(): void {
   try {
     localStorage.removeItem(KEY);
+    localStorage.removeItem(PUNCHES_KEY);
   } catch {
     // Nothing to clear if storage is blocked
   }
