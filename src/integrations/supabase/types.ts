@@ -748,6 +748,13 @@ export type Database = {
         Args: { target_user_id: string }
         Returns: number
       }
+      get_workout_rating_summary: {
+        Args: { target_workout_id: string }
+        Returns: {
+          average_rating: number
+          rating_count: number
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]

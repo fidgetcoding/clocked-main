@@ -6,6 +6,7 @@ import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { promptEmailLink } from '@/lib/guest';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface WorkoutPreviewModalProps {
   workout: TrendingWorkout;
@@ -20,6 +21,7 @@ function formatDuration(seconds: number): string {
 }
 
 export const WorkoutPreviewModal = ({ workout, onClose, onSave, onCustomize }: WorkoutPreviewModalProps) => {
+  const { user: authUser } = useAuth();
   const [showRating, setShowRating] = useState(false);
   const [hoverStar, setHoverStar] = useState(0);
   const [selectedRating, setSelectedRating] = useState(0);
@@ -30,20 +32,22 @@ export const WorkoutPreviewModal = ({ workout, onClose, onSave, onCustomize }: W
   const totalPhases = workout.sections.warmup.length + workout.sections.grind.length + workout.sections.cooldown.length;
   const totalRounds = workout.sections.grind.reduce((acc, phase) => acc + phase.repeats, 0);
 
-  // Fetch existing rating data on mount
+  const refreshRatingSummary = async () => {
+    const { data } = await supabase.rpc('get_workout_rating_summary', { target_workout_id: workout.id });
+    const summary = data?.[0];
+    if (summary && summary.rating_count > 0) {
+      setAvgRating(Number(summary.average_rating));
+      setRatingCount(summary.rating_count);
+    }
+  };
+
+  // Fetch existing rating data on mount. Ratings need an account, so guests skip this.
   useEffect(() => {
+    if (!authUser) return;
+
     async function fetchRatings() {
       // Get average rating
-      const { data: ratings } = await supabase
-        .from('workout_ratings')
-        .select('rating')
-        .eq('workout_id', workout.id);
-
-      if (ratings && ratings.length > 0) {
-        const avg = ratings.reduce((sum, r) => sum + r.rating, 0) / ratings.length;
-        setAvgRating(Math.round(avg * 10) / 10);
-        setRatingCount(ratings.length);
-      }
+      await refreshRatingSummary();
 
       // Get user's existing rating
       const { data: { user } } = await supabase.auth.getUser();
@@ -61,7 +65,7 @@ export const WorkoutPreviewModal = ({ workout, onClose, onSave, onCustomize }: W
       }
     }
     fetchRatings();
-  }, [workout.id]);
+  }, [workout.id, authUser?.id]);
 
   const submitRating = async (stars: number) => {
     setIsSubmitting(true);
@@ -86,15 +90,7 @@ export const WorkoutPreviewModal = ({ workout, onClose, onSave, onCustomize }: W
       toast.success(`Rated ${stars} star${stars > 1 ? 's' : ''}!`);
       
       // Refresh average
-      const { data: ratings } = await supabase
-        .from('workout_ratings')
-        .select('rating')
-        .eq('workout_id', workout.id);
-      if (ratings && ratings.length > 0) {
-        const avg = ratings.reduce((sum, r) => sum + r.rating, 0) / ratings.length;
-        setAvgRating(Math.round(avg * 10) / 10);
-        setRatingCount(ratings.length);
-      }
+      await refreshRatingSummary();
     }
     setIsSubmitting(false);
     setShowRating(false);
