@@ -1,19 +1,20 @@
 import { GloveArt } from '@/components/ui/GameArt';
 import { useEffect, useState } from 'react';
-import { Settings, User, Link as LinkIcon, UserPlus, UserCheck, Clock, Trophy, Flame, ChevronRight, X, Search, Check, Share2 } from 'lucide-react';
+import { Settings, Link as LinkIcon, Search } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { useUserSearch } from '@/hooks/useUserSearch';
 import { useNavigate, useParams } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
+import { BroadcastPage, EmptyPlate, FitText, Plate, SectionRule } from '@/components/broadcast';
 import { Button } from '@/components/ui/button';
+import { buttonVariants } from '@/components/ui/button-variants';
 import { useProfile } from '@/hooks/useProfile';
 import { useWorkoutHistory } from '@/hooks/useWorkoutHistory';
 import { usePublicProfile } from '@/hooks/usePublicProfile';
 import { useFollows } from '@/hooks/useFollows';
 import { useAuth } from '@/contexts/useAuth';
 import { XPBar } from '@/components/ui/XPBar';
-import { PrestigeBadge } from '@/components/ui/PrestigeDisplay';
-import { Prestige, getRankingFromLevel, isPrestigeEligible } from '@/lib/xpSystem';
+import { PRESTIGE_NAMES, Prestige, RANKING_NAMES, getRankingFromLevel, isPrestigeEligible } from '@/lib/xpSystem';
 import { PrestigeAvailableBanner, PrestigePrompt } from '@/components/workout/PrestigePrompt';
 import { LevelUpOverlay } from '@/components/ui/LevelUpOverlay';
 import { useUserRole } from '@/hooks/useUserRole';
@@ -24,6 +25,16 @@ import { BadgeCollection } from '@/components/BadgeCollection';
 import { SharedWorkoutsModal } from '@/components/SharedWorkoutsModal';
 import { useGloves } from '@/hooks/useGloves';
 import { GLOVES } from '@/data/gloves';
+
+// A big three-across stat, like the numbers under a lower third
+function StatTile({ value, label, lime }: { value: string | number; label: string; lime?: boolean }) {
+  return (
+    <>
+      <p className={cn('fx text-[2.625rem]', lime && 'text-volt')}>{value}</p>
+      <p className="lab mt-0.5">{label}</p>
+    </>
+  );
+}
 
 function formatDuration(seconds: number): string {
   const hours = Math.floor(seconds / 3600);
@@ -153,16 +164,13 @@ const Profile = () => {
   if (!isOwnProfile && !isGuest && !isLoadingPublic && !publicProfile) {
     return (
       <AppLayout>
-        <div className="min-h-screen flex items-center justify-center px-6">
-          <div className="text-center">
-            <User className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-            <p className="text-foreground font-bold text-lg">Fighter not found</p>
-            <p className="text-muted-foreground text-sm mt-1">This link doesn't match anyone on Clocked.</p>
-            <Button onClick={() => navigate('/fight-club')} variant="outline" className="mt-6">
+        <BroadcastPage show="Profile">
+          <EmptyPlate title="Fighter not found" body="This link doesn't match anyone on Clocked.">
+            <Button onClick={() => navigate('/fight-club')} variant="secondary">
               Back to Fight Club
             </Button>
-          </div>
-        </div>
+          </EmptyPlate>
+        </BroadcastPage>
       </AppLayout>
     );
   }
@@ -179,235 +187,165 @@ const Profile = () => {
     );
   }
 
+  const equippedGloveData = GLOVES[equippedGlove] || GLOVES.default;
+  const photo = profileAvatar?.startsWith('http') ? profileAvatar : null;
+  const isCompactName = profileName.length > 12;
+  // What you've earned, then the next ones to chase, five across
+  const nextGloves = Object.values(GLOVES)
+    .filter((glove) => !unlockedGloves.includes(glove.id) && glove.id !== 'bmf')
+    .sort((a, b) => a.level - b.level)
+    .slice(0, 5 - Math.min(3, unlockedGloves.length));
+
   return (
     <AppLayout>
-      <div className="min-h-screen pb-20">
-        {/* Header */}
-        <header className="flex items-center justify-between px-4 py-4 safe-top border-b border-surface-3">
-          <h1 className="text-xl font-bold text-foreground">Profile</h1>
-          {isOwnProfile && (
-            <button 
-              onClick={() => navigate('/settings')}
-              className="w-10 h-10 rounded-full bg-surface-1 border border-surface-3 flex items-center justify-center"
+      <BroadcastPage
+        show="Profile"
+        air={isOwnProfile && (
+          <button type="button" onClick={() => navigate('/settings')} aria-label="Settings" className="plate plate-graphite h-11 w-12">
+            <Settings className="size-5" />
+          </button>
+        )}
+      >
+        {/* The graphic that comes up when a fighter walks out */}
+        <section className="relative mt-2 overflow-hidden">
+          <div className="absolute inset-y-0 right-0 w-[60%] bg-[#0a0a0a] [clip-path:polygon(3.25rem_0,100%_0,100%_100%,0_100%)]">
+            {photo ? (
+              <img src={photo} alt={profileName} className="h-full w-full object-cover" />
+            ) : (
+              <GloveArt id={equippedGloveData.id} className="h-full w-full object-cover" />
+            )}
+          </div>
+          <div className="relative pb-3 pt-2">
+            <Plate tone="lime" bleed="left" className="h-[1.875rem] justify-start pl-4 pr-6 text-[1.375rem]">Fighter profile</Plate>
+            <h2 className="px-4 pt-2">
+              <FitText max={144} className={cn('fx', isCompactName ? 'h-14' : 'h-[clamp(5.5rem,27vw,9rem)]')}>{profileName}</FitText>
+            </h2>
+            <p className="lab lab-w mt-1 max-w-[62%] truncate px-4 text-[0.9375rem]">{profileHandle}</p>
+            <Plate tone="white" bleed="left" className="mt-2 h-10 justify-start pl-4 pr-7 text-[2.125rem]">
+              {profileRole === 'coach' ? 'Coach' : 'Fighter'}
+            </Plate>
+            {!photo && profileAvatar && <span className="ml-4 align-middle text-3xl">{profileAvatar}</span>}
+          </div>
+        </section>
+
+        <div className="flex flex-wrap items-baseline justify-between gap-x-3 px-4 pb-2">
+          <p className="fx whitespace-nowrap text-[2rem]">
+            {PRESTIGE_NAMES[prestige]} {RANKING_NAMES[ranking]} <span className="text-volt">Lvl {currentLevel}</span>
+          </p>
+          <p className="fx whitespace-nowrap text-[2rem]">{totalXP.toLocaleString()} XP</p>
+        </div>
+
+        {isOwnProfile && (
+          <div className="px-4 pb-3">
+            <XPBar prestige={prestige} level={currentLevel} totalXP={totalXP} showRank={false} />
+          </div>
+        )}
+
+        <div className="grid grid-cols-3 border-y border-surface-3 text-center">
+          <button type="button" onClick={() => navigate('/history')} className="py-1.5 transition-colors hover:bg-surface-1">
+            <StatTile value={workoutsCompleted} label="Workouts" />
+          </button>
+          <button type="button" onClick={() => isOwnProfile && setListModal('followers')} className="py-1.5 transition-colors hover:bg-surface-1">
+            <StatTile value={followersCount} label="Followers" />
+          </button>
+          <button type="button" onClick={() => isOwnProfile && setListModal('following')} className="py-1.5 transition-colors hover:bg-surface-1">
+            <StatTile value={followingCount} label="Following" />
+          </button>
+        </div>
+
+        {/* Action Buttons */}
+        <div className="flex gap-3 px-5 py-3">
+          {isOwnProfile ? (
+            <>
+              <Button onClick={() => navigate('/edit-profile')} variant="steel" size="sm" className="flex-1">
+                Edit Profile
+              </Button>
+              <Button
+                onClick={() => {
+                  if (isGuest) {
+                    promptEmailLink('share your profile');
+                    return;
+                  }
+                  copyProfileLink();
+                }}
+                variant="secondary"
+                size="icon"
+                aria-label="Copy profile link"
+              >
+                <LinkIcon />
+              </Button>
+              <Button onClick={handleOpenSearch} variant="secondary" size="icon" aria-label="Find people">
+                <Search />
+              </Button>
+            </>
+          ) : (
+            <Button
+              onClick={() => handleFollow(userId!)}
+              disabled={follow.isPending || unfollow.isPending}
+              variant={isFollowing ? 'steel' : 'default'}
+              className="flex-1"
             >
-              <Settings className="w-5 h-5 text-muted-foreground" />
-            </button>
-          )}
-        </header>
-
-        {/* Profile Header Section */}
-        <div className="px-4 py-6">
-          <div className="flex items-start gap-4 mb-4">
-            {/* Avatar + Name */}
-            <div className="shrink-0 flex flex-col items-center">
-              <div className="w-16 h-16 rounded-full bg-volt/20 flex items-center justify-center">
-                {profileAvatar ? (
-                  profileAvatar.startsWith('http') ? (
-                    <img src={profileAvatar} alt={profileName} className="w-16 h-16 rounded-full object-cover" />
-                  ) : (
-                    <span className="text-3xl">{profileAvatar}</span>
-                  )
-                ) : (
-                  <User className="w-8 h-8 text-volt" />
-                )}
-              </div>
-              <h2 className="text-sm font-bold text-foreground mt-1.5 text-center max-w-[88px] min-[360px]:max-w-[120px] truncate">{profileName}</h2>
-            </div>
-
-            {/* Stats + Action Buttons */}
-            <div className="flex-1 space-y-3">
-              <div className="flex justify-around">
-                <button onClick={() => navigate('/history')} className="text-center">
-                  <p className="text-xl font-bold text-foreground">
-                    {workoutsCompleted}
-                  </p>
-                  <p className="text-xs text-muted-foreground">Workouts</p>
-                </button>
-                <button onClick={() => isOwnProfile && setListModal('followers')} className="text-center">
-                  <p className="text-xl font-bold text-foreground">{followersCount}</p>
-                  <p className="text-xs text-muted-foreground">Followers</p>
-                </button>
-                <button onClick={() => isOwnProfile && setListModal('following')} className="text-center">
-                  <p className="text-xl font-bold text-foreground">{followingCount}</p>
-                  <p className="text-xs text-muted-foreground">Following</p>
-                </button>
-              </div>
-
-              {/* Action Buttons */}
-              {isOwnProfile ? (
-                <div className="flex gap-2">
-                  <Button 
-                    onClick={() => navigate('/edit-profile')}
-                    variant="outline" 
-                    size="sm"
-                    className="flex-1 bg-surface-1 border-surface-3"
-                  >
-                    Edit Profile
-                  </Button>
-                  <Button 
-                    onClick={() => {
-                      if (isGuest) {
-                        promptEmailLink('share your profile');
-                        return;
-                      }
-                      copyProfileLink();
-                    }}
-                    variant="outline" 
-                    size="sm"
-                    className="bg-surface-1 border-surface-3"
-                  >
-                    <LinkIcon className="w-4 h-4" />
-                  </Button>
-                  <Button 
-                    onClick={handleOpenSearch}
-                    variant="outline" 
-                    size="sm"
-                    className="bg-surface-1 border-surface-3"
-                  >
-                    <Search className="w-4 h-4" />
-                  </Button>
-                </div>
-              ) : (
-                <div className="flex gap-2">
-                  <Button 
-                    onClick={() => handleFollow(userId!)}
-                    disabled={follow.isPending || unfollow.isPending}
-                    size="sm"
-                    className={cn(
-                      "flex-1",
-                      isFollowing 
-                        ? "bg-surface-1 border border-surface-3 text-foreground hover:bg-surface-2" 
-                        : "bg-volt text-primary-foreground hover:bg-volt/90"
-                    )}
-                  >
-                    {isFollowing ? (
-                      <>
-                        <UserCheck className="w-4 h-4 mr-2" />
-                        Following
-                      </>
-                    ) : (
-                      <>
-                        <UserPlus className="w-4 h-4 mr-2" />
-                        Follow
-                      </>
-                    )}
-                  </Button>
-                </div>
-              )}
-            </div>
-          </div>
-
-          <div className="border-b border-surface-3 mb-4" />
-
-          {/* Name and Handle */}
-          <div className="mb-3">
-            <div className="flex items-center gap-2 flex-wrap">
-              <span className="text-xs font-bold uppercase text-volt">
-                {profileRole === 'coach' ? 'Coach' : 'Fighter'}
-              </span>
-              {isOwnProfile && (
-                <>
-                  <span className="text-muted-foreground/50">•</span>
-                  <button onClick={() => navigate('/gloves')} className="flex items-center gap-1.5 group">
-                    <GloveArt id={(GLOVES[equippedGlove] || GLOVES.default).id} className="w-4 h-4 rounded-sm ring-1 ring-volt/40" />
-                    <span className="text-xs text-muted-foreground group-hover:text-foreground transition-colors">
-                      {(GLOVES[equippedGlove] || GLOVES.default).name}
-                    </span>
-                  </button>
-                </>
-              )}
-              <span className="text-muted-foreground/50">•</span>
-              <p className="text-sm text-muted-foreground truncate min-w-0 max-w-full">{profileHandle}</p>
-            </div>
-          </div>
-
-          {/* Prestige/Ranking/Level Display */}
-          <div className="mb-3">
-            <PrestigeBadge 
-              prestige={prestige} 
-              ranking={ranking} 
-              level={currentLevel} 
-            />
-            <span className="text-sm text-muted-foreground ml-2">{totalXP.toLocaleString()} XP</span>
-          </div>
-
-          {/* Glove Counter */}
-          {isOwnProfile && (
-            <button
-              onClick={() => navigate('/gloves')}
-              className="flex items-center gap-2 mb-3 group"
-            >
-              <span className="text-xs text-muted-foreground/60">
-                {unlockedGloves.length}/52 Gloves
-              </span>
-              <ChevronRight className="w-3.5 h-3.5 text-muted-foreground/40" />
-            </button>
-          )}
-          {/* Total Workout Time */}
-          <div className="flex items-center gap-2 text-sm text-muted-foreground mb-3">
-            <Clock className="w-4 h-4" />
-            <span>
-              {formatDuration(totalTrainingSeconds)} total training
-            </span>
-          </div>
-
-          {/* Bio */}
-          {bio && (
-            <p className="text-sm text-foreground mb-3">{bio}</p>
-          )}
-
-          {/* Shared Workouts Button */}
-          {isOwnProfile && (
-            <Button 
-              onClick={() => setShowSharedWorkouts(true)}
-              variant="outline" 
-              className="w-full bg-surface-1 border-surface-3"
-            >
-              <Share2 className="w-4 h-4 mr-2" />
-              Shared Workouts
+              {isFollowing ? 'Following' : 'Follow'}
             </Button>
           )}
         </div>
 
-        {/* Stats Cards */}
-        <div className="grid grid-cols-3 gap-2 px-4 mb-4">
-          <div className="card-workout text-center py-3">
-            <Flame className="w-5 h-5 text-muted-foreground mx-auto mb-1" />
-            <p className="text-xl font-bold text-volt">
-              {currentStreak}
-            </p>
-            <p className="text-[10px] text-muted-foreground">Day Streak</p>
-          </div>
-          <div className="card-workout text-center py-3">
-            <Trophy className="w-5 h-5 text-muted-foreground mx-auto mb-1" />
-            <p className="text-xl font-bold text-volt">
-              {longestStreak}
-            </p>
-            <p className="text-[10px] text-muted-foreground">Best Streak</p>
-          </div>
-          <div className="card-workout text-center py-3">
-            <Clock className="w-5 h-5 text-muted-foreground mx-auto mb-1" />
-            <p className="text-xl font-bold text-volt">
-              {formatDuration(totalTrainingSeconds)}
-            </p>
-            <p className="text-[10px] text-muted-foreground">Total Time</p>
-          </div>
+        <div className="grid grid-cols-3 border-y border-surface-2 py-1.5 text-center">
+          <div><StatTile value={currentStreak} label="Day Streak" lime /></div>
+          <div><StatTile value={longestStreak} label="Best Streak" /></div>
+          <div><StatTile value={formatDuration(totalTrainingSeconds)} label="Total Time" /></div>
         </div>
 
-        {/* Prestige Available Banner */}
+        <div className="space-y-2 px-4 pt-3">
+          <p className="lab lab-w">{formatDuration(totalTrainingSeconds)} total training</p>
+          {bio && <p className="prose-w text-lg">{bio}</p>}
+        </div>
+
+        {isOwnProfile && (
+          <div className="px-5 pt-3">
+            <Button onClick={() => setShowSharedWorkouts(true)} variant="secondary" className="w-full">
+              Shared Workouts
+            </Button>
+          </div>
+        )}
+
         {prestigeEligible && (
-          <div className="px-4 mb-4">
-            <PrestigeAvailableBanner 
-              currentPrestige={prestige} 
-              onClick={() => setShowPrestigePrompt(true)} 
+          <div className="px-4 pt-3">
+            <PrestigeAvailableBanner
+              currentPrestige={prestige}
+              onClick={() => setShowPrestigePrompt(true)}
             />
           </div>
         )}
 
+        {/* Gloves */}
+        {isOwnProfile && (
+          <section className="pt-2">
+            <SectionRule title={equippedGloveData.name} right={`${unlockedGloves.length}/52 Gloves`} />
+            <button
+              type="button"
+              onClick={() => navigate('/gloves')}
+              aria-label={`Gloves, ${unlockedGloves.length} of 52 unlocked`}
+              className="grid w-full grid-cols-5 gap-2 px-4 py-2.5 transition-colors hover:bg-surface-1"
+            >
+              {[...unlockedGloves.slice(-3).map((id) => ({ id, off: false })), ...nextGloves.map(({ id }) => ({ id, off: true }))].map(({ id, off }) => (
+                <span
+                  key={id}
+                  className={cn(
+                    'art-slant block aspect-square [clip-path:polygon(24.9%_0,100%_0,75.1%_100%,0_100%)]',
+                    id === equippedGlove && '!bg-volt',
+                  )}
+                >
+                  <GloveArt id={id} className={cn('h-full w-full', off && 'art-off', id === equippedGlove && 'mix-blend-multiply')} />
+                </span>
+              ))}
+            </button>
+          </section>
+        )}
 
         {/* Badge Collection */}
         {isOwnProfile && (
-          <div className="px-4 mb-6">
+          <div className="pb-6 pt-4">
             <BadgeCollection />
           </div>
         )}
@@ -416,106 +354,67 @@ const Profile = () => {
         {showLevelUpOverlay && (
           <LevelUpOverlay level={currentLevel} onComplete={() => setShowLevelUpOverlay(false)} />
         )}
-
-
-      </div>
+      </BroadcastPage>
 
       {/* Followers/Following Modal */}
       {listModal && (
-        <div className="fixed inset-0 z-[60] flex items-start justify-center pt-16">
-          <div 
-            className="absolute inset-0 bg-black/80 backdrop-blur-sm"
-            onClick={() => setListModal(null)}
-          />
-           <div className="relative w-full max-w-md mx-4 bg-surface-1 rounded-2xl border border-surface-3 max-h-[70vh] flex flex-col animate-in fade-in zoom-in-95 duration-200">
-            {/* Modal Header */}
-            <div className="flex items-center justify-between px-4 py-3 border-b border-surface-3">
-              <button 
-                onClick={() => setListModal(null)}
-                className="w-8 h-8 rounded-full bg-surface-2 flex items-center justify-center hover:bg-surface-3 transition-colors"
-              >
-                <X className="w-4 h-4 text-muted-foreground" />
-              </button>
-              <h2 className="text-sm font-semibold text-foreground capitalize">
-                {listModal === 'search' ? 'Find People' : listModal}
-              </h2>
-              <button 
-                onClick={() => setListModal(null)}
-                className="w-8 h-8 rounded-full bg-volt/20 flex items-center justify-center hover:bg-volt/30 transition-colors"
-              >
-                <Check className="w-4 h-4 text-volt" />
-              </button>
+        <div className="fixed inset-0 z-[60]" role="dialog" aria-modal="true" aria-label={listModal === 'search' ? 'Find People' : listModal}>
+          <div className="absolute inset-0 bg-background/80" onClick={() => setListModal(null)} />
+          <div className="dialog-panel flex flex-col">
+            <div className="flex items-center justify-between gap-3 pb-2">
+              <h2 className="fx text-4xl">{listModal === 'search' ? 'Find People' : listModal}</h2>
+              <Button onClick={() => setListModal(null)} variant="secondary" size="sm">Close</Button>
             </div>
 
             {/* Search Input (only for search mode) */}
             {listModal === 'search' && (
-              <div className="px-4 pt-4">
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                  <Input
-                    placeholder="Search by name or @handle..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-10 bg-surface-2 border-surface-3"
-                    autoFocus
-                  />
-                </div>
-              </div>
+              <Input
+                placeholder="Search by name or @handle..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                autoFocus
+              />
             )}
 
             {/* Modal Content */}
-            <div className="flex-1 overflow-y-auto p-4">
+            <div className="mt-2 min-h-0 flex-1 overflow-y-auto">
               {listModal === 'search' && !hasQuery ? (
-                <p className="text-center text-muted-foreground py-8">
-                  Type at least 2 characters to search
-                </p>
+                <p className="prose-w py-6 text-lg">Type at least 2 characters to search</p>
               ) : listModal === 'search' && isSearching ? (
-                <p className="text-center text-muted-foreground py-8">
-                  Searching...
-                </p>
+                <p className="prose-w py-6 text-lg">Searching...</p>
               ) : getListData().length === 0 ? (
-                <p className="text-center text-muted-foreground py-8">
+                <p className="prose-w py-6 text-lg">
                   {listModal === 'search' ? 'No users found' : `No ${listModal} yet`}
                 </p>
               ) : (
-                <div className="space-y-2">
-                  {getListData().map((person) => (
-                    <button
-                      key={person.id}
-                      onClick={() => {
-                        setListModal(null);
-                        navigate(`/profile/${person.id}`);
-                      }}
-                      className="flex items-center gap-3 w-full p-3 rounded-lg hover:bg-surface-2 transition-colors"
-                    >
-                      <div className="w-12 h-12 rounded-full bg-surface-2 flex items-center justify-center text-xl overflow-hidden">
-                        {person.avatar ? (
-                          person.avatar.startsWith('http') ? (
-                            <img src={person.avatar} alt={person.name} className="w-12 h-12 rounded-full object-cover" />
-                          ) : (
-                            <span>{person.avatar}</span>
-                          )
-                        ) : '👤'}
-                      </div>
-                      <div className="flex-1 text-left">
-                        <p className="font-semibold text-foreground">{person.name}</p>
-                        <p className="text-sm text-muted-foreground">{person.handle}</p>
-                      </div>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setListModal(null);
-                          navigate(`/profile/${person.id}`);
-                        }}
-                        className="bg-surface-2 text-foreground hover:bg-surface-3"
-                      >
-                        View
-                      </Button>
-                    </button>
-                  ))}
-                </div>
+                getListData().map((person) => (
+                  <button
+                    key={person.id}
+                    type="button"
+                    onClick={() => {
+                      setListModal(null);
+                      navigate(`/profile/${person.id}`);
+                    }}
+                    className="flex min-h-14 w-full items-center gap-3 border-b border-surface-2 py-2 text-left transition-colors hover:bg-surface-2"
+                  >
+                    <span className="art-slant flex size-12 shrink-0 items-center justify-center text-xl [clip-path:polygon(24.9%_0,100%_0,75.1%_100%,0_100%)]">
+                      {person.avatar ? (
+                        person.avatar.startsWith('http') ? (
+                          <img src={person.avatar} alt={person.name} className="h-full w-full object-cover" />
+                        ) : (
+                          <span>{person.avatar}</span>
+                        )
+                      ) : (
+                        <span className="fx text-2xl text-muted-foreground" aria-hidden="true">{person.name.charAt(0)}</span>
+                      )}
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <p className="fx truncate text-2xl">{person.name}</p>
+                      <p className="lab mt-0.5 truncate normal-case">{person.handle}</p>
+                    </span>
+                    <span className={buttonVariants({ variant: 'secondary', size: 'sm' })}>View</span>
+                  </button>
+                ))
               )}
             </div>
           </div>

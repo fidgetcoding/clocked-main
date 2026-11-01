@@ -1,6 +1,5 @@
 import { useState } from 'react';
-import { Trash2, X, ExternalLink } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { Trash2, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useMySharedWorkouts, useDeleteCommunityPost } from '@/hooks/useCommunityPosts';
 import { toast } from 'sonner';
@@ -32,88 +31,71 @@ export const SharedWorkoutsModal = ({ onClose }: SharedWorkoutsModalProps) => {
     return `${diffDays}d ago`;
   };
 
+  const option = (on: boolean) => cn('plate fx h-11 text-2xl', on ? 'plate-white' : 'plate-graphite');
+
   return (
-    <div className="fixed inset-0 z-[60] flex items-start justify-center pt-16">
-      <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative w-full max-w-md mx-4 bg-surface-1 rounded-2xl border border-surface-3 max-h-[70vh] flex flex-col animate-in fade-in zoom-in-95 duration-200">
+    <div className="fixed inset-0 z-[60]">
+      <div className="absolute inset-0 bg-background/85" onClick={onClose} />
+      <div role="dialog" aria-modal="true" aria-labelledby="shared-title" className="dialog-panel z-[60] overflow-x-clip !p-0">
         {/* Header */}
-        <div className="flex items-center justify-between px-4 py-3 border-b border-surface-3">
-          <h2 className="text-sm font-semibold text-foreground">Shared Workouts</h2>
+        <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3 px-4 pt-3">
+          <h2 id="shared-title" className="fx py-1 text-[clamp(2.75rem,14vw,3.75rem)]">Shared Workouts</h2>
           <button
+            type="button"
+            aria-label="Close"
             onClick={onClose}
-            className="w-8 h-8 rounded-full bg-surface-2 flex items-center justify-center hover:bg-surface-3 transition-colors"
+            className="plate plate-graphite h-11 w-12 shrink-0"
           >
-            <X className="w-4 h-4 text-muted-foreground" />
+            <X className="size-5" />
           </button>
         </div>
 
         {/* Public / Private Toggle */}
-        <div className="px-4 py-3">
-          <div className="flex gap-2 p-1 bg-surface-2 rounded-lg">
-            <button
-              onClick={() => setFilter('public')}
-              className={cn(
-                'flex-1 py-2 px-3 rounded-md text-sm font-medium transition-all',
-                filter === 'public'
-                  ? 'bg-volt text-primary-foreground'
-                  : 'text-muted-foreground hover:text-foreground'
-              )}
-            >
-              Public ({publicWorkouts.length})
-            </button>
-            <button
-              onClick={() => setFilter('private')}
-              className={cn(
-                'flex-1 py-2 px-3 rounded-md text-sm font-medium transition-all',
-                filter === 'private'
-                  ? 'bg-volt text-primary-foreground'
-                  : 'text-muted-foreground hover:text-foreground'
-              )}
-            >
-              Private ({privateWorkouts.length})
-            </button>
-          </div>
+        <div className="grid grid-cols-2 gap-4 px-5 py-3">
+          <button type="button" aria-pressed={filter === 'public'} onClick={() => setFilter('public')} className={option(filter === 'public')}>
+            Public ({publicWorkouts.length})
+          </button>
+          <button type="button" aria-pressed={filter === 'private'} onClick={() => setFilter('private')} className={option(filter === 'private')}>
+            Private ({privateWorkouts.length})
+          </button>
         </div>
 
         {/* Content */}
-        <div className="flex-1 overflow-y-auto px-4 pb-4">
+        <div className="border-t border-surface-3 pb-4">
           {isLoading ? (
-            <p className="text-center text-muted-foreground py-8">Loading...</p>
+            <p className="lab px-4 py-8">Loading...</p>
           ) : displayed.length === 0 ? (
-            <p className="text-center text-muted-foreground py-8">
+            <p className="prose-w px-4 py-8 text-lg">
               No {filter} shared workouts yet.
             </p>
           ) : (
-            <div className="space-y-2">
+            <div>
               {displayed.map((post) => (
-                <div key={post.id} className="flex items-center gap-3 p-3 rounded-lg bg-surface-2 border border-surface-3">
-                  <div className="w-10 h-10 rounded-xl bg-volt/20 flex items-center justify-center text-xl flex-shrink-0">
-                    {(post.workout_data)?.icon || '🥊'}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-semibold text-foreground text-sm truncate">
+                <div key={post.id} className="flex items-center gap-3 border-b border-surface-2 py-2 pl-4 pr-2">
+                  <div className="min-w-0 flex-1">
+                    <p className="fx break-words text-4xl">
                       {post.custom_name || post.workout_name}
                     </p>
-                    <p className="text-xs text-muted-foreground">
+                    <p className="lab mt-1">
                       {formatTimeAgo(post.created_at || '')}
                       {filter === 'private' && post.club_name && (
-                        <span> · {post.club_name}</span>
+                        <span>, {post.club_name}</span>
                       )}
                     </p>
                   </div>
-                  <Button
-                    size="sm"
-                    variant="outline"
+                  <button
+                    type="button"
+                    aria-label={`Unshare ${post.custom_name || post.workout_name}`}
                     onClick={() => {
                       deletePost.mutate(post.id, {
                         onSuccess: () => toast.success('Workout unshared'),
                       });
                     }}
                     disabled={deletePost.isPending}
-                    className="text-destructive border-surface-3 hover:border-destructive hover:bg-destructive/10 flex-shrink-0"
+                    className="flex h-11 w-11 shrink-0 items-center justify-center text-muted-foreground hover:text-destructive disabled:opacity-40"
                   >
-                    <Trash2 className="w-3.5 h-3.5" />
-                  </Button>
+                    <Trash2 className="size-4" />
+                  </button>
                 </div>
               ))}
             </div>

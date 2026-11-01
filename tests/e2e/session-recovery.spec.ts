@@ -217,7 +217,7 @@ test("a shared speed bag phase keeps drills and punches apart", async ({ page })
   await sheet.getByRole("button", { name: "Save", exact: true }).click();
 
   await page.getByRole("button", { name: "Add Segment" }).click();
-  await page.locator("button.w-8.h-8.rounded-lg").nth(1).click();
+  await page.getByRole("button", { name: /Change segment type/ }).nth(1).click();
   await page.getByRole("button", { name: "Add", exact: true }).last().click();
   await page.getByText("Double Left Lead").click();
   await page.locator("button:has(svg.lucide-chevron-up)").nth(1).click();

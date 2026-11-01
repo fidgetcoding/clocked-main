@@ -1,5 +1,5 @@
-import { Lock } from 'lucide-react';
 import { AppLayout } from '@/components/layout/AppLayout';
+import { BroadcastPage, SectionRule } from '@/components/broadcast';
 import { useGloves } from '@/hooks/useGloves';
 import { GLOVES, TIER_SECTIONS, getGlovesForTier, Glove } from '@/data/gloves';
 import { cn } from '@/lib/utils';
@@ -17,59 +17,39 @@ function GloveCard({
   isEquipped: boolean;
   onEquip: () => void;
 }) {
-  const isPrestigeReward = glove.level === 100 || glove.id === 'bmf';
   const isBMF = glove.id === 'bmf';
 
   return (
     <button
+      type="button"
       disabled={!isUnlocked}
       onClick={onEquip}
-      className={cn(
-        'relative flex flex-col items-center rounded-xl p-2 transition-all border',
-        isEquipped
-          ? 'border-volt bg-volt/10 ring-1 ring-volt shadow-[0_0_12px_hsl(var(--volt)/0.3)]'
-          : isUnlocked
-            ? 'border-surface-3 bg-surface-1 hover:bg-surface-2 cursor-pointer'
-            : 'border-surface-3/50 bg-surface-1/30 cursor-not-allowed',
-        isPrestigeReward && isUnlocked && 'col-span-1'
-      )}
+      aria-pressed={isEquipped}
+      className={cn('min-w-0 text-center', isUnlocked ? 'cursor-pointer' : 'cursor-not-allowed')}
     >
-      <div
+      <span
         className={cn(
-          'relative w-full aspect-square rounded-lg overflow-hidden mb-1.5 transition-all',
-          isPrestigeReward && 'ring-1 ring-white/20',
-          isBMF && isUnlocked && 'ring-2 ring-[#FFD700]'
+          'art-slant block aspect-square w-full [clip-path:polygon(24.9%_0,100%_0,75.1%_100%,0_100%)]',
+          isEquipped && '!bg-volt',
         )}
       >
-        <GloveArt id={glove.id} locked={!isUnlocked} className="w-full h-full" />
-        {!isUnlocked && (
-          <div className="absolute inset-0 flex items-center justify-center">
-            <Lock className="w-5 h-5 text-white/80 drop-shadow" />
-          </div>
+        <GloveArt
+          id={glove.id}
+          className={cn('h-full w-full', !isUnlocked && 'art-off', isEquipped && 'mix-blend-multiply')}
+        />
+      </span>
+      <span
+        className={cn(
+          'fx mt-1 line-clamp-2 block text-base leading-none',
+          !isUnlocked && 'text-muted-foreground',
+          isBMF && isUnlocked && 'text-championship-gold',
         )}
-      </div>
-
-      {/* Name */}
-      <p className={cn(
-        'text-[10px] font-medium text-center leading-tight line-clamp-2',
-        isUnlocked ? 'text-foreground' : 'text-muted-foreground/60'
-      )}>
+      >
         {glove.name}
-      </p>
-
-      {/* Equipped badge */}
-      {isEquipped && (
-        <span className="absolute -top-1.5 -right-1.5 text-[8px] font-bold bg-volt text-primary-foreground px-1.5 py-0.5 rounded-full">
-          EQUIPPED
-        </span>
-      )}
-
-      {/* Unlock requirement for locked gloves */}
-      {!isUnlocked && (
-        <p className="text-[8px] text-muted-foreground/40 mt-0.5">
-          {isBMF ? 'Pro L500 + 365d' : `L${glove.level}`}
-        </p>
-      )}
+      </span>
+      <span className={cn('lab mt-0.5 block tracking-[0.04em]', isEquipped && 'lab-lime')}>
+        {isEquipped ? 'Equipped' : isUnlocked ? 'Unlocked' : isBMF ? 'Pro L500 + 365d' : `Lvl ${glove.level}`}
+      </span>
     </button>
   );
 }
@@ -88,41 +68,34 @@ const Gloves = () => {
 
   return (
     <AppLayout>
-      <div className="min-h-screen pb-20">
-        {/* Header */}
-        <header className="flex items-center justify-between px-4 py-4 safe-top border-b border-surface-3">
-          <h1 className="text-xl font-bold text-foreground">Gloves</h1>
-          <span className="text-sm text-muted-foreground">{totalUnlocked}/52</span>
-        </header>
+      <BroadcastPage show="In the corner">
+        <h1 className="sr-only">Gloves</h1>
 
-        {/* Currently Equipped */}
-        <div className="px-4 py-4 border-b border-surface-3">
-          <p className="text-xs text-muted-foreground mb-2 uppercase tracking-wider">Currently Equipped</p>
-          <div className="flex items-center gap-3">
-            <GloveArt id={equipped.id} className="w-12 h-12 rounded-xl ring-2 ring-volt" />
-            <div>
-              <p className="text-sm font-bold text-foreground">{equipped.name}</p>
-              <p className="text-xs text-muted-foreground">{equipped.description}</p>
-            </div>
+        {/* In the corner: what you're wearing */}
+        <section className="relative mt-2 h-52 overflow-hidden sm:h-64">
+          <div className="absolute inset-y-0 right-0 w-[56%] bg-[#0a0a0a] [clip-path:polygon(3.25rem_0,100%_0,100%_100%,0_100%)] sm:[clip-path:polygon(4rem_0,100%_0,100%_100%,0_100%)]">
+            <GloveArt id={equipped.id} className="h-full w-full object-cover" />
           </div>
-        </div>
+          <div className="relative flex h-full max-w-[62%] flex-col px-4 pt-3">
+            <p className="lab lab-lime">Currently Equipped</p>
+            <p className="fx mt-1.5 text-[clamp(2.75rem,14vw,4.5rem)] leading-[0.86]">{equipped.name}</p>
+            <p className="fx mt-auto pb-2 text-3xl">
+              <span className="text-volt">{totalUnlocked}</span> of 52
+            </p>
+          </div>
+        </section>
+        <p className="prose-w border-b border-surface-2 px-4 py-2 text-base">{equipped.description}</p>
 
-        {/* Tier Sections */}
-        <div className="px-4 py-4 space-y-6">
+        {/* Tier by tier */}
+        <div className="pb-4">
           {TIER_SECTIONS.map((section) => {
             const gloves = getGlovesForTier(section.key);
             if (gloves.length === 0) return null;
 
             return (
-              <div key={section.key}>
-                <div className="flex items-baseline gap-2 mb-3">
-                  <h2 className="text-sm font-bold text-foreground tracking-wider">{section.label}</h2>
-                  <span className="text-[10px] text-muted-foreground">{section.subtitle}</span>
-                </div>
-                <div className={cn(
-                  'grid gap-2',
-                  section.key === 'bmf' ? 'grid-cols-2' : 'grid-cols-5'
-                )}>
+              <section key={section.key}>
+                <SectionRule title={section.label} right={section.subtitle} className="mb-2 pt-4" />
+                <div className={cn('grid gap-x-2 gap-y-3 px-3', section.key === 'bmf' ? 'grid-cols-2' : 'grid-cols-4 sm:grid-cols-5')}>
                   {gloves.map((glove) => (
                     <GloveCard
                       key={glove.id}
@@ -133,11 +106,11 @@ const Gloves = () => {
                     />
                   ))}
                 </div>
-              </div>
+              </section>
             );
           })}
         </div>
-      </div>
+      </BroadcastPage>
     </AppLayout>
   );
 };

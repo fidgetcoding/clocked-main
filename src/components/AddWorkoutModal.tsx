@@ -1,7 +1,9 @@
 import { useState } from 'react';
-import { X, Mic, MicOff, ChevronDown, ChevronUp } from 'lucide-react';
+import { X, ChevronDown, ChevronUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { FitText, MicIcon, OnAir, ScoreBug, StopIcon } from '@/components/broadcast';
 import { cn } from '@/lib/utils';
 import { RoundFeedback } from '@/types';
 import { useWorkoutHistory } from '@/hooks/useWorkoutHistory';
@@ -73,185 +75,182 @@ export function AddWorkoutModal({ isOpen, onClose }: AddWorkoutModalProps) {
 
   if (!isOpen) return null;
 
+  const option = (on: boolean) => cn('plate fx h-11 text-xl', on ? 'plate-white' : 'plate-graphite');
+
   return (
-    <div className="fixed inset-0 bg-background/95 z-50 flex flex-col">
-      <header className="flex items-center justify-between px-4 py-4 border-b border-surface-3">
-        <button onClick={() => { dictation.stop(); onClose(); }} className="text-muted-foreground">
-          <X className="w-6 h-6" />
-        </button>
-        <h2 className="font-bold text-foreground">Log Past Workout</h2>
-        <div className="w-6" />
-      </header>
-
-      <div className="flex-1 overflow-y-auto px-4 py-6 space-y-6">
-        {/* Mode Toggle */}
-        <div className="flex gap-2">
+    <div className="fixed inset-0 z-50 overflow-y-auto overflow-x-clip bg-background">
+      <div className="mx-auto flex min-h-full max-w-[46rem] flex-col">
+        <div className="flex items-center justify-between gap-3 pt-[max(0.625rem,env(safe-area-inset-top))]">
+          <ScoreBug mid={<><span className="max-[359px]:hidden">Add to the record</span><span className="min-[360px]:hidden">Record</span></>} className="min-w-0" />
           <button
-            onClick={() => setMode('basic')}
-            className={cn(
-              'flex-1 py-2 rounded-lg text-sm font-medium transition-colors',
-              mode === 'basic'
-                ? 'bg-volt text-primary-foreground'
-                : 'bg-surface-1 text-muted-foreground'
-            )}
+            type="button"
+            aria-label="Close"
+            onClick={() => { dictation.stop(); onClose(); }}
+            className="plate plate-graphite mr-4 h-11 w-12 shrink-0"
           >
-            Basic
-          </button>
-          <button
-            onClick={() => setMode('advanced')}
-            className={cn(
-              'flex-1 py-2 rounded-lg text-sm font-medium transition-colors',
-              mode === 'advanced'
-                ? 'bg-volt text-primary-foreground'
-                : 'bg-surface-1 text-muted-foreground'
-            )}
-          >
-            Advanced
+            <X className="size-5" />
           </button>
         </div>
 
-        {/* Workout Name */}
-        <div>
-          <label className="text-sm text-muted-foreground mb-2 block">Workout Name</label>
-          <Input
-            value={workoutName}
-            onChange={(e) => setWorkoutName(e.target.value)}
-            placeholder="e.g., Heavy Bag Session"
-            className="bg-surface-1 border-surface-3"
-          />
-        </div>
+        <div className="flex-1 space-y-5 pb-4 pt-3">
+          <div className="px-4">
+            <h2 className="fx"><FitText className="h-14" max={72}>Log Past Workout</FitText></h2>
+          </div>
 
-        {/* Duration */}
-        <div>
-          <label className="text-sm text-muted-foreground mb-2 block">Duration (minutes)</label>
-          <div className="flex items-center gap-4">
-            <button
-              onClick={() => setDuration(Math.max(5, duration - 5))}
-              className="w-10 h-10 rounded-lg bg-surface-1 border border-surface-3 flex items-center justify-center"
-            >
-              <ChevronDown className="w-5 h-5" />
+          {/* Mode Toggle */}
+          <div className="grid grid-cols-2 gap-4 px-5">
+            <button type="button" aria-pressed={mode === 'basic'} onClick={() => setMode('basic')} className={option(mode === 'basic')}>
+              Basic
             </button>
-            <span className="text-2xl font-bold text-volt w-16 text-center">{duration}</span>
-            <button
-              onClick={() => setDuration(duration + 5)}
-              className="w-10 h-10 rounded-lg bg-surface-1 border border-surface-3 flex items-center justify-center"
-            >
-              <ChevronUp className="w-5 h-5" />
+            <button type="button" aria-pressed={mode === 'advanced'} onClick={() => setMode('advanced')} className={option(mode === 'advanced')}>
+              Advanced
             </button>
           </div>
-        </div>
 
-        {/* Difficulty Rating */}
-        <div>
-          <label className="text-sm text-muted-foreground mb-2 block">How did it feel?</label>
-          <div className="flex gap-2">
-            {[
-              { value: 'too_easy', label: 'Too Easy' },
-              { value: 'just_right', label: 'Just Right' },
-              { value: 'too_hard', label: 'Too Hard' },
-            ].map((opt) => (
+          {/* Workout Name */}
+          <div className="px-4">
+            <label htmlFor="log-name" className="lab block">Workout Name</label>
+            <Input
+              id="log-name"
+              value={workoutName}
+              onChange={(e) => setWorkoutName(e.target.value)}
+              placeholder="e.g., Heavy Bag Session"
+              className="h-12 text-xl"
+            />
+          </div>
+
+          {/* Duration */}
+          <div className="px-4">
+            <span className="lab block">Duration (minutes)</span>
+            <div className="mt-1 flex items-center gap-4">
+              <b className="fx w-28 text-8xl text-volt">{duration}</b>
               <button
-                key={opt.value}
-                onClick={() => setDifficulty(opt.value as typeof difficulty)}
-                className={cn(
-                  'flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-colors',
-                  difficulty === opt.value
-                    ? 'bg-volt text-primary-foreground'
-                    : 'bg-surface-1 border border-surface-3 text-muted-foreground'
-                )}
+                type="button"
+                aria-label="5 minutes less"
+                onClick={() => setDuration(Math.max(5, duration - 5))}
+                className="plate plate-graphite h-12 w-14"
               >
-                {opt.label}
+                <ChevronDown className="size-5" />
               </button>
-            ))}
+              <button
+                type="button"
+                aria-label="5 minutes more"
+                onClick={() => setDuration(duration + 5)}
+                className="plate plate-graphite h-12 w-14"
+              >
+                <ChevronUp className="size-5" />
+              </button>
+            </div>
           </div>
-        </div>
 
-        {/* Advanced: Round Feedback */}
-        {mode === 'advanced' && (
+          {/* Difficulty Rating */}
           <div>
-            <div className="flex items-center justify-between mb-3">
-              <label className="text-sm text-muted-foreground">Rate Each Round</label>
-              <div className="flex items-center gap-2">
+            <span className="lab block px-4">How did it feel?</span>
+            <div className="mt-2 grid grid-cols-3 gap-4 px-5">
+              {[
+                { value: 'too_easy', label: 'Too Easy' },
+                { value: 'just_right', label: 'Just Right' },
+                { value: 'too_hard', label: 'Too Hard' },
+              ].map((opt) => (
                 <button
-                  onClick={() => setRounds(Math.max(1, rounds - 1))}
-                  className="w-6 h-6 rounded bg-surface-2 flex items-center justify-center text-muted-foreground"
+                  type="button"
+                  key={opt.value}
+                  aria-pressed={difficulty === opt.value}
+                  onClick={() => setDifficulty(opt.value as typeof difficulty)}
+                  className={option(difficulty === opt.value)}
                 >
-                  -
+                  {opt.label}
                 </button>
-                <span className="text-sm font-medium w-8 text-center">{rounds}</span>
-                <button
-                  onClick={() => setRounds(rounds + 1)}
-                  className="w-6 h-6 rounded bg-surface-2 flex items-center justify-center text-muted-foreground"
-                >
-                  +
-                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Advanced: Round Feedback */}
+          {mode === 'advanced' && (
+            <div>
+              <div className="flex items-center justify-between gap-3 px-4">
+                <span className="lab lab-w">Rate Each Round</span>
+                <div className="flex items-center gap-1.5">
+                  <button
+                    type="button"
+                    aria-label="One round fewer"
+                    onClick={() => setRounds(Math.max(1, rounds - 1))}
+                    className="plate plate-graphite fx h-11 w-11 text-3xl"
+                  >
+                    -
+                  </button>
+                  <span className="fx w-9 text-center text-3xl">{rounds}</span>
+                  <button
+                    type="button"
+                    aria-label="One round more"
+                    onClick={() => setRounds(rounds + 1)}
+                    className="plate plate-graphite fx h-11 w-11 text-3xl"
+                  >
+                    +
+                  </button>
+                </div>
+              </div>
+              <div className="mt-1">
+                {Array.from({ length: rounds }, (_, i) => i + 1).map((roundNum) => {
+                  const feedback = roundFeedback.find((r) => r.roundNumber === roundNum);
+                  return (
+                    <div key={roundNum} className="grid grid-cols-[2.5rem_1fr] items-center gap-2 border-b border-surface-2 py-1 pl-4 pr-5">
+                      <span className="fx text-3xl">R{roundNum}</span>
+                      <div className="score-five !gap-3">
+                        {[1, 2, 3, 4, 5].map((rating) => (
+                          <button
+                            type="button"
+                            key={rating}
+                            aria-label={`Round ${roundNum}, ${rating} out of 5`}
+                            aria-pressed={feedback?.rating === rating}
+                            onClick={() => handleRoundRating(roundNum, rating)}
+                            className={cn('plate fx h-11 text-2xl', feedback?.rating === rating ? 'plate-lime' : 'plate-graphite')}
+                          >
+                            {rating}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             </div>
-            <div className="space-y-2">
-              {Array.from({ length: rounds }, (_, i) => i + 1).map((roundNum) => {
-                const feedback = roundFeedback.find((r) => r.roundNumber === roundNum);
-                return (
-                  <div key={roundNum} className="flex items-center gap-3 bg-surface-1 rounded-lg p-3 border border-surface-3">
-                    <span className="text-sm font-medium text-muted-foreground w-8">R{roundNum}</span>
-                    <div className="flex gap-1 flex-1">
-                      {[1, 2, 3, 4, 5].map((rating) => (
-                        <button
-                          key={rating}
-                          onClick={() => handleRoundRating(roundNum, rating)}
-                          className={cn(
-                            'flex-1 py-1.5 rounded text-xs font-medium transition-colors',
-                            feedback?.rating === rating
-                              ? 'bg-volt text-primary-foreground'
-                              : 'bg-surface-2 text-muted-foreground'
-                          )}
-                        >
-                          {rating}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        )}
+          )}
 
-        {/* Journal Notes */}
-        <div>
-          <label className="text-sm text-muted-foreground mb-2 block">Notes</label>
-          <div className="relative">
-            <textarea
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              placeholder="How did it go? What did you work on?"
-              className="w-full h-32 p-3 pr-12 rounded-xl bg-surface-1 border border-surface-3 text-foreground placeholder:text-muted-foreground text-sm resize-none focus:outline-none focus:ring-2 focus:ring-volt"
-            />
-            {dictation.supported && (
-              <button
-                onClick={dictation.toggle}
-                aria-label={dictation.listening ? 'Stop dictating' : 'Dictate notes'}
-                className={cn(
-                  'absolute right-3 bottom-3 w-8 h-8 rounded-full flex items-center justify-center transition-colors',
-                  dictation.listening
-                    ? 'bg-destructive text-destructive-foreground animate-pulse'
-                    : 'bg-surface-2 text-muted-foreground hover:text-foreground'
-                )}
-              >
-                {dictation.listening ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
-              </button>
+          {/* Journal Notes */}
+          <div className="px-4">
+            <label htmlFor="log-notes" className="lab mb-2 block">Notes</label>
+            <div className="relative">
+              <Textarea
+                id="log-notes"
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                placeholder="How did it go? What did you work on?"
+                className="h-32 resize-none pr-20"
+              />
+              {dictation.supported && (
+                <button
+                  type="button"
+                  onClick={dictation.toggle}
+                  aria-label={dictation.listening ? 'Stop dictating' : 'Dictate notes'}
+                  className={cn('plate absolute bottom-3 right-4 h-11 w-12', dictation.listening ? 'plate-red' : 'plate-steel')}
+                >
+                  {dictation.listening ? <StopIcon className="size-5" /> : <MicIcon className="size-5" />}
+                </button>
+              )}
+            </div>
+            {dictation.listening && (
+              <OnAir className="mt-2">Listening...</OnAir>
             )}
           </div>
-          {dictation.listening && (
-            <p className="text-xs text-destructive mt-1 animate-pulse">Listening...</p>
-          )}
         </div>
-      </div>
 
-      {/* Save Button */}
-      <div className="px-4 py-4 border-t border-surface-3 safe-bottom">
-        <Button onClick={handleSave} className="btn-primary-glow w-full">
-          Log Workout
-        </Button>
+        {/* Save Button */}
+        <div className="sticky bottom-0 bg-background px-5 pb-3 pt-2 safe-bottom">
+          <Button onClick={handleSave} size="lg" className="w-full">
+            Log Workout
+          </Button>
+        </div>
       </div>
     </div>
   );

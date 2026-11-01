@@ -1,6 +1,7 @@
 import { useState } from 'react';
-import { X, Star, Sparkles, Save } from 'lucide-react';
+import { X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { FitText, SectionChyron } from '@/components/broadcast';
 import { TrendingWorkout } from '@/data/trendingWorkouts';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
@@ -43,150 +44,110 @@ export const WorkoutPreviewModal = ({ workout, onClose, onSave, onCustomize }: W
     });
   };
 
+  const structure = [
+    { key: 'warmup', title: 'Warmup', phases: workout.sections.warmup },
+    { key: 'grind', title: 'Main Workout', phases: workout.sections.grind },
+    { key: 'cooldown', title: 'Cooldown', phases: workout.sections.cooldown },
+  ];
+  const combos = workout.combos ?? [];
+
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
+    <div className="fixed inset-0 z-50">
       {/* Backdrop */}
       <div 
-        className="absolute inset-0 bg-black/80 backdrop-blur-sm"
+        className="absolute inset-0 bg-background/85"
         onClick={onClose}
       />
       
       {/* Modal */}
-      <div className="relative w-full max-w-lg bg-surface-1 rounded-t-3xl sm:rounded-3xl border border-surface-3 max-h-[90vh] overflow-hidden animate-in slide-in-from-bottom duration-300">
+      <div role="dialog" aria-modal="true" aria-labelledby="preview-title" className="dialog-panel z-50 overflow-x-clip !p-0">
         {/* Header */}
-        <div className="flex items-start gap-4 p-6 border-b border-surface-3">
-          <div className="w-14 h-14 rounded-2xl bg-volt/20 flex items-center justify-center text-3xl flex-shrink-0">
-            {workout.icon}
-          </div>
-          <div className="flex-1 min-w-0">
-            <h2 className="text-xl font-black text-foreground uppercase">{workout.name}</h2>
-            <p className="text-sm text-muted-foreground">{workout.authorHandle}</p>
-            {ratingLabel && (
-              <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground">
-                <span className="flex items-center gap-1">
-                  <Star className="w-3 h-3 text-yellow-500 fill-yellow-500" />
-                  {ratingLabel}
-                </span>
-              </div>
-            )}
-          </div>
+        <div className="flex items-center justify-between gap-3 pt-3">
+          <SectionChyron className="shrink-0">Fight preview</SectionChyron>
           <button 
+            type="button"
+            aria-label="Close"
             onClick={onClose}
-            className="w-8 h-8 rounded-full bg-surface-2 flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
+            className="plate plate-graphite mr-4 h-11 w-12 shrink-0"
           >
-            <X className="w-4 h-4" />
+            <X className="size-5" />
           </button>
         </div>
-
-        {/* Content */}
-        <div className="p-6 space-y-4 max-h-[50vh] overflow-y-auto">
-          {/* Stats Row */}
-          <div className="grid grid-cols-3 gap-3">
-            <div className="bg-surface-2 rounded-xl p-3 text-center">
-              <p className="text-lg font-bold text-foreground">{formatDuration(workout.totalDuration)}</p>
-              <p className="text-xs text-muted-foreground">Duration</p>
-            </div>
-            <div className="bg-surface-2 rounded-xl p-3 text-center">
-              <p className="text-lg font-bold text-foreground">{totalRounds}</p>
-              <p className="text-xs text-muted-foreground">Rounds</p>
-            </div>
-            <div className="bg-surface-2 rounded-xl p-3 text-center">
-              <p className="text-lg font-bold text-foreground">
-                {workout.difficulty.charAt(0).toUpperCase() + workout.difficulty.slice(1)}
-              </p>
-              <p className="text-xs text-muted-foreground">Difficulty</p>
-            </div>
+        <div className="px-4 pt-2">
+          <h2 id="preview-title" className="fx"><FitText className="h-14" max={72}>{workout.name}</FitText></h2>
+          <div className="mt-1 flex flex-wrap items-baseline justify-between gap-x-4">
+            <span className="lab">{workout.authorHandle}</span>
+            {ratingLabel && <b className="fx text-2xl text-volt">{ratingLabel}</b>}
           </div>
-
-          {/* Tags */}
-          <div className="flex flex-wrap gap-2">
-            {workout.tags.map((tag) => (
-              <span key={tag} className="tag">{tag}</span>
-            ))}
-          </div>
-
-          {/* Structure Preview */}
-          <div className="space-y-3">
-            <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Structure</h3>
-            
-            {workout.sections.warmup.length > 0 && (
-              <div className="bg-surface-2 rounded-lg p-3">
-                <p className="text-xs text-muted-foreground uppercase mb-1">Warmup</p>
-                {workout.sections.warmup.map((phase) => (
-                  <p key={phase.id} className="text-sm text-foreground">
-                    {phase.name} ({phase.segments.length} segments)
-                  </p>
-                ))}
-              </div>
-            )}
-
-            {workout.sections.grind.length > 0 && (
-              <div className="bg-surface-2 rounded-lg p-3">
-                <p className="text-xs text-muted-foreground uppercase mb-1">Main Workout</p>
-                {workout.sections.grind.map((phase) => (
-                  <p key={phase.id} className="text-sm text-foreground">
-                    {phase.name} × {phase.repeats} ({phase.segments.length} segments each)
-                  </p>
-                ))}
-              </div>
-            )}
-
-            {workout.sections.cooldown.length > 0 && (
-              <div className="bg-surface-2 rounded-lg p-3">
-                <p className="text-xs text-muted-foreground uppercase mb-1">Cooldown</p>
-                {workout.sections.cooldown.map((phase) => (
-                  <p key={phase.id} className="text-sm text-foreground">
-                    {phase.name} ({phase.segments.length} segments)
-                  </p>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* Combos Preview */}
-          {workout.combos && workout.combos.length > 0 && (
-            <div className="space-y-2">
-              <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Combos</h3>
-              <div className="flex flex-wrap gap-2">
-                {workout.combos.slice(0, 3).map((combo, idx) => (
-                  <span key={idx} className="px-2 py-1 rounded bg-volt/10 text-volt text-xs font-medium">
-                    {combo.join(' → ')}
-                  </span>
-                ))}
-                {workout.combos.length > 3 && (
-                  <span className="px-2 py-1 rounded bg-surface-2 text-muted-foreground text-xs">
-                    +{workout.combos.length - 3} more
-                  </span>
-                )}
-              </div>
-            </div>
-          )}
         </div>
 
+        {/* Stats Row */}
+        <div className="mt-2 grid grid-cols-3 border-y border-surface-3 text-center">
+          {[
+            { value: formatDuration(workout.totalDuration), label: 'Duration' },
+            { value: totalRounds, label: 'Rounds' },
+            { value: workout.difficulty, label: 'Difficulty' },
+          ].map((stat) => (
+            <div key={stat.label} className="px-1 py-2">
+              <p className="fx"><FitText className="h-9" max={36} align="center">{stat.value}</FitText></p>
+              <p className="lab mt-1">{stat.label}</p>
+            </div>
+          ))}
+        </div>
+
+        {/* Tags */}
+        <p className="lab px-4 pt-2">{workout.tags.join(', ')}</p>
+
+        {/* Structure Preview */}
+        <div className="pt-2">
+          <h3 className="sr-only">Structure</h3>
+          {structure.filter((section) => section.phases.length > 0).map((section) => (
+            <div key={section.key}>
+              <p className="lab lab-lime px-4 pb-0.5 pt-2">{section.title}</p>
+              {section.phases.map((phase) => (
+                <div key={phase.id} className="grid grid-cols-[1fr_auto] items-baseline gap-3 border-b border-surface-2 px-4 py-1">
+                  <span className="fx min-w-0 text-2xl">{phase.name}</span>
+                  <span className="lab whitespace-nowrap">
+                    {phase.repeats > 1 && `× ${phase.repeats}, `}{phase.segments.length} {phase.segments.length === 1 ? 'segment' : 'segments'}
+                  </span>
+                </div>
+              ))}
+            </div>
+          ))}
+        </div>
+
+        {/* Combos Preview */}
+        {combos.length > 0 && (
+          <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1 border-b border-surface-3 px-4 py-2">
+            <h3 className="lab mr-auto not-italic">Combos</h3>
+            {combos.slice(0, 3).map((combo, idx) => (
+              <span key={idx} className="fx text-2xl">{combo.join('-')}</span>
+            ))}
+            {combos.length > 3 && (
+              <span className="lab">+{combos.length - 3} more</span>
+            )}
+          </div>
+        )}
+
         {/* Actions */}
-        <div className="p-6 border-t border-surface-3 space-y-3 safe-bottom">
-          {/* Star Rating */}
+        <div className="space-y-3 px-5 pb-4 pt-3">
+          {/* Rating, 1 to 5 */}
           {showRating ? (
-            <div className="flex flex-col items-center gap-2 py-2">
-              <p className="text-xs text-muted-foreground uppercase tracking-wider font-bold">Rate this workout</p>
-              <div className="flex gap-1">
+            <div className="flex flex-col items-center gap-2 py-1">
+              <p className="lab lab-w">Rate this workout</p>
+              <div className="flex gap-3.5">
                 {[1, 2, 3, 4, 5].map((star) => (
                   <button
+                    type="button"
                     key={star}
+                    aria-label={`Rate ${star} out of 5`}
                     onMouseEnter={() => setHoverStar(star)}
                     onMouseLeave={() => setHoverStar(0)}
                     onClick={() => submitRating(star)}
                     disabled={rate.isPending}
-                    className="p-1 transition-transform hover:scale-125"
+                    className={cn('plate fx h-11 w-11 text-2xl', (hoverStar || selectedRating) >= star ? 'plate-lime' : 'plate-graphite')}
                   >
-                    <Star
-                      className={cn(
-                        "w-8 h-8 transition-colors",
-                        (hoverStar || selectedRating) >= star
-                          ? "text-yellow-500 fill-yellow-500"
-                          : "text-surface-3"
-                      )}
-                    />
+                    {star}
                   </button>
                 ))}
               </div>
@@ -194,27 +155,26 @@ export const WorkoutPreviewModal = ({ workout, onClose, onSave, onCustomize }: W
           ) : (
             <Button
               onClick={() => setShowRating(true)}
-              variant="outline"
-              className="w-full border-surface-3 text-foreground hover:bg-surface-2 h-10 text-sm"
+              variant="secondary"
+              size="sm"
+              className="w-full"
             >
-              <Star className="w-4 h-4 mr-2 text-yellow-500" />
               {selectedRating > 0 ? `You rated ${selectedRating}/5` : 'Rate this Workout'}
             </Button>
           )}
 
           <Button 
             onClick={() => onSave(workout)}
-            className="w-full bg-volt text-primary-foreground hover:bg-volt/90 h-12 text-base font-semibold"
+            className="w-full"
           >
-            <Save className="w-5 h-5 mr-2" />
             Save to My Workouts
           </Button>
           <Button 
             onClick={() => onCustomize(workout)}
-            variant="outline"
-            className="w-full border-surface-3 text-foreground hover:bg-surface-2 h-12 text-base"
+            variant="steel"
+            size="sm"
+            className="w-full"
           >
-            <Sparkles className="w-5 h-5 mr-2 text-volt" />
             Customize in the Builder
           </Button>
         </div>

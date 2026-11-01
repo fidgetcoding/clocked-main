@@ -123,7 +123,7 @@ test("there is no notes mic in a browser without speech recognition", async ({ p
   await page.goto(`${NO_BACKEND_URL}/history`);
   await page.getByRole("button", { name: "Log Workout" }).first().click();
   await expect(page.getByPlaceholder("How did it go? What did you work on?")).toBeVisible();
-  await expect(page.locator("button:has(svg.lucide-mic)")).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Dictate notes" })).toHaveCount(0);
 });
 
 test("skipping the last segment finishes the workout", async ({ page }) => {
@@ -219,7 +219,7 @@ test("restarting during the preparation has no XP to drop", async ({ page }) => 
 test("drills picked for a speed bag round show up in the session", async ({ page }) => {
   await page.goto(`${NO_BACKEND_URL}/build`);
   await page.getByRole("button", { name: "Add Phase" }).click();
-  await page.locator("button.w-8.h-8.rounded-lg").first().click();
+  await page.getByRole("button", { name: /Change segment type/ }).first().click();
   await page.getByRole("button", { name: "Add", exact: true }).click();
   await page.getByText("Double Left Lead").click();
   await page.getByRole("button", { name: "Start", exact: true }).click();
@@ -233,7 +233,7 @@ test("drills picked for a speed bag round show up in the session", async ({ page
 test("combos picked for a double-end round show up in the session", async ({ page }) => {
   await page.goto(`${NO_BACKEND_URL}/build`);
   await page.getByRole("button", { name: "Add Phase" }).click();
-  const type = page.locator("button.w-8.h-8.rounded-lg").first();
+  const type = page.getByRole("button", { name: /Change segment type/ }).first();
   for (let i = 0; i < 3; i++) await type.click();
   await page.getByRole("button", { name: "Add", exact: true }).click();
   const sheet = page.locator(".fixed.inset-0");

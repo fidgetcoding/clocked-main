@@ -86,160 +86,146 @@ export const ExercisePickerModal = ({ open, onClose, onConfirm }: ExercisePicker
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 bg-background/95 z-50 flex flex-col">
-      {/* Header */}
-      <header className="flex items-center justify-between px-4 py-4 border-b border-surface-3">
-        <button onClick={onClose} className="text-muted-foreground">
-          <X className="w-6 h-6" />
-        </button>
-        <h2 className="text-lg font-bold text-foreground">Add Exercise</h2>
-        <div className="w-6" />
-      </header>
+    <div className="fixed inset-0 z-50 overflow-y-auto overflow-x-clip bg-background">
+      <div className="mx-auto flex min-h-full max-w-[46rem] flex-col">
+        {/* Header */}
+        <header className="sticky top-0 z-10 flex items-center gap-3 bg-background px-4 pb-2 pt-[max(0.5rem,env(safe-area-inset-top))]">
+          <button type="button" aria-label="Close" onClick={onClose} className="plate plate-graphite h-11 w-12 shrink-0">
+            <X className="size-5" />
+          </button>
+          <h2 className="fx min-w-0 truncate py-1 text-5xl">Add Exercise</h2>
+        </header>
 
-      {/* Search */}
-      <div className="px-4 py-3">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <Input
-            placeholder="Search exercises..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="pl-9 bg-surface-1 border-surface-3 text-foreground"
-          />
+        {/* Search */}
+        <div className="px-4">
+          <div className="relative">
+            <Search className="absolute left-0 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              placeholder="Search exercises..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="pl-6"
+            />
+          </div>
         </div>
-      </div>
 
-      {/* Custom entry */}
-      <div className="px-4 pb-3">
-        <div className="flex gap-2">
+        {/* Custom entry */}
+        <div className="flex items-center gap-3 px-4 pb-3 pt-2">
           <Input
             placeholder="Custom exercise name..."
             value={customText}
             onChange={(e) => setCustomText(e.target.value)}
             onKeyDown={(e) => { if (e.key === 'Enter') handleAddCustom(); }}
-            className="flex-1 bg-surface-1 border-surface-3 text-foreground text-sm"
+            className="min-w-0 flex-1"
           />
           <button
+            type="button"
             onClick={handleAddCustom}
             disabled={!customText.trim()}
-            className={cn(
-              'px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1 transition-colors',
-              customText.trim()
-                ? 'bg-volt text-background'
-                : 'bg-surface-2 text-muted-foreground opacity-50'
-            )}
+            className={cn('plate fx h-11 shrink-0 gap-1 px-4 text-xl disabled:opacity-40', customText.trim() ? 'plate-lime' : 'plate-graphite')}
           >
-            <Plus className="w-3 h-3" />
+            <Plus className="size-4" />
             Add
           </button>
         </div>
-      </div>
 
-      {/* Category Tabs */}
-      <div className="px-4 pb-2 flex gap-1.5 overflow-x-auto no-scrollbar">
-        {allCategories.map((cat) => (
-          <button
-            key={cat}
-            onClick={() => setActiveCategory(cat)}
-            className={cn(
-              'px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-colors',
-              activeCategory === cat
-                ? 'bg-volt text-background'
-                : 'bg-surface-1 text-muted-foreground border border-surface-3'
-            )}
-          >
-            {cat}
-          </button>
-        ))}
-      </div>
-
-      {/* Exercise List */}
-      <div className="flex-1 overflow-y-auto px-4 py-2 space-y-1.5">
-        {filteredExercises.map((exercise) => {
-          const isSelected = selected.includes(exercise.name);
-          return (
-            <div
-              key={`${exercise.category}-${exercise.name}`}
-              className={cn(
-                'w-full flex items-center rounded-lg p-3 border transition-colors',
-                isSelected
-                  ? 'bg-volt/10 border-volt'
-                  : 'bg-surface-1 border-surface-3'
-              )}
+        {/* Category Tabs */}
+        <div className="flex flex-wrap gap-x-4 gap-y-1.5 px-5 pb-3">
+          {allCategories.map((cat) => (
+            <button
+              type="button"
+              key={cat}
+              aria-pressed={activeCategory === cat}
+              onClick={() => setActiveCategory(cat)}
+              className={cn('plate fx h-11 px-3 text-xl', activeCategory === cat ? 'plate-white' : 'plate-graphite')}
             >
-              {/* Tap name area = quick add */}
-              <button
-                className="flex-1 text-left"
-                onClick={() => {
-                  onConfirm([exercise.name]);
-                  setSearch('');
-                  setActiveCategory('All');
-                  setSelected([]);
-                  onClose();
-                }}
-              >
-                <span className={cn(
-                  'text-sm font-medium',
-                  isSelected ? 'text-volt' : 'text-foreground'
-                )}>
-                  {exercise.name}
-                </span>
-                {activeCategory === 'All' && (
-                  <span className="text-[10px] text-muted-foreground ml-2 uppercase">
-                    {exercise.category}
-                  </span>
-                )}
-              </button>
+              {cat}
+            </button>
+          ))}
+        </div>
 
-              {/* Delete button for custom exercises */}
-              {exercise.customId && (
+        {/* Exercise List */}
+        <div className="flex-1 border-t border-surface-3">
+          {filteredExercises.map((exercise) => {
+            const isSelected = selected.includes(exercise.name);
+            return (
+              <div
+                key={`${exercise.category}-${exercise.name}`}
+                className={cn('flex items-center gap-1 border-b border-surface-2 pr-4', isSelected && 'bg-surface-2')}
+              >
+                {/* Tap name area = quick add */}
                 <button
+                  type="button"
+                  className="min-h-11 min-w-0 flex-1 py-1.5 pl-4 text-left transition-colors hover:text-volt"
+                  onClick={() => {
+                    onConfirm([exercise.name]);
+                    setSearch('');
+                    setActiveCategory('All');
+                    setSelected([]);
+                    onClose();
+                  }}
+                >
+                  <span className={cn('fx block text-3xl', isSelected && 'text-volt')}>
+                    {exercise.name}
+                  </span>
+                  {activeCategory === 'All' && (
+                    <span className="lab mt-1 block">
+                      {exercise.category}
+                    </span>
+                  )}
+                </button>
+
+                {/* Delete button for custom exercises */}
+                {exercise.customId && (
+                  <button
+                    type="button"
+                    aria-label={`Delete ${exercise.name}`}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      removeExercise.mutate(exercise.customId!);
+                    }}
+                    className="flex h-11 w-10 shrink-0 items-center justify-center text-muted-foreground hover:text-destructive"
+                  >
+                    <Trash2 className="size-4" />
+                  </button>
+                )}
+
+                {/* Tap + icon = toggle multi-select */}
+                <button
+                  type="button"
+                  aria-label={`${isSelected ? 'Take out of' : 'Put in'} the set: ${exercise.name}`}
+                  aria-pressed={isSelected}
                   onClick={(e) => {
                     e.stopPropagation();
-                    removeExercise.mutate(exercise.customId!);
+                    toggleExercise(exercise.name);
                   }}
-                  className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ml-1 bg-surface-2 text-muted-foreground hover:text-destructive transition-colors"
+                  className={cn('plate h-11 w-12 shrink-0', isSelected ? 'plate-lime' : 'plate-graphite')}
                 >
-                  <Trash2 className="w-3.5 h-3.5" />
+                  {isSelected ? <Check className="size-5" /> : <Plus className="size-5" />}
                 </button>
-              )}
+              </div>
+            );
+          })}
+          {filteredExercises.length === 0 && (
+            <p className="prose-w px-4 py-8 text-base text-muted-foreground">
+              No exercises found — try a custom entry above
+            </p>
+          )}
+        </div>
 
-              {/* Tap + icon = toggle multi-select */}
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  toggleExercise(exercise.name);
-                }}
-                className={cn(
-                  'w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ml-2 transition-colors',
-                  isSelected
-                    ? 'bg-volt text-background'
-                    : 'bg-surface-2 text-volt/60 hover:bg-surface-3'
-                )}
-              >
-                {isSelected ? <Check className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
-              </button>
-            </div>
-          );
-        })}
-        {filteredExercises.length === 0 && (
-          <p className="text-xs text-muted-foreground text-center py-8">
-            No exercises found — try a custom entry above
-          </p>
+        {/* Confirm Button for multi-select sets */}
+        {selected.length > 0 && (
+          <div className="sticky bottom-0 bg-background px-5 pb-3 pt-2 safe-bottom">
+            <button
+              type="button"
+              onClick={handleConfirm}
+              className="plate plate-lime fx min-h-14 w-full !whitespace-normal px-4 py-2 text-2xl leading-none"
+            >
+              Add {selected.length === 1 ? selected[0] : `${selected.length} exercises as set`}
+            </button>
+          </div>
         )}
       </div>
-
-      {/* Confirm Button for multi-select sets */}
-      {selected.length > 0 && (
-        <div className="px-4 py-4 border-t border-surface-3 safe-bottom">
-          <button
-            onClick={handleConfirm}
-            className="w-full py-3 rounded-xl bg-volt text-background font-bold text-sm"
-          >
-            Add {selected.length === 1 ? selected[0] : `${selected.length} exercises as set`}
-          </button>
-        </div>
-      )}
     </div>
   );
 };

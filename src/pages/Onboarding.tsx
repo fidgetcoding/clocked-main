@@ -1,7 +1,7 @@
 import type { UserProfile } from '@/types';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, type CSSProperties, type ReactNode } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { ArrowRight, User, Users, Dumbbell, Target, Home as HomeIcon, Swords, Trophy, Check, GraduationCap, ClipboardList, Users2, TrendingUp, LogIn, Star } from 'lucide-react';
+import { BroadcastPage, FitText, Logo, OnAir, Plate, SectionChyron, SegmentBar, Ticker, plateClass } from '@/components/broadcast';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useUserStore } from '@/stores/userStore';
@@ -14,7 +14,6 @@ import { experienceLevelToPrestige } from '@/lib/xpSystem';
 import { generateLoadoutWorkout } from '@/lib/loadoutGenerator';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
-import clockedLogo from '@/assets/clocked-logo.png';
 
 type Step = 'welcome' | 'role' | 'name' | 'stance' | 'experience' | 'equipment' | 'coachTools' | 'goals' | 'complete';
 
@@ -28,32 +27,109 @@ const experienceLevels = [
 
 // Equipment groups: essentials first, then bags, then cardio
 const equipmentOptions = [
-  { id: 'gloves', label: 'Boxing Gloves', icon: '🧤', group: 'essentials' },
-  { id: 'wraps', label: 'Hand Wraps', icon: '🩹', group: 'essentials' },
-  { id: 'heavyBag', label: 'Heavy Bag', icon: '🎯', group: 'bags' },
-  { id: 'doubleEndBag', label: 'Double End Bag', icon: '🔴', group: 'bags' },
-  { id: 'speedBag', label: 'Speed Bag', icon: '💨', group: 'bags' },
-  { id: 'jumpRope', label: 'Jump Rope', icon: '🪢', group: 'cardio' },
-  { id: 'treadmill', label: 'Treadmill', icon: '🏃', group: 'cardio' },
+  { id: 'gloves', label: 'Boxing Gloves', group: 'essentials' },
+  { id: 'wraps', label: 'Hand Wraps', group: 'essentials' },
+  { id: 'heavyBag', label: 'Heavy Bag', group: 'bags' },
+  { id: 'doubleEndBag', label: 'Double End Bag', group: 'bags' },
+  { id: 'speedBag', label: 'Speed Bag', group: 'bags' },
+  { id: 'jumpRope', label: 'Jump Rope', group: 'cardio' },
+  { id: 'treadmill', label: 'Treadmill', group: 'cardio' },
 ];
 
 // Fighter goals
 const fighterGoalOptions = [
-  { id: 'learn_boxing', label: 'Learn Boxing', icon: Swords },
-  { id: 'get_fit', label: 'Get Fit', icon: Dumbbell },
-  { id: 'competition', label: 'Compete', icon: Trophy },
-  { id: 'home_workout', label: 'Home Workouts', icon: HomeIcon },
-  { id: 'supplement_training', label: 'Supplement Training', icon: Target },
+  { id: 'learn_boxing', label: 'Learn Boxing' },
+  { id: 'get_fit', label: 'Get Fit' },
+  { id: 'competition', label: 'Compete' },
+  { id: 'home_workout', label: 'Home Workouts' },
+  { id: 'supplement_training', label: 'Supplement Training' },
 ];
 
 // Coach goals
 const coachGoalOptions = [
-  { id: 'organize_team', label: 'Organize My Team', icon: ClipboardList },
-  { id: 'improve_athletes', label: 'Improve Athlete Skills', icon: TrendingUp },
-  { id: 'track_progress', label: 'Track Progress', icon: Target },
-  { id: 'build_programs', label: 'Build Training Programs', icon: GraduationCap },
-  { id: 'grow_roster', label: 'Grow My Roster', icon: Users2 },
+  { id: 'organize_team', label: 'Organize My Team' },
+  { id: 'improve_athletes', label: 'Improve Athlete Skills' },
+  { id: 'track_progress', label: 'Track Progress' },
+  { id: 'build_programs', label: 'Build Training Programs' },
+  { id: 'grow_roster', label: 'Grow My Roster' },
 ];
+
+// The welcome card: lime, cut by one true 14 degree slash
+const welcomeSlash: CSSProperties = {
+  background:
+    'linear-gradient(104deg, hsl(var(--tech-black)) 0 12%, hsl(var(--electric-volt)) 12% 84%, hsl(var(--tech-black)) 84% 87%, hsl(var(--electric-volt)) 87% 89%, hsl(var(--tech-black)) 89%)',
+};
+
+// Test-pattern stripes behind a show that isn't made yet
+const pilotStripes: CSSProperties = {
+  background: 'repeating-linear-gradient(104deg, hsl(var(--surface-1)) 0 34px, hsl(var(--surface-2)) 34px 68px)',
+};
+
+/** The bottom of a step: the one way forward, then the crawl. */
+const OnwardBar = ({ label, onClick, ticker }: { label: string; onClick: () => void; ticker: (string | false)[] }) => (
+  <div className="sticky bottom-0 z-10 mt-4 bg-tech-black">
+    <div className="px-5 py-3">
+      <Button size="lg" className="w-full [@media(max-height:500px)]:h-12 [@media(max-height:500px)]:text-2xl" onClick={onClick}>
+        {label}
+      </Button>
+    </div>
+    <Ticker items={ticker} tone="dark" className="[@media(max-height:600px)]:hidden" />
+  </div>
+);
+
+interface PreShowProps {
+  show: string;
+  segment: number;
+  segments: number;
+  title: ReactNode;
+  sub: ReactNode;
+  ticker?: (string | false)[];
+  /** Leave out where picking a plate moves on by itself. */
+  onNext?: () => void;
+  children?: ReactNode;
+}
+
+/** One segment of the pre-show: the bug, how far along, the headline, then the graphics for this step. */
+const PreShow = ({ show, segment, segments, title, sub, ticker = [], onNext, children }: PreShowProps) => (
+  <BroadcastPage show={show} className="flex flex-col">
+    <div className="px-4 pt-4">
+      <div className="mb-1.5 flex justify-between">
+        <span className="lab lab-lime">Pre-show</span>
+        <span className="lab">Segment {segment} of {segments}</span>
+      </div>
+      <SegmentBar total={segments} filled={segment - 1} current={segment - 1} height="0.5rem" label={`Segment ${segment} of ${segments}`} />
+    </div>
+    <div className="animate-fade-in px-4 pt-5">
+      <h2 className="fx text-[clamp(2.75rem,13vw,4.5rem)] [@media(max-height:500px)]:text-4xl">{title}</h2>
+      <p className="prose-w mt-2 text-lg leading-snug">{sub}</p>
+    </div>
+    <div className="mt-4 flex-1">{children}</div>
+    {onNext ? <OnwardBar label="Continue" onClick={onNext} ticker={ticker} /> : <div className="pb-6" />}
+  </BroadcastPage>
+);
+
+/** A choice as a plate off the left edge. Lime means it's in. */
+const ChoicePlate = ({ on, onClick, width, children }: { on: boolean; onClick: () => void; width: string; children: ReactNode }) => (
+  <button
+    type="button"
+    aria-pressed={on}
+    onClick={onClick}
+    style={{ width }}
+    className={cn(plateClass({ tone: on ? 'lime' : 'graphite', bleed: 'left' }), 'flex min-h-[3.75rem] justify-between gap-3 py-1.5 pl-4 pr-6 text-left')}
+  >
+    {children}
+  </button>
+);
+
+/** Which foot leads, from above: the lead foot filled, the rear foot outlined. */
+const StanceFeet = ({ leftLeads }: { leftLeads: boolean }) => (
+  <svg viewBox="30 16 120 124" aria-hidden="true" className="size-24 shrink-0 [@media(max-height:500px)]:size-14">
+    <g transform="skewX(-14) translate(36 0)">
+      <rect x={leftLeads ? 32 : 84} y="22" width="30" height="62" fill="currentColor" />
+      <rect x={leftLeads ? 84 : 32} y="72" width="30" height="62" fill="none" stroke="currentColor" strokeWidth="4" />
+    </g>
+  </svg>
+);
 
 const Onboarding = () => {
   const navigate = useNavigate();
@@ -243,366 +319,300 @@ const Onboarding = () => {
 
   // Hold the first screen until we know whether a signed-in account has been here before
   if ((shouldContinue && authLoading) || (user && profileLoading)) {
-    return <div className="min-h-screen bg-background" />;
+    return <div className="min-h-dvh bg-background" />;
+  }
+
+  const stepList = getSteps();
+  const segment = stepList.indexOf(step) + 1;
+  const segments = stepList.length;
+  const onAirName = name.trim() || (role === 'coach' ? 'Coach' : 'Fighter');
+
+  if (step === 'welcome') {
+    return (
+      <div className="flex min-h-dvh flex-col overflow-x-clip" style={welcomeSlash}>
+        <div className="px-4 pt-[max(0.75rem,env(safe-area-inset-top))]">
+          <Plate tone="black" className="h-8 px-3">
+            <OnAir>Tonight, live</OnAir>
+          </Plate>
+        </div>
+        <div className="flex flex-1 flex-col items-center justify-center gap-5 py-4 [@media(max-height:500px)]:gap-2 [@media(max-height:500px)]:py-1">
+          <Logo kind="mark" className="aspect-[900/670] w-[min(64vw,21rem)] text-tech-black [@media(max-height:500px)]:w-28 [@media(max-height:600px)]:w-44" />
+          <Plate tone="black" bleed="both" className="fx w-full px-4 pb-1 pt-2 text-[clamp(2rem,10.5vw,3.5rem)] [@media(max-height:500px)]:text-3xl">
+            Knockout Intelligence.
+          </Plate>
+          <p className="text-lg font-bold text-tech-black">Your session is on air.</p>
+          <div className="flex w-full max-w-md flex-col gap-3 px-6 [@media(max-height:500px)]:max-w-xl [@media(max-height:500px)]:flex-row">
+            <Button variant="black" size="lg" onClick={() => handleNext()} className="w-full text-volt [@media(max-height:500px)]:h-12 [@media(max-height:500px)]:text-2xl">
+              GET STARTED
+            </Button>
+            <Button variant="white" onClick={() => navigate('/auth')} className="w-full">
+              LOGIN
+            </Button>
+          </div>
+        </div>
+        <Ticker tone="dark" items={['Rounds, combos, XP and a camera that watches your hands', 'Your session is on air']} />
+      </div>
+    );
+  }
+
+  if (step === 'role') {
+    const roles = [
+      { id: 'fighter', title: "I'M A FIGHTER", sub: 'Training solo or with a coach' },
+      { id: 'coach', title: "I'M A COACH", sub: 'Train here today. Coach tools are coming soon.' },
+    ] as const;
+    return (
+      <PreShow
+        show="Casting"
+        segment={segment}
+        segments={segments}
+        title="Who are you?"
+        sub="This helps us personalize your experience"
+      >
+        <div className="space-y-4">
+          {roles.map((option) => {
+            const on = role === option.id;
+            return (
+              <button
+                key={option.id}
+                type="button"
+                onClick={() => { setRole(option.id); handleNext(option.id); }}
+                className="block w-full text-left focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-[-3px] focus-visible:outline-foreground"
+              >
+                <Plate tone={on ? 'lime' : 'graphite'} bleed="both" className={cn('flex w-full px-4 py-2', !on && 'text-muted-foreground')}>
+                  <FitText className={cn(on ? 'h-20' : 'h-16', '[@media(max-height:500px)]:h-12')} max={88}>{option.title}</FitText>
+                </Plate>
+                <span className={cn('prose-w block px-4 pt-2 text-lg leading-snug', !on && 'text-muted-foreground')}>{option.sub}</span>
+              </button>
+            );
+          })}
+        </div>
+      </PreShow>
+    );
+  }
+
+  if (step === 'name') {
+    return (
+      <PreShow
+        show="Name graphic"
+        segment={segment}
+        segments={segments}
+        title="What should we call you?"
+        sub="Enter your name or nickname"
+        ticker={['Your lower third, on every session']}
+        onNext={() => handleNext()}
+      >
+        <div className="overflow-hidden pb-1" aria-hidden="true">
+          <Plate tone="white" bleed="left" className="flex w-[88%] py-2 pl-4 pr-8 [@media(max-height:500px)]:py-1">
+            <FitText className="h-24 [@media(max-height:600px)]:h-14 [@media(max-height:500px)]:h-12" max={110}>{onAirName}</FitText>
+          </Plate>
+          <div className="mt-1.5">
+            <Plate tone="lime" bleed="left" className="h-9 pl-4 pr-6 text-[1.75rem]">
+              {role === 'coach' ? 'Coach' : 'Fighter'}
+            </Plate>
+          </div>
+        </div>
+        <label className="mt-4 block px-4">
+          <span className="lab">This is your lower third</span>
+          <Input
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="Your name"
+            maxLength={30}
+            className="h-14 text-2xl"
+            autoFocus
+          />
+        </label>
+      </PreShow>
+    );
+  }
+
+  if (step === 'stance') {
+    return (
+      <PreShow
+        show="Tale of the tape"
+        segment={segment}
+        segments={segments}
+        title="Your Stance"
+        sub="Which hand leads? Most right-handers lead with the left."
+        ticker={['Lead foot filled, rear foot outlined', 'Tells the punch camera which hand is your lead']}
+        onNext={() => handleNext()}
+      >
+        <div className="space-y-3">
+          {STANCE_OPTIONS.map((option) => {
+            const on = stance === option.value;
+            return (
+              <button
+                key={option.value}
+                type="button"
+                aria-pressed={on}
+                onClick={() => setStance(option.value)}
+                className={cn(plateClass({ tone: on ? 'lime' : 'graphite', bleed: 'both' }), 'flex w-full justify-between gap-2 py-2 pl-4 pr-3 text-left', !on && 'text-muted-foreground')}
+              >
+                <span className="min-w-0">
+                  <span className="fx block text-[clamp(2.75rem,14vw,4.5rem)] [@media(max-height:500px)]:text-4xl">{option.label}</span>
+                  <span className={cn('mt-1 block text-lg font-semibold leading-tight', !on && 'text-foreground')}>{option.hint}</span>
+                </span>
+                <StanceFeet leftLeads={option.value === 'orthodox'} />
+              </button>
+            );
+          })}
+        </div>
+      </PreShow>
+    );
+  }
+
+  if (step === 'experience') {
+    return (
+      <PreShow
+        show="Weigh-in"
+        segment={segment}
+        segments={segments}
+        title="Experience Level"
+        sub="How much combat sports experience do you have?"
+        ticker={['Your division sets your first loadout']}
+        onNext={() => handleNext()}
+      >
+        <div className="space-y-2">
+          {experienceLevels.map((level, index) => {
+            const on = experience === level.id;
+            return (
+              <ChoicePlate key={level.id} on={on} onClick={() => setExperience(level.id)} width={`${86 + index * 3}%`}>
+                <span className="min-w-0">
+                  <span className="fx block text-[2.125rem]">{level.label}</span>
+                  <span className={cn('block text-[0.9375rem] font-semibold leading-tight', !on && 'text-muted-foreground')}>{level.desc}</span>
+                </span>
+                {on && <span className="fx text-xl">Picked</span>}
+              </ChoicePlate>
+            );
+          })}
+        </div>
+      </PreShow>
+    );
+  }
+
+  if (step === 'equipment') {
+    const inCorner = equipmentOptions.filter((item) => equipment[item.id]).length;
+    return (
+      <PreShow
+        show="Equipment check"
+        segment={segment}
+        segments={segments}
+        title="Your Equipment"
+        sub="What equipment do you have access to?"
+        ticker={[`${inCorner} in the corner`, primaryBag !== 'none' && `${primaryBag === 'heavy' ? 'Heavy' : 'Double end'} is your primary`]}
+        onNext={() => handleNext()}
+      >
+        <div className="border-t border-surface-2">
+          {equipmentOptions.map((item) => {
+            const isBag = item.id === 'heavyBag' || item.id === 'doubleEndBag';
+            const isSelected = !!equipment[item.id];
+            const isPrimary = (item.id === 'heavyBag' && primaryBag === 'heavy') ||
+                              (item.id === 'doubleEndBag' && primaryBag === 'double_end');
+            const showPrimary = isBag && isSelected && equipment.heavyBag && equipment.doubleEndBag;
+            return (
+              <div key={item.id} className="flex flex-wrap items-center justify-end gap-x-3 border-b border-surface-2 pr-4">
+                <button
+                  type="button"
+                  aria-pressed={isSelected}
+                  onClick={() => toggleEquipment(item.id)}
+                  className="flex min-h-[3.25rem] min-w-0 grow basis-[15rem] items-center justify-between gap-3 py-1.5 pl-4 text-left transition-colors hover:bg-surface-1 focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-[-3px] focus-visible:outline-foreground"
+                >
+                  <span className={cn('fx pr-1 text-[1.875rem]', !isSelected && 'text-muted-foreground')}>{item.label}</span>
+                  <Plate tone={isSelected ? 'lime' : 'graphite'} className={cn('h-7 w-12 shrink-0 text-xl', !isSelected && 'text-muted-foreground')}>
+                    {isSelected ? 'In' : 'Out'}
+                  </Plate>
+                </button>
+                {showPrimary && (
+                  <button
+                    type="button"
+                    aria-pressed={isPrimary}
+                    onClick={(e) => togglePrimaryBag(item.id, e)}
+                    title="Set as primary bag"
+                    className={cn(plateClass({ tone: isPrimary ? 'white' : 'outline' }), 'fx mb-1 h-11 shrink-0 px-2.5 text-lg')}
+                  >
+                    {isPrimary ? 'Primary' : 'Set primary'}
+                  </button>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </PreShow>
+    );
+  }
+
+  // Coach tools aren't built yet, so this says so instead of collecting a roster nothing would save
+  if (step === 'coachTools') {
+    return (
+      <BroadcastPage show="Pilot episode" className="flex flex-col">
+        <div className="mt-4 flex-1">
+          <div className="overflow-hidden py-5" style={pilotStripes}>
+            <SectionChyron className="plate-slap h-10 text-[2rem]">Coming soon</SectionChyron>
+            <h2 className="fx mt-4 px-4 text-[clamp(3.25rem,15vw,5.5rem)] [@media(max-height:500px)]:text-5xl">Coach Tools Are Coming</h2>
+          </div>
+          <p className="prose-w mt-4 px-4 text-xl leading-snug">
+            Rosters, programs and a coach marketplace aren't built yet. You can use all of Clocked's training today, and your profile will show you as a coach.
+          </p>
+          <p className="lab mt-4 px-4">In production: Rosters. Programs. Coach marketplace.</p>
+        </div>
+        <OnwardBar label="Continue" onClick={() => handleNext()} ticker={['Coach tools coming soon', 'All training works today']} />
+      </BroadcastPage>
+    );
+  }
+
+  if (step === 'goals') {
+    return (
+      <PreShow
+        show="Storylines"
+        segment={segment}
+        segments={segments}
+        title={role === 'coach' ? 'Your Coaching Goals' : 'Your Goals'}
+        sub={role === 'coach' ? 'What do you want to achieve with your team?' : 'What do you want to achieve?'}
+        ticker={[`${goals.length} ${goals.length === 1 ? 'storyline' : 'storylines'} picked`]}
+        onNext={() => setStep('complete')}
+      >
+        <div className="space-y-2.5">
+          {goalOptions.map((goal, index) => {
+            const on = goals.includes(goal.id);
+            return (
+              <ChoicePlate key={goal.id} on={on} onClick={() => toggleGoal(goal.id)} width={`${88 + (index % 2) * 6}%`}>
+                <span className="fx min-w-0 whitespace-normal text-[clamp(1.5rem,7.5vw,2.75rem)]">{goal.label}</span>
+                {on && <span className="fx shrink-0 text-xl">Picked</span>}
+              </ChoicePlate>
+            );
+          })}
+        </div>
+      </PreShow>
+    );
   }
 
   return (
-    <div className="min-h-screen bg-background flex flex-col relative overflow-hidden">
-      {/* Progress dots */}
-      {step !== 'welcome' && step !== 'complete' && (
-        <div className="flex justify-center gap-2 pt-8 pb-4">
-          {getSteps().map((s, i, arr) => (
-            <div
-              key={s}
-              className={cn(
-                'w-2 h-2 rounded-full transition-colors',
-                step === s ? 'bg-volt' : 
-                arr.indexOf(step) > i ? 'bg-volt/50' : 'bg-surface-3'
-              )}
-            />
-          ))}
+    <BroadcastPage show="Going live" air={<OnAir />} className="flex flex-col">
+      <div className="bg-slash flex flex-1 flex-col justify-center overflow-hidden py-6">
+        <h2 className="px-4">
+          <FitText className="fx h-24 [@media(max-height:500px)]:h-14" max={110}>You're All Set!</FitText>
+        </h2>
+        <div className="mt-4">
+          <Plate tone="white" bleed="left" className="flex w-[88%] py-2 pl-4 pr-8">
+            <FitText className="h-20 [@media(max-height:500px)]:h-12" max={96}>{onAirName}</FitText>
+          </Plate>
         </div>
-      )}
-
-      <div className="flex-1 flex flex-col items-center justify-center px-6 relative z-10">
-        {/* Welcome */}
-        {step === 'welcome' && (
-          <div className="text-center animate-fade-in">
-            <img 
-              src={clockedLogo} 
-              alt="Clocked Logo" 
-              className="w-[26rem] h-[26rem] mx-auto object-contain -mb-32"
-            />
-            <p className="text-lg text-muted-foreground mb-8">
-              Knockout Intelligence.
-            </p>
-            <div className="flex flex-col items-center gap-3">
-              <Button 
-                onClick={() => handleNext()} 
-                className="btn-primary-glow w-40 py-2 h-auto text-sm"
-              >
-                GET STARTED
-                <ArrowRight className="w-4 h-4 ml-2" />
-              </Button>
-              <Button 
-                onClick={() => navigate('/auth')} 
-                variant="outline"
-                className="w-40 py-2 h-auto text-sm bg-surface-1 border-surface-3 hover:bg-surface-2"
-              >
-                LOGIN
-                <LogIn className="w-4 h-4 ml-2" />
-              </Button>
-            </div>
-          </div>
-        )}
-
-        {/* Role Selection */}
-        {step === 'role' && (
-          <div className="w-full max-w-md animate-fade-in">
-            <h2 className="text-2xl font-black text-foreground text-center mb-2">
-              Who are you?
-            </h2>
-            <p className="text-muted-foreground text-center mb-8">
-              This helps us personalize your experience
-            </p>
-
-            <div className="space-y-4">
-              <button
-                onClick={() => { setRole('fighter'); handleNext('fighter'); }}
-                className={cn(
-                  'w-full p-6 rounded-2xl border-2 text-left transition-all',
-                  role === 'fighter' 
-                    ? 'border-volt bg-volt/10' 
-                    : 'border-surface-3 bg-surface-1 hover:border-surface-2'
-                )}
-              >
-                <div className="flex items-center gap-4">
-                  <div className="w-14 h-14 rounded-xl bg-volt/20 flex items-center justify-center">
-                    <User className="w-7 h-7 text-volt" />
-                  </div>
-                  <div>
-                    <h3 className="text-lg font-bold text-foreground">I'M A FIGHTER</h3>
-                    <p className="text-sm text-muted-foreground">Training solo or with a coach</p>
-                  </div>
-                </div>
-              </button>
-
-              <button
-                onClick={() => { setRole('coach'); handleNext('coach'); }}
-                className={cn(
-                  'w-full p-6 rounded-2xl border-2 text-left transition-all',
-                  role === 'coach' 
-                    ? 'border-volt bg-volt/10' 
-                    : 'border-surface-3 bg-surface-1 hover:border-surface-2'
-                )}
-              >
-                <div className="flex items-center gap-4">
-                  <div className="w-14 h-14 rounded-xl bg-volt/20 flex items-center justify-center">
-                    <Users className="w-7 h-7 text-volt" />
-                  </div>
-                  <div>
-                    <h3 className="text-lg font-bold text-foreground">I'M A COACH</h3>
-                    <p className="text-sm text-muted-foreground">Train here today. Coach tools are coming soon.</p>
-                  </div>
-                </div>
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* Name */}
-        {step === 'name' && (
-          <div className="w-full max-w-md animate-fade-in">
-            <h2 className="text-2xl font-black text-foreground text-center mb-2">
-              What should we call you?
-            </h2>
-            <p className="text-muted-foreground text-center mb-8">
-              Enter your name or nickname
-            </p>
-
-            <Input
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="Your name"
-              maxLength={30}
-              className="h-14 text-lg bg-surface-1 border-surface-3 text-center mb-6"
-              autoFocus
-            />
-
-            <Button onClick={() => handleNext()} className="btn-primary-glow w-full h-14 text-lg">
-              Continue
-              <ArrowRight className="w-5 h-5 ml-2" />
-            </Button>
-          </div>
-        )}
-
-        {/* Stance */}
-        {step === 'stance' && (
-          <div className="w-full max-w-md animate-fade-in">
-            <h2 className="text-2xl font-black text-foreground text-center mb-2">
-              Your Stance
-            </h2>
-            <p className="text-muted-foreground text-center mb-8">
-              Which hand leads? Most right-handers lead with the left.
-            </p>
-
-            <div className="space-y-3 mb-6">
-              {STANCE_OPTIONS.map((option) => (
-                <button
-                  key={option.value}
-                  onClick={() => setStance(option.value)}
-                  className={cn(
-                    'w-full p-4 rounded-xl border text-left transition-all',
-                    stance === option.value
-                      ? 'border-volt bg-volt/10'
-                      : 'border-surface-3 bg-surface-1'
-                  )}
-                >
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h3 className="font-semibold text-foreground">{option.label}</h3>
-                      <p className="text-sm text-muted-foreground">{option.hint}</p>
-                    </div>
-                    {stance === option.value && (
-                      <Check className="w-5 h-5 text-volt" />
-                    )}
-                  </div>
-                </button>
-              ))}
-            </div>
-
-            <Button onClick={() => handleNext()} className="btn-primary-glow w-full h-14 text-lg">
-              Continue
-              <ArrowRight className="w-5 h-5 ml-2" />
-            </Button>
-          </div>
-        )}
-
-        {/* Experience (fighters only) */}
-        {step === 'experience' && (
-          <div className="w-full max-w-md animate-fade-in">
-            <h2 className="text-2xl font-black text-foreground text-center mb-2">
-              Experience Level
-            </h2>
-            <p className="text-muted-foreground text-center mb-8">
-              How much combat sports experience do you have?
-            </p>
-
-            <div className="space-y-3 mb-6">
-              {experienceLevels.map((level) => (
-                <button
-                  key={level.id}
-                  onClick={() => setExperience(level.id)}
-                  className={cn(
-                    'w-full p-4 rounded-xl border text-left transition-all',
-                    experience === level.id 
-                      ? 'border-volt bg-volt/10' 
-                      : 'border-surface-3 bg-surface-1'
-                  )}
-                >
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h3 className="font-semibold text-foreground">{level.label}</h3>
-                      <p className="text-sm text-muted-foreground">{level.desc}</p>
-                    </div>
-                    {experience === level.id && (
-                      <Check className="w-5 h-5 text-volt" />
-                    )}
-                  </div>
-                </button>
-              ))}
-            </div>
-
-            <Button onClick={() => handleNext()} className="btn-primary-glow w-full h-14 text-lg">
-              Continue
-              <ArrowRight className="w-5 h-5 ml-2" />
-            </Button>
-          </div>
-        )}
-
-        {/* Equipment (fighters only) */}
-        {step === 'equipment' && (
-          <div className="w-full max-w-md animate-fade-in">
-            <h2 className="text-2xl font-black text-foreground text-center mb-2">
-              Your Equipment
-            </h2>
-            <p className="text-muted-foreground text-center mb-8">
-              What equipment do you have access to?
-            </p>
-
-             <div className="grid grid-cols-2 gap-3 mb-6">
-              {equipmentOptions.map((item) => {
-                const isBag = item.id === 'heavyBag' || item.id === 'doubleEndBag';
-                const isSelected = equipment[item.id];
-                const isPrimary = (item.id === 'heavyBag' && primaryBag === 'heavy') ||
-                                  (item.id === 'doubleEndBag' && primaryBag === 'double_end');
-                const hasGlovesAndWraps = equipment.gloves && equipment.wraps;
-                const showStar = isBag && isSelected && equipment.heavyBag && equipment.doubleEndBag;
-                return (
-                  <button
-                    key={item.id}
-                    onClick={() => toggleEquipment(item.id)}
-                    className={cn(
-                      'p-4 rounded-xl border text-left transition-all relative',
-                      isSelected
-                        ? 'border-volt bg-volt/10' 
-                        : 'border-surface-3 bg-surface-1'
-                    )}
-                  >
-                    <span className="text-2xl mb-2 block">{item.icon}</span>
-                    <span className="text-sm font-medium text-foreground">{item.label}</span>
-                    {showStar && (
-                      <button
-                        onClick={(e) => togglePrimaryBag(item.id, e)}
-                        className={cn(
-                          'absolute top-2 right-2 w-7 h-7 rounded-full flex items-center justify-center transition-all',
-                          isPrimary ? 'bg-volt text-background' : 'bg-surface-3 text-muted-foreground hover:bg-surface-2'
-                        )}
-                        title="Set as primary bag"
-                      >
-                        <Star className={cn('w-4 h-4', isPrimary && 'fill-current')} />
-                      </button>
-                    )}
-                  </button>
-                );
-              })}
-            </div>
-
-            <Button onClick={() => handleNext()} className="btn-primary-glow w-full h-14 text-lg">
-              Continue
-              <ArrowRight className="w-5 h-5 ml-2" />
-            </Button>
-          </div>
-        )}
-
-        {/* Coach tools aren't built yet, so this says so instead of collecting a roster nothing would save */}
-        {step === 'coachTools' && (
-          <div className="w-full max-w-md animate-fade-in text-center">
-            <span className="inline-block text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-surface-2 text-muted-foreground mb-4">
-              Coming soon
-            </span>
-            <h2 className="text-2xl font-black text-foreground mb-2">
-              Coach Tools Are Coming
-            </h2>
-            <p className="text-muted-foreground mb-8">
-              Rosters, programs and a coach marketplace aren't built yet. You can use all of Clocked's training today, and your profile will show you as a coach.
-            </p>
-
-            <Button onClick={() => handleNext()} className="btn-primary-glow w-full h-14 text-lg">
-              Continue
-              <ArrowRight className="w-5 h-5 ml-2" />
-            </Button>
-          </div>
-        )}
-
-        {/* Goals */}
-        {step === 'goals' && (
-          <div className="w-full max-w-md animate-fade-in">
-            <h2 className="text-2xl font-black text-foreground text-center mb-2">
-              {role === 'coach' ? 'Your Coaching Goals' : 'Your Goals'}
-            </h2>
-            <p className="text-muted-foreground text-center mb-8">
-              {role === 'coach' ? 'What do you want to achieve with your team?' : 'What do you want to achieve?'}
-            </p>
-
-            <div className="space-y-3 mb-6">
-              {goalOptions.map((goal) => {
-                const Icon = goal.icon;
-                return (
-                  <button
-                    key={goal.id}
-                    onClick={() => toggleGoal(goal.id)}
-                    className={cn(
-                      'w-full p-4 rounded-xl border text-left transition-all',
-                      goals.includes(goal.id) 
-                        ? 'border-volt bg-volt/10' 
-                        : 'border-surface-3 bg-surface-1'
-                    )}
-                  >
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <Icon className="w-5 h-5 text-volt" />
-                        <span className="font-semibold text-foreground">{goal.label}</span>
-                      </div>
-                      {goals.includes(goal.id) && (
-                        <Check className="w-5 h-5 text-volt" />
-                      )}
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
-
-            <Button onClick={() => setStep('complete')} className="btn-primary-glow w-full h-14 text-lg">
-              Continue
-              <ArrowRight className="w-5 h-5 ml-2" />
-            </Button>
-          </div>
-        )}
-
-        {/* Complete */}
-        {step === 'complete' && (
-          <div className="text-center animate-fade-in">
-            <div className="w-24 h-24 rounded-full bg-volt/20 flex items-center justify-center mx-auto mb-8">
-              <Check className="w-12 h-12 text-volt" />
-            </div>
-            <h2 className="text-3xl font-black text-foreground mb-2">
-              You're All Set!
-            </h2>
-            <p className="text-muted-foreground mb-8 max-w-sm">
-              {role === 'coach' 
-                ? "Your loadout is ready. Coach tools are on the way, so for now, let's train."
-                : "Your personalized loadout is ready. Let's get to work."
-              }
-            </p>
-            <Button onClick={handleComplete} className="btn-primary-glow w-full max-w-xs h-14 text-lg">
-              {role === 'coach' ? "LET'S WORK" : 'START TRAINING'}
-              <ArrowRight className="w-5 h-5 ml-2" />
-            </Button>
-          </div>
-        )}
+        <div className="mt-1.5">
+          <Plate tone="graphite" bleed="left" className="h-9 pl-4 pr-6 text-[1.75rem]">Loadout ready</Plate>
+        </div>
+        <p className="prose-w mt-4 max-w-lg px-4 text-xl leading-snug">
+          {role === 'coach'
+            ? "Your loadout is ready. Coach tools are on the way, so for now, let's train."
+            : "Your personalized loadout is ready. Let's get to work."
+          }
+        </p>
       </div>
-    </div>
+      <OnwardBar
+        label={role === 'coach' ? "LET'S WORK" : 'START TRAINING'}
+        onClick={handleComplete}
+        ticker={['Stand by', 'Your session is on air']}
+      />
+    </BroadcastPage>
   );
 };
 

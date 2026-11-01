@@ -1,7 +1,8 @@
 import { getSpeechRecognizerClass, type SpeechRecognizer } from '@/lib/speechRecognition';
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import { X, Sparkles, Wand2, Mic, MicOff, TrendingUp, CheckCircle } from 'lucide-react';
+import { X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { MicIcon, OnAir, ScoreBug, SegmentBar, StopIcon } from '@/components/broadcast';
 import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
@@ -530,50 +531,44 @@ export const AIBuilderModal = ({ onClose, onWorkoutGenerated, startingPrompt }: 
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-50">
       {/* Backdrop */}
       <div 
-        className="absolute inset-0 bg-black/80 backdrop-blur-sm"
+        className="absolute inset-0 bg-background/85"
         onClick={onClose}
       />
       
       {/* Modal */}
-      <div className="relative w-full max-w-md max-h-[calc(100dvh-2rem)] flex flex-col bg-surface-1 rounded-2xl border border-surface-3 overflow-hidden animate-in zoom-in-95 duration-200">
+      <div role="dialog" aria-modal="true" aria-labelledby="ai-title" className="dialog-panel z-50 overflow-x-clip !p-0">
         {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-surface-3">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-volt/20 flex items-center justify-center">
-              <Sparkles className="w-4 h-4 text-volt" />
-            </div>
-            <h2 className="text-lg font-bold text-foreground uppercase tracking-wide">
-              Generate with AI
-            </h2>
-          </div>
+        <div className="flex items-center justify-between gap-3 pt-[max(0.625rem,env(safe-area-inset-top))]">
+          <ScoreBug mid={<><span className="max-[359px]:hidden">Producer's desk</span><span className="min-[360px]:hidden">Desk</span></>} className="min-w-0" />
           <button 
+            type="button"
+            aria-label="Close"
             onClick={onClose}
-            className="w-8 h-8 rounded-full bg-surface-2 flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
+            className="plate plate-graphite mr-4 h-11 w-12 shrink-0"
           >
-            <X className="w-4 h-4" />
+            <X className="size-5" />
           </button>
         </div>
 
         {/* Content */}
-        <div className="p-4 space-y-4 overflow-y-auto min-h-0">
+        <div className="space-y-4 pt-3">
+          <h2 id="ai-title" className="fx px-4 text-5xl">Generate with AI</h2>
+
           {/* History Insights Banner */}
           {insightsSummary && (
-            <div className="bg-surface-2 border border-volt/20 rounded-xl p-3 flex items-start gap-2">
-              <TrendingUp className="w-4 h-4 text-volt mt-0.5 flex-shrink-0" />
-              <p className="text-xs text-muted-foreground">
-                <span className="text-volt font-medium">💡 Personalized: </span>
-                {insightsSummary}
-              </p>
-            </div>
+            <p className="prose-w border-l-4 border-volt bg-surface-2 px-3 py-2 text-base">
+              <span className="lab lab-lime block pb-1">Personalized</span>
+              {insightsSummary}
+            </p>
           )}
 
           {/* Instructions */}
-          <div className="bg-surface-2 rounded-xl p-3 text-sm text-muted-foreground">
-            <p className="font-medium text-foreground mb-1">Describe your ideal workout:</p>
-            <ul className="text-xs space-y-1 list-disc list-inside">
+          <div className="px-4">
+            <p className="lab lab-w">Describe your ideal workout:</p>
+            <ul className="prose-w mt-1.5 space-y-0.5 text-base text-muted-foreground">
               <li>Number of rounds (e.g., "5 rounds")</li>
               <li>Duration (e.g., "20 min session")</li>
               <li>Focus area (e.g., "defense drills", "heavy bag")</li>
@@ -582,49 +577,40 @@ export const AIBuilderModal = ({ onClose, onWorkoutGenerated, startingPrompt }: 
           </div>
 
           {/* Prompt Input with Voice Button */}
-          <div className="space-y-2">
+          <div className="space-y-2 px-4">
             <div className="relative">
               <Textarea
                 value={prompt + (interimTranscript ? (prompt ? ' ' : '') + interimTranscript : '')}
                 onChange={(e) => setPrompt(e.target.value)}
                 placeholder="E.g. 5 round heavy bag workout with defense combos"
+                aria-label="Describe your ideal workout"
                 className={cn(
-                  "min-h-[100px] bg-surface-2 border-surface-3 text-foreground placeholder:text-muted-foreground resize-none pr-14",
-                  isListening && "border-volt"
+                  "min-h-[7rem] resize-none border-l-4 border-volt bg-surface-2 pr-20 text-xl text-foreground",
                 )}
               />
               
               {/* Voice Button */}
               <button
+                type="button"
                 onClick={toggleListening}
-                className={cn(
-                  'absolute right-3 bottom-3 w-10 h-10 rounded-full flex items-center justify-center transition-all duration-200',
-                  isListening 
-                    ? 'bg-volt text-primary-foreground animate-pulse shadow-[0_0_20px_hsl(var(--electric-volt)/0.6)]' 
-                    : 'bg-surface-3 text-muted-foreground hover:bg-surface-2 hover:text-foreground'
-                )}
+                aria-label={isListening ? 'Stop voice input' : 'Voice input'}
+                aria-pressed={isListening}
+                className={cn('plate absolute bottom-3 right-4 h-11 w-12', isListening ? 'plate-red' : 'plate-steel')}
               >
-                {isListening ? (
-                  <Mic className="w-5 h-5" />
-                ) : (
-                  <MicOff className="w-5 h-5" />
-                )}
+                {isListening ? <StopIcon className="size-5" /> : <MicIcon className="size-5" />}
               </button>
             </div>
             
             {isListening && (
-              <p className="text-xs text-volt animate-pulse flex items-center gap-1">
-                <span className="w-2 h-2 rounded-full bg-volt" />
-                Listening... tap mic to stop
-              </p>
+              <OnAir>Listening... tap mic to stop</OnAir>
             )}
             
             {/* Prompt Quality Hints */}
             {promptHints.length > 0 && prompt.trim().length > 10 && (
               <div className="space-y-1">
                 {promptHints.slice(0, 2).map((hint, i) => (
-                  <p key={i} className="text-xs text-muted-foreground/70">
-                    💡 {hint}
+                  <p key={i} className="prose-w text-base text-muted-foreground">
+                    {hint}
                   </p>
                 ))}
               </div>
@@ -632,19 +618,16 @@ export const AIBuilderModal = ({ onClose, onWorkoutGenerated, startingPrompt }: 
           </div>
 
           {/* Suggestion Chips */}
-          <div className="space-y-2">
-            <p className="text-xs text-muted-foreground">Quick suggestions:</p>
-            <div className="flex flex-wrap gap-2">
+          <div>
+            <p className="lab px-4">Quick suggestions:</p>
+            <div className="mt-1.5 flex flex-wrap gap-x-4 gap-y-1.5 px-5">
               {SUGGESTION_CHIPS.map((suggestion) => (
                 <button
+                  type="button"
                   key={suggestion}
+                  aria-pressed={prompt === suggestion}
                   onClick={() => handleSuggestionClick(suggestion)}
-                  className={cn(
-                    'px-3 py-1.5 rounded-full text-xs font-medium transition-colors',
-                    prompt === suggestion
-                      ? 'bg-volt text-primary-foreground'
-                      : 'bg-surface-2 text-muted-foreground hover:bg-surface-3'
-                  )}
+                  className={cn('plate fx h-11 px-3 text-xl', prompt === suggestion ? 'plate-white' : 'plate-graphite')}
                 >
                   {suggestion}
                 </button>
@@ -654,70 +637,40 @@ export const AIBuilderModal = ({ onClose, onWorkoutGenerated, startingPrompt }: 
         </div>
 
         {/* Actions */}
-        <div className="p-4 border-t border-surface-3 space-y-3">
+        <div className="space-y-3 px-5 pb-4 pt-4">
           {isGuest && !isGenerating && (
-            <p className="text-xs text-muted-foreground text-center">
+            <p className="prose-w text-sm text-muted-foreground">
               AI generation needs an account. Without one, we build this from your text on this device.
             </p>
           )}
 
           {/* Progress Bar (visible during generation) */}
           {isGenerating && (
-            <div className="space-y-2">
-              <div className="w-full h-2 bg-surface-2 rounded-full overflow-hidden">
-                <div 
-                  className="h-full bg-volt rounded-full"
-                  style={{ width: `${generationProgress}%` }}
-                />
-              </div>
-              <p className={cn(
-                "text-xs text-center font-medium transition-colors",
-                generationDone ? "text-volt" : "text-muted-foreground"
-              )}>
-                {generationDone ? (
-                  <span className="flex items-center justify-center gap-1">
-                    <CheckCircle className="w-3.5 h-3.5" />
-                    Workout built!
-                  </span>
-                ) : (
-                  `Building workout... ${Math.round(generationProgress)}%`
-                )}
+            <div className="space-y-2" role="status">
+              <SegmentBar total={24} filled={Math.round((generationProgress / 100) * 24)} />
+              <p className={cn("lab", generationDone ? "lab-lime" : "lab-w")}>
+                {generationDone ? 'Workout built!' : `Building workout... ${Math.round(generationProgress)}%`}
               </p>
             </div>
           )}
           
-          <div className="flex gap-3">
+          <div className="grid grid-cols-[2fr_3fr] gap-4">
             <Button 
-              variant="outline"
+              variant="secondary"
               onClick={onClose}
               disabled={isGenerating}
-              className="flex-1 border-surface-3 text-foreground hover:bg-surface-2"
+              size="lg"
+              className="px-2 text-3xl"
             >
               Cancel
             </Button>
             <Button 
               onClick={generationDone ? onClose : handleGenerate}
               disabled={!prompt.trim() || (isGenerating && !generationDone)}
-              className="flex-1 bg-volt text-primary-foreground hover:bg-volt/90 disabled:opacity-50"
+              size="lg"
+              className="px-2 text-3xl"
             >
-              {isGenerating ? (
-                generationDone ? (
-                  <>
-                    <CheckCircle className="w-4 h-4 mr-2" />
-                    Done!
-                  </>
-                ) : (
-                  <>
-                    <div className="w-4 h-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin mr-2" />
-                    Generating...
-                  </>
-                )
-              ) : (
-                <>
-                  <Wand2 className="w-4 h-4 mr-2" />
-                  Generate
-                </>
-              )}
+              {isGenerating ? (generationDone ? 'Done!' : 'Generating...') : 'Generate'}
             </Button>
           </div>
         </div>

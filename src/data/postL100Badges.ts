@@ -87,19 +87,19 @@ export interface PostL100Badge {
 
 // Category display config
 export const POST_L100_CATEGORY_COLORS: Record<PostL100Category, { bg: string; text: string; glow: string }> = {
-  mastery:            { bg: 'bg-violet-500/20',  text: 'text-violet-400',  glow: 'shadow-violet-500/30' },
-  overflow:           { bg: 'bg-cyan-500/20',    text: 'text-cyan-400',    glow: 'shadow-cyan-500/30' },
-  legacy:             { bg: 'bg-slate-300/20',   text: 'text-slate-200',   glow: 'shadow-slate-300/30' },
-  ultra_combo:        { bg: 'bg-blue-600/20',    text: 'text-blue-300',    glow: 'shadow-blue-600/30' },
-  ultra_conditioning: { bg: 'bg-rose-500/20',    text: 'text-rose-400',    glow: 'shadow-rose-500/30' },
-  ultra_time:         { bg: 'bg-indigo-500/20',  text: 'text-indigo-400',  glow: 'shadow-indigo-500/30' },
-  ultra_volume:       { bg: 'bg-emerald-500/20', text: 'text-emerald-400', glow: 'shadow-emerald-500/30' },
-  ultra_cardio:       { bg: 'bg-teal-500/20',    text: 'text-teal-400',    glow: 'shadow-teal-500/30' },
-  consistency:        { bg: 'bg-lime-500/20',    text: 'text-lime-400',    glow: 'shadow-lime-500/30' },
-  milestones:         { bg: 'bg-fuchsia-500/20', text: 'text-fuchsia-400', glow: 'shadow-fuchsia-500/30' },
-  performance:        { bg: 'bg-sky-500/20',     text: 'text-sky-400',     glow: 'shadow-sky-500/30' },
-  ultra_streak:       { bg: 'bg-orange-600/20',  text: 'text-orange-300',  glow: 'shadow-orange-600/30' },
-  combat_mastery:     { bg: 'bg-red-600/20',     text: 'text-red-300',     glow: 'shadow-red-600/30' },
+  mastery: { bg: 'bg-volt/15', text: 'text-volt', glow: 'shadow-none' },
+  overflow: { bg: 'bg-surface-3', text: 'text-foreground', glow: 'shadow-none' },
+  legacy: { bg: 'bg-surface-2', text: 'text-foreground', glow: 'shadow-none' },
+  ultra_combo: { bg: 'bg-surface-3', text: 'text-muted-foreground', glow: 'shadow-none' },
+  ultra_conditioning: { bg: 'bg-volt/15', text: 'text-volt', glow: 'shadow-none' },
+  ultra_time: { bg: 'bg-surface-3', text: 'text-foreground', glow: 'shadow-none' },
+  ultra_volume: { bg: 'bg-surface-2', text: 'text-foreground', glow: 'shadow-none' },
+  ultra_cardio: { bg: 'bg-surface-3', text: 'text-muted-foreground', glow: 'shadow-none' },
+  consistency: { bg: 'bg-volt/15', text: 'text-volt', glow: 'shadow-none' },
+  milestones: { bg: 'bg-surface-3', text: 'text-foreground', glow: 'shadow-none' },
+  performance: { bg: 'bg-surface-2', text: 'text-foreground', glow: 'shadow-none' },
+  ultra_streak: { bg: 'bg-surface-3', text: 'text-muted-foreground', glow: 'shadow-none' },
+  combat_mastery: { bg: 'bg-volt/15', text: 'text-volt', glow: 'shadow-none' },
 };
 
 export const POST_L100_CATEGORY_NAMES: Record<PostL100Category, string> = {

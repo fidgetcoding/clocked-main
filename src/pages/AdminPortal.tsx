@@ -1,15 +1,16 @@
 import { useState } from 'react';
-import { ArrowLeft, UserPlus, Trash2, Shield, Users } from 'lucide-react';
+import { Trash2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { AppLayout } from '@/components/layout/AppLayout';
+import { BroadcastPage, EmptyPlate, FitText, SectionChyron } from '@/components/broadcast';
 import { Button } from '@/components/ui/button';
+import { buttonVariants } from '@/components/ui/button-variants';
 import { Input } from '@/components/ui/input';
 import { supabase } from '@/integrations/supabase/client';
 import { useUserRole } from '@/hooks/useUserRole';
 import { toast } from 'sonner';
-import { PrestigeBadge } from '@/components/ui/PrestigeDisplay';
-import { getRankingFromLevel, Prestige } from '@/lib/xpSystem';
+import { getRankingFromLevel, Prestige, PRESTIGE_NAMES, RANKING_NAMES } from '@/lib/xpSystem';
 import { functionErrorMessage } from '@/lib/functionError';
 import {
   AlertDialog,
@@ -42,13 +43,13 @@ interface AdminUser {
 }
 
 const equipmentLabels: Record<string, string> = {
-  gloves: '🥊 Gloves',
-  wraps: '🤜 Wraps',
-  heavyBag: '🎯 Heavy Bag',
-  doubleEndBag: '🔴 Double-End Bag',
-  speedBag: '💨 Speed Bag',
-  jumpRope: '🪢 Jump Rope',
-  treadmill: '🏃 Treadmill',
+  gloves: 'Gloves',
+  wraps: 'Wraps',
+  heavyBag: 'Heavy Bag',
+  doubleEndBag: 'Double-End Bag',
+  speedBag: 'Speed Bag',
+  jumpRope: 'Jump Rope',
+  treadmill: 'Treadmill',
 };
 
 const goalLabels: Record<string, string> = {
@@ -99,30 +100,59 @@ const AdminPortal = () => {
     const showPrimaryStar = hasBothBags && primaryBag && primaryBag !== 'none';
 
     return (
-      <div className="mt-2 space-y-1.5 border-t border-surface-3 pt-2">
+      <div className="mt-1.5 flex flex-wrap gap-x-3 gap-y-0.5 border-t border-surface-2 pt-1.5">
         {user.prestige && (
-          <PrestigeBadge 
-            prestige={user.prestige as Prestige} 
-            ranking={getRankingFromLevel(user.current_level || 1)} 
-            level={user.current_level || 1} 
-          />
+          <span className="lab lab-lime">
+            {PRESTIGE_NAMES[user.prestige as Prestige]}, {RANKING_NAMES[getRankingFromLevel(user.current_level || 1)]}, Lvl {user.current_level || 1}
+          </span>
         )}
-        {selectedEquipment.length > 0 && (
-          <div className="flex flex-wrap gap-1">
-            {selectedEquipment.map(eq => (
-              <span key={eq} className="text-[10px] bg-surface-2 px-1.5 py-0.5 rounded text-muted-foreground">{eq}</span>
-            ))}
-            {showPrimaryStar && (
-              <span className="text-[10px] bg-volt/10 text-volt px-1.5 py-0.5 rounded">⭐ {primaryBag === 'heavy' ? 'Heavy Bag' : 'Double-End Bag'}</span>
-            )}
-          </div>
+        {selectedEquipment.map(eq => (
+          <span key={eq} className="lab">{eq}</span>
+        ))}
+        {selectedEquipment.length > 0 && showPrimaryStar && (
+          <span className="lab lab-w">Primary: {primaryBag === 'heavy' ? 'Heavy Bag' : 'Double-End Bag'}</span>
         )}
         {!user.prestige && !user.experience_level && selectedEquipment.length === 0 && (
-          <span className="text-[10px] text-muted-foreground italic">No onboarding data</span>
+          <span className="lab">No onboarding data</span>
         )}
       </div>
     );
   };
+
+  // One row on the credits. The whole row opens the profile; the name is its keyboard stop.
+  const renderUserRow = (user: AdminUser, canDelete: boolean) => (
+    <div
+      key={user.id}
+      onClick={() => navigate(`/profile/${user.id}`)}
+      className="card-workout cursor-pointer border-b border-surface-2 bg-transparent p-0 px-4 py-2 transition-colors hover:bg-surface-1"
+    >
+      <div className="flex items-center gap-3">
+        <div className="min-w-0 flex-1">
+          <button type="button" className="block min-h-11 w-full text-left">
+            <span className="fx block break-words text-3xl">{user.name}</span>
+          </button>
+          {user.handle && <p className="lab truncate normal-case tracking-normal">@{user.handle}</p>}
+          <p className="truncate text-sm text-muted-foreground">{user.email}</p>
+        </div>
+        <div className="shrink-0 text-right">
+          <p className="fx text-2xl">{user.total_xp} XP</p>
+          <p className="lab mt-0.5">{user.workouts_completed} sessions</p>
+          <p className="lab mt-0.5">{user.profile_role || 'fighter'}</p>
+        </div>
+        {canDelete && (
+          <button
+            type="button"
+            aria-label={`Delete ${user.name}`}
+            onClick={(e) => { e.stopPropagation(); setUserToDelete(user); }}
+            className="flex h-11 w-11 shrink-0 items-center justify-center text-muted-foreground transition-colors hover:text-destructive"
+          >
+            <Trash2 className="h-4 w-4" />
+          </button>
+        )}
+      </div>
+      {renderOnboardingDetails(user)}
+    </div>
+  );
 
   const addUser = useMutation({
     mutationFn: async () => {
@@ -177,9 +207,9 @@ const AdminPortal = () => {
   if (roleLoading) {
     return (
       <AppLayout>
-        <div className="min-h-screen bg-background flex items-center justify-center">
-          <p className="text-muted-foreground">Loading...</p>
-        </div>
+        <BroadcastPage>
+          <p className="lab px-4 py-8">Loading...</p>
+        </BroadcastPage>
       </AppLayout>
     );
   }
@@ -187,183 +217,94 @@ const AdminPortal = () => {
   if (!isAdmin) {
     return (
       <AppLayout>
-        <div className="min-h-screen bg-background flex items-center justify-center">
-          <div className="text-center">
-            <Shield className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-            <p className="text-foreground font-bold text-lg">Access Denied</p>
-            <p className="text-muted-foreground text-sm mt-1">Admin privileges required</p>
-          </div>
-        </div>
+        <BroadcastPage>
+          <EmptyPlate title="Access Denied" body="Admin privileges required" />
+        </BroadcastPage>
       </AppLayout>
     );
   }
 
+  const admins = users.filter(u => u.role === 'admin');
+  const regulars = users.filter(u => u.role !== 'admin');
+
   return (
     <AppLayout>
-      <div className="min-h-screen bg-background">
-        {/* Header */}
-        <header className="flex items-center gap-3 px-4 pt-8 pb-6 safe-top">
-          <button onClick={() => navigate('/settings')} className="text-muted-foreground">
-            <ArrowLeft className="w-6 h-6" />
-          </button>
-          <h1 className="text-2xl font-black text-foreground tracking-wider flex-1">
-            ADMIN PANEL
-          </h1>
-          <button
-            onClick={() => setShowAddForm(!showAddForm)}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-volt text-background text-sm font-bold"
-          >
-            <UserPlus className="w-4 h-4" />
-            Add
-          </button>
-        </header>
-
-        <div className="px-4 space-y-4 pb-24">
-          {/* Add User Form */}
-          {showAddForm && (
-            <div className="card-workout space-y-3">
-              <h3 className="text-sm font-bold text-foreground">Create New User</h3>
-              <Input
-                placeholder="Name"
-                value={newName}
-                onChange={(e) => setNewName(e.target.value)}
-                className="bg-surface-2 border-surface-3"
-              />
-              <Input
-                type="email"
-                placeholder="Email"
-                value={newEmail}
-                onChange={(e) => setNewEmail(e.target.value)}
-                className="bg-surface-2 border-surface-3"
-              />
-              <Input
-                type="password"
-                placeholder="Password"
-                value={newPassword}
-                onChange={(e) => setNewPassword(e.target.value)}
-                className="bg-surface-2 border-surface-3"
-              />
-              <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setShowAddForm(false)}
-                  className="flex-1"
-                >
-                  Cancel
-                </Button>
-                <Button
-                  size="sm"
-                  onClick={() => addUser.mutate()}
-                  disabled={!newEmail || !newPassword || addUser.isPending}
-                  className="flex-1 bg-volt text-background hover:bg-volt/90 font-bold"
-                >
-                  {addUser.isPending ? 'Creating...' : 'Create'}
-                </Button>
-              </div>
-            </div>
-          )}
-
-
-          {/* User List */}
-          {isLoading ? (
-            <div className="text-center py-8">
-              <p className="text-muted-foreground text-sm">Loading users...</p>
-            </div>
-          ) : usersError ? (
-            <div className="text-center py-8">
-              <p role="alert" className="text-destructive text-sm">Couldn't load users: {usersError.message}</p>
-            </div>
-          ) : (
-            <div className="space-y-6">
-              {/* Administrators */}
-              {users.filter(u => u.role === 'admin').length > 0 && (
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2 text-volt">
-                    <Shield className="w-4 h-4" />
-                    <span className="text-xs font-bold uppercase tracking-wider">Administrators</span>
-                    <span className="text-xs text-volt">({users.filter(u => u.role === 'admin').length})</span>
-                  </div>
-                  {users.filter(u => u.role === 'admin').map((user) => (
-                    <div key={user.id} onClick={() => navigate(`/profile/${user.id}`)} className="card-workout cursor-pointer hover:bg-surface-2 transition-colors border border-volt/20">
-                      <div className="flex items-center gap-3">
-                        <div className="flex-1 min-w-0">
-                          <p className="text-foreground font-bold text-sm truncate">
-                            {user.name}
-                            {user.handle && (
-                              <span className="text-muted-foreground font-normal ml-1">@{user.handle}</span>
-                            )}
-                          </p>
-                          <p className="text-xs text-muted-foreground truncate">{user.email}</p>
-                          <div className="flex gap-3 mt-1">
-                            <span className="text-[10px] text-muted-foreground uppercase font-bold">{user.profile_role?.toUpperCase() || 'FIGHTER'}</span>
-                            <span className="text-[10px] text-muted-foreground">{user.total_xp} XP</span>
-                            <span className="text-[10px] text-muted-foreground">{user.workouts_completed} sessions</span>
-                          </div>
-                        </div>
-                      </div>
-                      {renderOnboardingDetails(user)}
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {/* Regular Users */}
-              <div className="space-y-2">
-                <div className="flex items-center gap-2 text-muted-foreground">
-                  <Users className="w-4 h-4" />
-                  <span className="text-xs font-bold uppercase tracking-wider">Users</span>
-                  <span className="text-xs text-muted-foreground">({users.filter(u => u.role !== 'admin').length})</span>
-                </div>
-                {users.filter(u => u.role !== 'admin').map((user) => (
-                  <div key={user.id} onClick={() => navigate(`/profile/${user.id}`)} className="card-workout cursor-pointer hover:bg-surface-2 transition-colors">
-                    <div className="flex items-center gap-3">
-                      <div className="flex-1 min-w-0">
-                        <p className="text-foreground font-bold text-sm truncate">
-                          {user.name}
-                          {user.handle && (
-                            <span className="text-muted-foreground font-normal ml-1">@{user.handle}</span>
-                          )}
-                        </p>
-                        <p className="text-xs text-muted-foreground truncate">{user.email}</p>
-                        <div className="flex gap-3 mt-1">
-                          <span className="text-[10px] text-muted-foreground uppercase">{user.profile_role || 'fighter'}</span>
-                          <span className="text-[10px] text-muted-foreground">{user.total_xp} XP</span>
-                          <span className="text-[10px] text-muted-foreground">{user.workouts_completed} sessions</span>
-                        </div>
-                      </div>
-                      <button
-                        onClick={(e) => { e.stopPropagation(); setUserToDelete(user); }}
-                        className="p-2 text-muted-foreground hover:text-destructive transition-colors shrink-0"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
-                    {renderOnboardingDetails(user)}
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
+      <BroadcastPage show="Crew" onBack={() => navigate('/settings')}>
+        <div className="px-4 pt-3" role="heading" aria-level={1}>
+          <FitText className="fx h-14" max={72}>ADMIN PANEL</FitText>
         </div>
-      </div>
+
+        <button
+          type="button"
+          aria-expanded={showAddForm}
+          onClick={() => setShowAddForm(!showAddForm)}
+          className="plate plate-lime plate-bleed-l fx mt-2 h-11 pl-4 pr-6 text-2xl"
+        >
+          Add
+        </button>
+
+        {showAddForm && (
+          <section className="mt-3 bg-surface-1 px-4 py-3">
+            <h2 className="fx text-2xl">Create New User</h2>
+            <div className="mt-1 grid gap-x-4 gap-y-2 sm:grid-cols-3">
+              <Input placeholder="Name" aria-label="Name" value={newName} onChange={(e) => setNewName(e.target.value)} />
+              <Input type="email" placeholder="Email" aria-label="Email" value={newEmail} onChange={(e) => setNewEmail(e.target.value)} />
+              <Input type="password" placeholder="Password" aria-label="Password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} />
+            </div>
+            <div className="mt-3 flex gap-4 px-1">
+              <Button variant="secondary" size="sm" onClick={() => setShowAddForm(false)} className="flex-1">
+                Cancel
+              </Button>
+              <Button
+                size="sm"
+                onClick={() => addUser.mutate()}
+                disabled={!newEmail || !newPassword || addUser.isPending}
+                className="flex-1"
+              >
+                {addUser.isPending ? 'Creating...' : 'Create'}
+              </Button>
+            </div>
+          </section>
+        )}
+
+        {isLoading ? (
+          <p className="lab px-4 py-8">Loading users...</p>
+        ) : usersError ? (
+          <p role="alert" className="prose-w px-4 py-8 text-lg text-destructive">Couldn't load users: {usersError.message}</p>
+        ) : (
+          <div className="pb-6">
+            {admins.length > 0 && (
+              <section className="pt-4">
+                <SectionChyron>
+                  Administrators ({admins.length})
+                </SectionChyron>
+                <div className="mt-1">{admins.map((user) => renderUserRow(user, false))}</div>
+              </section>
+            )}
+            <section className="pt-4">
+              <SectionChyron tone="graphite">
+                Users ({regulars.length})
+              </SectionChyron>
+              <div className="mt-1">{regulars.map((user) => renderUserRow(user, true))}</div>
+            </section>
+          </div>
+        )}
+      </BroadcastPage>
 
       {/* Delete Confirmation */}
       <AlertDialog open={!!userToDelete} onOpenChange={() => setUserToDelete(null)}>
-        <AlertDialogContent className="bg-surface-1 border-surface-3">
+        <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle className="text-foreground">Delete User?</AlertDialogTitle>
-            <AlertDialogDescription className="text-muted-foreground">
+            <AlertDialogTitle>Delete User?</AlertDialogTitle>
+            <AlertDialogDescription>
               This will permanently delete <strong>{userToDelete?.name}</strong> ({userToDelete?.email}) and all their data.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel className="bg-surface-2 border-surface-3 text-foreground">
-              Cancel
-            </AlertDialogCancel>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={() => userToDelete && deleteUser.mutate(userToDelete.id)}
-              className="bg-destructive text-white hover:bg-destructive/90"
+              className={buttonVariants({ variant: 'destructive' })}
             >
               Delete Forever
             </AlertDialogAction>

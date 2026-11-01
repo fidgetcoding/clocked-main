@@ -38,13 +38,13 @@ export interface Badge {
 
 // Category color palettes (for UI)
 export const BADGE_CATEGORY_COLORS: Record<BadgeCategory, { bg: string; text: string; glow: string }> = {
-  streak:       { bg: 'bg-orange-500/20', text: 'text-orange-400', glow: 'shadow-orange-500/30' },
-  combo:        { bg: 'bg-blue-500/20',   text: 'text-blue-400',   glow: 'shadow-blue-500/30' },
-  volume:       { bg: 'bg-green-500/20',  text: 'text-green-400',  glow: 'shadow-green-500/30' },
-  time:         { bg: 'bg-purple-500/20', text: 'text-purple-400', glow: 'shadow-purple-500/30' },
-  conditioning: { bg: 'bg-red-500/20',    text: 'text-red-400',    glow: 'shadow-red-500/30' },
-  in_workout:   { bg: 'bg-yellow-500/20', text: 'text-yellow-400', glow: 'shadow-yellow-500/30' },
-  prestige:     { bg: 'bg-amber-500/20',  text: 'text-amber-400',  glow: 'shadow-amber-500/30' },
+  streak:       { bg: 'bg-volt/15',    text: 'text-volt',             glow: 'shadow-none' },
+  combo:        { bg: 'bg-surface-3',  text: 'text-foreground',       glow: 'shadow-none' },
+  volume:       { bg: 'bg-surface-2',  text: 'text-foreground',       glow: 'shadow-none' },
+  time:         { bg: 'bg-surface-3',  text: 'text-muted-foreground', glow: 'shadow-none' },
+  conditioning: { bg: 'bg-surface-2',  text: 'text-volt',             glow: 'shadow-none' },
+  in_workout:   { bg: 'bg-volt/15',    text: 'text-foreground',       glow: 'shadow-none' },
+  prestige:     { bg: 'bg-championship-gold/15', text: 'text-championship-gold', glow: 'shadow-none' },
 };
 
 export const BADGE_CATEGORY_NAMES: Record<BadgeCategory, string> = {

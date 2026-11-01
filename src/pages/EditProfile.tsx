@@ -1,8 +1,12 @@
 import { useLatest } from '@/hooks/useLatest';
 import { useState, useRef, useEffect } from 'react';
-import { ArrowLeft, User, Pencil, Archive, RotateCcw, Trash2, ChevronRight, Camera, Loader2, Check } from 'lucide-react';
+import { Camera } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
+import { BroadcastPage, FitText, OnAir, SectionRule } from '@/components/broadcast';
+import { Button } from '@/components/ui/button';
+import { buttonVariants } from '@/components/ui/button-variants';
+import { GloveArt } from '@/components/ui/GameArt';
 import { Input } from '@/components/ui/input';
 import { useUserStore } from '@/stores/userStore';
 import { useWorkouts } from '@/hooks/useWorkouts';
@@ -10,7 +14,6 @@ import { useAuth } from '@/contexts/useAuth';
 import { useProfile } from '@/hooks/useProfile';
 import { supabase } from '@/integrations/supabase/client';
 import { promptEmailLink } from '@/lib/guest';
-import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import {
   AlertDialog,
@@ -232,140 +235,128 @@ const EditProfile = () => {
 
   return (
     <AppLayout>
-      <div className="min-h-screen bg-gradient-red-glow">
-        {/* Header */}
-        <header className="flex items-center gap-3 px-4 pt-8 pb-6 safe-top">
-          <button onClick={() => navigate('/profile')} className="text-muted-foreground">
-            <ArrowLeft className="w-6 h-6" />
-          </button>
-          <h1 className="text-2xl font-black text-foreground tracking-wider">
-            EDIT PROFILE
-          </h1>
-        </header>
+      <BroadcastPage onBack={() => navigate('/profile')}>
+        <h1 className="px-4 pt-3">
+          <FitText className="fx h-[clamp(3rem,15vw,5rem)]" max={80}>EDIT PROFILE</FitText>
+        </h1>
 
-        <div className="px-4 space-y-6 pb-24">
-          {/* Profile Photo & Name */}
-          <div className="card-workout">
-            <div className="flex items-center gap-4 mb-4">
-              <div className="relative">
-                <div className="w-20 h-20 rounded-full bg-volt/20 flex items-center justify-center overflow-hidden">
-                  {profilePhoto ? (
-                    <img src={profilePhoto} alt="Profile" className="w-full h-full object-cover" />
-                  ) : (
-                    <User className="w-10 h-10 text-volt" />
-                  )}
-                  {isUploadingPhoto && (
-                    <div className="absolute inset-0 bg-background/50 flex items-center justify-center rounded-full">
-                      <Loader2 className="w-6 h-6 text-volt animate-spin" />
-                    </div>
-                  )}
-                </div>
-                <button 
-                  onClick={() => fileInputRef.current?.click()}
-                  disabled={isUploadingPhoto}
-                  className="absolute -bottom-1 -right-1 w-8 h-8 rounded-full bg-volt flex items-center justify-center text-primary-foreground shadow-lg disabled:opacity-50"
-                >
-                  <Camera className="w-4 h-4" />
-                </button>
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/jpeg,image/png,image/webp"
-                  onChange={handlePhotoChange}
-                  className="hidden"
+        {/* The name graphic: photo, name, handle */}
+        <section className="mt-3 flex items-stretch gap-3 bg-surface-1 py-3 pl-4 pr-4">
+          <div className="relative size-24 shrink-0 sm:size-28">
+            <div className="art-slant h-full w-full [clip-path:polygon(24.9%_0,100%_0,75.1%_100%,0_100%)]">
+              {profilePhoto ? (
+                <img src={profilePhoto} alt="Profile" className="h-full w-full object-cover" />
+              ) : (
+                <GloveArt id="default" className="art-off h-full w-full" />
+              )}
+            </div>
+            {isUploadingPhoto && (
+              <span className="lab lab-w absolute inset-x-0 top-1/2 -translate-y-1/2 text-center">Uploading</span>
+            )}
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={isUploadingPhoto}
+              aria-label="Change photo"
+              className="plate plate-lime absolute -bottom-1 -right-1 h-11 w-12 disabled:opacity-50"
+            >
+              <Camera className="size-5" />
+            </button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              onChange={handlePhotoChange}
+              className="hidden"
+            />
+          </div>
+
+          <div className="flex min-w-0 flex-1 flex-col justify-center gap-1">
+            {isEditingName ? (
+              <div className="flex items-center gap-3">
+                <Input
+                  value={editedName}
+                  onChange={(e) => setEditedName(e.target.value)}
+                  maxLength={30}
+                  aria-label="Name"
+                  autoFocus
+                  onKeyDown={(e) => e.key === 'Enter' && handleSaveName()}
                 />
+                <Button size="sm" onClick={handleSaveName} aria-label="Save name" className="shrink-0">Save</Button>
               </div>
-              <div className="flex-1 min-w-0">
-                {isEditingName ? (
-                  <div className="flex items-center gap-2">
-                    <Input
-                      value={editedName}
-                      onChange={(e) => setEditedName(e.target.value)}
-                      maxLength={30}
-                      className="bg-surface-2 border-surface-3 text-foreground"
-                      autoFocus
-                      onKeyDown={(e) => e.key === 'Enter' && handleSaveName()}
-                    />
-                    <button 
-                      onClick={handleSaveName}
-                      className="w-8 h-8 rounded-full bg-volt flex items-center justify-center text-primary-foreground"
-                    >
-                      <Check className="w-4 h-4" />
-                    </button>
-                  </div>
-                ) : (
-                  <div className="flex items-center gap-2">
-                    <h2 className="text-xl font-bold text-foreground truncate min-w-0">{currentName}</h2>
-                    <button 
-                      onClick={() => {
-                        setEditedName(currentName);
-                        setIsEditingName(true);
-                      }}
-                      className="text-muted-foreground hover:text-foreground"
-                    >
-                      <Pencil className="w-4 h-4" />
-                    </button>
-                  </div>
-                )}
-                {/* Handle editing */}
-                {isEditingHandle ? (
-                  <div className="flex items-center gap-2 mt-1">
-                    <span className="text-muted-foreground">@</span>
-                    <Input
-                      value={editedHandle}
-                      onChange={(e) => setEditedHandle(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, ''))}
-                      className="bg-surface-2 border-surface-3 text-foreground h-8 text-sm"
-                      placeholder="yourhandle"
-                      autoFocus
-                      onKeyDown={(e) => e.key === 'Enter' && handleSaveHandle()}
-                    />
-                    <button 
-                      onClick={handleSaveHandle}
-                      className="w-6 h-6 rounded-full bg-volt flex items-center justify-center text-primary-foreground"
-                    >
-                      <Check className="w-3 h-3" />
-                    </button>
-                  </div>
-                ) : (
-                  <div className="flex items-center gap-1 mt-1">
-                    <p className="text-sm text-muted-foreground truncate min-w-0">@{currentHandle}</p>
-                    <button 
-                      onClick={() => {
-                        setEditedHandle(currentHandle);
-                        setIsEditingHandle(true);
-                      }}
-                      className="text-muted-foreground hover:text-foreground"
-                    >
-                      <Pencil className="w-3 h-3 shrink-0" />
-                    </button>
-                  </div>
-                )}
+            ) : (
+              <div className="flex items-center gap-3">
+                <h2 className="fx line-clamp-2 min-w-0 flex-1 py-1 text-3xl [overflow-wrap:anywhere] sm:text-4xl">{currentName}</h2>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  aria-label="Edit name"
+                  className="shrink-0"
+                  onClick={() => {
+                    setEditedName(currentName);
+                    setIsEditingName(true);
+                  }}
+                >
+                  Edit
+                </Button>
               </div>
-            </div>
-
-            {/* Info Row */}
-            <div className="grid grid-cols-2 gap-3">
-              <div className="bg-surface-2 rounded-lg p-3">
-                <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Joined</p>
-                <p className="font-semibold text-foreground">{joinedDate}</p>
+            )}
+            {isEditingHandle ? (
+              <div className="flex items-center gap-2">
+                <span className="lab lab-w">@</span>
+                <Input
+                  value={editedHandle}
+                  onChange={(e) => setEditedHandle(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, ''))}
+                  placeholder="yourhandle"
+                  aria-label="Handle"
+                  autoFocus
+                  onKeyDown={(e) => e.key === 'Enter' && handleSaveHandle()}
+                />
+                <Button size="sm" onClick={handleSaveHandle} aria-label="Save handle" className="shrink-0">Save</Button>
               </div>
-              <div className="bg-surface-2 rounded-lg p-3">
-                <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Status</p>
-                <p className="font-semibold text-volt">ACTIVE</p>
-              </div>
-            </div>
-            {authUser?.email && (
-              <div className="bg-surface-2 rounded-lg p-3 mt-3">
-                <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Email</p>
-                <p className="font-semibold text-foreground text-sm truncate">{authUser.email}</p>
+            ) : (
+              <div className="flex items-center gap-3">
+                <p className="lab lab-w min-w-0 flex-1 truncate normal-case">@{currentHandle}</p>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  aria-label="Edit handle"
+                  className="shrink-0"
+                  onClick={() => {
+                    setEditedHandle(currentHandle);
+                    setIsEditingHandle(true);
+                  }}
+                >
+                  Edit
+                </Button>
               </div>
             )}
           </div>
+        </section>
 
-          {/* Body Metrics */}
-          <div className="card-workout">
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="text-lg font-bold text-foreground">Body Metrics</h3>
+        {/* Info Row */}
+        <div className="grid grid-cols-2 border-b border-surface-2">
+          <div className="px-4 py-2">
+            <p className="lab">Joined</p>
+            <p className="fx mt-1 text-2xl">{joinedDate}</p>
+          </div>
+          <div className="px-4 py-2">
+            <p className="lab">Status</p>
+            <OnAir state="on" className="mt-1.5">ACTIVE</OnAir>
+          </div>
+        </div>
+        {authUser?.email && (
+          <div className="border-b border-surface-2 px-4 py-2">
+            <p className="lab">Email</p>
+            <p className="prose-w mt-0.5 truncate text-lg">{authUser.email}</p>
+          </div>
+        )}
+
+        {/* Body Metrics */}
+        <section>
+          <SectionRule title="Body Metrics" className="border-0" />
+          <div className="flex items-center justify-between gap-3 px-4">
+            <p className="lab">Used for more accurate calorie estimates</p>
               <button
                 onClick={() => {
                   const switching = !useImperial;
@@ -391,15 +382,14 @@ const EditProfile = () => {
                   }
                   setUseImperial(switching);
                 }}
-                className="text-xs text-volt font-medium"
+                className="lab lab-lime min-h-11 whitespace-nowrap"
               >
                 {useImperial ? 'Switch to kg/cm' : 'Switch to lbs/ft'}
               </button>
-            </div>
-            <p className="text-xs text-muted-foreground mb-3">Used for more accurate calorie estimates</p>
-            <div className="grid grid-cols-2 gap-3">
+          </div>
+            <div className="grid grid-cols-2 items-end gap-4 px-4 pt-1">
               <div>
-                <label className="text-xs text-muted-foreground mb-1 block">
+                <label className="lab block">
                   Weight ({useImperial ? 'lbs' : 'kg'})
                 </label>
                 <Input
@@ -414,13 +404,12 @@ const EditProfile = () => {
                     }
                   }}
                   placeholder={useImperial ? '165' : '75'}
-                  className="bg-surface-2 border-surface-3 text-foreground"
                 />
               </div>
               {useImperial ? (
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-2 items-end gap-2">
                   <div>
-                    <label className="text-xs text-muted-foreground mb-1 block">Height (ft)</label>
+                    <label className="lab block">Height (ft)</label>
                     <Input
                       type="number"
                       value={heightFt}
@@ -432,11 +421,10 @@ const EditProfile = () => {
                         if (cm > 0) await saveBodyMetric({ height_cm: cm });
                       }}
                       placeholder="5"
-                      className="bg-surface-2 border-surface-3 text-foreground"
                     />
                   </div>
                   <div>
-                    <label className="text-xs text-muted-foreground mb-1 block">Height (in)</label>
+                    <label className="lab block">Height (in)</label>
                     <Input
                       type="number"
                       value={heightIn}
@@ -448,13 +436,12 @@ const EditProfile = () => {
                         if (cm > 0) await saveBodyMetric({ height_cm: cm });
                       }}
                       placeholder="10"
-                      className="bg-surface-2 border-surface-3 text-foreground"
                     />
                   </div>
                 </div>
               ) : (
                 <div>
-                  <label className="text-xs text-muted-foreground mb-1 block">Height (cm)</label>
+                  <label className="lab block">Height (cm)</label>
                   <Input
                     type="number"
                     value={heightCm}
@@ -466,139 +453,101 @@ const EditProfile = () => {
                       }
                     }}
                     placeholder="175"
-                    className="bg-surface-2 border-surface-3 text-foreground"
                   />
                 </div>
               )}
             </div>
-          </div>
+        </section>
 
-          {/* Bio Section */}
-          <div className="card-workout">
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="text-lg font-bold text-foreground">Bio</h3>
-              {!isEditingBio && (
-                <button 
-                  onClick={() => setIsEditingBio(true)}
-                  className="text-muted-foreground hover:text-foreground"
-                >
-                  <Pencil className="w-4 h-4" />
-                </button>
-              )}
+        {/* Bio Section */}
+        <section className="pt-2">
+          <div className="flex items-center justify-between gap-3 px-4 pt-2">
+            <h3 className="fx text-2xl">Bio</h3>
+            {!isEditingBio && (
+              <Button variant="secondary" size="sm" aria-label="Edit bio" onClick={() => setIsEditingBio(true)}>Edit</Button>
+            )}
+          </div>
+          {isEditingBio ? (
+            <div className="space-y-2 px-4 pt-1">
+              <textarea
+                value={editedBio}
+                onChange={(e) => setEditedBio(e.target.value)}
+                className="field-rule resize-none text-lg"
+                placeholder="Tell others about yourself..."
+                aria-label="Bio"
+                rows={3}
+                maxLength={160}
+                autoFocus
+              />
+              <div className="flex items-center justify-between gap-3">
+                <span className="lab">{editedBio.length}/160</span>
+                <div className="flex gap-3">
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => {
+                      setEditedBio(currentBio);
+                      setIsEditingBio(false);
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                  <Button size="sm" onClick={handleSaveBio}>Save</Button>
+                </div>
+              </div>
             </div>
-            {isEditingBio ? (
-              <div className="space-y-3">
-                <textarea
-                  value={editedBio}
-                  onChange={(e) => setEditedBio(e.target.value)}
-                  className="w-full bg-surface-2 border border-surface-3 rounded-lg p-3 text-foreground placeholder:text-muted-foreground resize-none focus:outline-none focus:ring-2 focus:ring-volt"
-                  placeholder="Tell others about yourself..."
-                  rows={3}
-                  maxLength={160}
-                  autoFocus
-                />
-                <div className="flex items-center justify-between">
-                  <span className="text-xs text-muted-foreground">{editedBio.length}/160</span>
-                  <div className="flex gap-2">
-                    <button 
-                      onClick={() => {
-                        setEditedBio(currentBio);
-                        setIsEditingBio(false);
-                      }}
-                      className="px-3 py-1.5 rounded-lg bg-surface-2 text-muted-foreground text-sm"
-                    >
-                      Cancel
-                    </button>
-                    <button 
-                      onClick={handleSaveBio}
-                      className="px-3 py-1.5 rounded-lg bg-volt text-primary-foreground text-sm font-medium"
-                    >
-                      Save
-                    </button>
+          ) : (
+            <p className="prose-w px-4 pt-1 text-lg">
+              {currentBio || 'Add a bio to tell others about yourself...'}
+            </p>
+          )}
+        </section>
+
+        {/* Archived Workouts */}
+        <section className="pb-6 pt-4">
+          <button
+            type="button"
+            onClick={() => setShowArchives(!showArchives)}
+            aria-expanded={showArchives}
+            className="flex min-h-14 w-full items-center justify-between gap-3 border-y border-surface-3 px-4 py-2 text-left transition-colors hover:bg-surface-1"
+          >
+            <span className="fx text-3xl">Archived Workouts</span>
+            <span className="lab lab-w shrink-0">{archivedWorkouts.length} archived</span>
+          </button>
+
+          {showArchives && (
+            archivedWorkouts.length === 0 ? (
+              <p className="prose-w px-4 py-4 text-lg">No archived workouts</p>
+            ) : (
+              archivedWorkouts.map((workout) => (
+                <div key={workout.id} className="flex flex-wrap items-center gap-x-3 gap-y-2 border-b border-surface-2 px-4 py-2.5">
+                  <div className="min-w-0 flex-1 basis-32">
+                    <p className="fx truncate text-2xl">{workout.name}</p>
+                    <p className="lab mt-0.5">{workout.difficulty}</p>
+                  </div>
+                  <div className="flex gap-3">
+                    <Button variant="steel" size="sm" title="Restore" onClick={() => handleRestore(workout.id)}>Restore</Button>
+                    <Button variant="destructive" size="sm" title="Delete Forever" onClick={() => setWorkoutToDelete(workout.id)}>Delete Forever</Button>
                   </div>
                 </div>
-              </div>
-            ) : (
-              <p className="text-muted-foreground text-sm">
-                {currentBio || 'Add a bio to tell others about yourself...'}
-              </p>
-            )}
-          </div>
-
-          {/* Archived Workouts */}
-          <div className="card-workout">
-            <button 
-              onClick={() => setShowArchives(!showArchives)}
-              className="flex items-center justify-between w-full"
-            >
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-lg bg-surface-2 flex items-center justify-center">
-                  <Archive className="w-4 h-4 text-muted-foreground" />
-                </div>
-                <div className="text-left">
-                  <h3 className="text-lg font-bold text-foreground">Archived Workouts</h3>
-                  <p className="text-xs text-muted-foreground">{archivedWorkouts.length} archived</p>
-                </div>
-              </div>
-              <ChevronRight className={cn(
-                'w-5 h-5 text-muted-foreground transition-transform',
-                showArchives && 'rotate-90'
-              )} />
-            </button>
-
-            {showArchives && (
-              <div className="mt-4 space-y-3">
-                {archivedWorkouts.length === 0 ? (
-                  <p className="text-sm text-muted-foreground text-center py-4">
-                    No archived workouts
-                  </p>
-                ) : (
-                  archivedWorkouts.map((workout) => (
-                    <div key={workout.id} className="bg-surface-2 rounded-lg p-3 flex items-center gap-3">
-                      <div className="flex-1 min-w-0">
-                        <p className="font-semibold text-foreground truncate">{workout.name}</p>
-                        <p className="text-xs text-muted-foreground">{workout.difficulty}</p>
-                      </div>
-                      <button
-                        onClick={() => handleRestore(workout.id)}
-                        className="text-volt hover:text-volt/80 transition-colors p-2"
-                        title="Restore"
-                      >
-                        <RotateCcw className="w-4 h-4" />
-                      </button>
-                      <button
-                        onClick={() => setWorkoutToDelete(workout.id)}
-                        className="text-muted-foreground hover:text-destructive transition-colors p-2"
-                        title="Delete Forever"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
-                  ))
-                )}
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
+              ))
+            )
+          )}
+        </section>
+      </BroadcastPage>
 
       {/* Permanent Delete Confirmation */}
       <AlertDialog open={!!workoutToDelete} onOpenChange={() => setWorkoutToDelete(null)}>
-        <AlertDialogContent className="bg-surface-1 border-surface-3">
+        <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle className="text-foreground">Delete Forever?</AlertDialogTitle>
-            <AlertDialogDescription className="text-muted-foreground">
+            <AlertDialogTitle>Delete Forever?</AlertDialogTitle>
+            <AlertDialogDescription>
               This will permanently delete the workout. This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel className="bg-surface-2 border-surface-3 text-foreground">
-              Cancel
-            </AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handlePermanentDelete}
-              className="bg-destructive text-white hover:bg-destructive/90"
-            >
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handlePermanentDelete} className={buttonVariants({ variant: 'destructive' })}>
               Delete Forever
             </AlertDialogAction>
           </AlertDialogFooter>

@@ -1,15 +1,14 @@
 import { cn } from '@/lib/utils';
-import { 
-  Prestige, 
-  Ranking,
-  PRESTIGE_NAMES, 
+import {
+  Prestige,
+  PRESTIGE_NAMES,
   RANKING_NAMES,
   getLevelProgress,
   getXPProgressString,
   getRankingFromLevel,
-  getLevelFromXP,
 } from '@/lib/xpSystem';
-import { ALL_BADGES, Badge, getBadgeProgress, BadgeStats, BADGE_CATEGORY_COLORS } from '@/data/badges';
+import { ALL_BADGES, Badge, getBadgeProgress, BadgeStats } from '@/data/badges';
+import { SegmentBar } from '@/components/broadcast';
 
 interface XPBarProps {
   prestige: Prestige;
@@ -23,14 +22,11 @@ interface XPBarProps {
   earnedBadgeIds?: string[];
 }
 
-// Prestige tier colors for the bar
-const PRESTIGE_BAR_COLORS: Record<Prestige, string> = {
-  rookie: 'bg-slate-400',
-  beginner: 'bg-volt',
-  intermediate: 'bg-blue-400',
-  advanced: 'bg-purple-400',
-  pro: 'bg-amber-400',
-};
+const SEGMENTS = 24;
+
+const Meter = ({ percent, label }: { percent: number; label: string }) => (
+  <SegmentBar total={SEGMENTS} filled={Math.round((percent / 100) * SEGMENTS)} height="0.8125rem" label={label} />
+);
 
 /**
  * Find the next unearned badge closest to completion.
@@ -40,7 +36,7 @@ function getNextBadgeProgress(
   earnedBadgeIds: string[],
 ): { badge: Badge; progress: number } | null {
   let best: { badge: Badge; progress: number } | null = null;
-  
+
   for (const badge of ALL_BADGES) {
     if (earnedBadgeIds.includes(badge.id)) continue;
     const progress = getBadgeProgress(badge, badgeStats);
@@ -49,59 +45,39 @@ function getNextBadgeProgress(
       best = { badge, progress };
     }
   }
-  
+
   return best;
 }
 
 export function XPBar({ prestige, level, totalXP, className, showRank = true, badgeStats, earnedBadgeIds }: XPBarProps) {
   const isAtMax = level >= 100;
   const ranking = getRankingFromLevel(level);
-  
+
   // At L100, show next-badge progress instead of level XP
   if (isAtMax && badgeStats && earnedBadgeIds) {
     const nextBadge = getNextBadgeProgress(badgeStats, earnedBadgeIds);
     const progress = nextBadge ? Math.min(100, nextBadge.progress * 100) : 100;
-    const colors = nextBadge ? BADGE_CATEGORY_COLORS[nextBadge.badge.category] : null;
-    
+
     return (
       <div className={cn('w-full', className)}>
         {showRank && (
-          <div className="flex items-center justify-between mb-1.5">
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-semibold text-volt uppercase tracking-wide">
-                {PRESTIGE_NAMES[prestige]}
-              </span>
-              <span className="text-xs text-muted-foreground">•</span>
-              <span className="text-xs font-bold text-amber-400">
-                MAX LEVEL
-              </span>
-            </div>
-            <span className="text-xs text-muted-foreground truncate max-w-[150px]">
+          <div className="mb-1.5 flex flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5">
+            <span className="lab lab-lime">{PRESTIGE_NAMES[prestige]}, max level</span>
+            <span className="lab min-w-0 truncate">
               {nextBadge ? `Next: ${nextBadge.badge.name}` : 'All badges earned!'}
             </span>
           </div>
         )}
-        <div className="xp-bar">
-          <div 
-            className={cn(
-              'xp-bar-fill transition-all duration-500 ease-out',
-              colors ? '' : 'bg-amber-400',
-            )}
-            style={{ 
-              width: `${progress}%`,
-              ...(colors ? {} : {}),
-            }}
-          />
-        </div>
+        <Meter percent={progress} label={nextBadge ? `${Math.round(progress)}% toward ${nextBadge.badge.name}` : 'All badges earned'} />
         {nextBadge && (
-          <p className="text-[10px] text-muted-foreground mt-0.5">
+          <p className="lab mt-1">
             {Math.round(progress)}% toward {nextBadge.badge.name}
           </p>
         )}
       </div>
     );
   }
-  
+
   // Normal level progress
   const progress = getLevelProgress(prestige, level, totalXP);
   const xpString = getXPProgressString(prestige, level, totalXP);
@@ -109,34 +85,14 @@ export function XPBar({ prestige, level, totalXP, className, showRank = true, ba
   return (
     <div className={cn('w-full', className)}>
       {showRank && (
-        <div className="flex items-center justify-between mb-1.5">
-          <div className="flex items-center gap-2">
-            <span className="text-xs font-semibold text-volt uppercase tracking-wide">
-              {PRESTIGE_NAMES[prestige]}
-            </span>
-            <span className="text-xs text-muted-foreground">•</span>
-            <span className="text-xs font-medium text-foreground">
-              {RANKING_NAMES[ranking]}
-            </span>
-            <span className="text-xs text-muted-foreground">•</span>
-            <span className="text-xs font-bold text-volt">
-              Lvl {level}
-            </span>
-          </div>
-          <span className="text-xs text-muted-foreground">
-            {xpString}
+        <div className="mb-1.5 flex flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5">
+          <span className="lab lab-w">
+            <span className="lab-lime">{PRESTIGE_NAMES[prestige]}</span>, {RANKING_NAMES[ranking]}, <span className="lab-lime">Lvl {level}</span>
           </span>
+          <span className="lab">{xpString}</span>
         </div>
       )}
-      <div className="xp-bar">
-        <div 
-          className={cn(
-            'xp-bar-fill transition-all duration-500 ease-out',
-            PRESTIGE_BAR_COLORS[prestige]
-          )}
-          style={{ width: `${progress}%` }}
-        />
-      </div>
+      <Meter percent={progress} label={`${Math.round(progress)}% of the way to the next level`} />
     </div>
   );
 }
@@ -150,12 +106,12 @@ interface LegacyXPBarProps {
 
 export function LegacyXPBar({ currentXP, className, showRank = true }: LegacyXPBarProps) {
   return (
-    <XPBar 
-      prestige="beginner" 
-      level={1} 
-      totalXP={currentXP} 
-      className={className} 
-      showRank={showRank} 
+    <XPBar
+      prestige="beginner"
+      level={1}
+      totalXP={currentXP}
+      className={className}
+      showRank={showRank}
     />
   );
 }

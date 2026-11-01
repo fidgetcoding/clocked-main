@@ -1,15 +1,15 @@
 import { useState, useMemo } from 'react';
-import { Flame, Trophy, Clock, Zap, TrendingUp, TrendingDown, Target, Dumbbell, Activity, Award, Calendar as CalendarIcon, ChevronRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
+import { BroadcastPage, EmptyPlate, SectionChyron, SectionRule, SegmentBar, TaleOfTape } from '@/components/broadcast';
 import { XPBar } from '@/components/ui/XPBar';
-import { PrestigeDisplay } from '@/components/ui/PrestigeDisplay';
+import { BadgeArt, GloveArt } from '@/components/ui/GameArt';
 import { useProfile } from '@/hooks/useProfile';
 import { useWorkoutStats, WeeklyChange } from '@/hooks/useWorkoutStats';
 import { useBadges } from '@/hooks/useBadges';
 import { useGloves } from '@/hooks/useGloves';
 import { GLOVES } from '@/data/gloves';
-import { BADGE_CATEGORY_COLORS, BADGE_CATEGORY_NAMES } from '@/data/badges';
+import { BADGE_CATEGORY_NAMES } from '@/data/badges';
 import { 
   Prestige, 
   PRESTIGE_NAMES,
@@ -17,41 +17,44 @@ import {
   RANKING_ORDER,
   getRankingFromLevel,
   getLevelRangeForRanking,
+  getXPProgressString,
   isPrestigeEligible,
   getStreakMultiplier,
 } from '@/lib/xpSystem';
+import { tapeHours, weeklyTape } from '@/lib/weeklyTape';
 import { PrestigeAvailableBanner, PrestigePrompt } from '@/components/workout/PrestigePrompt';
 import { cn } from '@/lib/utils';
 import { RoadToBMF } from '@/components/ui/RoadToBMF';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, parseISO, getDay } from 'date-fns';
 
-interface StatCardProps {
-  icon: React.ComponentType<{ className?: string }>;
+interface StatLineProps {
   label: string;
   value: string;
-  color: string;
   change?: WeeklyChange | null;
   onClick?: () => void;
 }
 
-function StatCard({ icon: Icon, label, value, color, change, onClick }: StatCardProps) {
-  return (
-    <div className={cn("card-workout text-left w-full", onClick && "cursor-pointer active:scale-[0.98] transition-transform")} onClick={onClick}>
-      <div className="flex items-start justify-between">
-        <Icon className={`w-5 h-5 ${color} mb-2`} />
-      </div>
-      <p className="text-2xl font-bold text-foreground">{value}</p>
-      <p className="text-sm text-muted-foreground">{label}</p>
-      {change && (
-        <div className={cn(
-          'flex items-center gap-1 mt-2 text-xs font-medium',
-          change.value >= 0 ? 'text-volt' : 'text-alert-red'
-        )}>
-          {change.value >= 0 ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
-          <span>{change.value >= 0 ? '+' : ''}{change.value}% {change.period}</span>
-        </div>
-      )}
-    </div>
+/** One line on the stat sheet: label and how it moved on the left, the number on the right. */
+function StatLine({ label, value, change, onClick }: StatLineProps) {
+  const body = (
+    <>
+      <span className="min-w-0">
+        <span className="lab block">{label}</span>
+        {change && (
+          <span className={cn('lab mt-0.5 block normal-case tracking-[0.04em]', change.value >= 0 && 'lab-lime')}>
+            {change.value >= 0 ? '+' : ''}{change.value}% {change.period}
+          </span>
+        )}
+      </span>
+      <b className="fx">{value}</b>
+    </>
+  );
+  return onClick ? (
+    <button type="button" onClick={onClick} className="row-rule min-h-11 w-full items-center text-left transition-colors hover:bg-surface-1">
+      {body}
+    </button>
+  ) : (
+    <div className="row-rule items-center">{body}</div>
   );
 }
 
@@ -71,46 +74,36 @@ function WorkoutCalendar({ workoutDates }: { workoutDates: Date[] }) {
   const trainedDays = days.filter(hasWorkout).length;
   
   return (
-    <div className="card-workout">
-      <div className="flex items-center justify-between mb-3">
-        <div className="flex items-center gap-2">
-          <CalendarIcon className="w-4 h-4 text-muted-foreground" />
-          <h3 className="font-semibold text-foreground text-sm">{format(now, 'MMMM yyyy')}</h3>
+    <section>
+      <SectionRule title={format(now, 'MMMM yyyy')} right={`${trainedDays} ${trainedDays === 1 ? 'day' : 'days'}`} />
+      <div className="px-4 pt-2">
+        <div className="mb-1 grid grid-cols-7 gap-1.5">
+          {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((d, i) => (
+            <div key={i} className="lab text-center">{d}</div>
+          ))}
         </div>
-        <span className="text-xs text-muted-foreground">
-          {trainedDays} {trainedDays === 1 ? 'day' : 'days'}
-        </span>
+        <div className="grid grid-cols-7 gap-1.5">
+          {Array.from({ length: padDays }).map((_, i) => (
+            <div key={`pad-${i}`} />
+          ))}
+          {days.map((day) => {
+            const worked = hasWorkout(day);
+            const today = isToday(day);
+            return (
+              <div
+                key={day.toISOString()}
+                className={cn(
+                  'plate fx h-9 text-xl',
+                  worked ? 'plate-lime' : today ? 'plate-white' : 'plate-graphite text-muted-foreground',
+                )}
+              >
+                {day.getDate()}
+              </div>
+            );
+          })}
+        </div>
       </div>
-      {/* Day headers */}
-      <div className="grid grid-cols-7 gap-1 mb-1">
-        {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((d, i) => (
-          <div key={i} className="text-[10px] text-muted-foreground text-center font-medium">{d}</div>
-        ))}
-      </div>
-      {/* Calendar grid */}
-      <div className="grid grid-cols-7 gap-1">
-        {Array.from({ length: padDays }).map((_, i) => (
-          <div key={`pad-${i}`} className="w-full aspect-square" />
-        ))}
-        {days.map((day) => {
-          const worked = hasWorkout(day);
-          const today = isToday(day);
-          return (
-            <div
-              key={day.toISOString()}
-              className={cn(
-                'w-full aspect-square rounded-sm flex items-center justify-center text-[10px] font-medium',
-                worked ? 'bg-volt/80 text-primary-foreground' : 'bg-surface-2 text-muted-foreground',
-                today && !worked && 'ring-1 ring-volt/40',
-                today && worked && 'ring-1 ring-volt',
-              )}
-            >
-              {day.getDate()}
-            </div>
-          );
-        })}
-      </div>
-    </div>
+    </section>
   );
 }
 
@@ -180,18 +173,27 @@ const Stats = () => {
 
   // Gamification stats
   const progressStats = [
-    { id: 'xp', icon: Zap, label: 'Total XP', value: totalXP.toLocaleString(), color: 'text-muted-foreground', change: changes.xp },
-    { id: 'workouts', icon: Trophy, label: 'Workouts', value: workoutsCompleted.toString(), color: 'text-muted-foreground', change: changes.workouts, onClick: () => navigate('/history') },
-    { id: 'streak', icon: Flame, label: 'Current Streak', value: `${currentStreak}d`, color: 'text-muted-foreground', change: null },
+    { id: 'xp', label: 'Total XP', value: totalXP.toLocaleString(), change: changes.xp },
+    { id: 'workouts', label: 'Workouts', value: workoutsCompleted.toString(), change: changes.workouts, onClick: () => navigate('/history') },
+    { id: 'streak', label: 'Current Streak', value: `${currentStreak}d`, change: null },
   ];
 
   // Training stats
   const trainingStats = [
-    { id: 'hours', icon: Clock, label: 'Training Hours', value: `${totalHours}h`, color: 'text-muted-foreground', change: changes.hours },
-    { id: 'rounds', icon: Target, label: 'Total Rounds', value: totalRounds.toLocaleString(), color: 'text-muted-foreground', change: changes.rounds },
-    { id: 'calories', icon: Activity, label: 'Calories (est.)', value: caloriesBurned.toLocaleString(), color: 'text-muted-foreground', change: changes.calories },
-    { id: 'intensity', icon: Dumbbell, label: 'Avg Intensity', value: avgIntensity !== null ? `${avgIntensity}/5` : '--', color: 'text-muted-foreground', change: changes.intensity },
+    { id: 'hours', label: 'Training Hours', value: `${totalHours}h`, change: changes.hours },
+    { id: 'rounds', label: 'Total Rounds', value: totalRounds.toLocaleString(), change: changes.rounds },
+    { id: 'calories', label: 'Calories (est.)', value: caloriesBurned.toLocaleString(), change: changes.calories },
+    { id: 'intensity', label: 'Avg Intensity', value: avgIntensity !== null ? `${avgIntensity}/5` : '--', change: changes.intensity },
   ];
+
+  // Tale of the tape, same as home
+  const tape = weeklyTape(history ?? []);
+  const fighterName = profile?.name?.split(' ')[0] || 'You';
+
+  // Where the ladder goes next
+  const rankIndex = RANKING_ORDER.indexOf(ranking);
+  const nextRank = RANKING_ORDER[rankIndex + 1];
+  const rankRange = getLevelRangeForRanking(ranking);
 
   if (showPrestigePrompt) {
     return (
@@ -207,219 +209,186 @@ const Stats = () => {
 
   return (
     <AppLayout>
-      <div className="min-h-screen pb-24">
-        {/* Header */}
-        <header className="px-4 py-4 safe-top border-b border-surface-3">
-          <h1 className="text-xl font-bold text-foreground">My Stats</h1>
-        </header>
+      <BroadcastPage show="My Stats">
+        <h1 className="sr-only">My Stats</h1>
 
-        <div className="px-4 py-6 space-y-6">
-          {/* Prestige Available Banner */}
-          {prestigeEligible && (
-            <PrestigeAvailableBanner 
-              currentPrestige={prestige} 
-              onClick={() => setShowPrestigePrompt(true)} 
+        {prestigeEligible && (
+          <div className="px-4 pt-3">
+            <PrestigeAvailableBanner
+              currentPrestige={prestige}
+              onClick={() => setShowPrestigePrompt(true)}
             />
-          )}
-
-          {/* Prestige/Ranking Card */}
-          <div className="card-workout relative overflow-hidden">
-            <div className="absolute inset-0 bg-gradient-to-br from-volt/10 to-transparent" />
-            <div className="relative">
-              <div className="mb-2">
-                <XPBar 
-                  prestige={prestige}
-                  level={currentLevel}
-                  totalXP={totalXP}
-                  badgeStats={currentStats}
-                  earnedBadgeIds={earnedBadgeIds}
-                />
-              </div>
-            </div>
           </div>
+        )}
 
-          {/* Glove Card */}
+        {/* Lower third: who you are on the card */}
+        <section className="relative overflow-hidden pt-3">
+          <GloveArt
+            id={equippedGloveData.id}
+            className="pointer-events-none absolute -right-8 top-0 size-52 mix-blend-screen sm:size-64"
+          />
+          <div className="relative px-4">
+            <p className="lab lab-lime">{PRESTIGE_NAMES[prestige]} tier</p>
+            <p className="fx mt-1 text-[clamp(4rem,22vw,6.5rem)] leading-[0.86]">{RANKING_NAMES[ranking]}</p>
+            <div className="mt-1.5 flex flex-wrap items-baseline gap-x-3">
+              <span className="fx whitespace-nowrap text-5xl">Lvl {currentLevel}</span>
+              <span className="lab lab-w">{getXPProgressString(prestige, currentLevel, totalXP)}</span>
+            </div>
+            <XPBar
+              className="mt-2"
+              showRank={currentLevel >= 100}
+              prestige={prestige}
+              level={currentLevel}
+              totalXP={totalXP}
+              badgeStats={currentStats}
+              earnedBadgeIds={earnedBadgeIds}
+            />
+          </div>
           <button
+            type="button"
             onClick={() => navigate('/gloves')}
-            className="card-workout flex items-center gap-3 w-full text-left"
+            className="relative mt-1 flex min-h-11 w-full flex-wrap items-baseline justify-between gap-x-3 px-4 py-2 text-left transition-colors hover:bg-surface-1"
           >
-            <div
-              className="w-10 h-10 rounded-lg ring-1 ring-volt/40 shrink-0"
-              style={{ backgroundColor: equippedGloveData.tierThemeColor }}
-            />
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-bold text-foreground">{equippedGloveData.name}</p>
-              <p className="text-xs text-muted-foreground">{unlockedGloves.length}/52 Gloves Unlocked</p>
-            </div>
-            <ChevronRight className="w-4 h-4 text-muted-foreground/40 shrink-0" />
+            <span className="fx text-2xl">{equippedGloveData.name}</span>
+            <span className="lab lab-w shrink-0">{unlockedGloves.length}/52 Gloves Unlocked</span>
           </button>
+        </section>
 
-          {/* Badge Section */}
-          <div>
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="text-sm font-bold text-muted-foreground uppercase tracking-wider">Badges</h3>
-              <span className="text-xs font-bold text-volt">{earnedCount} / {totalBadgeCount}</span>
+        {/* Tale of the tape: you against you, from the log */}
+        <section className="bg-surface-1 pb-1.5" data-testid="tale-of-tape">
+          <SectionChyron>Tale of the tape</SectionChyron>
+          {tape.hasTape ? (
+            <TaleOfTape
+              left={fighterName}
+              right={<span className="text-[clamp(1.875rem,10vw,2.75rem)]">Last week</span>}
+              rows={[
+                { label: 'Sessions', left: tape.thisWeek.sessions, right: tape.lastWeek.sessions || '-' },
+                { label: 'Time', left: tapeHours(tape.thisWeek.seconds), right: tape.lastWeek.seconds ? tapeHours(tape.lastWeek.seconds) : '-' },
+                { label: 'XP', left: tape.thisWeek.xp.toLocaleString(), right: tape.lastWeek.xp ? tape.lastWeek.xp.toLocaleString() : '-' },
+              ]}
+            />
+          ) : (
+            <p className="px-4 pb-2 pt-2.5 text-lg text-foreground">
+              <span className="fx mb-1 block text-3xl">No tape on you yet</span>
+              Log your first session. Next week, the one you have to beat is you.
+            </p>
+          )}
+        </section>
+
+        {/* Badges */}
+        <section>
+          <SectionRule title="Badges" right={`${earnedCount} / ${totalBadgeCount}`} />
+          <div className="grid grid-cols-4 border-b border-surface-2">
+            {badgesByCategory.slice(0, 4).map(({ category, badges }) => (
+              <div key={category} className="min-w-0 py-2 text-center">
+                <p className="fx text-3xl text-volt">{badges.filter(b => b.earned).length}</p>
+                <p className="lab mt-0.5 truncate tracking-[0.04em]">{BADGE_CATEGORY_NAMES[category]}</p>
+              </div>
+            ))}
+          </div>
+          {recentBadges.length > 0 && (
+            <div className="pt-2">
+              <p className="lab px-4">Recently Earned</p>
+              <div className="no-scrollbar mt-1 flex gap-3 overflow-x-auto px-4 pb-1">
+                {recentBadges.map(badge => {
+                  // Find badge details from all badges
+                  const details = badgesByCategory
+                    .flatMap(c => c.badges)
+                    .find(b => b.id === badge.badge_id);
+                  if (!details) return null;
+                  return (
+                    <div key={badge.id} className="w-20 shrink-0 text-center">
+                      <BadgeArt id={details.id} className="size-20 mix-blend-screen" />
+                      <p className="fx mt-0.5 line-clamp-2 text-base leading-none">{details.name}</p>
+                      <p className="lab lab-lime mt-0.5 tracking-[0.04em]">+{details.xpReward} XP</p>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
-            
-            {/* Recently earned */}
-            {recentBadges.length > 0 && (
-              <div className="card-workout mb-3">
-                <p className="text-xs text-muted-foreground mb-2">Recently Earned</p>
-                <div className="flex gap-2 overflow-x-auto pb-1">
-                  {recentBadges.map(badge => {
-                    // Find badge details from all badges
-                    const details = badgesByCategory
-                      .flatMap(c => c.badges)
-                      .find(b => b.id === badge.badge_id);
-                    if (!details) return null;
-                    const colors = BADGE_CATEGORY_COLORS[details.category];
-                    return (
-                      <div key={badge.id} className={cn(
-                        "flex-shrink-0 px-3 py-2 rounded-lg border",
-                        colors.bg, `border-current/10`
-                      )}>
-                        <p className={cn("text-xs font-bold", colors.text)}>{details.name}</p>
-                        <p className="text-[10px] text-muted-foreground">+{details.xpReward} XP</p>
-                      </div>
-                    );
-                  })}
+          )}
+        </section>
+
+        {/* Stat sheet */}
+        <section>
+          <SectionRule title="Progress" />
+          {progressStats.map(({ id, ...stat }) => <StatLine key={id} {...stat} />)}
+        </section>
+
+        <section>
+          <SectionRule title="Training" />
+          {trainingStats.map(({ id, ...stat }) => <StatLine key={id} {...stat} />)}
+        </section>
+
+        {/* Calendar Heatmap */}
+        <WorkoutCalendar workoutDates={workoutDates} />
+
+        {/* Session XP History (Last 20) */}
+        <section className="pt-2">
+          <SectionRule title="Recent Sessions" />
+          {recentSessions.length > 0 ? (
+            recentSessions.map((session) => (
+              <div key={session.id} className="row-rule items-center">
+                <div className="min-w-0">
+                  <p className="fx truncate text-2xl">{session.workout_name}</p>
+                  <p className="lab mt-0.5">
+                    {format(parseISO(session.completed_at), 'MMM d, h:mm a')}, {Math.round(session.duration / 60)}m
+                  </p>
                 </div>
+                <b className="fx text-volt">+{session.xp_earned.toLocaleString()}</b>
               </div>
-            )}
+            ))
+          ) : (
+            <EmptyPlate title="No sessions yet" body="Complete a workout to see your history!" />
+          )}
+        </section>
 
-            {/* Category summary */}
-            <div className="grid grid-cols-4 gap-2">
-              {badgesByCategory.slice(0, 4).map(({ category, badges }) => {
-                const earned = badges.filter(b => b.earned).length;
-                const colors = BADGE_CATEGORY_COLORS[category];
-                return (
-                  <div key={category} className={cn("rounded-lg p-2 text-center", colors.bg)}>
-                    <p className={cn("text-lg font-black", colors.text)}>{earned}</p>
-                    <p className="text-[10px] text-muted-foreground">{BADGE_CATEGORY_NAMES[category]}</p>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Progress Stats */}
-          <div>
-            <h3 className="text-sm font-bold text-muted-foreground uppercase tracking-wider mb-3">Progress</h3>
-            <div className="grid grid-cols-3 gap-3">
-              {progressStats.map((stat) => (
-                <StatCard
-                  key={stat.id}
-                  icon={stat.icon}
-                  label={stat.label}
-                  value={stat.value}
-                  color={stat.color}
-                  change={stat.change}
-                  onClick={stat.onClick}
-                />
-              ))}
-            </div>
-          </div>
-
-          {/* Training Stats */}
-          <div>
-            <h3 className="text-sm font-bold text-muted-foreground uppercase tracking-wider mb-3">Training</h3>
-            <div className="grid grid-cols-2 gap-3">
-              {trainingStats.map((stat) => (
-                <StatCard
-                  key={stat.id}
-                  icon={stat.icon}
-                  label={stat.label}
-                  value={stat.value}
-                  color={stat.color}
-                  change={stat.change}
-                />
-              ))}
-            </div>
-          </div>
-
-
-          {/* Calendar Heatmap */}
-          <WorkoutCalendar workoutDates={workoutDates} />
-
-          {/* Session XP History (Last 20) */}
-          <div>
-            <h3 className="text-sm font-bold text-muted-foreground uppercase tracking-wider mb-3">Recent Sessions</h3>
-            {recentSessions.length > 0 ? (
-              <div className="space-y-2">
-                {recentSessions.map((session) => (
-                  <div key={session.id} className="card-workout flex items-center justify-between py-3">
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-bold text-foreground truncate">{session.workout_name}</p>
-                      <p className="text-[10px] text-muted-foreground">
-                        {format(parseISO(session.completed_at), 'MMM d, h:mm a')} · {Math.round(session.duration / 60)}m
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-1 ml-2">
-                      <Zap className="w-3.5 h-3.5 text-volt" />
-                      <span className="text-sm font-black text-volt">+{session.xp_earned.toLocaleString()}</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="card-workout text-center py-6">
-                <p className="text-muted-foreground text-sm">No sessions yet. Complete a workout to see your history!</p>
-              </div>
-            )}
-          </div>
-
-          {/* Road to BMFK */}
+        {/* Road to BMFK */}
+        <div className="pt-2">
           <RoadToBMF prestige={prestige} level={currentLevel} totalSessions={workoutsCompleted} longestStreak={longestStreak} />
-
-          {/* Ranking Ladder */}
-          <div className="card-workout">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="font-semibold text-foreground">Ranking Ladder</h3>
-              <span className="text-xs font-bold text-volt uppercase tracking-wide">
-                {PRESTIGE_NAMES[prestige]}
-              </span>
-            </div>
-            <div className="space-y-2">
-              {RANKING_ORDER.map((rankItem) => {
-                const isCurrentRanking = rankItem === ranking;
-                const levelRange = getLevelRangeForRanking(rankItem);
-                const isAchieved = currentLevel >= levelRange.min;
-
-                return (
-                  <div
-                    key={rankItem}
-                    className={`flex items-center justify-between py-2 px-3 rounded-lg ${
-                      isCurrentRanking ? 'bg-volt/20' : ''
-                    }`}
-                  >
-                    <div className="flex items-center gap-3">
-                      <div
-                        className={`w-3 h-3 rounded-full ${
-                          isAchieved ? 'bg-volt' : 'bg-surface-3'
-                        }`}
-                      />
-                      <span
-                        className={`font-medium ${
-                          isCurrentRanking
-                            ? 'text-volt'
-                            : isAchieved
-                            ? 'text-foreground'
-                            : 'text-muted-foreground'
-                        }`}
-                      >
-                        {RANKING_NAMES[rankItem]}
-                      </span>
-                    </div>
-                    <span className="text-sm text-muted-foreground">
-                      Lvl {levelRange.min}-{levelRange.max}
-                    </span>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
         </div>
-      </div>
+
+        {/* Ranking Ladder */}
+        <section className="pb-5 pt-2">
+          <SectionRule title="Ranking Ladder" right={PRESTIGE_NAMES[prestige]} className="mb-2" />
+          <div className="space-y-1">
+            {[...RANKING_ORDER].reverse().map((rankItem, index) => {
+              const isCurrentRanking = rankItem === ranking;
+              const levelRange = getLevelRangeForRanking(rankItem);
+              const isAchieved = currentLevel >= levelRange.min;
+              return (
+                <div key={rankItem} style={{ marginLeft: `calc(0.75rem + ${(RANKING_ORDER.length - 1 - index) * 2.2}%)` }}>
+                  <div
+                    aria-current={isCurrentRanking || undefined}
+                    className={cn(
+                      'plate plate-bleed-r fx w-full justify-between gap-3 pl-4 pr-4',
+                      isCurrentRanking ? 'plate-lime h-14 text-5xl' : isAchieved ? 'plate-steel h-9 text-3xl' : 'plate-graphite h-9 text-3xl text-muted-foreground',
+                    )}
+                  >
+                    <span>{RANKING_NAMES[rankItem]}</span>
+                    <span className={isCurrentRanking ? 'text-2xl' : 'text-xl'}>Lvl {levelRange.min}-{levelRange.max}</span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+          {nextRank && (
+            <div className="px-4 pt-3">
+              <div className="flex items-baseline justify-between gap-3">
+                <span className="lab lab-w">To {RANKING_NAMES[nextRank]} at {getLevelRangeForRanking(nextRank).min}</span>
+                <span className="fx text-2xl text-volt">Lvl {currentLevel}</span>
+              </div>
+              <SegmentBar
+                className="mt-1"
+                total={10}
+                filled={currentLevel - rankRange.min + 1}
+                height="0.875rem"
+                label={`Level ${currentLevel}, next rank at ${getLevelRangeForRanking(nextRank).min}`}
+              />
+            </div>
+          )}
+        </section>
+      </BroadcastPage>
     </AppLayout>
   );
 };

@@ -143,7 +143,7 @@ test.describe("following", () => {
     const sender = await newFighter(browser, "Sender", page);
     const receiver = await newFighter(browser, "Receiver");
     await sender.page.goto(`${APP_URL}/profile`);
-    await sender.page.locator("button:has(svg.lucide-link)").click();
+    await sender.page.getByRole("button", { name: "Copy profile link" }).click();
     await sender.page.getByText("Profile link copied!").first().waitFor();
     const link = await sender.page.evaluate(() => navigator.clipboard.readText());
     expect(link).toContain(sender.id);
@@ -158,12 +158,12 @@ test.describe("editing a profile", () => {
     const fighter = await newFighter(browser, "Editor", page);
     const stamp = Date.now();
     const profile = async () => (await service.from("profiles").select("name,handle,bio,weight_kg,height_cm").eq("user_id", fighter.id).single()).data;
-    const pencil = (index: number) => page.locator("button:has(svg.lucide-pencil)").nth(index);
+    const edit = (field: "name" | "handle" | "bio") => page.getByRole("button", { name: `Edit ${field}` });
 
     await page.goto(`${APP_URL}/edit-profile`);
 
     await test.step("name", async () => {
-      await pencil(0).click();
+      await edit("name").click();
       await page.locator("input[maxlength='30']").fill("Renamed Fighter");
       await page.locator("input[maxlength='30']").press("Enter");
       await page.getByText("Name updated!").first().waitFor();
@@ -173,13 +173,13 @@ test.describe("editing a profile", () => {
     await test.step("handle, then one someone else has", async () => {
       const other = await newFighter(browser, "Other");
       await service.from("profiles").update({ handle: `taken${stamp}` }).eq("user_id", other.id);
-      await pencil(1).click();
+      await edit("handle").click();
       await page.getByPlaceholder("yourhandle").fill(`mine${stamp}`);
       await page.getByPlaceholder("yourhandle").press("Enter");
       await page.getByText("Handle updated!").first().waitFor();
       await expect.poll(async () => (await profile())?.handle).toBe(`mine${stamp}`);
 
-      await pencil(1).click();
+      await edit("handle").click();
       await page.getByPlaceholder("yourhandle").fill(`taken${stamp}`);
       await page.getByPlaceholder("yourhandle").press("Enter");
       await expect(page.getByText("This handle is already taken").first()).toBeVisible();
@@ -191,7 +191,7 @@ test.describe("editing a profile", () => {
 
     await test.step("bio", async () => {
       await page.goto(`${APP_URL}/edit-profile`);
-      await pencil(2).click();
+      await edit("bio").click();
       await page.getByPlaceholder("Tell others about yourself...").fill("Southpaw from the east side");
       await page.getByRole("button", { name: "Save", exact: true }).click();
       await page.getByText("Bio updated!").first().waitFor();

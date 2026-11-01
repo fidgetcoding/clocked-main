@@ -1,9 +1,11 @@
 import { useLatest } from '@/hooks/useLatest';
 import { splitStoredPhases } from '@/lib/storedPhases';
 import { useState, useEffect, useMemo } from 'react';
-import { ArrowLeft, Plus, Trash2, GripVertical, Pencil, Play, X, ChevronDown, ChevronUp, Sparkles, Share2, Shuffle, ListOrdered, Repeat, Layers, Search, Check } from 'lucide-react';
+import { Plus, Trash2, GripVertical, Pencil, X, ChevronDown, ChevronUp, Share2, Search, Check } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
+import { BroadcastPage, Plate, plateClass, PlayIcon, Ticker, type PlateTone } from '@/components/broadcast';
+import { toComboMove, type MoveType } from '@/components/broadcast/run/moves';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -140,15 +142,88 @@ function SortablePhaseWrapper({ id, children }: { id: string; children: (props: 
   return <>{children({ dragHandleProps: { ...attributes, ...listeners }, style, setNodeRef, isDragging })}</>;
 }
 
-const SEGMENT_TYPES: { key: SegmentType; label: string; color: string }[] = [
-  { key: 'shadowboxing', label: 'S', color: 'bg-purple-500/20 text-purple-400' },
-  { key: 'speedbag', label: 'SB', color: 'bg-orange-500/20 text-orange-400' },
-  { key: 'combo', label: 'H', color: 'bg-red-500/20 text-red-400' },
-  { key: 'doubleend', label: 'DB', color: 'bg-sky-500/20 text-sky-400' },
-  { key: 'sparring', label: 'SP', color: 'bg-amber-500/20 text-amber-400' },
-  { key: 'exercise', label: 'E', color: 'bg-emerald-500/20 text-emerald-400' },
-  { key: 'rest', label: 'R', color: 'bg-zinc-500/20 text-zinc-400' },
+// Tones, not colours: the type letter and the timeline read the same way.
+const SEGMENT_TYPES: { key: SegmentType; label: string; name: string; tone: PlateTone }[] = [
+  { key: 'shadowboxing', label: 'S', name: 'Shadowboxing', tone: 'lime' },
+  { key: 'speedbag', label: 'SB', name: 'Speed bag', tone: 'white' },
+  { key: 'combo', label: 'H', name: 'Heavy bag', tone: 'white' },
+  { key: 'doubleend', label: 'DB', name: 'Double end bag', tone: 'white' },
+  { key: 'sparring', label: 'SP', name: 'Sparring', tone: 'lime' },
+  { key: 'exercise', label: 'E', name: 'Exercise', tone: 'steel' },
+  { key: 'rest', label: 'R', name: 'Rest', tone: 'graphite' },
 ];
+
+// Punches lean forward on lime, defense leans back, movement stays graphite.
+const MOVE_PLATE: Record<MoveType, { tone: PlateTone; back?: boolean }> = {
+  punch: { tone: 'lime' },
+  defense: { tone: 'white', back: true },
+  movement: { tone: 'graphite' },
+  drill: { tone: 'steel' },
+};
+
+// The Input is a rule by default. This puts on-air type on it.
+const FX_FIELD = '!font-display !font-black italic uppercase leading-none';
+const OPTION = (on: boolean) => cn('plate fx h-11 text-xl', on ? 'plate-white' : 'plate-graphite');
+const tally = (count: number, noun: string) => `${count} ${noun}${count === 1 ? '' : 's'}`;
+const NO_SPINNER = '[appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none';
+
+/** A stored combo or drill, as a row of small plates. */
+function MovePlates({ combo }: { combo: string[] }) {
+  return (
+    <span className="flex flex-wrap gap-x-3 gap-y-1 px-1">
+      {combo.map((move, index) => (
+        <Plate key={index} {...MOVE_PLATE[toComboMove(move).type]} className="min-h-8 min-w-8 !whitespace-normal px-2 py-1 text-xl leading-none">
+          {move}
+        </Plate>
+      ))}
+    </span>
+  );
+}
+
+/** Down, the value, up. */
+function Stepper({ noun, value, onChange, lime }: { noun: string; value: number; onChange: (next: number) => void; lime?: boolean }) {
+  return (
+    <span className="flex items-center gap-1.5">
+      <button
+        type="button"
+        aria-label={`Fewer ${noun}`}
+        disabled={value <= 1}
+        onClick={() => onChange(Math.max(1, value - 1))}
+        className="plate plate-graphite h-11 w-11 disabled:opacity-40"
+      >
+        <ChevronDown className="size-5" />
+      </button>
+      <span className={cn('fx w-9 text-center text-3xl', lime && 'text-volt')}>×{value}</span>
+      <button
+        type="button"
+        aria-label={`More ${noun}`}
+        onClick={() => onChange(value + 1)}
+        className="plate plate-graphite h-11 w-11"
+      >
+        <ChevronUp className="size-5" />
+      </button>
+    </span>
+  );
+}
+
+/** A phase's segments, each as wide as its share of the time. */
+function PhaseTimeline({ segments, tone }: { segments: WorkoutSegment[]; tone: (segment: WorkoutSegment) => PlateTone }) {
+  const total = segments.reduce((sum, segment) => sum + segment.duration, 0);
+  if (total <= 0) return null;
+  return (
+    <div aria-hidden="true" className="flex gap-2.5 px-5 pb-2">
+      {segments.map((segment) => (
+        <span
+          key={segment.id}
+          className={cn(plateClass({ tone: tone(segment) }), 'fx h-8 min-w-0 text-xl')}
+          style={{ flex: `${Math.max(segment.duration, 1)} 1 0` }}
+        >
+          {segment.duration / total >= 0.14 && `${segment.duration}s`}
+        </span>
+      ))}
+    </div>
+  );
+}
 
 const DEFAULT_SEGMENT: Omit<WorkoutSegment, 'id'> = {
   name: 'Shadowboxing',
@@ -181,30 +256,25 @@ function SortableComboItem({ id, combo, index, onEdit, onDelete }: {
       ref={setNodeRef}
       style={style}
       className={cn(
-        'flex items-center gap-2 bg-surface-1 rounded-lg p-3 border border-surface-3',
-        isDragging && 'opacity-50 shadow-2xl z-50'
+        'flex items-center gap-1 border-t border-surface-2 py-1',
+        isDragging && 'relative z-50 bg-surface-2 opacity-50'
       )}
     >
-      <div {...attributes} {...listeners} className="cursor-grab active:cursor-grabbing touch-none p-1 -ml-1">
-        <GripVertical className="w-4 h-4 text-muted-foreground" />
+      <div {...attributes} {...listeners} aria-label={`Move entry ${index + 1}`} className="flex h-11 w-8 shrink-0 cursor-grab touch-none items-center justify-center active:cursor-grabbing">
+        <GripVertical className="size-4 text-muted-foreground" />
       </div>
-      <span className="text-xs text-muted-foreground w-6">#{index + 1}</span>
-      <div className="flex-1 flex flex-wrap gap-1">
+      <span className="fx w-6 shrink-0 text-2xl text-volt">{index + 1}</span>
+      <div className="min-w-0 flex-1 px-1">
         {isFreestyle ? (
-          <span className="px-2 py-0.5 rounded text-xs font-medium bg-volt/20 text-volt">
-            Freestyle
-          </span>
+          <Plate tone="steel" className="h-8 px-3 text-xl">Freestyle</Plate>
         ) : (
-          combo.map((move, mIdx) => (
-            <span key={mIdx} className="px-2 py-0.5 rounded text-xs font-medium bg-volt/20 text-volt">
-              {move}
-            </span>
-          ))
+          <MovePlates combo={combo} />
         )}
       </div>
       <button
         type="button"
         data-no-dnd="true"
+        aria-label={`Edit entry ${index + 1}`}
         onClick={(e) => {
           e.stopPropagation();
           onEdit(index);
@@ -215,13 +285,14 @@ function SortableComboItem({ id, combo, index, onEdit, onDelete }: {
         onMouseDownCapture={stopDndEvent}
         onTouchStart={stopDndEvent}
         onTouchStartCapture={stopDndEvent}
-        className="text-muted-foreground hover:text-foreground p-1 touch-manipulation"
+        className="flex h-11 w-9 shrink-0 touch-manipulation items-center justify-center text-muted-foreground hover:text-foreground"
       >
-        <Pencil className="w-4 h-4 pointer-events-none" />
+        <Pencil className="size-4 pointer-events-none" />
       </button>
       <button
         type="button"
         data-no-dnd="true"
+        aria-label={`Remove entry ${index + 1}`}
         onClick={(e) => {
           e.stopPropagation();
           onDelete(index);
@@ -232,9 +303,9 @@ function SortableComboItem({ id, combo, index, onEdit, onDelete }: {
         onMouseDownCapture={stopDndEvent}
         onTouchStart={stopDndEvent}
         onTouchStartCapture={stopDndEvent}
-        className="text-muted-foreground hover:text-destructive p-1 touch-manipulation"
+        className="flex h-11 w-9 shrink-0 touch-manipulation items-center justify-center text-muted-foreground hover:text-destructive"
       >
-        <Trash2 className="w-4 h-4 pointer-events-none" />
+        <Trash2 className="size-4 pointer-events-none" />
       </button>
     </div>
   );
@@ -799,20 +870,14 @@ const Build = () => {
 
   return (
     <AppLayout hideNav>
-      <div className="min-h-screen bg-background flex flex-col">
-        {/* Header */}
-        <header className="flex items-center justify-between px-4 py-4 safe-top border-b border-surface-3">
-          <button 
-            onClick={() => navigate('/')}
-            className="text-muted-foreground"
-          >
-            <ArrowLeft className="w-6 h-6" />
-          </button>
-          <h1 className="text-lg font-bold text-muted-foreground">
+      <BroadcastPage show={<><span className="max-[359px]:hidden">Run of show</span><span className="min-[360px]:hidden">Show</span></>} onBack={() => navigate('/')}>
+        <div className="flex min-h-11 items-center justify-between gap-3 px-4 pt-2">
+          <h1 className="lab lab-lime not-italic">
             {editId ? 'Edit Set' : 'Create New Set'}
           </h1>
-          {editId ? (
+          {editId && (
             <button
+              type="button"
               onClick={() => {
                 if (isGuest) {
                   promptEmailLink('share workouts');
@@ -820,66 +885,66 @@ const Build = () => {
                 }
                 setShowShareDialog(true);
               }}
-              className="flex items-center gap-1.5 text-muted-foreground hover:text-volt transition-colors text-sm font-medium"
+              className="plate plate-graphite fx h-11 gap-2 px-4 text-xl"
               title="Share to Fight Club"
             >
-              <Share2 className="w-4 h-4" />
+              <Share2 className="size-4" />
               Share
             </button>
-          ) : (
-            <div className="w-14" /> 
           )}
-        </header>
-
-        {/* Mode Toggle - Custom first, AI second */}
-        <div className="px-4 py-3 border-b border-surface-3">
-          <div className="flex gap-2">
-            <button
-              onClick={() => {/* Stay in custom mode */}}
-              className="flex-1 py-2.5 rounded-lg text-sm font-semibold bg-volt text-primary-foreground"
-            >
-              Custom Build
-            </button>
-            <button
-              onClick={() => setShowAIBuilder(true)}
-              className="flex-1 py-2.5 rounded-lg text-sm font-semibold bg-surface-1 border border-surface-3 text-muted-foreground hover:bg-surface-2 transition-colors flex items-center justify-center gap-2"
-            >
-              <Sparkles className="w-4 h-4 text-volt" />
-              AI Builder
-            </button>
-          </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto pb-32">
+        {/* Mode Toggle - Custom first, AI second */}
+        <div className="grid grid-cols-2 gap-4 px-5 pt-2">
+          <button
+            type="button"
+            onClick={() => {/* Stay in custom mode */}}
+            aria-pressed="true"
+            className={OPTION(true)}
+          >
+            Custom Build
+          </button>
+          <button
+            type="button"
+            onClick={() => setShowAIBuilder(true)}
+            className={OPTION(false)}
+          >
+            AI Builder
+          </button>
+        </div>
+
+        <div className="pb-36">
           {/* Workout Name */}
-          <div className="px-4 py-4 border-b border-surface-3">
+          <div className="px-4 pt-4">
+            <div className="flex items-baseline justify-between gap-3">
+              <label htmlFor="workout-name" className="lab">Workout Name</label>
+              <p className="flex items-baseline gap-1.5 whitespace-nowrap">
+                <span className="lab">Total: </span>
+                <b className="fx text-4xl text-volt">{formatDuration(calculateTotalDuration())}</b>
+              </p>
+            </div>
             <Input
+              id="workout-name"
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="Workout Name"
-              className="text-xl font-bold bg-transparent border-none text-foreground placeholder:text-muted-foreground p-0 h-auto focus-visible:ring-0"
+              className={cn(FX_FIELD, 'h-14 border-volt text-[clamp(2.25rem,13vw,3rem)]')}
             />
-            <p className="text-sm text-muted-foreground mt-2">
-              Total: {formatDuration(calculateTotalDuration())}
-            </p>
           </div>
 
           {/* Section Tabs */}
-          <div className="flex border-b border-surface-3">
+          <div className="grid grid-cols-[1fr_1fr_1.25fr] gap-3.5 px-5 pt-4">
             {[
               { key: 'warmup', label: 'WARMUP' },
               { key: 'grind', label: 'ROUNDS' },
               { key: 'cooldown', label: 'COOLDOWN' },
             ].map((section) => (
               <button
+                type="button"
                 key={section.key}
                 onClick={() => setActiveSection(section.key as 'warmup' | 'grind' | 'cooldown')}
-                className={cn(
-                  'flex-1 py-3 text-sm font-semibold uppercase tracking-wider transition-colors',
-                  activeSection === section.key 
-                    ? 'text-volt border-b-2 border-volt' 
-                    : 'text-muted-foreground'
-                )}
+                aria-pressed={activeSection === section.key}
+                className={cn(OPTION(activeSection === section.key), 'text-lg sm:text-xl')}
               >
                 {section.label}
               </button>
@@ -888,41 +953,16 @@ const Build = () => {
 
           {/* Megaset + phase repeat info - only visible when ROUNDS tab is active */}
           {activeSection === 'grind' && (
-            <div className="flex items-center justify-between px-4 py-2 border-b border-surface-3">
-              <div className="flex items-center gap-2">
-                <Repeat className="w-4 h-4 text-muted-foreground" />
-                <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Megaset</span>
-              </div>
-              <div className="flex items-center gap-1">
-                <button
-                  onClick={() => setMegasetRepeats(Math.max(1, megasetRepeats - 1))}
-                  className={cn(
-                    'w-6 h-6 rounded bg-surface-2 flex items-center justify-center text-muted-foreground transition-opacity',
-                    megasetRepeats <= 1 && 'opacity-30 pointer-events-none'
-                  )}
-                >
-                  <ChevronDown className="w-3.5 h-3.5" />
-                </button>
-                <span className={cn(
-                  'w-8 text-center text-sm font-semibold',
-                  megasetRepeats > 1 ? 'text-volt' : 'text-muted-foreground'
-                )}>
-                  ×{megasetRepeats}
-                </span>
-                <button
-                  onClick={() => setMegasetRepeats(megasetRepeats + 1)}
-                  className="w-6 h-6 rounded bg-surface-2 flex items-center justify-center text-muted-foreground"
-                >
-                  <ChevronUp className="w-3.5 h-3.5" />
-                </button>
-              </div>
+            <div className="mt-3 flex items-center justify-between gap-3 border-y border-surface-2 px-4 py-1">
+              <span className="lab lab-w">Megaset</span>
+              <Stepper noun="megasets" value={megasetRepeats} onChange={setMegasetRepeats} lime={megasetRepeats > 1} />
             </div>
           )}
 
           {/* Phases */}
           <DndContext sensors={dndSensors} collisionDetection={closestCenter} onDragEnd={handlePhaseDragEnd}>
             <SortableContext items={getActivePhases().map(p => p.id)} strategy={verticalListSortingStrategy}>
-            <div className="px-4 py-4 space-y-4">
+            <div>
             {getActivePhases().map((phase) => {
               const activeSegmentCount = phase.segments.filter(s => s.type === 'active').length;
               const phaseCtx = getPhaseSegmentContext(phase);
@@ -931,83 +971,61 @@ const Build = () => {
               return (
               <SortablePhaseWrapper key={phase.id} id={phase.id}>
                 {({ dragHandleProps, style, setNodeRef, isDragging }) => (
-              <div ref={setNodeRef} style={style} className={cn("bg-surface-1 rounded-xl border border-surface-3 overflow-hidden", isDragging && "opacity-50 shadow-2xl z-50")}>
+              <div ref={setNodeRef} style={style} className={cn("mt-3 border-y border-surface-3 bg-surface-1", isDragging && "relative z-50 opacity-50")}>
                 {/* Phase Header */}
-                <div className="p-3 border-b border-surface-3 space-y-1">
-                  {/* Row 1: drag handle + name + repeat controls + trash */}
-                  <div className="flex items-center gap-2">
-                    <div {...dragHandleProps} className="cursor-grab active:cursor-grabbing touch-none flex-shrink-0">
-                      <GripVertical className="w-4 h-4 text-muted-foreground" />
-                    </div>
-                    <Input
-                      value={phase.name}
-                      onChange={(e) => updatePhase(phase.id, { name: e.target.value })}
-                      className="flex-1 min-w-0 bg-transparent border-none font-semibold text-foreground p-0 h-auto focus-visible:ring-0"
-                    />
-                    <div className="flex items-center gap-1 flex-shrink-0">
-                      <button
-                        onClick={() => updatePhase(phase.id, { repeats: Math.max(1, phase.repeats - 1) })}
-                        className="w-6 h-6 rounded bg-surface-2 flex items-center justify-center text-muted-foreground"
-                      >
-                        <ChevronDown className="w-4 h-4" />
-                      </button>
-                      <span className="w-8 text-center text-sm font-medium text-foreground">
-                        ×{phase.repeats}
-                      </span>
-                      <button
-                        onClick={() => updatePhase(phase.id, { repeats: phase.repeats + 1 })}
-                        className="w-6 h-6 rounded bg-surface-2 flex items-center justify-center text-muted-foreground"
-                      >
-                        <ChevronUp className="w-4 h-4" />
-                      </button>
-                    </div>
-                    <button
-                      onClick={() => removePhase(phase.id)}
-                      className="text-muted-foreground hover:text-destructive flex-shrink-0"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
+                <div className="flex items-center gap-1 px-2 pt-1">
+                  <div {...dragHandleProps} aria-label={`Move ${phase.name}`} className="flex h-11 w-8 shrink-0 cursor-grab touch-none items-center justify-center active:cursor-grabbing">
+                    <GripVertical className="size-5 text-muted-foreground" />
                   </div>
-                  {/* Row 2: superset badge (only if applicable) */}
-                  {isSuperset && (
-                    <div className="pl-7">
-                      <span className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-purple-500/20 text-purple-400 w-fit">
-                        <Layers className="w-3 h-3" />
-                        Superset
-                      </span>
-                    </div>
-                  )}
+                  <Input
+                    value={phase.name}
+                    aria-label="Phase name"
+                    onChange={(e) => updatePhase(phase.id, { name: e.target.value })}
+                    className={cn(FX_FIELD, 'min-w-0 flex-1 border-transparent text-4xl focus-visible:!border-volt')}
+                  />
+                  <button
+                    type="button"
+                    aria-label={`Remove ${phase.name}`}
+                    onClick={() => removePhase(phase.id)}
+                    className="flex h-11 w-10 shrink-0 items-center justify-center text-muted-foreground hover:text-destructive"
+                  >
+                    <Trash2 className="size-4" />
+                  </button>
                 </div>
+                <div className="flex flex-wrap items-center gap-x-3 px-4 pb-2">
+                  <span className="lab lab-w">Repeats</span>
+                  <Stepper noun="repeats" value={phase.repeats} onChange={(repeats) => updatePhase(phase.id, { repeats })} />
+                  <span className="ml-auto flex flex-col items-end gap-0.5">
+                    <b className="fx whitespace-nowrap text-3xl text-muted-foreground">
+                      {formatDuration(phase.segments.reduce((sum, segment) => sum + segment.duration, 0) * phase.repeats)}
+                    </b>
+                    {/* Superset badge (only if applicable) */}
+                    {isSuperset && <span className="lab lab-lime">Superset</span>}
+                  </span>
+                </div>
+                <PhaseTimeline segments={phase.segments} tone={(segment) => getSegmentTypeInfo(segment.segmentType).tone} />
 
                 {/* Combo/Drill/Exercise Order Toggle */}
                 {((phase.segments.some(s => ['combo', 'shadowboxing', 'speedbag', 'doubleend', 'exercise'].includes(s.segmentType || '')) || phaseCtx === 'exercises') && (phase.combos?.length || 0) > 0) && (
-                  <div className="flex items-center justify-between px-3 py-2 border-b border-surface-3">
-                    <span className="text-xs text-muted-foreground">
+                  <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 border-t border-surface-3 px-4 py-1.5">
+                    <span className="lab">
                       {phaseCtx === 'speedbag' ? 'Drill Order' : phaseCtx === 'exercises' ? 'Exercise Order' : 'Combo Order'}
                     </span>
-                    <div className="flex gap-1">
+                    <div className="flex gap-3.5">
                       <button
+                        type="button"
                         onClick={() => updatePhase(phase.id, { comboOrder: 'sequential' })}
-                        className={cn(
-                          'flex items-center gap-1 px-2.5 py-1 rounded text-xs font-medium transition-colors',
-                          (phase.comboOrder || 'sequential') === 'sequential'
-                            ? 'bg-volt/20 text-volt'
-                            : 'bg-surface-2 text-muted-foreground'
-                        )}
+                        aria-pressed={(phase.comboOrder || 'sequential') === 'sequential'}
+                        className={cn(OPTION((phase.comboOrder || 'sequential') === 'sequential'), 'px-3')}
                       >
-                        <ListOrdered className="w-3 h-3" />
                         In Order
                       </button>
                       <button
+                        type="button"
                         onClick={() => updatePhase(phase.id, { comboOrder: 'random' })}
-                        className={cn(
-                          'flex items-center gap-1 px-2.5 py-1 rounded text-xs font-medium transition-colors',
-                          phase.comboOrder === 'random'
-                            ? 'bg-volt/20 text-volt'
-                            : 'bg-surface-2 text-muted-foreground'
-                        )}
+                        aria-pressed={phase.comboOrder === 'random'}
+                        className={cn(OPTION(phase.comboOrder === 'random'), 'px-3')}
                       >
-                        <Shuffle className="w-3 h-3" />
                         Random
                       </button>
                     </div>
@@ -1015,7 +1033,7 @@ const Build = () => {
                 )}
 
                 {/* Segments */}
-                <div className="divide-y divide-surface-3">
+                <div className="divide-y divide-surface-3 border-t border-surface-3">
                   {phase.segments.map((segment, segIdx) => {
                     const segInfo = getSegmentTypeInfo(segment.segmentType);
                     const hasComboSupport = segment.segmentType === 'combo' || segment.segmentType === 'shadowboxing' || segment.segmentType === 'speedbag' || segment.segmentType === 'doubleend' || segment.segmentType === 'exercise';
@@ -1023,34 +1041,37 @@ const Build = () => {
                     const showLibrary = hasComboSupport;
                     return (
                       <div key={segment.id}>
-                        <div className="flex items-center gap-3 p-3">
+                        <div className="flex items-center gap-2 py-1 pl-4 pr-2">
                           <button
+                            type="button"
+                            aria-label={`${segInfo.label}, ${segInfo.name}. Change segment type`}
                             onClick={() => cycleSegmentType(phase.id, segment.id, segment.segmentType)}
-                            className={cn(
-                              'w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold',
-                              segInfo.color
-                            )}
+                            className={cn(plateClass({ tone: segInfo.tone }), 'fx h-11 w-11 shrink-0 text-2xl')}
                           >
                             {segInfo.label}
                           </button>
                           <Input
                             value={segment.name}
+                            aria-label="Segment name"
                             onChange={(e) => updateSegment(phase.id, segment.id, { name: e.target.value })}
-                            className="flex-1 bg-surface-2 border-surface-3 text-foreground text-sm h-8"
+                            className="min-w-0 flex-1"
                           />
                           <Input
                             type="number"
                             min={1}
                             value={segment.duration}
+                            aria-label="Seconds"
                             onChange={(e) => updateSegment(phase.id, segment.id, { duration: Math.max(0, parseInt(e.target.value) || 0) })}
-                            className="w-16 bg-surface-2 border-surface-3 text-foreground text-sm h-8 text-center"
+                            className={cn(FX_FIELD, NO_SPINNER, 'w-12 shrink-0 text-center text-3xl')}
                           />
-                          <span className="text-xs text-muted-foreground">sec</span>
+                          <span className="lab">sec</span>
                           <button
+                            type="button"
+                            aria-label={`Remove ${segment.name}`}
                             onClick={() => removeSegment(phase.id, segment.id)}
-                            className="text-muted-foreground hover:text-destructive"
+                            className="flex h-11 w-9 shrink-0 items-center justify-center text-muted-foreground hover:text-destructive"
                           >
-                            <X className="w-4 h-4" />
+                            <X className="size-4" />
                           </button>
                         </div>
 
@@ -1127,13 +1148,15 @@ const Build = () => {
                           };
                           
                           return (
-                          <div className="px-3 pb-3 pt-1">
-                            <div className="flex items-center justify-between mb-2">
+                          <div className="px-3 pb-2">
+                            <div className="flex items-center justify-between gap-3">
                               <button
+                                type="button"
                                 onClick={toggleLibrary}
-                                className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1 hover:text-foreground transition-colors"
+                                aria-expanded={isLibraryExpanded}
+                                className="lab flex min-h-11 items-center gap-1.5 transition-colors hover:text-foreground"
                               >
-                                <ChevronDown className={cn("w-3 h-3 transition-transform", !isLibraryExpanded && "-rotate-90")} />
+                                <ChevronDown className={cn("size-4 transition-transform", !isLibraryExpanded && "-rotate-90")} />
                                 {labelWord} ({libraryEntries.length})
                               </button>
                               <button
@@ -1155,9 +1178,9 @@ const Build = () => {
                                   // Auto-expand when adding
                                   setExpandedLibraries(prev => { const next = new Map(prev); next.set(libraryKey, true); return next; });
                                 }}
-                                className="text-xs font-medium text-volt hover:text-volt/80 flex items-center gap-1"
+                                className="plate plate-lime fx h-11 gap-1.5 px-4 text-xl"
                               >
-                                <Plus className="w-3 h-3" />
+                                <Plus className="size-4" />
                                 Add
                               </button>
                             </div>
@@ -1165,9 +1188,9 @@ const Build = () => {
                               <>
                                 {libraryEntries.length === 0 ? (
                                   <p className={cn(
-                                    "text-xs text-center py-2",
+                                    "prose-w py-2 text-base",
                                     phase.name?.toLowerCase().includes('championship') 
-                                      ? "text-volt/70 font-medium" 
+                                      ? "text-[hsl(var(--championship-gold))]" 
                                       : "text-muted-foreground"
                                   )}>
                                     {phase.name?.toLowerCase().includes('championship') ? 'Freestyle' : emptyText}
@@ -1191,7 +1214,7 @@ const Build = () => {
                                       items={libraryEntries.map((_, i) => `combo-${phase.id}-${segIdx}-${i}`)} 
                                       strategy={verticalListSortingStrategy}
                                     >
-                                      <div className="space-y-1.5">
+                                      <div>
                                         {libraryEntries.map((combo, idx) => (
                                           <SortableComboItem
                                             key={`combo-${phase.id}-${segIdx}-${idx}`}
@@ -1234,10 +1257,11 @@ const Build = () => {
 
                 {/* Add Segment */}
                 <button
+                  type="button"
                   onClick={() => addSegment(phase.id)}
-                  className="w-full p-2 text-sm text-muted-foreground hover:text-foreground hover:bg-surface-2 transition-colors flex items-center justify-center gap-1"
+                  className="fx flex min-h-11 w-full items-center justify-center gap-1.5 border-t border-surface-3 text-xl text-muted-foreground transition-colors hover:bg-surface-2 hover:text-foreground"
                 >
-                  <Plus className="w-4 h-4" />
+                  <Plus className="size-4" />
                   Add Segment
                 </button>
               </div>
@@ -1247,13 +1271,16 @@ const Build = () => {
             })}
 
             {/* Add Phase */}
-            <button
-              onClick={addPhase}
-              className="w-full p-4 rounded-xl border-2 border-dashed border-surface-3 text-muted-foreground hover:text-foreground hover:border-volt transition-colors flex items-center justify-center gap-2"
-            >
-              <Plus className="w-5 h-5" />
-              Add Phase
-            </button>
+            <div className="px-5 pt-4">
+              <button
+                type="button"
+                onClick={addPhase}
+                className="plate plate-graphite fx h-14 w-full gap-2 text-3xl"
+              >
+                <Plus className="size-5" />
+                Add Phase
+              </button>
+            </div>
             </div>
             </SortableContext>
           </DndContext>
@@ -1262,12 +1289,13 @@ const Build = () => {
 
         {/* Combo Builder Modal */}
         {showComboBuilder && (
-          <div className="fixed inset-0 bg-background/95 z-50 flex flex-col">
-            <header className="flex items-center justify-between px-4 py-4 border-b border-surface-3">
-              <button onClick={() => setShowComboBuilder(false)} className="text-muted-foreground">
-                <X className="w-6 h-6" />
+          <div className="fixed inset-0 z-50 overflow-y-auto overflow-x-clip bg-background">
+            <div className="mx-auto max-w-[46rem] pb-8">
+            <header className="sticky top-0 z-10 flex items-center justify-between gap-3 bg-background px-4 pb-2 pt-[max(0.5rem,env(safe-area-inset-top))]">
+              <button type="button" aria-label="Close" onClick={() => setShowComboBuilder(false)} className="plate plate-graphite h-11 w-12 shrink-0">
+                <X className="size-5" />
               </button>
-              <h2 className="font-bold text-foreground">
+              <h2 className="fx min-w-0 truncate py-1 text-4xl">
                 {editingSegmentContext === 'speedbag' 
                   ? (editingComboIndex !== null ? 'Edit Drill' : 'Add Drill')
                   : editingSegmentContext === 'exercises'
@@ -1275,7 +1303,7 @@ const Build = () => {
                   : (editingComboIndex !== null ? 'Edit Combo' : 'Add Combo')}
               </h2>
               {comboMode === 'custom' ? (
-                <Button onClick={saveCombo} size="sm" className="bg-volt text-primary-foreground" disabled={currentCombo.length === 0}>
+                <Button onClick={saveCombo} size="sm" className="shrink-0" disabled={currentCombo.length === 0}>
                   Save
                 </Button>
               ) : (
@@ -1285,64 +1313,37 @@ const Build = () => {
 
             {/* Difficulty + Mode Toggle */}
             {editingSegmentContext !== 'exercises' && (
-            <div className="px-4 py-3 border-b border-surface-3 space-y-3">
+            <div className="space-y-3 border-b border-surface-3 px-5 pb-3 pt-1">
               {/* Difficulty Tabs */}
-              <div className="space-y-2 border border-surface-3 rounded-xl p-2.5 bg-surface-1/30">
-                <div className="flex gap-2">
-                  {(['rookie', 'beginner', 'intermediate'] as const).map((d) => (
-                    <button
-                      key={d}
-                      onClick={() => setDifficulty(d)}
-                      className={cn(
-                        'flex-1 py-1.5 rounded-full text-xs font-medium uppercase transition-colors',
-                        difficulty === d 
-                          ? 'bg-volt text-primary-foreground' 
-                          : 'bg-surface-2 text-muted-foreground'
-                      )}
-                    >
-                      {d}
-                    </button>
-                  ))}
-                </div>
-                <div className="flex gap-2">
-                  {(['advanced', 'pro'] as const).map((d) => (
-                    <button
-                      key={d}
-                      onClick={() => setDifficulty(d)}
-                      className={cn(
-                        'flex-1 py-1.5 rounded-full text-xs font-medium uppercase transition-colors',
-                        difficulty === d 
-                          ? 'bg-volt text-primary-foreground' 
-                          : 'bg-surface-2 text-muted-foreground'
-                      )}
-                    >
-                      {d}
-                    </button>
-                  ))}
-                </div>
+              <div className="flex flex-wrap gap-x-4 gap-y-1.5">
+                {(['rookie', 'beginner', 'intermediate', 'advanced', 'pro'] as const).map((d) => (
+                  <button
+                    type="button"
+                    key={d}
+                    onClick={() => setDifficulty(d)}
+                    aria-pressed={difficulty === d}
+                    className={cn(OPTION(difficulty === d), 'flex-auto px-2.5 text-lg sm:text-xl')}
+                  >
+                    {d}
+                  </button>
+                ))}
               </div>
               {/* Mode Toggle - only for combos */}
               {editingSegmentContext !== 'speedbag' && (
-              <div className="relative flex bg-surface-2 rounded-lg p-0.5 h-9">
-                <div
-                  className="absolute top-0.5 bottom-0.5 w-[calc(50%-2px)] bg-volt rounded-md transition-transform duration-200 ease-out"
-                  style={{ transform: comboMode === 'custom' ? 'translateX(calc(100% + 4px))' : 'translateX(0)' }}
-                />
+              <div className="grid grid-cols-2 gap-4">
                 <button
+                  type="button"
                   onClick={() => setComboMode('presets')}
-                  className={cn(
-                    'relative z-10 flex-1 text-xs font-semibold uppercase tracking-wide transition-colors',
-                    comboMode === 'presets' ? 'text-background' : 'text-muted-foreground'
-                  )}
+                  aria-pressed={comboMode === 'presets'}
+                  className={cn('plate fx h-11 text-2xl', comboMode === 'presets' ? 'plate-lime' : 'plate-graphite')}
                 >
                   Presets
                 </button>
                 <button
+                  type="button"
                   onClick={() => setComboMode('custom')}
-                  className={cn(
-                    'relative z-10 flex-1 text-xs font-semibold uppercase tracking-wide transition-colors',
-                    comboMode === 'custom' ? 'text-background' : 'text-muted-foreground'
-                  )}
+                  aria-pressed={comboMode === 'custom'}
+                  className={cn('plate fx h-11 text-2xl', comboMode === 'custom' ? 'plate-lime' : 'plate-graphite')}
                 >
                   Custom
                 </button>
@@ -1353,18 +1354,17 @@ const Build = () => {
 
             {/* Exercise name input mode */}
             {editingSegmentContext === 'exercises' ? (
-              <div className="flex-1 overflow-y-auto px-4 py-4">
-                <p className="text-xs text-muted-foreground uppercase tracking-wider mb-3">
+              <div className="px-4 py-4">
+                <p className="lab lab-lime mb-2">
                   ADD EXERCISE SET
                 </p>
-                <p className="text-xs text-muted-foreground mb-4">
+                <p className="prose-w mb-3 text-base text-muted-foreground">
                   Type the exercises for this round. Use "&" to combine multiple exercises in one set.
                 </p>
-                <div className="space-y-3">
+                <div className="space-y-4">
                   <Input
                     id="exercise-name-input"
                     placeholder="e.g. Mountain Climbers & Squat Jumps"
-                    className="bg-surface-2 border-surface-3 text-foreground"
                     onKeyDown={(e) => {
                       if (e.key === 'Enter') {
                         const val = (e.target as HTMLInputElement).value.trim();
@@ -1376,31 +1376,33 @@ const Build = () => {
                       }
                     }}
                   />
-                  <Button
-                    onClick={() => {
-                      const input = document.getElementById('exercise-name-input') as HTMLInputElement;
-                      const val = input?.value?.trim();
-                      if (val && editingPhaseId) {
-                        addSpeedBagDrill(val);
-                        input.value = '';
-                        setShowComboBuilder(false);
-                      }
-                    }}
-                    className="w-full bg-volt text-primary-foreground"
-                  >
-                    Add Exercise Set
-                  </Button>
+                  <div className="px-1">
+                    <Button
+                      onClick={() => {
+                        const input = document.getElementById('exercise-name-input') as HTMLInputElement;
+                        const val = input?.value?.trim();
+                        if (val && editingPhaseId) {
+                          addSpeedBagDrill(val);
+                          input.value = '';
+                          setShowComboBuilder(false);
+                        }
+                      }}
+                      className="w-full"
+                    >
+                      Add Exercise Set
+                    </Button>
+                  </div>
                 </div>
               </div>
             ) : (comboMode === 'presets' || editingSegmentContext === 'speedbag') ? (
               /* Presets List */
-              <div className="flex-1 overflow-y-auto px-4 py-4">
+              <div className="pt-3">
                 {editingSegmentContext === 'speedbag' ? (
                   <>
-                    <p className="text-xs text-muted-foreground uppercase tracking-wider mb-3">
+                    <p className="lab lab-lime px-4 pb-1">
                       {difficulty.toUpperCase()} DRILLS
                     </p>
-                    <div className="space-y-2">
+                    <div>
                       {(() => {
                         const DRILL_CATEGORIES: Record<string, string[]> = {
                           rookie: ['single-alternating', 'doubles'],
@@ -1418,18 +1420,19 @@ const Build = () => {
                           .filter(d => d.id !== 'freestyle' && availableIds.includes(d.id))
                           .map((drill) => (
                           <button
+                            type="button"
                             key={drill.id}
                             onClick={() => {
                               addSpeedBagDrill(drill.name);
                               setShowComboBuilder(false);
                             }}
-                            className="w-full flex items-center gap-3 bg-surface-1 rounded-lg p-3 border border-surface-3 hover:border-volt/50 transition-colors text-left"
+                            className="flex min-h-11 w-full items-center gap-3 border-b border-surface-2 px-4 py-2 text-left transition-colors hover:bg-surface-1"
                           >
-                            <div className="flex-1">
-                              <p className="font-medium text-foreground text-sm">{drill.name}</p>
-                              <p className="text-xs text-muted-foreground mt-1">{drill.description}</p>
+                            <div className="min-w-0 flex-1">
+                              <p className="fx text-3xl">{drill.name}</p>
+                              <p className="prose-w mt-1 text-sm text-muted-foreground">{drill.description}</p>
                             </div>
-                            <Plus className="w-5 h-5 text-volt/60" />
+                            <Plus className="size-5 shrink-0 text-volt" />
                           </button>
                         ));
                       })()}
@@ -1438,17 +1441,17 @@ const Build = () => {
                 ) : (
                   <>
                     {/* Search bar */}
-                    <div className="relative mb-3">
-                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                    <div className="relative mx-4 mb-2">
+                      <Search className="absolute left-0 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
                       <Input
                         placeholder="Search combos (e.g. slip, 7, roll)..."
                         value={presetSearch}
                         onChange={(e) => setPresetSearch(e.target.value)}
-                        className="pl-9 bg-surface-2 border-surface-3 text-foreground text-sm h-9"
+                        className="pl-6"
                       />
                     </div>
                     {/* Category filter pills */}
-                    <div className="flex flex-wrap gap-1 mb-3">
+                    <div className="mb-2 flex flex-wrap gap-x-4 gap-y-1.5 px-5">
                       {presetCategories.map((cat, catIdx) => {
                         const isActive = selectedPresetCategory === cat.name;
                         // Shorten category names for compact pills
@@ -1470,14 +1473,11 @@ const Build = () => {
                           .trim();
                         return (
                           <button
+                            type="button"
                             key={catIdx}
                             onClick={() => setSelectedPresetCategory(isActive ? null : cat.name)}
-                            className={cn(
-                              'px-2 py-0.5 rounded-full text-[10px] font-medium border transition-colors whitespace-nowrap',
-                              isActive
-                                ? 'bg-volt text-background border-volt'
-                                : 'bg-surface-2 text-muted-foreground border-surface-3 hover:border-foreground/30'
-                            )}
+                            aria-pressed={isActive}
+                            className={cn(OPTION(isActive), 'px-3 text-lg')}
                           >
                             {shortName}
                           </button>
@@ -1501,17 +1501,19 @@ const Build = () => {
                       });
 
                       if (visibleCombos.length === 0) {
-                        return <p className="text-muted-foreground text-sm text-center py-8">No combos found</p>;
+                        return <p className="fx px-4 py-8 text-3xl text-muted-foreground">No combos found</p>;
                       }
 
                       return (
-                        <div className="space-y-1.5">
+                        <div className="border-t border-surface-3">
                           {visibleCombos.map(({ combo, catName, idx }) => {
                             const added = isComboAdded(combo);
                             const comboKey = `${difficulty}-${catName}-${idx}`;
                             return (
                               <button
+                                type="button"
                                 key={comboKey}
+                                aria-pressed={added}
                                 onClick={() => {
                                   if (added) {
                                     // Deselect: remove this combo from phase
@@ -1527,39 +1529,17 @@ const Build = () => {
                                   }
                                 }}
                                 className={cn(
-                                  'w-full flex items-center gap-3 rounded-lg p-2.5 border transition-colors text-left',
-                                  added
-                                    ? 'bg-volt/10 border-volt/30'
-                                    : 'bg-surface-1 border-surface-3 hover:border-volt'
+                                  'flex min-h-11 w-full items-center gap-3 border-b border-surface-2 px-4 py-1.5 text-left transition-colors',
+                                  added ? 'bg-surface-2' : 'hover:bg-surface-1'
                                 )}
                               >
-                                <div className="flex-1">
-                                  <div className="flex flex-wrap gap-1">
-                                    {combo.map((move, mIdx) => {
-                                      const isDefense = move.includes('SLIP') || move.includes('ROLL') || move.includes('PULL');
-                                      const isMovement = move.includes('CIRCLE');
-                                      const isBody = ['7', '8', '9', '10'].includes(move);
-                                      return (
-                                        <span
-                                          key={mIdx}
-                                          className={cn(
-                                            'px-1.5 py-0.5 rounded text-[10px] font-medium',
-                                            isDefense ? 'bg-yellow-500/20 text-yellow-500'
-                                              : isMovement ? 'bg-blue-500/20 text-blue-400'
-                                              : isBody ? 'bg-orange-500/20 text-orange-400'
-                                              : 'bg-volt/20 text-volt'
-                                          )}
-                                        >
-                                          {move}
-                                        </span>
-                                      );
-                                    })}
-                                  </div>
-                                </div>
+                                <span className="min-w-0 flex-1">
+                                  <MovePlates combo={combo} />
+                                </span>
                                 {added ? (
-                                  <Check className="w-4 h-4 text-volt" />
+                                  <Check className="size-5 shrink-0 text-volt" />
                                 ) : (
-                                  <Plus className="w-4 h-4 text-volt" />
+                                  <Plus className="size-5 shrink-0 text-muted-foreground" />
                                 )}
                               </button>
                             );
@@ -1572,42 +1552,46 @@ const Build = () => {
               </div>
             ) : (
               /* Custom Builder */
-              <div className="flex-1 overflow-y-auto">
+              <div>
                 {/* Current Combo Display */}
-                <div className="px-4 py-6 border-b border-surface-3">
-                  <div className="min-h-[60px] flex flex-wrap items-center gap-2 justify-center">
+                <div className="border-b border-surface-3 px-5 py-3">
+                  <div className="flex min-h-[4.5rem] flex-wrap items-center justify-center gap-x-6 gap-y-2">
                     {currentCombo.length === 0 ? (
-                      <p className="text-muted-foreground">Tap keys to build combo</p>
+                      <p className="lab lab-w">Tap keys to build combo</p>
                     ) : (
-                      currentCombo.map((move, idx) => (
-                        <button
-                          key={idx}
-                          onClick={() => removeFromCombo(idx)}
-                          className={cn(
-                            'px-4 py-2 rounded-lg font-bold text-lg',
-                            move.includes('SLIP') || move.includes('ROLL') || move.includes('PULL') || move.includes('BLOCK')
-                              ? 'bg-yellow-500/20 text-yellow-500 border border-yellow-500/30'
-                              : move.includes('CIRCLE') || move.includes('STEP')
-                              ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30'
-                              : 'bg-volt/20 text-volt border border-volt/30'
-                          )}
-                        >
-                          {move}
-                        </button>
-                      ))
+                      currentCombo.map((move, idx) => {
+                        const isPunch = toComboMove(move).type === 'punch';
+                        return (
+                          <button
+                            type="button"
+                            key={idx}
+                            aria-label={`Remove ${move}`}
+                            onClick={() => removeFromCombo(idx)}
+                            className={cn(plateClass(MOVE_PLATE[toComboMove(move).type]), 'fx h-[4.5rem] px-4', isPunch ? 'min-w-16 text-7xl' : 'text-4xl')}
+                          >
+                            {move}
+                          </button>
+                        );
+                      })
                     )}
                   </div>
+                  {currentCombo.some((move) => toComboMove(move).name) && (
+                    <p className="fx mt-2 text-center text-2xl">
+                      {currentCombo.map((move) => toComboMove(move).name).filter(Boolean).join(', ')}
+                    </p>
+                  )}
                 </div>
 
                 {/* Punch Keys */}
-                <div className="px-4 py-4">
-                  <p className="text-xs text-muted-foreground uppercase tracking-wider mb-3">Punches</p>
-                  <div className="grid grid-cols-4 gap-2">
+                <div className="px-5 pt-3">
+                  <p className="lab mb-2">Punches</p>
+                  <div className="grid grid-cols-4 gap-x-5 gap-y-2 sm:grid-cols-5">
                     {punchKeys.map((key) => (
                       <button
+                        type="button"
                         key={key}
                         onClick={() => addToCombo(key)}
-                        className="aspect-square rounded-xl bg-surface-1 border border-surface-3 text-foreground font-bold text-xl hover:bg-volt hover:text-primary-foreground transition-colors"
+                        className="plate plate-lime fx h-14 text-5xl"
                       >
                         {key}
                       </button>
@@ -1616,31 +1600,35 @@ const Build = () => {
                 </div>
 
                 {/* Defense Keys */}
-                <div className="px-4 py-4">
-                  <p className="text-xs text-muted-foreground uppercase tracking-wider mb-3">Defense</p>
-                  <div className="grid grid-cols-3 gap-2">
+                {defenseKeys.length > 0 && (
+                <div className="px-5 pt-4">
+                  <p className="lab mb-2">Defense leans back</p>
+                  <div className="grid grid-cols-3 gap-x-5 gap-y-2 sm:grid-cols-5">
                     {defenseKeys.map((key) => (
                       <button
+                        type="button"
                         key={key}
                         onClick={() => addToCombo(key)}
-                        className="py-3 rounded-xl bg-surface-1 border border-surface-3 text-foreground font-medium text-sm hover:bg-volt hover:text-primary-foreground transition-colors"
+                        className="plate plate-white plate-back fx h-12 text-3xl"
                       >
                         {key}
                       </button>
                     ))}
                   </div>
                 </div>
+                )}
 
                 {/* Movement Keys - only show if available */}
                 {movementKeys.length > 0 && (
-                  <div className="px-4 py-4">
-                    <p className="text-xs text-muted-foreground uppercase tracking-wider mb-3">Movement</p>
-                    <div className="grid grid-cols-2 gap-2">
+                  <div className="px-5 pt-4">
+                    <p className="lab mb-2">Movement</p>
+                    <div className="grid grid-cols-2 gap-x-5 gap-y-2 sm:grid-cols-5">
                       {movementKeys.map((key) => (
                         <button
+                          type="button"
                           key={key}
                           onClick={() => addToCombo(key)}
-                          className="py-3 rounded-xl bg-surface-1 border border-surface-3 text-foreground font-medium text-sm hover:bg-volt hover:text-primary-foreground transition-colors"
+                          className="plate plate-graphite fx h-12 text-3xl"
                         >
                           {key}
                         </button>
@@ -1650,19 +1638,30 @@ const Build = () => {
                 )}
               </div>
             )}
+            </div>
           </div>
         )}
 
-        {/* Fixed Save Button at Bottom */}
-        <div className="fixed bottom-0 left-0 right-0 p-4 bg-background border-t border-surface-3 safe-bottom">
-          <div className="flex gap-2">
-            <Button onClick={() => handleSave(false)} variant="outline" className="flex-1 border-surface-3">
-              Save Workout
-            </Button>
-            <Button onClick={() => handleSave(true)} className="flex-1 bg-volt text-primary-foreground hover:bg-volt/90">
-              <Play className="w-4 h-4 mr-2" />
-              Start
-            </Button>
+        {/* The run of show's numbers, and the way out */}
+        <div className="app-footer">
+          <div className="app-footer-inner bg-background">
+            <Ticker
+              tone="dark"
+              items={[
+                tally(grindPhases.reduce((sum, phase) => sum + phase.repeats, 0) * megasetRepeats, 'round'),
+                tally([...warmupPhases, ...grindPhases, ...cooldownPhases].length, 'phase'),
+                tally([...warmupPhases, ...grindPhases, ...cooldownPhases].reduce((sum, phase) => sum + phase.segments.length, 0), 'segment'),
+              ]}
+            />
+            <div className="grid grid-cols-[3fr_2fr] gap-4 px-5 py-2.5 safe-bottom">
+              <Button onClick={() => handleSave(false)} variant="steel" className="px-2">
+                Save Workout
+              </Button>
+              <Button onClick={() => handleSave(true)} className="px-2">
+                <PlayIcon />
+                Start
+              </Button>
+            </div>
           </div>
         </div>
 
@@ -1682,48 +1681,41 @@ const Build = () => {
             setShareMessage('');
           }
         }}>
-          <DialogContent className="bg-background border-surface-3 max-h-[85vh] overflow-y-auto">
+          <DialogContent>
             <DialogHeader>
-              <DialogTitle className="text-foreground">Share to Fight Club</DialogTitle>
-              <DialogDescription className="text-muted-foreground">
+              <DialogTitle className="text-5xl">Share to Fight Club</DialogTitle>
+              <DialogDescription className="prose-w text-base text-muted-foreground">
                 Share your workout with the community.
               </DialogDescription>
             </DialogHeader>
-            <div className="space-y-5 py-2">
+            <div className="min-w-0 space-y-5 py-1">
               {/* Workout Name */}
-              <div className="space-y-2">
-                <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Workout Name</label>
+              <div>
+                <label htmlFor="share-name" className="lab block">Workout Name</label>
                 <Input
+                  id="share-name"
                   value={shareName}
                   onChange={(e) => setShareName(e.target.value)}
                   placeholder="Workout name"
-                  className="bg-surface-1 border-surface-3 text-foreground"
+                  className={cn(FX_FIELD, 'h-14 border-volt text-5xl')}
                 />
               </div>
 
               {/* Destination Selector */}
-              <div className="space-y-2">
-                <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Share to</label>
-                <div className="flex gap-2 p-1 bg-surface-1 rounded-lg">
+              <div>
+                <span className="lab block">Share to</span>
+                <div className="mt-2 grid grid-cols-2 gap-4 px-1">
                   <button
+                    type="button"
                     onClick={() => { setShareDestination('feed'); setShareClubId(null); }}
-                    className={cn(
-                      'flex-1 py-2 px-3 rounded-md text-sm font-medium transition-all',
-                      shareDestination === 'feed'
-                        ? 'bg-volt text-primary-foreground'
-                        : 'text-muted-foreground hover:text-foreground'
-                    )}
+                    className={cn('plate fx h-11 text-2xl', shareDestination === 'feed' ? 'plate-lime' : 'plate-graphite')}
                   >
                     Public
                   </button>
                   <button
+                    type="button"
                     onClick={() => setShareDestination('club')}
-                    className={cn(
-                      'flex-1 py-2 px-3 rounded-md text-sm font-medium transition-all',
-                      shareDestination === 'club'
-                        ? 'bg-volt text-primary-foreground'
-                        : 'text-muted-foreground hover:text-foreground'
-                    )}
+                    className={cn('plate fx h-11 text-2xl', shareDestination === 'club' ? 'plate-lime' : 'plate-graphite')}
                   >
                     Private
                   </button>
@@ -1731,23 +1723,23 @@ const Build = () => {
 
                 {/* Club selector submenu */}
                 {shareDestination === 'club' && (
-                  <div className="space-y-2 mt-2">
+                  <div className="mt-2">
                     {myClubs.length === 0 ? (
-                      <p className="text-sm text-muted-foreground">You haven't joined any clubs yet.</p>
+                      <p className="prose-w text-base text-muted-foreground">You haven't joined any clubs yet.</p>
                     ) : (
                       myClubs.map((club) => (
                         <button
+                          type="button"
                           key={club.id}
                           onClick={() => setShareClubId(club.id)}
+                          aria-pressed={shareClubId === club.id}
                           className={cn(
-                            'w-full flex items-center gap-3 p-3 rounded-lg border transition-all text-left',
-                            shareClubId === club.id
-                              ? 'border-volt bg-volt/10'
-                              : 'border-surface-3 bg-surface-1 hover:border-muted-foreground'
+                            'fx flex min-h-11 w-full items-center justify-between gap-3 border-b border-surface-3 py-1 text-left text-3xl',
+                            shareClubId === club.id ? 'text-volt' : 'text-foreground'
                           )}
                         >
-                          <span className="text-xl">{club.icon}</span>
-                          <span className="text-sm font-medium text-foreground">{club.name}</span>
+                          <span className="min-w-0 break-words">{club.name}</span>
+                          {shareClubId === club.id && <Check className="size-5 shrink-0" />}
                         </button>
                       ))
                     )}
@@ -1756,21 +1748,18 @@ const Build = () => {
               </div>
 
               {/* Tags */}
-              <div className="space-y-2">
-                <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Tags</label>
-                <div className="flex flex-wrap gap-2">
+              <div>
+                <span className="lab block">Tags</span>
+                <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1.5 px-1">
                   {['Boxing', 'HIIT', 'Conditioning', 'Beginner', 'Intermediate', 'Advanced', 'Cardio', 'Speed Bag'].map((tag) => (
                     <button
+                      type="button"
                       key={tag}
                       onClick={() => setShareTags(prev => 
                         prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag]
                       )}
-                      className={cn(
-                        'px-3 py-1.5 rounded-full text-xs font-medium transition-all border',
-                        shareTags.includes(tag)
-                          ? 'bg-volt text-primary-foreground border-volt'
-                          : 'bg-surface-1 text-muted-foreground border-surface-3 hover:border-muted-foreground'
-                      )}
+                      aria-pressed={shareTags.includes(tag)}
+                      className={cn('plate fx h-11 px-3 text-xl', shareTags.includes(tag) ? 'plate-white' : 'plate-graphite')}
                     >
                       {tag}
                     </button>
@@ -1779,25 +1768,25 @@ const Build = () => {
               </div>
 
               {/* Note */}
-              <div className="space-y-2">
-                <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Note</label>
+              <div>
+                <label htmlFor="share-note" className="lab mb-2 block">Note</label>
                 <Textarea
+                  id="share-note"
                   value={shareMessage}
                   onChange={(e) => setShareMessage(e.target.value)}
                   placeholder="Add a note about this workout... (optional)"
-                  className="bg-surface-1 border-surface-3 text-foreground placeholder:text-muted-foreground resize-none"
+                  className="resize-none bg-surface-2 text-foreground"
                   rows={3}
                 />
               </div>
             </div>
-            <DialogFooter className="gap-2">
+            <DialogFooter className="gap-3">
               <Button 
-                variant="outline" 
+                variant="secondary" 
                 onClick={() => {
                   setShowShareDialog(false);
                   setShareMessage('');
                 }}
-                className="border-surface-3"
               >
                 Cancel
               </Button>
@@ -1842,7 +1831,7 @@ const Build = () => {
                     }
                   );
                 }}
-                className="bg-volt text-primary-foreground hover:bg-volt/90"
+
                 disabled={shareWorkout.isPending || (shareDestination === 'club' && !shareClubId)}
               >
                 {shareWorkout.isPending ? 'Sharing...' : 'Share'}
@@ -1871,7 +1860,7 @@ const Build = () => {
             setEditingComboIndex(null);
           }}
         />
-      </div>
+      </BroadcastPage>
     </AppLayout>
   );
 };

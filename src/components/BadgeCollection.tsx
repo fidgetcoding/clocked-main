@@ -2,18 +2,13 @@ import { BadgeArt } from '@/components/ui/GameArt';
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
 import { useBadges } from '@/hooks/useBadges';
-import { Badge, BadgeCategory, BADGE_CATEGORY_COLORS, BADGE_CATEGORY_NAMES, BadgeStats } from '@/data/badges';
-import { PostL100Badge, PostL100Category, POST_L100_CATEGORY_COLORS, POST_L100_CATEGORY_NAMES } from '@/data/postL100Badges';
-import { Progress } from '@/components/ui/progress';
-import { X } from 'lucide-react';
+import { Badge, BadgeCategory, BADGE_CATEGORY_NAMES, BadgeStats } from '@/data/badges';
+import { PostL100Badge, PostL100Category, POST_L100_CATEGORY_NAMES } from '@/data/postL100Badges';
+import { SegmentBar } from '@/components/broadcast';
+import { Button } from '@/components/ui/button';
 
 type AnyBadgeCategory = BadgeCategory | PostL100Category;
 type AnyBadge = (Badge | PostL100Badge) & { earned: boolean; earnedAt?: string; progress: number };
-
-function getCategoryColors(cat: AnyBadgeCategory) {
-  if (cat in BADGE_CATEGORY_COLORS) return BADGE_CATEGORY_COLORS[cat as BadgeCategory];
-  return POST_L100_CATEGORY_COLORS[cat as PostL100Category];
-}
 
 function getCategoryName(cat: AnyBadgeCategory) {
   if (cat in BADGE_CATEGORY_NAMES) return BADGE_CATEGORY_NAMES[cat as BadgeCategory];
@@ -26,48 +21,36 @@ interface BadgeDetailModalProps {
   onClose: () => void;
 }
 
-function BadgeDetailModal({ badge, stats, onClose }: BadgeDetailModalProps) {
-  const colors = getCategoryColors(badge.category as AnyBadgeCategory);
+function BadgeDetailModal({ badge, onClose }: BadgeDetailModalProps) {
   const progressPct = Math.round(badge.progress * 100);
 
   return (
-    <div className="fixed inset-0 z-[70] flex items-center justify-center">
-      <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative w-full max-w-sm mx-4 bg-surface-1 rounded-2xl border border-surface-3 p-6 animate-in fade-in zoom-in-95 duration-200">
-        <button onClick={onClose} className="absolute top-3 right-3 w-8 h-8 rounded-full bg-surface-2 flex items-center justify-center">
-          <X className="w-4 h-4 text-muted-foreground" />
-        </button>
-
-        <div className="text-center mb-4">
-          <div className={cn('w-20 h-20 mx-auto mb-3 rounded-full overflow-hidden flex items-center justify-center', badge.earned ? colors.bg : 'bg-surface-2')}>
-            <BadgeArt id={badge.id} locked={!badge.earned} className="w-full h-full rounded-full" />
+    <div className="fixed inset-0 z-[70]" role="dialog" aria-modal="true" aria-label={badge.name}>
+      <div className="absolute inset-0 bg-background/80" onClick={onClose} />
+      <div className="dialog-band overflow-x-hidden">
+        <h3 className="dialog-title fx">{badge.name}</h3>
+        <div className="mt-3 flex items-start gap-3">
+          <BadgeArt id={badge.id} className={cn('size-24 shrink-0 mix-blend-screen', !badge.earned && 'art-off')} />
+          <div className="min-w-0 flex-1">
+            <p className="lab lab-lime">{getCategoryName(badge.category as AnyBadgeCategory)}</p>
+            <p className="prose-w mt-1 text-lg">{badge.description}</p>
+            <p className="fx mt-1.5 text-3xl text-volt">+{badge.xpReward.toLocaleString()} XP</p>
           </div>
-          <h3 className={cn('text-lg font-bold', badge.earned ? colors.text : 'text-muted-foreground')}>
-            {badge.name}
-          </h3>
-          <p className="text-xs text-muted-foreground uppercase tracking-wider mt-1">
-            {getCategoryName(badge.category as AnyBadgeCategory)}
-          </p>
         </div>
 
-        <p className="text-sm text-foreground text-center mb-3">{badge.description}</p>
-        <p className="text-sm text-volt text-center font-semibold mb-4">+{badge.xpReward.toLocaleString()} XP</p>
-
         {badge.earned ? (
-          <div className="text-center">
-            <span className="text-xs text-muted-foreground">
-              Earned {badge.earnedAt ? new Date(badge.earnedAt).toLocaleDateString() : ''}
-            </span>
-          </div>
+          <p className="lab lab-w mt-3">Earned {badge.earnedAt ? new Date(badge.earnedAt).toLocaleDateString() : ''}</p>
         ) : (
-          <div>
-            <div className="flex justify-between text-xs text-muted-foreground mb-1">
-              <span>Progress</span>
-              <span>{progressPct}%</span>
+          <div className="mt-3">
+            <div className="mb-1 flex items-baseline justify-between">
+              <span className="lab">Progress</span>
+              <span className="fx text-2xl">{progressPct}%</span>
             </div>
-            <Progress value={progressPct} className="h-2" />
+            <SegmentBar total={24} filled={Math.round((progressPct / 100) * 24)} height="0.75rem" label={`${progressPct}% of the way there`} />
           </div>
         )}
+
+        <Button variant="secondary" onClick={onClose} className="mt-4 w-full">Close</Button>
       </div>
     </div>
   );
@@ -79,90 +62,72 @@ export function BadgeCollection() {
   const [activeCategory, setActiveCategory] = useState<AnyBadgeCategory | 'all'>('all');
 
   const categories = getBadgesByCategory();
-  const filteredCategories = activeCategory === 'all' 
-    ? categories 
+  const filteredCategories = activeCategory === 'all'
+    ? categories
     : categories.filter(c => c.category === activeCategory);
 
   return (
-    <div>
-      {/* Header */}
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="text-sm font-bold text-muted-foreground uppercase tracking-wider">
-          Badges
-        </h3>
-        <span className="text-xs text-muted-foreground">
-          {earnedCount} / {totalBadgeCount}
-        </span>
+    <section>
+      {/* Stat alert: the count, big */}
+      <div className="px-4">
+        <p className="lab lab-lime">Badges</p>
+        <p className="fx mt-1 whitespace-nowrap text-7xl">
+          {earnedCount} <span className="text-4xl text-muted-foreground">of {totalBadgeCount}</span>
+        </p>
+        <SegmentBar
+          className="mt-2"
+          total={40}
+          filled={totalBadgeCount ? Math.round((earnedCount / totalBadgeCount) * 40) : 0}
+          height="0.625rem"
+          label={`${earnedCount} of ${totalBadgeCount} badges earned`}
+        />
       </div>
 
-      {/* Category Filter */}
-      <div className="flex gap-1.5 overflow-x-auto pb-2 mb-4 no-scrollbar">
-        <button
-          onClick={() => setActiveCategory('all')}
-          className={cn(
-            'px-3 py-1 rounded-full text-xs font-medium whitespace-nowrap transition-colors',
-            activeCategory === 'all' ? 'bg-volt text-primary-foreground' : 'bg-surface-2 text-muted-foreground'
-          )}
-        >
-          All
-        </button>
-        {categories.map(({ category }) => {
-          const colors = getCategoryColors(category);
-          const count = categories.find(c => c.category === category)?.badges.filter(b => b.earned).length || 0;
-          return (
-            <button
-              key={category}
-              onClick={() => setActiveCategory(category)}
-              className={cn(
-                'px-3 py-1 rounded-full text-xs font-medium whitespace-nowrap transition-colors',
-                activeCategory === category ? `${colors.bg} ${colors.text}` : 'bg-surface-2 text-muted-foreground'
-              )}
-            >
-              {getCategoryName(category)} ({count})
-            </button>
-          );
-        })}
+      {/* Category filter */}
+      <div className="no-scrollbar mt-3 flex gap-3 overflow-x-auto px-5 py-0.5">
+        {[{ category: 'all' as const, label: 'All' }, ...categories.map(({ category, badges }) => ({
+          category,
+          label: `${getCategoryName(category)} (${badges.filter(b => b.earned).length})`,
+        }))].map(({ category, label }) => (
+          <button
+            key={category}
+            type="button"
+            onClick={() => setActiveCategory(category)}
+            aria-pressed={activeCategory === category}
+            className={cn('plate fx h-11 shrink-0 px-4 text-xl', activeCategory === category ? 'plate-white' : 'plate-graphite')}
+          >
+            {label}
+          </button>
+        ))}
       </div>
 
-      {/* Badge Grid */}
+      {/* Badge grid */}
       {filteredCategories.map(({ category, badges }) => (
-        <div key={category} className="mb-6">
+        <div key={category} className="mt-4 px-3">
           {activeCategory === 'all' && (
-            <h4 className={cn('text-xs font-semibold uppercase tracking-wider mb-2', getCategoryColors(category).text)}>
-              {getCategoryName(category)}
-            </h4>
+            <h4 className="fx mb-2 px-1 text-3xl">{getCategoryName(category)}</h4>
           )}
-          <div className="grid grid-cols-5 gap-2">
-            {badges.map((badge) => {
-              const colors = getCategoryColors(badge.category as AnyBadgeCategory);
-              return (
-                <button
-                  key={badge.id}
-                  onClick={() => setSelectedBadge(badge)}
-                  className="flex flex-col items-center gap-1 p-2 rounded-lg hover:bg-surface-2 transition-colors"
-                >
-                  <div className={cn(
-                    'w-10 h-10 rounded-full overflow-hidden flex items-center justify-center transition-all',
-                    badge.earned 
-                      ? `${colors.bg} ring-2 ring-offset-1 ring-offset-background ${colors.glow.replace('shadow-', 'ring-')}` 
-                      : 'bg-surface-2'
-                  )}>
-                    <BadgeArt id={badge.id} locked={!badge.earned} className="w-full h-full rounded-full" />
-                  </div>
-                  <span className={cn(
-                    'text-[9px] leading-tight text-center line-clamp-2',
-                    badge.earned ? 'text-foreground' : 'text-muted-foreground/50'
-                  )}>
-                    {badge.name}
-                  </span>
-                </button>
-              );
-            })}
+          <div className="grid grid-cols-4 gap-x-1 gap-y-3 sm:grid-cols-6">
+            {badges.map((badge) => (
+              <button
+                key={badge.id}
+                type="button"
+                onClick={() => setSelectedBadge(badge)}
+                className="min-w-0 text-center transition-colors hover:bg-surface-1"
+              >
+                <BadgeArt id={badge.id} className={cn('aspect-square w-full mix-blend-screen', !badge.earned && 'art-off')} />
+                <span className={cn('fx mt-0.5 line-clamp-2 block text-base leading-none', !badge.earned && 'text-muted-foreground')}>
+                  {badge.name}
+                </span>
+                <span className={cn('lab mt-0.5 block tracking-[0.04em]', badge.earned && 'lab-lime')}>
+                  {badge.earned ? `+${badge.xpReward} XP` : `${Math.round(badge.progress * 100)}%`}
+                </span>
+              </button>
+            ))}
           </div>
         </div>
       ))}
 
-      {/* Badge Detail Modal */}
       {selectedBadge && (
         <BadgeDetailModal
           badge={selectedBadge}
@@ -170,6 +135,6 @@ export function BadgeCollection() {
           onClose={() => setSelectedBadge(null)}
         />
       )}
-    </div>
+    </section>
   );
 }

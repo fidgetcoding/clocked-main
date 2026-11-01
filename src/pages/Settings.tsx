@@ -1,9 +1,9 @@
 import { toJson } from '@/lib/json';
 import { useState, useRef } from 'react';
-import { ArrowLeft, LogOut, Volume2, Timer, Shield, Mail } from 'lucide-react';
+import * as SwitchPrimitives from '@radix-ui/react-switch';
 import { useNavigate } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
-import { Switch } from '@/components/ui/switch';
+import { BroadcastPage, FitText, OnAir } from '@/components/broadcast';
 import { Button } from '@/components/ui/button';
 import { useUserStore } from '@/stores/userStore';
 import { useAuth } from '@/contexts/useAuth';
@@ -124,214 +124,147 @@ const Settings = () => {
   };
 
   const soundAlerts = [
-    { 
-      key: 'voiceAnnouncements', 
-      label: 'Voice Announcements', 
-      description: 'Announce segment changes and instructions',
-      icon: Volume2,
-    },
-    { 
-      key: 'voiceCountdown', 
-      label: 'Countdown Voice', 
-      description: '3-second countdown before segment ends',
-      icon: Timer,
-    },
-    { 
-      key: 'voiceComboCallouts', 
-      label: 'Combo Callouts', 
-      description: 'Call out punch combinations during combos',
-      icon: Volume2,
-    },
-    { 
-      key: 'tenSecondWarning', 
-      label: '10-Second Warning', 
-      description: 'Warning beep at 10 seconds remaining',
-      icon: Timer,
-    },
+    { key: 'voiceAnnouncements', label: 'Voice Announcements', description: 'Announce segment changes and instructions' },
+    { key: 'voiceCountdown', label: 'Countdown Voice', description: '3-second countdown before segment ends' },
+    { key: 'voiceComboCallouts', label: 'Combo Callouts', description: 'Call out punch combinations during combos' },
+    { key: 'tenSecondWarning', label: '10-Second Warning', description: 'Warning beep at 10 seconds remaining' },
   ];
 
-  const PreferenceToggle = ({ 
-    prefKey, 
-    label, 
-    description, 
-    icon: Icon 
-  }: { 
-    prefKey: string; 
-    label: string; 
-    description: string;
-    icon: React.ComponentType<{ className?: string }>;
-  }) => {
+  // One channel on the audio desk. The switch itself is the on-air light.
+  const AudioChannel = ({ channel, prefKey, label, description }: { channel: number; prefKey: string; label: string; description: string }) => {
     const isEnabled = (user?.preferences)?.[prefKey] !== false;
-    
+
     return (
-      <div className="flex items-start gap-3 py-3">
-        <div className="w-8 h-8 rounded-lg bg-surface-2 flex items-center justify-center flex-shrink-0">
-          <Icon className="w-4 h-4 text-muted-foreground" />
-        </div>
-        <div className="flex-1 min-w-0">
-          <p className="text-foreground font-medium">{label}</p>
-          <p className="text-xs text-muted-foreground">{description}</p>
-        </div>
-        <Switch
+      <div className="flex min-w-0 flex-col border-b border-surface-2 px-4 py-3 odd:border-r sm:border-b-0 sm:border-r sm:last:border-r-0">
+        <span className="lab">Ch {channel}</span>
+        <SwitchPrimitives.Root
           checked={isEnabled}
           onCheckedChange={(checked) => handleTogglePreference(prefKey, checked)}
-          className="data-[state=checked]:bg-volt"
-        />
+          aria-label={label}
+          className={cn(
+            'plate fx my-2 h-14 w-full text-2xl',
+            isEnabled ? 'plate-red' : 'plate-graphite text-muted-foreground',
+          )}
+        >
+          {isEnabled ? 'On air' : 'Off air'}
+        </SwitchPrimitives.Root>
+        <span className="fx text-2xl leading-[0.95]">{label}</span>
+        <span className="prose-w mt-1 text-[0.9375rem] leading-tight text-muted-foreground">{description}</span>
       </div>
     );
   };
 
   return (
     <AppLayout>
-      <div className="min-h-screen bg-gradient-red-glow">
-        {/* Header */}
-        <header className="flex items-center gap-3 px-4 pt-8 pb-6 safe-top">
-          <button onClick={() => navigate('/profile')} className="text-muted-foreground">
-            <ArrowLeft className="w-6 h-6" />
+      <BroadcastPage onBack={() => navigate('/profile')}>
+        <p className="lab lab-lime px-4 pt-3">Control room</p>
+        <h1 className="px-4 pt-1">
+          <FitText className="fx h-[clamp(4rem,22vw,6.5rem)]" max={104}>SETTINGS</FitText>
+        </h1>
+
+        {/* The corner: which hand leads */}
+        <section className="pt-4">
+          <h3 className="lab lab-lime px-4 font-[inherit] not-italic">Stance</h3>
+          <div className="mt-2 flex gap-4 px-5" role="radiogroup" aria-label="Stance">
+            {STANCE_OPTIONS.map((option) => (
+              <button
+                key={option.value}
+                type="button"
+                role="radio"
+                aria-checked={stance === option.value}
+                onClick={() => setStance(option.value)}
+                className={cn(
+                  'plate fx h-16 flex-1 flex-col gap-1 text-3xl',
+                  stance === option.value ? 'plate-lime' : 'plate-graphite',
+                )}
+              >
+                <span>{option.label}</span>
+                <span className="font-text text-[0.8125rem] font-bold not-italic leading-none tracking-[0.06em]">{option.hint}</span>
+              </button>
+            ))}
+          </div>
+          <p className="prose-w px-4 pt-2 text-base">Tells the punch camera which hand is your lead</p>
+        </section>
+
+        {/* The audio desk */}
+        <section className="pt-4">
+          <h3 className="lab lab-lime px-4 font-[inherit] not-italic">Sound Alerts</h3>
+          <p className="prose-w px-4 pt-1 text-base">Voice and audio cues during workouts</p>
+          <div className="mt-2 grid grid-cols-2 border-y border-surface-3 sm:grid-cols-4">
+            {soundAlerts.map((pref, index) => (
+              <AudioChannel
+                key={pref.key}
+                channel={index + 1}
+                prefKey={pref.key}
+                label={pref.label}
+                description={pref.description}
+              />
+            ))}
+          </div>
+        </section>
+
+        {/* Save Your Progress */}
+        {isGuest && (
+          <button
+            type="button"
+            onClick={() => navigate('/auth')}
+            className="grid w-full grid-cols-[1fr_auto] items-center gap-3 border-b border-surface-2 px-4 py-3 text-left transition-colors hover:bg-surface-1"
+          >
+            <span className="min-w-0">
+              <span className="fx block text-3xl">Save your progress</span>
+              <span className="prose-w mt-1 block text-base">Your training is stored on this device. Sign in with an email link to use an account.</span>
+            </span>
+            <span className="plate plate-lime fx h-11 px-4 text-xl">Sign in</span>
           </button>
-          <h1 className="text-2xl font-black text-foreground tracking-wider flex-1">
-            SETTINGS
-          </h1>
+        )}
+
+        {/* Admin Portal */}
+        {isAdmin && (
+          <button
+            type="button"
+            onClick={() => navigate('/admin')}
+            className="grid w-full grid-cols-[1fr_auto] items-center gap-3 border-b border-surface-2 px-4 py-3 text-left transition-colors hover:bg-surface-1"
+          >
+            <span className="min-w-0">
+              <span className="fx block text-3xl">Admin Portal</span>
+              <span className="prose-w mt-1 block text-base">Manage users</span>
+            </span>
+            <span className="plate plate-graphite fx h-11 px-4 text-xl">Open</span>
+          </button>
+        )}
+
+        {/* Admin Tools */}
+        {isAdmin && (
+          <section className="px-4 py-3">
+            <p className="lab lab-lime">Admin Tools</p>
+            <div className="mt-2 grid grid-cols-2 gap-x-4 gap-y-2 px-1">
+              <Button size="sm" variant="secondary" onClick={() => setShowLevelUpOverlay(true)}>
+                Level Up ({levelUpVariant === 'volt' ? 'lime' : levelUpVariant === 'cooldown' ? 'white' : 'gold'})
+              </Button>
+              <Button size="sm" variant="secondary" onClick={() => setShowPrestigePrompt(true)}>
+                Prestige
+              </Button>
+              <Button size="sm" variant="secondary" onClick={() => setShowBadgeOverlay(true)}>
+                Badge Earn
+              </Button>
+              <Button size="sm" variant="secondary" onClick={handleRegenerateLoadout} disabled={isRegenerating}>
+                {isRegenerating ? 'Regen Loadout...' : 'Regen Loadout'}
+              </Button>
+              <Button size="sm" variant="secondary" onClick={() => setShowGloveOverlay(true)}>
+                Glove Unlock
+              </Button>
+            </div>
+          </section>
+        )}
+
+        <div className="flex items-center justify-between gap-3 px-5 py-4">
+          <OnAir state="off">v{version || '1.0'}</OnAir>
           {!isGuest && (
-            <button 
-              onClick={handleSignOut}
-              disabled={isSigningOut}
-              className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors disabled:opacity-50 text-sm font-medium"
-            >
-              <LogOut className="w-4 h-4" />
-              <span>{isSigningOut ? 'Signing Out...' : 'Sign Out'}</span>
-            </button>
+            <Button variant="secondary" size="sm" onClick={handleSignOut} disabled={isSigningOut}>
+              {isSigningOut ? 'Signing Out...' : 'Sign Out'}
+            </Button>
           )}
-        </header>
-
-        <div className="px-4 space-y-6 pb-24">
-          {/* Stance */}
-          <div className="card-workout">
-            <h3 className="text-lg font-bold text-foreground mb-2">Stance</h3>
-            <p className="text-xs text-muted-foreground mb-4">Tells the punch camera which hand is your lead</p>
-            <div className="flex gap-2" role="radiogroup" aria-label="Stance">
-              {STANCE_OPTIONS.map((option) => (
-                <button
-                  key={option.value}
-                  role="radio"
-                  aria-checked={stance === option.value}
-                  onClick={() => setStance(option.value)}
-                  className={cn(
-                    'flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-colors',
-                    stance === option.value
-                      ? 'bg-volt text-primary-foreground'
-                      : 'bg-surface-2 border border-surface-3 text-muted-foreground hover:bg-surface-3',
-                  )}
-                >
-                  <span className="block">{option.label}</span>
-                  <span className="block text-xs font-normal opacity-80">{option.hint}</span>
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Sound Alerts */}
-          <div className="card-workout">
-            <h3 className="text-lg font-bold text-foreground mb-2">Sound Alerts</h3>
-            <p className="text-xs text-muted-foreground mb-4">Voice and audio cues during workouts</p>
-            <div className="divide-y divide-surface-3">
-              {soundAlerts.map((pref) => (
-                <PreferenceToggle
-                  key={pref.key}
-                  prefKey={pref.key}
-                  label={pref.label}
-                  description={pref.description}
-                  icon={pref.icon}
-                />
-              ))}
-            </div>
-          </div>
-
-          {/* Save Your Progress */}
-          {isGuest && (
-            <button
-              onClick={() => navigate('/auth')}
-              className="card-workout flex items-center gap-3 w-full text-left"
-            >
-              <div className="w-8 h-8 rounded-lg bg-surface-2 flex items-center justify-center">
-                <Mail className="w-4 h-4 text-muted-foreground" />
-              </div>
-              <div className="flex-1">
-                <p className="text-foreground font-bold">Save your progress</p>
-                <p className="text-xs text-muted-foreground">Your training is stored on this device. Sign in with an email link to use an account.</p>
-              </div>
-              <ArrowLeft className="w-4 h-4 text-muted-foreground rotate-180" />
-            </button>
-          )}
-
-          {/* Admin Portal */}
-          {isAdmin && (
-            <button
-              onClick={() => navigate('/admin')}
-              className="card-workout flex items-center gap-3 w-full text-left"
-            >
-              <div className="w-8 h-8 rounded-lg bg-volt/20 flex items-center justify-center">
-                <Shield className="w-4 h-4 text-volt" />
-              </div>
-              <div className="flex-1">
-                <p className="text-foreground font-bold">Admin Portal</p>
-                <p className="text-xs text-muted-foreground">Manage users</p>
-              </div>
-              <ArrowLeft className="w-4 h-4 text-muted-foreground rotate-180" />
-            </button>
-          )}
-
-          {/* Admin Tools */}
-          {isAdmin && (
-            <div className="card-workout border border-volt/20 space-y-2">
-              <p className="text-xs font-bold text-volt uppercase tracking-wider">⚡ Admin Tools</p>
-              <div className="grid grid-cols-2 gap-2">
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => {
-                    setShowLevelUpOverlay(true);
-                  }}
-                  className="text-xs bg-surface-2 border-surface-3"
-                >
-                  🎮 Level Up ({levelUpVariant === 'volt' ? '🟢' : levelUpVariant === 'cooldown' ? '🔵' : '🟡'})
-                </Button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => setShowPrestigePrompt(true)}
-                  className="text-xs bg-surface-2 border-surface-3"
-                >
-                  🏆 Prestige
-                </Button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => setShowBadgeOverlay(true)}
-                  className="text-xs bg-surface-2 border-surface-3"
-                >
-                  🎖️ Badge Earn
-                </Button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={handleRegenerateLoadout}
-                  disabled={isRegenerating}
-                  className="text-xs bg-surface-2 border-surface-3"
-                >
-                  {isRegenerating ? '⏳ ...' : '🔄 Regen Loadout'}
-                </Button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => setShowGloveOverlay(true)}
-                  className="text-xs bg-surface-2 border-surface-3"
-                >
-                  🥊 Glove Unlock
-                </Button>
-              </div>
-            </div>
-          )}
+        </div>
 
           {/* Badge Earn Overlay (admin test) */}
           {showBadgeOverlay && (
@@ -348,12 +281,6 @@ const Settings = () => {
               }}
             />
           )}
-
-          {/* Version */}
-          <div className="text-center text-xs text-muted-foreground pt-4">
-            v{version || '1.0'}
-          </div>
-        </div>
 
         {/* Level Up Overlay (admin test) */}
         {showLevelUpOverlay && (
@@ -378,8 +305,7 @@ const Settings = () => {
             />
           </div>
         )}
-
-      </div>
+      </BroadcastPage>
     </AppLayout>
   );
 };

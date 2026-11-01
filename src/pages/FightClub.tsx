@@ -2,9 +2,11 @@ import type { StoredPhase } from '@/lib/storedPhases';
 import type { WorkoutSection } from '@/types';
 import { joinStoredPhases, splitStoredPhases } from '@/lib/storedPhases';
 import { useState } from 'react';
-import { ArrowLeft, Users, Newspaper, Trophy, Search, MessageCircle, BarChart3, ChevronRight, Download, X, UserPlus, LogIn, LogOut, Trash2, Star, Radio } from 'lucide-react';
+import { Search, ChevronRight, Download, X, UserPlus, Star } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
+import { BroadcastPage, EmptyPlate, FitText, Plate, SectionChyron, SegmentBar } from '@/components/broadcast';
+import { FeedPost, ListingRow, PlateTabs } from '@/components/fight-club/parts';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
@@ -72,11 +74,23 @@ const FightClub = () => {
   const { presets: tierPresets, isLoading: tierPresetsLoading } = useTierPresets();
   const ratingSummaries = useRatingSummaries(tierPresets.map((preset) => preset.id));
 
-  const tabs: { id: Tab; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
-    { id: 'feed', label: 'Feed', icon: Newspaper },
-    { id: 'clubs', label: 'Clubs', icon: Users },
-    { id: 'presets', label: 'Presets', icon: Trophy },
+  const tabs: { id: Tab; label: string }[] = [
+    { id: 'feed', label: 'Feed' },
+    { id: 'clubs', label: 'Clubs' },
+    { id: 'presets', label: 'Presets' },
   ];
+  const clubTabs: { id: ClubTab; label: string }[] = [
+    { id: 'feed', label: 'Feed' },
+    { id: 'chat', label: 'Chat' },
+    { id: 'leaderboard', label: 'Ranks' },
+  ];
+  const onAir: Record<Tab, string> = { feed: 'Around the league', clubs: 'The league', presets: 'Listings' };
+
+  const deleteMyPost = (postId: string) => {
+    deletePost.mutate(postId, {
+      onSuccess: () => toast.success('Post deleted'),
+    });
+  };
 
   // Community shared presets (preset_shared posts from the feed)
   const communitySharedPresets = communityPosts?.filter(p => p.type === 'preset_shared' && p.workout_data) || [];
@@ -172,244 +186,99 @@ const FightClub = () => {
   if (selectedClub) {
     return (
       <AppLayout>
-        <div className="min-h-screen flex flex-col">
-          {/* Club Header */}
-          <header className="px-4 py-4 safe-top border-b border-surface-3">
-            <div className="flex items-center gap-3 mb-4">
-              <button onClick={() => setSelectedClubId(null)} className="text-muted-foreground">
-                <ArrowLeft className="w-6 h-6" />
-              </button>
-              <div className="w-10 h-10 rounded-xl bg-surface-2 flex items-center justify-center text-xl">
-                {selectedClub.icon}
-              </div>
-              <div className="flex-1">
-                <h1 className="font-bold text-foreground">{selectedClub.name}</h1>
-                <p className="text-xs text-muted-foreground">
-                  {memberLabel(selectedClub)}
-                </p>
-              </div>
+        <BroadcastPage show="Club" onBack={() => setSelectedClubId(null)}>
+          <div className="mt-3 plate plate-lime plate-bleed-l plate-bleed-r flex min-h-[4.5rem] w-full flex-col items-stretch px-4 py-1.5">
+            <div role="heading" aria-level={1}>
+              <FitText className="fx h-11" max={56}>{selectedClub.name}</FitText>
             </div>
-
-            {/* Club Tabs */}
-            <div className="flex gap-2">
-              {[
-                { id: 'feed' as ClubTab, label: 'Feed', icon: Newspaper },
-                { id: 'chat' as ClubTab, label: 'Chat', icon: MessageCircle },
-                { id: 'leaderboard' as ClubTab, label: 'Ranks', icon: BarChart3 },
-              ].map((tab) => {
-                const Icon = tab.icon;
-                return (
-                  <button
-                    key={tab.id}
-                    onClick={() => setClubTab(tab.id)}
-                    className={cn(
-                      'flex-1 py-2.5 px-4 rounded-lg text-sm font-medium transition-all flex items-center justify-center gap-2',
-                      clubTab === tab.id
-                        ? 'bg-volt text-primary-foreground'
-                        : 'bg-surface-1 text-muted-foreground hover:bg-surface-2'
-                    )}
-                  >
-                    <Icon className="w-4 h-4" />
-                    {tab.label}
-                  </button>
-                );
-              })}
-            </div>
-          </header>
-
-          {/* Club Content */}
-          <div className="flex-1 overflow-y-auto">
-            {clubTab === 'feed' && (
-              <div className="px-4 py-4 space-y-4">
-                {clubPostsLoading && (
-                  <div className="text-center py-8 text-muted-foreground">Loading posts...</div>
-                )}
-                {clubPosts && clubPosts.length > 0 && clubPosts.map((post) => (
-                  <div key={post.id} className="card-workout">
-                    <div className="flex items-start gap-3">
-                      <div className="w-10 h-10 rounded-full bg-surface-2 flex items-center justify-center text-xl flex-shrink-0 overflow-hidden">
-                        {post.user_avatar ? (
-                          <img src={post.user_avatar} alt="" className="w-full h-full object-cover" />
-                        ) : '🥊'}
-                      </div>
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2">
-                          <span className="font-semibold text-foreground">{post.user_name}</span>
-                          <span className="text-xs text-muted-foreground">{formatTimeAgo(post.created_at)}</span>
-                          {post.user_id === user?.id && (
-                            <button
-                              onClick={() => {
-                                deletePost.mutate(post.id, {
-                                  onSuccess: () => toast.success('Post deleted'),
-                                });
-                              }}
-                              className="ml-auto text-muted-foreground hover:text-destructive transition-colors"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
-                          )}
-                        </div>
-                        {post.type === 'preset_shared' && (
-                          <>
-                            <p className="text-sm text-foreground mt-1">
-                              Shared a workout: <span className="text-volt font-medium">{post.custom_name || post.workout_name}</span> 🥊
-                            </p>
-                            {post.tags && post.tags.length > 0 && (
-                              <div className="flex flex-wrap gap-1 mt-2">
-                                {post.tags.map((tag) => (
-                                  <span key={tag} className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-volt/15 text-volt border border-volt/20">
-                                    {tag}
-                                  </span>
-                                ))}
-                              </div>
-                            )}
-                            {post.message && (
-                              <p className="text-sm text-muted-foreground mt-2 italic">"{post.message}"</p>
-                            )}
-                            <div className="flex items-center gap-2 mt-3">
-                              <Button 
-                                size="sm" 
-                                className="bg-volt text-primary-foreground text-xs"
-                                onClick={() => handleSaveCommunityWorkout(post)}
-                              >
-                                <Download className="w-3 h-3 mr-1" />
-                                Save Workout
-                              </Button>
-                            </div>
-                            <div className="flex items-center gap-4 mt-3 text-xs text-muted-foreground">
-                              <span>❤️ {post.likes}</span>
-                            </div>
-                          </>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                ))}
-                {!clubPostsLoading && (!clubPosts || clubPosts.length === 0) && (
-                  <div className="text-center py-8">
-                    <p className="text-muted-foreground">No posts shared to this club yet.</p>
-                    <p className="text-sm text-muted-foreground mt-1">Share a workout and select "{selectedClub.name}" as the destination!</p>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* Not built yet. There's nowhere for a message to go, so this doesn't take one. */}
-            {clubTab === 'chat' && (
-              <div className="px-4 py-12 text-center" data-testid="club-chat-placeholder">
-                <MessageCircle className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
-                <p className="text-foreground font-semibold">Club chat isn't built yet</p>
-                <p className="text-sm text-muted-foreground mt-1">To reach the club for now, share a workout to its feed.</p>
-              </div>
-            )}
-
-            {clubTab === 'leaderboard' && (
-              <div className="px-4 py-4 space-y-2">
-                {clubRanksLoading && (
-                  <div className="text-center py-8 text-muted-foreground">Loading ranks...</div>
-                )}
-                {clubRanks.map((member) => (
-                  <div 
-                    key={member.userId} 
-                    className={cn(
-                      'card-workout flex items-center gap-3',
-                      member.isYou && 'border-volt'
-                    )}
-                  >
-                    <div className={cn(
-                      'w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm',
-                      member.rank === 1 ? 'bg-yellow-500 text-black' :
-                      member.rank === 2 ? 'bg-gray-400 text-black' :
-                      member.rank === 3 ? 'bg-orange-600 text-white' :
-                      'bg-surface-2 text-muted-foreground'
-                    )}>
-                      {member.rank}
-                    </div>
-                    <div className="w-10 h-10 rounded-full bg-surface-2 flex items-center justify-center text-xl relative overflow-hidden">
-                      {member.avatarUrl ? (
-                        <img src={member.avatarUrl} alt="" className="w-full h-full object-cover" />
-                      ) : '🥊'}
-                    </div>
-                    <div className="flex-1">
-                      <p className={cn('font-semibold', member.isYou ? 'text-volt' : 'text-foreground')}>
-                        {member.name}{member.isYou && ' (You)'}
-                      </p>
-                      <p className="text-xs text-muted-foreground">{member.xp.toLocaleString()} XP</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
+            <p className="mt-0.5 text-[0.8125rem] font-bold uppercase tracking-[0.11em]">{memberLabel(selectedClub)}</p>
           </div>
-        </div>
+
+          <PlateTabs<ClubTab> tabs={clubTabs} value={clubTab} onChange={setClubTab} className="px-4 pt-3" />
+
+          {clubTab === 'feed' && (
+            <div className="pt-2">
+              {clubPostsLoading && <p className="lab px-4 py-8">Loading posts...</p>}
+              {clubPosts?.map((post) => (
+                <FeedPost
+                  key={post.id}
+                  post={post}
+                  isMine={post.user_id === user?.id}
+                  timeAgo={formatTimeAgo(post.created_at)}
+                  onDelete={() => deleteMyPost(post.id)}
+                  onSave={() => handleSaveCommunityWorkout(post)}
+                />
+              ))}
+              {!clubPostsLoading && (!clubPosts || clubPosts.length === 0) && (
+                <EmptyPlate
+                  title="No posts shared to this club yet."
+                  body={`Share a workout and select "${selectedClub.name}" as the destination!`}
+                />
+              )}
+            </div>
+          )}
+
+          {/* Not built yet. There's nowhere for a message to go, so this doesn't take one. */}
+          {clubTab === 'chat' && (
+            <div data-testid="club-chat-placeholder">
+              <EmptyPlate title="Club chat isn't built yet" body="To reach the club for now, share a workout to its feed." />
+            </div>
+          )}
+
+          {clubTab === 'leaderboard' && (
+            <div className="pt-3">
+              <SectionChyron>Standings</SectionChyron>
+              <div className="mt-1">
+                {clubRanksLoading && <p className="lab px-4 py-8">Loading ranks...</p>}
+                {!clubRanksLoading && clubRanks.length === 0 && <EmptyPlate title="No ranks yet" />}
+                {clubRanks.map((member) => (
+                  <div
+                    key={member.userId}
+                    className={cn(
+                      'grid min-h-12 grid-cols-[2rem_minmax(0,1fr)_auto] items-center gap-2.5 border-b border-surface-2 px-4 py-1.5',
+                      member.isYou && 'bg-surface-1',
+                    )}
+                  >
+                    <span className={cn('fx text-3xl', member.isYou && 'text-volt')}>{member.rank}</span>
+                    <span className="flex min-w-0 items-center gap-2.5">
+                      {member.avatarUrl && <img src={member.avatarUrl} alt="" className="art-slant h-9 w-11 shrink-0 object-cover" />}
+                      <span className={cn('fx min-w-0 break-words text-3xl', member.isYou && 'text-volt')}>
+                        {member.name}{member.isYou && ' (You)'}
+                      </span>
+                    </span>
+                    <span className={cn('fx whitespace-nowrap text-2xl', member.isYou && 'text-volt')}>{member.xp.toLocaleString()} XP</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </BroadcastPage>
       </AppLayout>
     );
   }
 
   // Main Fight Club View
+  const hasFeedPosts = !!communityPosts && communityPosts.length > 0;
   return (
     <AppLayout>
-      <div className="min-h-screen pb-20">
-        {/* Header */}
-        <header className="px-4 py-4 safe-top border-b border-surface-3">
-          <div className="flex items-center justify-between mb-4">
-            <h1 className="text-xl font-bold text-foreground">Fight Club</h1>
-          </div>
+      <BroadcastPage show={onAir[activeTab]}>
+        <h1 className="sr-only">Fight Club</h1>
+        <PlateTabs<Tab> tabs={tabs} value={activeTab} onChange={setActiveTab} className="px-4 pt-3" />
 
-          {/* Tabs */}
-          <div className="flex gap-2">
-            {tabs.map((tab) => {
-              const Icon = tab.icon;
-              return (
+        {activeTab === 'feed' && (
+          <div className="pt-3">
+            <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 px-4">
+              <h2 className="fx text-4xl">Highlights</h2>
+              <div className="flex items-center gap-3">
+                <PlateTabs<'all' | 'following'>
+                  size="chip"
+                  tabs={[{ id: 'all', label: 'All' }, { id: 'following', label: 'Following' }]}
+                  value={feedFilter}
+                  onChange={setFeedFilter}
+                />
                 <button
-                  key={tab.id}
-                  onClick={() => setActiveTab(tab.id)}
-                  className={cn(
-                    'flex-1 py-2.5 px-4 rounded-lg text-sm font-medium transition-all',
-                    activeTab === tab.id
-                      ? 'bg-volt text-primary-foreground'
-                      : 'bg-surface-1 text-muted-foreground hover:bg-surface-2'
-                  )}
-                >
-                  <Icon className="w-4 h-4 mx-auto mb-1" />
-                  {tab.label}
-                </button>
-              );
-            })}
-          </div>
-        </header>
-
-        {/* Content */}
-        <div className="px-4 py-4">
-          {activeTab === 'feed' && (
-            <div className="space-y-4">
-              {/* Feed Filter Toggle + Search */}
-              <div className="flex gap-2 items-center">
-                <div className="flex gap-2 p-1 bg-surface-1 rounded-lg flex-1">
-                  <button
-                    onClick={() => setFeedFilter('all')}
-                    className={cn(
-                      'flex-1 py-2 px-3 rounded-md text-sm font-medium transition-all',
-                      feedFilter === 'all'
-                        ? 'bg-volt text-primary-foreground'
-                        : 'text-muted-foreground hover:text-foreground'
-                    )}
-                  >
-                    All
-                  </button>
-                  <button
-                    onClick={() => setFeedFilter('following')}
-                    className={cn(
-                      'flex-1 py-2 px-3 rounded-md text-sm font-medium transition-all',
-                      feedFilter === 'following'
-                        ? 'bg-volt text-primary-foreground'
-                        : 'text-muted-foreground hover:text-foreground'
-                    )}
-                  >
-                    Following
-                  </button>
-                </div>
-                <button
+                  type="button"
+                  aria-label="Find fighters"
                   onClick={() => {
                     if (isGuest) {
                       promptEmailLink('find other fighters');
@@ -417,343 +286,191 @@ const FightClub = () => {
                     }
                     setShowUserSearch(true);
                   }}
-                  className="w-10 h-10 rounded-lg bg-surface-1 flex items-center justify-center text-muted-foreground hover:text-volt hover:bg-surface-2 transition-colors"
+                  className="plate plate-steel h-11 w-12"
                 >
-                  <UserPlus className="w-5 h-5" />
+                  <UserPlus className="h-5 w-5" />
                 </button>
               </div>
-              
-              {/* Real community posts */}
-              {communityPosts && communityPosts.length > 0 && communityPosts.map((post) => (
-                <div key={post.id} className="card-workout">
-                  <div className="flex items-start gap-3">
-                    <div className="w-10 h-10 rounded-full bg-surface-2 flex items-center justify-center text-xl flex-shrink-0 overflow-hidden">
-                      {post.user_avatar ? (
-                        <img src={post.user_avatar} alt="" className="w-full h-full object-cover" />
-                      ) : (
-                        '🥊'
-                      )}
-                    </div>
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={() => navigate(`/profile/${post.user_id}`)}
-                          className="font-semibold text-foreground hover:text-volt transition-colors"
-                        >
-                          {post.user_name}
-                        </button>
-                        <span className="text-xs text-muted-foreground">
-                          {formatTimeAgo(post.created_at)}
-                        </span>
-                        {/* Delete button for own posts */}
-                        {post.user_id === user?.id && (
-                          <button
-                            onClick={() => {
-                              deletePost.mutate(post.id, {
-                                onSuccess: () => toast.success('Post deleted'),
-                              });
-                            }}
-                            className="ml-auto text-muted-foreground hover:text-destructive transition-colors"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
+            </div>
+
+            {/* Not built yet, and labelled as such rather than faked with a demo stream */}
+            {showLivePreview && <LiveStreamPreview onClose={() => setShowLivePreview(false)} />}
+            {feedFilter === 'all' && (
+              <section className="mt-3 border-l-4 border-surface-3 bg-surface-1 px-4 py-3" data-testid="live-training-placeholder">
+                <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
+                  <h3 className="fx text-3xl">Live training</h3>
+                  <Plate tone="steel" className="h-8 px-3 text-xl">Coming soon</Plate>
+                </div>
+                <p className="prose-w mt-1 text-base">Streaming a session and training together isn't built yet.</p>
+                <Button variant="outline" size="sm" className="mt-2" onClick={() => setShowLivePreview(true)}>
+                  See the preview
+                </Button>
+              </section>
+            )}
+
+            {communityPosts?.map((post) => (
+              <FeedPost
+                key={post.id}
+                post={post}
+                isMine={post.user_id === user?.id}
+                timeAgo={formatTimeAgo(post.created_at)}
+                onDelete={() => deleteMyPost(post.id)}
+                onSave={() => handleSaveCommunityWorkout(post)}
+                onOpenProfile={() => navigate(`/profile/${post.user_id}`)}
+              />
+            ))}
+
+            {postsLoading && <p className="lab px-4 py-8">Loading posts...</p>}
+
+            {/* The community feed is only readable with an account */}
+            {isGuest && <EmptyPlate title="Off air" body="Sign in with an email link to see the community feed." />}
+
+            {!isGuest && !postsLoading && !hasFeedPosts && feedFilter === 'following' && (
+              <EmptyPlate title="No posts from people you follow yet." body="Follow more fighters to see their posts here!" />
+            )}
+            {!isGuest && !postsLoading && !hasFeedPosts && feedFilter === 'all' && (
+              <EmptyPlate title="No posts yet" body="When a fighter finishes a session or shares a workout, it runs here." />
+            )}
+          </div>
+        )}
+
+        {activeTab === 'clubs' && (
+          <div className="pt-3">
+            {myClubs.length > 0 && (
+              <section className="pb-5">
+                <h2 className="fx mb-2 px-4 text-4xl">My Fight Clubs</h2>
+                <div className="space-y-3">
+                  {myClubs.map((club) => (
+                    <div key={club.id} className="card-workout p-0 pb-3">
+                      <button
+                        type="button"
+                        onClick={() => setSelectedClubId(club.id)}
+                        className="plate plate-lime plate-bleed-l plate-bleed-r flex min-h-16 w-full px-4 py-1.5"
+                      >
+                        <FitText className="fx h-12" max={60}>{club.name}</FitText>
+                      </button>
+                      <div className="grid grid-cols-[auto_minmax(0,1fr)] items-center gap-3 px-4 pt-2">
+                        <span className="lab lab-w">{memberLabel(club)}</span>
+                        {club.memberCap !== null && (
+                          <SegmentBar total={club.memberCap} filled={club.memberCount} height="1rem" />
                         )}
                       </div>
-
-                      {post.type === 'workout_complete' && (
-                        <>
-                          <p className="text-sm text-foreground mt-1">
-                            {post.message || `Completed "${post.workout_name}" 🔥`}
-                          </p>
-                          <div className="flex items-center gap-4 mt-3 text-xs text-muted-foreground">
-                            <span>❤️ {post.likes}</span>
-                          </div>
-                        </>
-                      )}
-
-                      {post.type === 'preset_shared' && (
-                        <>
-                          <p className="text-sm text-foreground mt-1">
-                            Shared a workout: <span className="text-volt font-medium">{post.custom_name || post.workout_name}</span> 🥊
-                          </p>
-                          {post.tags && post.tags.length > 0 && (
-                            <div className="flex flex-wrap gap-1 mt-2">
-                              {post.tags.map((tag) => (
-                                <span key={tag} className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-volt/15 text-volt border border-volt/20">
-                                  {tag}
-                                </span>
-                              ))}
-                            </div>
-                          )}
-                          {post.message && (
-                            <p className="text-sm text-muted-foreground mt-2 italic">"{post.message}"</p>
-                          )}
-                          <div className="flex items-center gap-2 mt-3">
-                            <Button 
-                              size="sm" 
-                              className="bg-volt text-primary-foreground text-xs"
-                              onClick={() => handleSaveCommunityWorkout(post)}
-                            >
-                              <Download className="w-3 h-3 mr-1" />
-                              Save Workout
-                            </Button>
-                          </div>
-                          <div className="flex items-center gap-4 mt-3 text-xs text-muted-foreground">
-                            <span>❤️ {post.likes}</span>
-                          </div>
-                        </>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              ))}
-
-              {/* Loading state */}
-              {postsLoading && (
-                <div className="text-center py-8 text-muted-foreground">
-                  Loading posts...
-                </div>
-              )}
-
-              {/* The community feed is only readable with an account */}
-              {isGuest && (
-                <div className="text-center py-8">
-                  <p className="text-muted-foreground">Sign in with an email link to see the community feed.</p>
-                </div>
-              )}
-
-              {/* Empty state for Following filter */}
-              {!isGuest && !postsLoading && feedFilter === 'following' && (!communityPosts || communityPosts.length === 0) && (
-                <div className="text-center py-8">
-                  <p className="text-muted-foreground">No posts from people you follow yet.</p>
-                  <p className="text-sm text-muted-foreground mt-1">Follow more fighters to see their posts here!</p>
-                </div>
-              )}
-
-              {/* Not built yet, and labelled as such rather than faked with a demo stream */}
-              {showLivePreview && <LiveStreamPreview onClose={() => setShowLivePreview(false)} />}
-              {feedFilter === 'all' && (
-                <div className="card-workout" data-testid="live-training-placeholder">
-                  <div className="flex items-start gap-3">
-                    <div className="w-10 h-10 rounded-full bg-surface-2 flex items-center justify-center flex-shrink-0">
-                      <Radio className="w-5 h-5 text-muted-foreground" />
-                    </div>
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2">
-                        <h4 className="font-semibold text-foreground">Live training</h4>
-                        <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-surface-2 text-muted-foreground">
-                          Coming soon
-                        </span>
-                      </div>
-                      <p className="text-sm text-muted-foreground mt-1">
-                        Streaming a session and training together isn't built yet.
-                      </p>
-                      <Button variant="outline" size="sm" className="mt-3" onClick={() => setShowLivePreview(true)}>
-                        See the preview
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
-
-{activeTab === 'clubs' && (
-            <div className="space-y-4">
-              {/* My Clubs Section */}
-              {myClubs.length > 0 && (
-                <>
-                  <div className="flex items-center justify-between mb-2">
-                    <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
-                      My Fight Clubs
-                    </h3>
-                  </div>
-
-                  {myClubs.map((club) => (
-                    <div
-                      key={club.id}
-                      className="card-workout w-full"
-                    >
-                      <div className="flex items-center gap-3">
-                        <button 
-                          onClick={() => setSelectedClubId(club.id)}
-                          className="w-12 h-12 rounded-xl bg-surface-2 flex items-center justify-center text-2xl hover:ring-2 hover:ring-volt transition-all"
+                      <div className="flex items-center gap-4 px-5 pt-2">
+                        <span className="lab lab-lime">Member</span>
+                        <Button
+                          size="sm"
+                          variant="secondary"
+                          onClick={(e) => handleLeaveClub(club.id, e)}
+                          disabled={leaveClub.isPending}
                         >
-                          {club.icon}
-                        </button>
-                        <button 
-                          onClick={() => setSelectedClubId(club.id)}
-                          className="flex-1 text-left"
-                        >
-                          <h4 className="font-semibold text-foreground hover:text-volt transition-colors">{club.name}</h4>
-                          <p className="text-sm text-muted-foreground">
-                            {memberLabel(club)}
-                          </p>
-                          <p className="text-xs text-volt mt-1">Member ✓</p>
-                        </button>
-                        <div className="flex items-center gap-2">
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={(e) => handleLeaveClub(club.id, e)}
-                            disabled={leaveClub.isPending}
-                            className="text-xs border-surface-3 hover:border-destructive hover:text-destructive"
-                          >
-                            <LogOut className="w-3 h-3 mr-1" />
-                            Leave
-                          </Button>
-                          <button onClick={() => setSelectedClubId(club.id)}>
-                            <ChevronRight className="w-5 h-5 text-muted-foreground" />
-                          </button>
-                        </div>
+                          Leave
+                        </Button>
                       </div>
                     </div>
                   ))}
-                </>
-              )}
+                </div>
+              </section>
+            )}
 
-              {/* Discover Section */}
-              <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mt-6 mb-2">
-                Discover
-              </h3>
+            <section>
+              <h2 className="fx border-b border-surface-3 px-4 pb-1 text-4xl">Discover</h2>
 
               {discoverClubs.length === 0 && myClubs.length > 0 && (
-                <p className="text-sm text-muted-foreground text-center py-4">
-                  You're in all available clubs! 🎉
-                </p>
+                <p className="prose-w px-4 py-4 text-lg">You're in all available clubs!</p>
               )}
 
               {discoverClubs.map((club) => (
                 <div
                   key={club.id}
-                  className="card-workout w-full"
+                  className="card-workout grid bg-transparent grid-cols-[minmax(0,1fr)_auto] items-center gap-3 border-b border-surface-2 p-0 px-4 py-2.5"
                 >
-                  <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 rounded-xl bg-surface-2 flex items-center justify-center text-2xl">
-                      {club.icon}
-                    </div>
-                    <div className="flex-1">
-                      <h4 className="font-semibold text-foreground">{club.name}</h4>
-                      {/* Membership is only readable with an account, so guests have no real count to show */}
-                      {!isGuest && (
-                        <>
-                          <p className="text-sm text-muted-foreground">
-                            {memberLabel(club)}
+                  <div className="min-w-0">
+                    <h3 className="fx break-words text-4xl">{club.name}</h3>
+                    {/* Membership is only readable with an account, so guests have no real count to show */}
+                    {!isGuest && (
+                      <>
+                        <p className="lab mt-1">{memberLabel(club)}</p>
+                        {club.isFull ? (
+                          <p className="lab mt-0.5 text-destructive">Club full</p>
+                        ) : club.spotsRemaining !== null && (
+                          <p className="lab lab-lime mt-0.5">
+                            {club.spotsRemaining} {club.spotsRemaining === 1 ? 'spot' : 'spots'} remaining!
                           </p>
-                          {club.isFull ? (
-                            <p className="text-xs text-destructive mt-1">
-                              Club full
-                            </p>
-                          ) : club.spotsRemaining !== null && (
-                            <p className="text-xs text-volt mt-1">
-                              {club.spotsRemaining} {club.spotsRemaining === 1 ? 'spot' : 'spots'} remaining! 🔥
-                            </p>
-                          )}
-                        </>
-                      )}
-                    </div>
-                    <Button
-                      size="sm"
-                      onClick={(e) => handleJoinClub(club.id, e)}
-                      disabled={joinClub.isPending || club.isFull}
-                      className="bg-volt text-primary-foreground text-xs"
-                    >
-                      <LogIn className="w-3 h-3 mr-1" />
-                      {joinClub.isPending ? 'Joining...' : 'Join'}
-                    </Button>
+                        )}
+                      </>
+                    )}
                   </div>
+                  <Button
+                    size="sm"
+                    onClick={(e) => handleJoinClub(club.id, e)}
+                    disabled={joinClub.isPending || club.isFull}
+                  >
+                    {joinClub.isPending ? 'Joining...' : 'Join'}
+                  </Button>
                 </div>
               ))}
 
-              {/* Empty state when no clubs */}
               {discoverClubs.length === 0 && myClubs.length === 0 && (
-                <p className="text-sm text-muted-foreground text-center py-4">
+                <p className="prose-w px-4 py-4 text-lg">
                   {clubsLoading ? 'Loading clubs...' : isBackendConfigured ? 'No clubs yet.' : 'Clubs need a connected backend.'}
                 </p>
               )}
+            </section>
+          </div>
+        )}
+
+        {activeTab === 'presets' && (
+          <div className="pt-2">
+            <div className="relative mx-4">
+              <Search className="pointer-events-none absolute left-0 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search workouts..."
+                aria-label="Search workouts"
+                className="pl-6"
+              />
             </div>
-          )}
 
-          {activeTab === 'presets' && (
-            <div className="space-y-4">
-              {/* Search */}
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <input
-                  type="text"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Search workouts..."
-                  className="w-full h-10 pl-9 pr-4 rounded-lg bg-surface-1 border border-surface-3 text-foreground placeholder:text-muted-foreground text-sm focus:outline-none focus:ring-2 focus:ring-volt"
-                />
-              </div>
+            <PlateTabs<WorkoutCategory>
+              size="chip"
+              tabs={WORKOUT_CATEGORIES.map((tag) => ({ id: tag, label: tag }))}
+              value={selectedCategory}
+              onChange={setSelectedCategory}
+              className="scrollbar-hide overflow-x-auto px-4 py-2 sm:flex-wrap sm:overflow-visible"
+            />
 
-              {/* Category Filters */}
-              <div className="flex gap-2 overflow-x-auto scrollbar-hide py-1">
-                {WORKOUT_CATEGORIES.map((tag) => (
-                  <button
-                    key={tag}
-                    onClick={() => setSelectedCategory(tag)}
-                    className={cn(
-                      'px-3 py-1.5 rounded-full text-sm whitespace-nowrap transition-colors',
-                      selectedCategory === tag
-                        ? 'bg-volt text-primary-foreground font-semibold'
-                        : 'bg-surface-1 text-muted-foreground hover:bg-surface-2'
-                    )}
-                  >
-                    {tag}
-                  </button>
-                ))}
-              </div>
+            <SectionChyron className="mb-1 mt-1">Trending</SectionChyron>
 
-              {/* Trending — Tier Presets */}
-              <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
-                Trending 🔥
-              </h3>
-
-              {/* Community shared presets */}
-              {communitySharedPresets
-                .filter((post) => {
-                  if (!searchQuery) return true;
-                  const pname = (post.custom_name || post.workout_name || '').toLowerCase();
-                  return pname.includes(searchQuery.toLowerCase());
-                })
-                .map((post) => (
-                <button
+            {communitySharedPresets
+              .filter((post) => {
+                if (!searchQuery) return true;
+                const pname = (post.custom_name || post.workout_name || '').toLowerCase();
+                return pname.includes(searchQuery.toLowerCase());
+              })
+              .map((post) => (
+                <ListingRow
                   key={post.id}
+                  minutes={post.workout_data?.totalDuration ? Math.floor(post.workout_data.totalDuration / 60) : null}
+                  title={post.custom_name || post.workout_name}
+                  meta={<>
+                    <span className="lab">by {post.user_name}</span>
+                    <span className="lab">{post.likes} {post.likes === 1 ? 'like' : 'likes'}</span>
+                  </>}
+                  action={<><Download className="h-5 w-5" /><span className="sr-only">Save workout</span></>}
                   onClick={() => handleSaveCommunityWorkout(post)}
-                  className="card-workout w-full text-left"
-                >
-                  <div className="flex items-start gap-3">
-                    <div className="w-12 h-12 rounded-xl bg-volt/20 flex items-center justify-center text-2xl">
-                      {post.workout_data?.icon || '🥊'}
-                    </div>
-                    <div className="flex-1">
-                      <h4 className="font-semibold text-foreground">{post.custom_name || post.workout_name}</h4>
-                      <p className="text-sm text-muted-foreground">by {post.user_name}</p>
-                      <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground">
-                        {post.workout_data?.totalDuration && (
-                          <span>{Math.floor(post.workout_data.totalDuration / 60)} min</span>
-                        )}
-                        <span>❤️ {post.likes}</span>
-                      </div>
-                    </div>
-                    <Download className="w-5 h-5 text-volt mt-1" />
-                  </div>
-                </button>
+                />
               ))}
 
-              {/* Tier Preset Cards */}
-              {tierPresetsLoading ? (
-                <div className="text-center py-8 text-muted-foreground">Loading presets...</div>
-              ) : tierPresets.length === 0 ? (
-                <div className="text-center py-8">
-                  <p className="text-muted-foreground">No presets available.</p>
-                </div>
-              ) : (
-                <>
+            {tierPresetsLoading ? (
+              <p className="lab px-4 py-8">Loading presets...</p>
+            ) : tierPresets.length === 0 ? (
+              <EmptyPlate title="No presets available." />
+            ) : (
+              <>
                 {!tierPresets.some(matchesPresetSearch) && (
-                  <p className="text-center py-8 text-muted-foreground">No workouts match "{searchQuery}".</p>
+                  <p className="prose-w px-4 py-8 text-lg">No workouts match "{searchQuery}".</p>
                 )}
                 {tierPresets
                   .filter(matchesPresetSearch)
@@ -771,18 +488,24 @@ const FightClub = () => {
                     return true;
                   })
                   .map((preset) => {
-                    const duration = Math.round(preset.generatedLoadout.duration / 60);
-                    const tierLabel = preset.tier.charAt(0).toUpperCase() + preset.tier.slice(1);
-                    const tierColor = preset.tier === 'rookie' ? 'text-slate-400' :
-                      preset.tier === 'beginner' ? 'text-volt' :
-                      preset.tier === 'intermediate' ? 'text-blue-400' :
-                      preset.tier === 'advanced' ? 'text-purple-400' :
-                      'text-amber-400';
                     const ratingLabel = formatRating(ratingSummaries[preset.id], !!user);
-
                     return (
-                      <button
+                      <ListingRow
                         key={preset.id}
+                        minutes={Math.round(preset.generatedLoadout.duration / 60)}
+                        title={preset.name}
+                        tags={preset.generatedLoadout.tags}
+                        meta={<>
+                          <span className="lab">@nate</span>
+                          <span className="lab lab-w">{preset.tier}</span>
+                          {ratingLabel && (
+                            <span className="lab flex items-center gap-1">
+                              <Star className="h-3 w-3 fill-current text-volt" />
+                              {ratingLabel}
+                            </span>
+                          )}
+                        </>}
+                        action={<ChevronRight className="h-5 w-5" />}
                         onClick={() => {
                           // Convert tier preset to TrendingWorkout for the preview modal
                           const loadout = preset.generatedLoadout;
@@ -808,49 +531,14 @@ const FightClub = () => {
                           };
                           setSelectedWorkout(asTrending);
                         }}
-                        className="card-workout w-full text-left"
-                      >
-                        <div className="flex items-start gap-3">
-                          <div className="w-12 h-12 rounded-xl bg-volt/20 flex items-center justify-center text-2xl">
-                            🥊
-                          </div>
-                          <div className="flex-1">
-                            <h4 className="font-semibold text-foreground">{preset.name}</h4>
-                            <p className="text-sm text-muted-foreground">@nate</p>
-                            <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground flex-wrap">
-                              {ratingLabel && (
-                                <span className="flex items-center gap-0.5">
-                                  <Star className="w-3 h-3 text-amber-400 fill-amber-400" />
-                                  {ratingLabel}
-                                </span>
-                              )}
-                              <span>{duration} min</span>
-                              <span className={cn("font-semibold", tierColor)}>
-                                {tierLabel}
-                              </span>
-                            </div>
-                            {preset.generatedLoadout.tags && preset.generatedLoadout.tags.length > 0 && (
-                              <div className="flex flex-wrap gap-1 mt-2">
-                                {preset.generatedLoadout.tags.map((tag) => (
-                                  <span key={tag} className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-volt/15 text-volt border border-volt/20">
-                                    {tag}
-                                  </span>
-                                ))}
-                              </div>
-                            )}
-                          </div>
-                          <ChevronRight className="w-5 h-5 text-muted-foreground mt-1" />
-                        </div>
-                      </button>
+                      />
                     );
-                  })
-                }
-                </>
-              )}
-            </div>
-          )}
-        </div>
-      </div>
+                  })}
+              </>
+            )}
+          </div>
+        )}
+      </BroadcastPage>
 
       {/* Workout Preview Modal */}
       {selectedWorkout && (
@@ -864,75 +552,66 @@ const FightClub = () => {
 
       {/* User Search Modal */}
       {showUserSearch && (
-        <div className="fixed inset-0 bg-background/95 z-50 flex flex-col">
-          <header className="flex items-center gap-3 px-4 py-4 border-b border-surface-3 safe-top">
-            <button onClick={() => { setShowUserSearch(false); setUserSearchQuery(''); }} className="text-muted-foreground">
-              <X className="w-6 h-6" />
-            </button>
-            <h2 className="font-bold text-foreground">Find Fighters</h2>
-          </header>
-
-          <div className="px-4 py-4">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-background">
+          <BroadcastPage
+            show="Scouting"
+            air={
+              <button
+                type="button"
+                aria-label="Close"
+                onClick={() => { setShowUserSearch(false); setUserSearchQuery(''); }}
+                className="plate plate-graphite h-11 w-12"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            }
+          >
+            <div className="px-4 pt-3">
+              <div role="heading" aria-level={2}>
+                <FitText className="fx h-14" max={72}>Find Fighters</FitText>
+              </div>
               <Input
                 value={userSearchQuery}
                 onChange={(e) => setUserSearchQuery(e.target.value)}
                 placeholder="Search by name or @handle..."
-                className="pl-10 bg-surface-1 border-surface-3"
+                aria-label="Search by name or @handle"
+                className="mt-2"
                 autoFocus
               />
             </div>
-          </div>
 
-          <div className="flex-1 overflow-y-auto px-4 pb-4">
-            {searchLoading && hasQuery && (
-              <div className="text-center py-8 text-muted-foreground">
-                Searching...
-              </div>
-            )}
+            <div className="pb-4 pt-2">
+              {searchLoading && hasQuery && <p className="lab px-4 py-8">Searching...</p>}
 
-            {!hasQuery && (
-              <div className="text-center py-8 text-muted-foreground">
-                <UserPlus className="w-12 h-12 mx-auto mb-3 opacity-50" />
-                <p>Search for fighters to follow</p>
-                <p className="text-sm mt-1">Enter at least 2 characters</p>
-              </div>
-            )}
+              {!hasQuery && (
+                <EmptyPlate title="Search for fighters to follow" body="Enter at least 2 characters" />
+              )}
 
-            {hasQuery && !searchLoading && searchResults.length === 0 && (
-              <div className="text-center py-8 text-muted-foreground">
-                No fighters found matching "{userSearchQuery}"
-              </div>
-            )}
+              {hasQuery && !searchLoading && searchResults.length === 0 && (
+                <p className="prose-w px-4 py-8 text-lg">No fighters found matching "{userSearchQuery}"</p>
+              )}
 
-            {searchResults.map((user) => (
-              <button
-                key={user.id}
-                onClick={() => {
-                  setShowUserSearch(false);
-                  setUserSearchQuery('');
-                  navigate(`/profile/${user.user_id}`);
-                }}
-                className="w-full flex items-center gap-3 p-3 rounded-xl bg-surface-1 border border-surface-3 hover:border-volt transition-colors mb-2"
-              >
-                <div className="w-12 h-12 rounded-full bg-surface-2 flex items-center justify-center text-xl overflow-hidden flex-shrink-0">
-                  {user.avatar_url ? (
-                    <img src={user.avatar_url} alt="" className="w-full h-full object-cover" />
-                  ) : (
-                    '🥊'
-                  )}
-                </div>
-                <div className="flex-1 text-left">
-                  <p className="font-semibold text-foreground">{user.name}</p>
-                  <p className="text-sm text-muted-foreground">
+              {searchResults.map((user) => (
+                <button
+                  key={user.id}
+                  type="button"
+                  onClick={() => {
+                    setShowUserSearch(false);
+                    setUserSearchQuery('');
+                    navigate(`/profile/${user.user_id}`);
+                  }}
+                  className="block w-full border-b border-surface-2 py-2.5 text-left transition-colors hover:bg-surface-1"
+                >
+                  <span className="plate plate-steel plate-bleed-l fx flex h-12 w-[min(22rem,88%)] justify-start pl-4 pr-6 text-3xl">
+                    <span className="truncate">{user.name}</span>
+                  </span>
+                  <span className="lab mt-1.5 block px-4">
                     @{user.handle || user.name.toLowerCase().replace(/\s+/g, '')}
-                  </p>
-                </div>
-                <ChevronRight className="w-5 h-5 text-muted-foreground" />
-              </button>
-            ))}
-          </div>
+                  </span>
+                </button>
+              ))}
+            </div>
+          </BroadcastPage>
         </div>
       )}
     </AppLayout>
