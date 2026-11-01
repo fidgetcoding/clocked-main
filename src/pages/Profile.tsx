@@ -115,6 +115,16 @@ const Profile = () => {
     return [];
   };
 
+  // A link to you, not to the /profile page, which shows whoever opens it their own profile
+  const copyProfileLink = async () => {
+    try {
+      await navigator.clipboard.writeText(`${window.location.origin}/profile/${authUser?.id}`);
+      toast.success('Profile link copied!');
+    } catch {
+      toast.error("Couldn't copy the link");
+    }
+  };
+
   const handleOpenSearch = () => {
     if (isGuest) {
       promptEmailLink('find other fighters');
@@ -139,6 +149,23 @@ const Profile = () => {
     });
     setShowPrestigePrompt(false);
   };
+
+  if (!isOwnProfile && !isGuest && !isLoadingPublic && !publicProfile) {
+    return (
+      <AppLayout>
+        <div className="min-h-screen flex items-center justify-center px-6">
+          <div className="text-center">
+            <User className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+            <p className="text-foreground font-bold text-lg">Fighter not found</p>
+            <p className="text-muted-foreground text-sm mt-1">This link doesn't match anyone on Clocked.</p>
+            <Button onClick={() => navigate('/fight-club')} variant="outline" className="mt-6">
+              Back to Fight Club
+            </Button>
+          </div>
+        </div>
+      </AppLayout>
+    );
+  }
 
   if (showPrestigePrompt) {
     return (
@@ -196,11 +223,11 @@ const Profile = () => {
                   </p>
                   <p className="text-xs text-muted-foreground">Workouts</p>
                 </button>
-                <button onClick={() => setListModal('followers')} className="text-center">
+                <button onClick={() => isOwnProfile && setListModal('followers')} className="text-center">
                   <p className="text-xl font-bold text-foreground">{followersCount}</p>
                   <p className="text-xs text-muted-foreground">Followers</p>
                 </button>
-                <button onClick={() => setListModal('following')} className="text-center">
+                <button onClick={() => isOwnProfile && setListModal('following')} className="text-center">
                   <p className="text-xl font-bold text-foreground">{followingCount}</p>
                   <p className="text-xs text-muted-foreground">Following</p>
                 </button>
@@ -223,8 +250,7 @@ const Profile = () => {
                         promptEmailLink('share your profile');
                         return;
                       }
-                      navigator.clipboard.writeText(window.location.href);
-                      toast.success('Profile link copied!');
+                      copyProfileLink();
                     }}
                     variant="outline" 
                     size="sm"

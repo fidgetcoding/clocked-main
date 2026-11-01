@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/useAuth';
 import { Prestige, getLevelFromXP } from '@/lib/xpSystem';
+import { isUuid } from '@/lib/uuid';
 
 export interface PublicProfile {
   id: string;
@@ -30,7 +31,7 @@ export function usePublicProfile(userId: string | undefined) {
   return useQuery({
     queryKey: ['public-profile', userId],
     queryFn: async (): Promise<PublicProfile | null> => {
-      if (!userId) return null;
+      if (!isUuid(userId)) return null;
 
       // Use the secure function that only returns public fields
       const { data, error } = await supabase.rpc('get_public_profile', {

@@ -1,9 +1,8 @@
 import type { StoredPhase } from '@/lib/storedPhases';
 import type { WorkoutSection } from '@/types';
-import { getSpeechRecognizerClass } from '@/lib/speechRecognition';
 import { joinStoredPhases, splitStoredPhases } from '@/lib/storedPhases';
 import { useState } from 'react';
-import { ArrowLeft, Users, Newspaper, Trophy, Search, MessageCircle, BarChart3, Send, ChevronRight, Mic, MicOff, Download, X, UserPlus, LogIn, LogOut, Trash2, Star, Radio } from 'lucide-react';
+import { ArrowLeft, Users, Newspaper, Trophy, Search, MessageCircle, BarChart3, ChevronRight, Download, X, UserPlus, LogIn, LogOut, Trash2, Star, Radio } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
@@ -18,7 +17,10 @@ import { useCommunityPosts, CommunityPost, useDeleteCommunityPost } from '@/hook
 import { toast } from 'sonner';
 import { useUserSearch } from '@/hooks/useUserSearch';
 import { useFollows } from '@/hooks/useFollows';
-import { useClubs, EARLY_ADOPTERS_CLUB_ID } from '@/hooks/useClubs';
+import { useClubRanks, useClubs } from '@/hooks/useClubs';
+import { memberLabel, splitClubs } from '@/lib/clubs';
+import { formatRating } from '@/lib/ratings';
+import { useRatingSummaries } from '@/hooks/useWorkoutRating';
 import { useAuth } from '@/contexts/useAuth';
 import { promptEmailLink } from '@/lib/guest';
 import { isBackendConfigured } from '@/integrations/supabase/client';
@@ -26,17 +28,6 @@ import { useTierPresets, TierPresetWithLoadout } from '@/hooks/useTierPresets';
 
 type Tab = 'feed' | 'clubs' | 'presets';
 type ClubTab = 'feed' | 'chat' | 'leaderboard';
-
-interface Club {
-  id: string;
-  name: string;
-  icon: string;
-  type: 'public' | 'private';
-  coach?: string;
-  memberCount: number;
-  activeNow: number;
-  rank?: number;
-}
 
 interface SharedWorkoutData {
   description?: string;
@@ -53,14 +44,10 @@ const FightClub = () => {
   const { addWorkout } = useWorkouts();
   const [feedFilter, setFeedFilter] = useState<'all' | 'following'>('all');
   const { data: communityPosts, isLoading: postsLoading } = useCommunityPosts(feedFilter, 'feed');
-  const { data: clubPosts, isLoading: clubPostsLoading } = useCommunityPosts('all', 'club', EARLY_ADOPTERS_CLUB_ID);
   const deletePost = useDeleteCommunityPost();
   const [activeTab, setActiveTab] = useState<Tab>('feed');
-  const [selectedClub, setSelectedClub] = useState<Club | null>(null);
+  const [selectedClubId, setSelectedClubId] = useState<string | null>(null);
   const [clubTab, setClubTab] = useState<ClubTab>('feed');
-  const [chatMessage, setChatMessage] = useState('');
-  const [isRecordingVoice, setIsRecordingVoice] = useState(false);
-  const [clubChatMessages, setClubChatMessages] = useState<{id: string; userName: string; avatar: string; message: string; time: string; isOwn: boolean; isVoice?: boolean}[]>([]);
   // Presets tab state
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<WorkoutCategory>('All');
@@ -75,12 +62,15 @@ const FightClub = () => {
   
   // Clubs
   const { user, isGuest } = useAuth();
-  const { clubs, clubsLoading, isMemberOf, joinClub, leaveClub, useClubMemberCount } = useClubs();
-  const { data: earlyAdoptersMemberCount = 0 } = useClubMemberCount(EARLY_ADOPTERS_CLUB_ID);
-  const earlyAdoptersClub = clubs.find(c => c.id === EARLY_ADOPTERS_CLUB_ID);
+  const { clubs, clubsLoading, myMemberships, joinClub, leaveClub, memberCounts } = useClubs();
+  const { mine: myClubs, discover: discoverClubs } = splitClubs(clubs, myMemberships.map((m) => m.club_id), memberCounts);
+  const selectedClub = myClubs.find((club) => club.id === selectedClubId) ?? null;
+  const { data: clubPosts, isLoading: clubPostsLoading } = useCommunityPosts('all', 'club', selectedClub?.id);
+  const { data: clubRanks = [], isLoading: clubRanksLoading } = useClubRanks(clubTab === 'leaderboard' ? selectedClub?.id : undefined);
   
   // Tier presets
   const { presets: tierPresets, isLoading: tierPresetsLoading } = useTierPresets();
+  const ratingSummaries = useRatingSummaries(tierPresets.map((preset) => preset.id));
 
   const tabs: { id: Tab; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
     { id: 'feed', label: 'Feed', icon: Newspaper },
@@ -107,8 +97,10 @@ const FightClub = () => {
       is_archived: false,
       times_completed: 0,
       last_used_at: null,
+    }, {
+      onSuccess: () => toast.success(`"${workout.name}" saved to your workouts!`),
+      onError: () => toast.error(`Couldn't save "${workout.name}"`),
     });
-    toast.success(`"${workout.name}" saved to your workouts!`);
     setSelectedWorkout(null);
   };
 
@@ -142,37 +134,12 @@ const FightClub = () => {
       is_archived: false,
       times_completed: 0,
       last_used_at: null,
+    }, {
+      onSuccess: () => toast.success(`"${post.workout_name}" saved to your workouts!`),
+      onError: () => toast.error(`Couldn't save "${post.workout_name}"`),
     });
-    toast.success(`"${post.workout_name}" saved to your workouts!`);
   };
 
-  // Clubs data - Build from database
-  const isEarlyAdopterMember = isMemberOf(EARLY_ADOPTERS_CLUB_ID);
-  const earlyAdoptersCap = earlyAdoptersClub?.member_cap ?? 100;
-  const spotsRemaining = earlyAdoptersCap - earlyAdoptersMemberCount;
-  
-  const myClubs: Club[] = isEarlyAdopterMember && earlyAdoptersClub
-    ? [{ 
-        id: earlyAdoptersClub.id, 
-        name: earlyAdoptersClub.name, 
-        icon: earlyAdoptersClub.icon, 
-        type: earlyAdoptersClub.type as 'public' | 'private', 
-        memberCount: earlyAdoptersMemberCount, 
-        activeNow: 0 
-      }]
-    : [];
-
-  const discoverClubs: Club[] = !isEarlyAdopterMember && earlyAdoptersClub
-    ? [{ 
-        id: earlyAdoptersClub.id, 
-        name: earlyAdoptersClub.name, 
-        icon: earlyAdoptersClub.icon, 
-        type: earlyAdoptersClub.type as 'public' | 'private', 
-        memberCount: earlyAdoptersMemberCount, 
-        activeNow: 0 
-      }]
-    : [];
-  
   const handleJoinClub = (clubId: string, e: React.MouseEvent) => {
     e.stopPropagation();
     if (!user) {
@@ -201,67 +168,6 @@ const FightClub = () => {
     return `${diffDays}d ago`;
   };
 
-  // Club-specific data - empty for now, will be populated from database
-  // Club feed uses real club-destination posts
-
-  // Voice recording for chat
-  const handleVoiceRecord = () => {
-    if (!('webkitSpeechRecognition' in window || 'SpeechRecognition' in window)) {
-      return;
-    }
-    
-    if (isRecordingVoice) {
-      setIsRecordingVoice(false);
-      return;
-    }
-    
-    const SpeechRecognition = getSpeechRecognizerClass();
-    const recognition = new SpeechRecognition();
-    recognition.continuous = false;
-    recognition.interimResults = false;
-    recognition.lang = 'en-US';
-    
-    recognition.onresult = (event) => {
-      const transcript = event.results[0][0].transcript;
-      if (transcript) {
-        const newMessage = {
-          id: crypto.randomUUID(),
-          userName: 'You',
-          avatar: '⚡',
-          message: transcript,
-          time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-          isOwn: true,
-          isVoice: true,
-        };
-        setClubChatMessages(prev => [...prev, newMessage]);
-      }
-      setIsRecordingVoice(false);
-    };
-    
-    recognition.onerror = () => setIsRecordingVoice(false);
-    recognition.onend = () => setIsRecordingVoice(false);
-    
-    recognition.start();
-    setIsRecordingVoice(true);
-  };
-
-  const handleSendClubMessage = () => {
-    if (!chatMessage.trim()) return;
-    const newMessage = {
-      id: crypto.randomUUID(),
-      userName: 'You',
-      avatar: '⚡',
-      message: chatMessage,
-      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      isOwn: true,
-    };
-    setClubChatMessages(prev => [...prev, newMessage]);
-    setChatMessage('');
-  };
-
-  // Club leaderboard - empty for now, will be populated from database
-  const clubLeaderboard: {rank: number; name: string; xp: number; avatar: string; isYou?: boolean}[] = [];
-
   // Club Detail View
   if (selectedClub) {
     return (
@@ -270,7 +176,7 @@ const FightClub = () => {
           {/* Club Header */}
           <header className="px-4 py-4 safe-top border-b border-surface-3">
             <div className="flex items-center gap-3 mb-4">
-              <button onClick={() => setSelectedClub(null)} className="text-muted-foreground">
+              <button onClick={() => setSelectedClubId(null)} className="text-muted-foreground">
                 <ArrowLeft className="w-6 h-6" />
               </button>
               <div className="w-10 h-10 rounded-xl bg-surface-2 flex items-center justify-center text-xl">
@@ -279,7 +185,7 @@ const FightClub = () => {
               <div className="flex-1">
                 <h1 className="font-bold text-foreground">{selectedClub.name}</h1>
                 <p className="text-xs text-muted-foreground">
-                  {selectedClub.memberCount} members · {selectedClub.activeNow} active now
+                  {memberLabel(selectedClub)}
                 </p>
               </div>
             </div>
@@ -382,78 +288,29 @@ const FightClub = () => {
                 {!clubPostsLoading && (!clubPosts || clubPosts.length === 0) && (
                   <div className="text-center py-8">
                     <p className="text-muted-foreground">No posts shared to this club yet.</p>
-                    <p className="text-sm text-muted-foreground mt-1">Share a workout and select "Early Adopters" as the destination!</p>
+                    <p className="text-sm text-muted-foreground mt-1">Share a workout and select "{selectedClub.name}" as the destination!</p>
                   </div>
                 )}
               </div>
             )}
 
+            {/* Not built yet. There's nowhere for a message to go, so this doesn't take one. */}
             {clubTab === 'chat' && (
-              <div className="flex flex-col h-full">
-                <div className="flex-1 px-4 py-4 space-y-3 overflow-y-auto">
-                  {clubChatMessages.map((msg) => (
-                    <button 
-                      key={msg.id} 
-                      onClick={() => msg.userName !== 'You' && navigate(`/profile/${msg.userName.toLowerCase().replace(/\s+/g, '-').replace('.', '')}`)}
-                      className={cn('flex gap-3 w-full text-left', msg.isOwn && 'flex-row-reverse')}
-                    >
-                      <div className="w-8 h-8 rounded-full bg-surface-2 flex items-center justify-center text-lg flex-shrink-0 hover:ring-2 hover:ring-volt transition-all">
-                        {msg.avatar}
-                      </div>
-                      <div className={cn(
-                        'max-w-[70%] rounded-2xl px-4 py-2',
-                        msg.isOwn ? 'bg-volt text-primary-foreground' : 'bg-surface-1'
-                      )}>
-                        {!msg.isOwn && (
-                          <p className="text-xs text-muted-foreground mb-1 hover:text-volt transition-colors">{msg.userName}</p>
-                        )}
-                        <div className="flex items-center gap-1">
-                          {msg.isVoice && <Mic className="w-3 h-3 text-volt" />}
-                          <p className={cn('text-sm', msg.isOwn ? 'text-primary-foreground' : 'text-foreground')}>
-                            {msg.message}
-                          </p>
-                        </div>
-                        <p className={cn('text-xs mt-1', msg.isOwn ? 'text-primary-foreground/70' : 'text-muted-foreground')}>
-                          {msg.time}
-                        </p>
-                      </div>
-                    </button>
-                  ))}
-                </div>
-
-                {/* Chat Input with Voice */}
-                <div className="px-4 py-4 border-t border-surface-3 safe-bottom">
-                  <div className="flex gap-2">
-                    <Input
-                      value={chatMessage}
-                      onChange={(e) => setChatMessage(e.target.value)}
-                      onKeyDown={(e) => e.key === 'Enter' && handleSendClubMessage()}
-                      placeholder="Type a message..."
-                      className="flex-1 bg-surface-1 border-surface-3"
-                    />
-                    <Button 
-                      onClick={handleVoiceRecord}
-                      variant="outline"
-                      className={cn(
-                        "px-3 border-surface-3",
-                        isRecordingVoice && "bg-volt text-primary-foreground border-volt animate-pulse"
-                      )}
-                    >
-                      {isRecordingVoice ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
-                    </Button>
-                    <Button onClick={handleSendClubMessage} className="bg-volt text-primary-foreground px-4">
-                      <Send className="w-4 h-4" />
-                    </Button>
-                  </div>
-                </div>
+              <div className="px-4 py-12 text-center" data-testid="club-chat-placeholder">
+                <MessageCircle className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
+                <p className="text-foreground font-semibold">Club chat isn't built yet</p>
+                <p className="text-sm text-muted-foreground mt-1">To reach the club for now, share a workout to its feed.</p>
               </div>
             )}
 
             {clubTab === 'leaderboard' && (
               <div className="px-4 py-4 space-y-2">
-                {clubLeaderboard.map((member) => (
+                {clubRanksLoading && (
+                  <div className="text-center py-8 text-muted-foreground">Loading ranks...</div>
+                )}
+                {clubRanks.map((member) => (
                   <div 
-                    key={member.rank} 
+                    key={member.userId} 
                     className={cn(
                       'card-workout flex items-center gap-3',
                       member.isYou && 'border-volt'
@@ -468,12 +325,14 @@ const FightClub = () => {
                     )}>
                       {member.rank}
                     </div>
-                    <div className="w-10 h-10 rounded-full bg-surface-2 flex items-center justify-center text-xl relative">
-                      {member.avatar}
+                    <div className="w-10 h-10 rounded-full bg-surface-2 flex items-center justify-center text-xl relative overflow-hidden">
+                      {member.avatarUrl ? (
+                        <img src={member.avatarUrl} alt="" className="w-full h-full object-cover" />
+                      ) : '🥊'}
                     </div>
                     <div className="flex-1">
                       <p className={cn('font-semibold', member.isYou ? 'text-volt' : 'text-foreground')}>
-                        {member.name} {member.isYou && '(You)'}
+                        {member.name}{member.isYou && ' (You)'}
                       </p>
                       <p className="text-xs text-muted-foreground">{member.xp.toLocaleString()} XP</p>
                     </div>
@@ -717,18 +576,18 @@ const FightClub = () => {
                     >
                       <div className="flex items-center gap-3">
                         <button 
-                          onClick={() => setSelectedClub(club)}
+                          onClick={() => setSelectedClubId(club.id)}
                           className="w-12 h-12 rounded-xl bg-surface-2 flex items-center justify-center text-2xl hover:ring-2 hover:ring-volt transition-all"
                         >
                           {club.icon}
                         </button>
                         <button 
-                          onClick={() => setSelectedClub(club)}
+                          onClick={() => setSelectedClubId(club.id)}
                           className="flex-1 text-left"
                         >
                           <h4 className="font-semibold text-foreground hover:text-volt transition-colors">{club.name}</h4>
                           <p className="text-sm text-muted-foreground">
-                            {club.memberCount} / {earlyAdoptersCap} members
+                            {memberLabel(club)}
                           </p>
                           <p className="text-xs text-volt mt-1">Member ✓</p>
                         </button>
@@ -743,7 +602,7 @@ const FightClub = () => {
                             <LogOut className="w-3 h-3 mr-1" />
                             Leave
                           </Button>
-                          <button onClick={() => setSelectedClub(club)}>
+                          <button onClick={() => setSelectedClubId(club.id)}>
                             <ChevronRight className="w-5 h-5 text-muted-foreground" />
                           </button>
                         </div>
@@ -779,15 +638,15 @@ const FightClub = () => {
                       {!isGuest && (
                         <>
                           <p className="text-sm text-muted-foreground">
-                            {club.memberCount} / {earlyAdoptersCap} members
+                            {memberLabel(club)}
                           </p>
-                          {spotsRemaining > 0 ? (
-                            <p className="text-xs text-volt mt-1">
-                              {spotsRemaining} {spotsRemaining === 1 ? 'spot' : 'spots'} remaining! 🔥
-                            </p>
-                          ) : (
+                          {club.isFull ? (
                             <p className="text-xs text-destructive mt-1">
                               Club full
+                            </p>
+                          ) : club.spotsRemaining !== null && (
+                            <p className="text-xs text-volt mt-1">
+                              {club.spotsRemaining} {club.spotsRemaining === 1 ? 'spot' : 'spots'} remaining! 🔥
                             </p>
                           )}
                         </>
@@ -796,7 +655,7 @@ const FightClub = () => {
                     <Button
                       size="sm"
                       onClick={(e) => handleJoinClub(club.id, e)}
-                      disabled={joinClub.isPending || spotsRemaining <= 0}
+                      disabled={joinClub.isPending || club.isFull}
                       className="bg-volt text-primary-foreground text-xs"
                     >
                       <LogIn className="w-3 h-3 mr-1" />
@@ -919,9 +778,7 @@ const FightClub = () => {
                       preset.tier === 'intermediate' ? 'text-blue-400' :
                       preset.tier === 'advanced' ? 'text-purple-400' :
                       'text-amber-400';
-                    const userCountDisplay = preset.userCount >= 1000 
-                      ? `${(preset.userCount / 1000).toFixed(1)}K` 
-                      : preset.userCount.toString();
+                    const ratingLabel = formatRating(ratingSummaries[preset.id], !!user);
 
                     return (
                       <button
@@ -945,9 +802,9 @@ const FightClub = () => {
                             tags: loadout.tags || [],
                             author: 'Nate',
                             authorHandle: '@nate',
-                            rating: 5.0,
-                            ratingCount: preset.userCount,
-                            downloads: preset.userCount,
+                            rating: 0,
+                            ratingCount: 0,
+                            downloads: 0,
                           };
                           setSelectedWorkout(asTrending);
                         }}
@@ -961,14 +818,12 @@ const FightClub = () => {
                             <h4 className="font-semibold text-foreground">{preset.name}</h4>
                             <p className="text-sm text-muted-foreground">@nate</p>
                             <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground flex-wrap">
-                              <span className="flex items-center gap-0.5">
-                                <Star className="w-3 h-3 text-amber-400 fill-amber-400" />
-                                5.0 ({userCountDisplay})
-                              </span>
-                              <span className="flex items-center gap-0.5">
-                                <Download className="w-3 h-3" />
-                                {userCountDisplay}
-                              </span>
+                              {ratingLabel && (
+                                <span className="flex items-center gap-0.5">
+                                  <Star className="w-3 h-3 text-amber-400 fill-amber-400" />
+                                  {ratingLabel}
+                                </span>
+                              )}
                               <span>{duration} min</span>
                               <span className={cn("font-semibold", tierColor)}>
                                 {tierLabel}

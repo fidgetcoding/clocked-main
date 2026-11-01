@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/useAuth';
 import { Workout } from '@/types';
+import { toast } from 'sonner';
 
 export interface CommunityPost {
   id: string;
@@ -85,7 +86,8 @@ export function useCommunityPosts(filter: 'all' | 'following' = 'all', destinati
         user_avatar: profileMap.get(post.user_id)?.avatar_url || null,
       })) as CommunityPost[];
     },
-    enabled: !!user,
+    // Asking for a club's posts with no club yet would otherwise fetch every club's
+    enabled: !!user && (destination !== 'club' || !!clubId),
   });
 }
 
@@ -213,6 +215,7 @@ export function useDeleteCommunityPost() {
       queryClient.invalidateQueries({ queryKey: ['community-posts'] });
       queryClient.invalidateQueries({ queryKey: ['my-shared-workouts'] });
     },
+    onError: () => toast.error("Couldn't delete that post"),
   });
 }
 

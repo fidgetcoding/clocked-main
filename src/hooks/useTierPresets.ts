@@ -18,7 +18,6 @@ export interface TierPreset {
 
 export interface TierPresetWithLoadout extends TierPreset {
   generatedLoadout: ReturnType<typeof generateLoadoutWorkout>;
-  userCount: number;
 }
 
 const SHADOW_EQUIPMENT: UserEquipmentConfig = {
@@ -98,23 +97,7 @@ export function useTierPresets() {
   const generatedPresets = useMemo(() => buildGeneratedPresets(equipmentMode, userTier), [equipmentMode, userTier]);
   const presets = isGuest || dbPresets?.length === 0 ? generatedPresets : dbPresets;
 
-  // Fetch tier user counts
-  const { data: tierCounts } = useQuery({
-    queryKey: ['tier-user-counts'],
-    queryFn: async () => {
-      const { data, error } = await supabase.rpc('get_tier_user_counts');
-      if (error) throw error;
-      const map: Record<string, number> = {};
-      (data || []).forEach((row: { tier: string; user_count: number }) => {
-        map[row.tier] = row.user_count;
-      });
-      return map;
-    },
-    enabled: !!profile && !!user,
-    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
-  });
-
-  // Generate loadouts and merge with user counts
+  // Generate loadouts
   const enrichedPresets: TierPresetWithLoadout[] = (presets || []).map((preset) => {
     const equipConfig = preset.equipment_mode === 'bag' ? BAG_EQUIPMENT : SHADOW_EQUIPMENT;
     const experienceLevel = (preset.loadout?.experienceLevel as string | undefined) || preset.tier;
@@ -126,7 +109,6 @@ export function useTierPresets() {
     return {
       ...preset,
       generatedLoadout,
-      userCount: tierCounts?.[preset.tier] || 0,
     };
   });
 

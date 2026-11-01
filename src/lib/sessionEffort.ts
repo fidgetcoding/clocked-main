@@ -38,6 +38,7 @@ interface SegmentShape {
   segmentType?: string;
   combo?: string[];
   drill?: string[];
+  duration?: number;
 }
 
 const BOXING_SEGMENT_TYPES = ['combo', 'shadowboxing', 'doubleend'];
@@ -82,9 +83,11 @@ export interface SessionFacts {
   finished: boolean;
   unpaused: boolean;
   comboRounds: number;
+  /** How long the workout runs if nothing is cut, in whole minutes, once it has finished. */
+  plannedMinutes: number;
 }
 
-export const NOTHING_DONE: SessionFacts = { content: NOTHING_TRAINED, finished: false, unpaused: false, comboRounds: 0 };
+export const NOTHING_DONE: SessionFacts = { content: NOTHING_TRAINED, finished: false, unpaused: false, comboRounds: 0, plannedMinutes: 0 };
 
 export function toSessionFacts(log: SessionLog, segments: SegmentShape[]): SessionFacts {
   const finished = log.ranToEnd && !log.cutShort;
@@ -93,6 +96,7 @@ export function toSessionFacts(log: SessionLog, segments: SegmentShape[]): Sessi
     finished,
     unpaused: finished && !log.paused,
     comboRounds: finished ? segments.filter(isComboRound).length : 0,
+    plannedMinutes: finished ? Math.floor(segments.reduce((total, segment) => total + (segment.duration ?? 0), 0) / 60) : 0,
   };
 }
 
@@ -163,7 +167,8 @@ export function buildSessionBadgeStats(
     counterCombos: (profile.counter_combos || 0) + credit.counterCombos,
     totalSessions: (profile.workouts_completed || 0) + credit.sessions,
     totalHours: ((profile.total_training_seconds || 0) + sessionSeconds) / 3600,
-    singleSessionMinutes: sessionSeconds / 60,
+    // A throttled tab can lose a few seconds of a tick. Finishing a 40-minute workout is 40 minutes.
+    singleSessionMinutes: Math.max(sessionSeconds / 60, earned ? facts.plannedMinutes : 0),
     totalPushups: (profile.total_pushups || 0) + credit.pushups,
     totalBurpees: (profile.total_burpees || 0) + credit.burpees,
     totalCurlups: (profile.total_curlups || 0) + credit.curlups,

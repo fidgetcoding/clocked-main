@@ -67,6 +67,9 @@ describe("function grants", () => {
     ["get_tier_user_counts", {}],
     ["has_role", { _user_id: alpha.id, _role: "admin" }],
     ["get_workout_rating_summary", { target_workout_id: "w1" }],
+    ["get_follow_counts", { target_user_id: alpha.id }],
+    ["get_club_member_counts", {}],
+    ["get_club_ranks", { target_club_id: "ea000000-0000-0000-0000-000000000001" }],
   ];
 
   it("refuses anonymous callers and allows accounts", async () => {
@@ -215,5 +218,46 @@ describe("avatars, through the real storage API", () => {
     expect((await alpha.client.storage.from("avatars").list(alpha.id)).data?.length).toBeGreaterThanOrEqual(1);
     expect((await beta.client.storage.from("avatars").list(alpha.id)).data ?? []).toEqual([]);
     expect((await anon.storage.from("avatars").list(alpha.id)).data ?? []).toEqual([]);
+  });
+});
+
+describe("social read functions", () => {
+  it("gives anyone signed in the real follow totals, and still not the rows behind them", async () => {
+    const [fan, target, bystander] = await Promise.all([signIn("fan"), signIn("target"), signIn("bystander")]);
+    expect((await fan.client.from("follows").insert({ follower_id: fan.id, following_id: target.id })).error).toBeNull();
+
+    const counts = async (id: string) => (await bystander.client.rpc("get_follow_counts", { target_user_id: id })).data?.[0];
+    expect(await counts(target.id)).toEqual({ followers: 1, following: 0 });
+    expect(await counts(fan.id)).toEqual({ followers: 0, following: 1 });
+    expect((await bystander.client.from("follows").select("*").eq("following_id", target.id)).data).toEqual([]);
+  });
+
+  it("counts members of public clubs for everyone, and private ones only for their members", async () => {
+    const stamp = Date.now();
+    const open = (await service.from("clubs").insert({ name: `Open ${stamp}`, type: "public" }).select().single()).data!;
+    const secret = (await service.from("clubs").insert({ name: `Secret ${stamp}`, type: "private" }).select().single()).data!;
+    await service.from("club_members").insert([{ club_id: open.id, user_id: alpha.id }, { club_id: secret.id, user_id: alpha.id }]);
+
+    const seenBy = async (user: TestUser) => {
+      const { data } = await user.client.rpc("get_club_member_counts");
+      return Object.fromEntries((data ?? []).map((row: { club_id: string; member_count: number }) => [row.club_id, row.member_count]));
+    };
+    expect((await seenBy(beta))[open.id]).toBe(1);
+    expect((await seenBy(beta))[secret.id]).toBeUndefined();
+    expect((await seenBy(alpha))[secret.id]).toBe(1);
+  });
+
+  it("shows a club's ranks to its members only, best first, with nothing private in them", async () => {
+    const stamp = Date.now();
+    const club = (await service.from("clubs").insert({ name: `Ranked ${stamp}`, type: "public" }).select().single()).data!;
+    const [low, high, outsider] = await Promise.all([signIn("low"), signIn("high"), signIn("outsider")]);
+    await service.from("profiles").update({ total_xp: 900 }).eq("user_id", high.id);
+    await service.from("club_members").insert([{ club_id: club.id, user_id: low.id }, { club_id: club.id, user_id: high.id }]);
+
+    const { data, error } = await low.client.rpc("get_club_ranks", { target_club_id: club.id });
+    expect(error).toBeNull();
+    expect(data?.map((row: { user_id: string }) => row.user_id)).toEqual([high.id, low.id]);
+    expect(Object.keys(data?.[0] ?? {}).sort()).toEqual(["avatar_url", "name", "total_xp", "user_id"]);
+    expect((await outsider.client.rpc("get_club_ranks", { target_club_id: club.id })).data).toEqual([]);
   });
 });

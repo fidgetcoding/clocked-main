@@ -1,12 +1,13 @@
-import { useCallback, useState, useEffect } from 'react';
-import { X, Clock, Star, Download, Play, Sparkles, Save } from 'lucide-react';
+import { useState } from 'react';
+import { X, Star, Sparkles, Save } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { TrendingWorkout } from '@/data/trendingWorkouts';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
-import { supabase } from '@/integrations/supabase/client';
 import { promptEmailLink } from '@/lib/guest';
+import { formatRating } from '@/lib/ratings';
 import { useAuth } from '@/contexts/useAuth';
+import { useWorkoutRating } from '@/hooks/useWorkoutRating';
 
 interface WorkoutPreviewModalProps {
   workout: TrendingWorkout;
@@ -24,77 +25,22 @@ export const WorkoutPreviewModal = ({ workout, onClose, onSave, onCustomize }: W
   const { user: authUser } = useAuth();
   const [showRating, setShowRating] = useState(false);
   const [hoverStar, setHoverStar] = useState(0);
-  const [selectedRating, setSelectedRating] = useState(0);
-  const [avgRating, setAvgRating] = useState(workout.rating);
-  const [ratingCount, setRatingCount] = useState(workout.ratingCount);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { summary, myRating: selectedRating, rate } = useWorkoutRating(workout.id);
+  const ratingLabel = formatRating(summary, !!authUser);
 
   const totalPhases = workout.sections.warmup.length + workout.sections.grind.length + workout.sections.cooldown.length;
   const totalRounds = workout.sections.grind.reduce((acc, phase) => acc + phase.repeats, 0);
 
-  const refreshRatingSummary = useCallback(async () => {
-    const { data } = await supabase.rpc('get_workout_rating_summary', { target_workout_id: workout.id });
-    const summary = data?.[0];
-    if (summary && summary.rating_count > 0) {
-      setAvgRating(Number(summary.average_rating));
-      setRatingCount(summary.rating_count);
-    }
-  }, [workout.id]);
-
-  // Fetch existing rating data on mount. Ratings need an account, so guests skip this.
-  const signedInUserId = authUser?.id;
-  useEffect(() => {
-    if (!signedInUserId) return;
-
-    async function fetchRatings() {
-      // Get average rating
-      await refreshRatingSummary();
-
-      // Get user's existing rating
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        const { data: userRating } = await supabase
-          .from('workout_ratings')
-          .select('rating')
-          .eq('workout_id', workout.id)
-          .eq('user_id', user.id)
-          .maybeSingle();
-
-        if (userRating) {
-          setSelectedRating(userRating.rating);
-        }
-      }
-    }
-    fetchRatings();
-  }, [workout.id, signedInUserId, refreshRatingSummary]);
-
-  const submitRating = async (stars: number) => {
-    setIsSubmitting(true);
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
+  const submitRating = (stars: number) => {
+    if (!authUser) {
       promptEmailLink('rate workouts');
-      setIsSubmitting(false);
       return;
     }
-
-    const { error } = await supabase
-      .from('workout_ratings')
-      .upsert(
-        { user_id: user.id, workout_id: workout.id, rating: stars },
-        { onConflict: 'user_id,workout_id' }
-      );
-
-    if (error) {
-      toast.error('Failed to save rating');
-    } else {
-      setSelectedRating(stars);
-      toast.success(`Rated ${stars} star${stars > 1 ? 's' : ''}!`);
-      
-      // Refresh average
-      await refreshRatingSummary();
-    }
-    setIsSubmitting(false);
-    setShowRating(false);
+    rate.mutate(stars, {
+      onSuccess: () => toast.success(`Rated ${stars} star${stars > 1 ? 's' : ''}!`),
+      onError: () => toast.error('Failed to save rating'),
+      onSettled: () => setShowRating(false),
+    });
   };
 
   return (
@@ -115,16 +61,14 @@ export const WorkoutPreviewModal = ({ workout, onClose, onSave, onCustomize }: W
           <div className="flex-1 min-w-0">
             <h2 className="text-xl font-black text-foreground uppercase">{workout.name}</h2>
             <p className="text-sm text-muted-foreground">{workout.authorHandle}</p>
-            <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground">
-              <span className="flex items-center gap-1">
-                <Star className="w-3 h-3 text-yellow-500 fill-yellow-500" />
-                {avgRating} ({ratingCount})
-              </span>
-              <span className="flex items-center gap-1">
-                <Download className="w-3 h-3" />
-                {workout.downloads >= 1000 ? `${(workout.downloads / 1000).toFixed(1)}K` : workout.downloads}
-              </span>
-            </div>
+            {ratingLabel && (
+              <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground">
+                <span className="flex items-center gap-1">
+                  <Star className="w-3 h-3 text-yellow-500 fill-yellow-500" />
+                  {ratingLabel}
+                </span>
+              </div>
+            )}
           </div>
           <button 
             onClick={onClose}
@@ -232,7 +176,7 @@ export const WorkoutPreviewModal = ({ workout, onClose, onSave, onCustomize }: W
                     onMouseEnter={() => setHoverStar(star)}
                     onMouseLeave={() => setHoverStar(0)}
                     onClick={() => submitRating(star)}
-                    disabled={isSubmitting}
+                    disabled={rate.isPending}
                     className="p-1 transition-transform hover:scale-125"
                   >
                     <Star

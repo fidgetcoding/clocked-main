@@ -10,6 +10,7 @@ import { useUserRole } from '@/hooks/useUserRole';
 import { toast } from 'sonner';
 import { PrestigeBadge } from '@/components/ui/PrestigeDisplay';
 import { getRankingFromLevel, Prestige } from '@/lib/xpSystem';
+import { functionErrorMessage } from '@/lib/functionError';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -69,7 +70,7 @@ const AdminPortal = () => {
   const [newName, setNewName] = useState('');
   const [userToDelete, setUserToDelete] = useState<AdminUser | null>(null);
 
-  const { data: users = [], isLoading } = useQuery({
+  const { data: users = [], isLoading, error: usersError } = useQuery({
     queryKey: ['admin-users'],
     queryFn: async () => {
       const { data: { session } } = await supabase.auth.getSession();
@@ -79,7 +80,7 @@ const AdminPortal = () => {
         method: 'GET',
       });
 
-      if (response.error) throw new Error(response.error.message);
+      if (response.error) throw new Error(await functionErrorMessage(response.error));
       return response.data.users as AdminUser[];
     },
     enabled: isAdmin,
@@ -133,7 +134,7 @@ const AdminPortal = () => {
         body: { email: newEmail, password: newPassword, name: newName || 'Fighter' },
       });
 
-      if (response.error) throw new Error(response.error.message);
+      if (response.error) throw new Error(await functionErrorMessage(response.error));
       if (response.data.error) throw new Error(response.data.error);
       return response.data;
     },
@@ -159,7 +160,7 @@ const AdminPortal = () => {
         method: 'DELETE',
       });
 
-      if (response.error) throw new Error(response.error.message);
+      if (response.error) throw new Error(await functionErrorMessage(response.error));
       if (response.data.error) throw new Error(response.data.error);
       return response.data;
     },
@@ -268,6 +269,10 @@ const AdminPortal = () => {
           {isLoading ? (
             <div className="text-center py-8">
               <p className="text-muted-foreground text-sm">Loading users...</p>
+            </div>
+          ) : usersError ? (
+            <div className="text-center py-8">
+              <p role="alert" className="text-destructive text-sm">Couldn't load users: {usersError.message}</p>
             </div>
           ) : (
             <div className="space-y-6">
