@@ -162,7 +162,7 @@ const QuickSession = () => {
       onSuccess: async () => {
         setLogged(true);
         if (user?.id && profile) {
-          const stats = await computePostLogStats(user.id, profile);
+          const stats = await computePostLogStats(profile.user_id, profile);
           if (stats) {
             updateProfile.mutate(stats);
           }

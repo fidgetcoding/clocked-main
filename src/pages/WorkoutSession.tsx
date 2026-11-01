@@ -1004,7 +1004,7 @@ const WorkoutSession = () => {
           duration: totalElapsed,
         });
         if (user?.id && profile) {
-          const postLogStats = await computePostLogStats(user.id, profile);
+          const postLogStats = await computePostLogStats(profile.user_id, profile);
           if (postLogStats) {
             const postL100Increments = computePostL100Increments(
               profile as any,
