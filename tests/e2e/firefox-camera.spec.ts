@@ -4,7 +4,14 @@ import { silentLaunch } from "./silent";
 import { playButton } from "./controls";
 import { finishGuestOnboarding, NO_BACKEND_URL } from "./helpers";
 
-test.use({ browserName: "firefox", launchOptions: silentLaunch.firefox });
+// Firefox's own fake camera, so there is a camera to ask for on a machine without one, and no real one is touched
+test.use({
+  browserName: "firefox",
+  launchOptions: {
+    ...silentLaunch.firefox,
+    firefoxUserPrefs: { ...silentLaunch.firefox.firefoxUserPrefs, "media.navigator.streams.fake": true },
+  },
+});
 
 test("in Firefox, an unanswered camera prompt doesn't keep you from starting", async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 800 });
