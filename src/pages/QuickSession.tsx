@@ -391,10 +391,11 @@ const QuickSession = () => {
         cameraOn={cameraOn && !cameraFailed}
         camera={
           // The camera asks for permission here, once the session has started
-          cameraOn && !cameraFailed && isRunning ? (
+          cameraOn && !cameraFailed ? (
             <CameraBoundary onFailed={onCameraFailed}>
               <PunchCameraPanel
-                counting={!isPaused}
+                counting={isRunning && !isPaused}
+                preview={!isRunning}
                 onEvent={punchLog.onEvent}
                 onTracking={punchLog.onTracking}
                 displayCount={punchLog.log.totals.punches}
@@ -404,7 +405,7 @@ const QuickSession = () => {
           ) : undefined
         }
         feed={cameraOn ? feed : null}
-        counting={!isPaused}
+        counting={isRunning && !isPaused}
         problemDismissed={feedProblemDismissed}
         onDismissProblem={() => setFeedProblemDismissed(true)}
         liveLog={cameraOn && isRunning ? <PunchLogLive log={punchLog.log} lastCue={punchLog.lastCue} /> : undefined}

@@ -9,6 +9,8 @@ import type { CameraFeedState } from './feedState';
 interface PunchCameraPanelProps {
   /** While false the preview stays on, but nothing is tracked or counted. */
   counting: boolean;
+  /** Show the picture and read the body without counting: before the session has started. */
+  preview?: boolean;
   onSummary?: (report: PunchSessionReport) => void;
   onCue?: (cue: string) => void;
   /** Every detector event, for a session keeping its own log. */
@@ -25,12 +27,13 @@ interface PunchCameraPanelProps {
 }
 
 /** The camera picture and its tracker, filling whatever it sits in. Failing never affects the screen around it. */
-const PunchCameraPanel = ({ counting, onSummary, onCue, onEvent, onTracking, displayCount, onCountingChange, onFeed, className }: PunchCameraPanelProps) => {
+const PunchCameraPanel = ({ counting, preview = false, onSummary, onCue, onEvent, onTracking, displayCount, onCountingChange, onFeed, className }: PunchCameraPanelProps) => {
   const { stance } = useStance();
   const poseRef = useRef<CameraFeedState['pose']['current']>(null);
   const { videoRef, canvasRef, status, problem, paused, hud, start, getSummary, check, runStartCheck, skipStartCheck } = usePunchTracking({
     stance,
-    processing: counting,
+    processing: counting || preview,
+    counting,
     onCue,
     onEvent,
     onPoseFrame: (result) => {
@@ -126,7 +129,7 @@ const PunchCameraPanel = ({ counting, onSummary, onCue, onEvent, onTracking, dis
         muted
         className={cn(
           'absolute inset-0 h-full w-full object-cover -scale-x-100 transition-[filter] duration-300',
-          counting ? 'feed-graded' : 'saturate-[.35] brightness-[.72]',
+          counting || preview ? 'feed-graded' : 'saturate-[.35] brightness-[.72]',
         )}
       />
       <canvas ref={canvasRef} className="pointer-events-none absolute inset-0 h-full w-full object-cover -scale-x-100" />

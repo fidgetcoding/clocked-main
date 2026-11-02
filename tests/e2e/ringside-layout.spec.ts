@@ -17,7 +17,7 @@ const fakeCamera = () => {
   const canvas = document.createElement("canvas");
   canvas.width = 640;
   canvas.height = 480;
-  canvas.getContext("2d")?.fillRect(0, 0, 640, 480);
+  setInterval(() => canvas.getContext("2d")?.fillRect(0, 0, 640, 480), 100);
   Object.defineProperty(navigator, "mediaDevices", {
     configurable: true,
     value: { getUserMedia: async () => canvas.captureStream(5) },

@@ -1336,11 +1336,12 @@ const WorkoutSession = () => {
         cameraOn={cameraOn && !cameraFailed}
         camera={
           // Asks for the camera once the session has started. Only boxing segments are counted.
-          cameraOn && !cameraFailed && hasStartedOnce ? (
+          cameraOn && !cameraFailed ? (
             <CameraBoundary onFailed={onCameraFailed}>
               <PunchCameraPanel
                 key={cameraSession}
                 counting={counting}
+                preview={!hasStartedOnce || isPreparation}
                 onSummary={setPunchSummary}
                 onEvent={punchLog.onEvent}
                 onTracking={punchLog.onTracking}

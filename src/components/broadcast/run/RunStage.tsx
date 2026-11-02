@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { cn } from '@/lib/utils';
 import { RunLandscape } from './RunLandscape';
 import { RunPortrait } from './RunPortrait';
 import { RunWide } from './RunWide';
@@ -65,26 +66,33 @@ function useRoundBell(view: RunView) {
  * the phone or resizing the window never restarts it.
  */
 export function RunStage(props: RunStageProps) {
-  const { view, cameraOn, camera, feed, children } = props;
+  const { view: given, cameraOn, camera, feed, children } = props;
   const layout = useStageLayout();
   const showFeed = cameraOn && !!camera && !feed?.problem;
+  const asking = given.idle && showFeed && feed?.status !== 'live' && !feed?.paused;
+  const view = asking ? { ...given, startHeld: true } : given;
   const bellXP = useRoundBell(view);
   const tone = stageTone(view, showFeed);
   const stageRef = useRef<HTMLDivElement>(null);
   const free = useFreeSide(stageRef, showFeed ? feed?.pose : undefined, layout);
-  const shared = { ...props, showFeed, bellXP, free };
+  const shared = { ...props, view, showFeed, bellXP, free };
 
   return (
-    <div ref={stageRef} className="stage" data-panel-mode={free.mode} data-panel-side={free.side} data-panel-edge={free.edge} data-layout={layout} data-camera={showFeed ? 'on' : 'off'} data-tone={tone} data-testid="run-stage">
+    <div ref={stageRef} className="stage" data-panel-mode={free.mode} data-panel-side={free.side} data-panel-edge={free.edge} data-layout={layout} data-camera={showFeed ? 'on' : 'off'} data-tone={tone} data-testid="run-stage" data-counting={!!props.counting}>
       <div className="stage-feed">{camera}</div>
       {showFeed && feed?.status !== 'live' && !feed?.paused && (
-        <div className="stage-incoming" aria-live="polite">
-          <span className="fx text-5xl text-volt">Feed incoming</span>
+        <div className={cn('stage-incoming', asking && 'z-30')} aria-live="polite" data-testid="camera-asking">
+          <span className="fx text-5xl text-volt">{asking ? 'Allow your camera' : 'Camera starting'}</span>
           <span className="lab lab-w">Stays on this device. Not recorded or uploaded.</span>
+          {asking && (
+            <button type="button" onClick={props.actions.onToggleCamera} className="plate plate-graphite fx mt-2 h-11 px-5 text-xl">
+              Train without camera
+            </button>
+          )}
         </div>
       )}
       {layout === 'wide' ? <RunWide {...shared} /> : layout === 'landscape' ? <RunLandscape {...shared} /> : <RunPortrait {...shared} />}
-      {showFeed && feed?.status === 'live' && !feed.paused && props.counting && (
+      {showFeed && feed?.status === 'live' && !feed.paused && (props.counting || view.idle || view.kind === 'prep') && (
         <StartCheckStatus check={feed.check} onSkip={feed.skipCheck} onRerun={feed.rerunCheck} className="stage-check" />
       )}
       <RoundWipe view={view} />

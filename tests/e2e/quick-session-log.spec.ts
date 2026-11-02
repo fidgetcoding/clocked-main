@@ -49,6 +49,8 @@ const fakeCameraAndPoses = async (page: Page) => {
     });
     let first: number | null = null;
     window.__e2ePoseFeed = (timestampMs: number) => {
+      // The camera is up before the session starts, so the punches wait for counting to begin
+      if (!document.querySelector('[data-counting="true"]') && first === null) return { image: recorded[0].landmarks, world: recorded[0].landmarks };
       first ??= timestampMs;
       const at = timestampMs - first;
       const frame = recorded.find((candidate) => candidate.t >= at) ?? recorded[recorded.length - 1];

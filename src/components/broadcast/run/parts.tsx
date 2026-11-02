@@ -129,7 +129,8 @@ export function Transport({ view, actions, size = 'md', className }: { view: Run
       <button
         type="button"
         onClick={main ? actions.onPlay : actions.onPause}
-        className={cn('plate fx min-w-0 flex-1 gap-3', pauseTone, heightClass)}
+        disabled={main && view.idle && view.startHeld}
+        className={cn('plate fx min-w-0 flex-1 gap-3 disabled:opacity-40', pauseTone, heightClass)}
       >
         {main ? <PlayIcon className="size-5" /> : <PauseIcon className="size-5" />}
         {!main ? 'Pause' : view.kind === 'freeform' && view.idle ? 'Start' : 'Play'}

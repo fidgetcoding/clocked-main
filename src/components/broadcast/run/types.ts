@@ -12,6 +12,8 @@ export interface RunView {
   /** Hasn't been started yet: the screen before the first press of play. */
   idle: boolean;
   paused: boolean;
+  /** The camera is still asking or starting, so the start button waits for it. */
+  startHeld?: boolean;
   clock: string;
   /** Seconds left in this segment. */
   remaining: number;

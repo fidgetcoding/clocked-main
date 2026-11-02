@@ -43,6 +43,8 @@ interface Options {
   onPoseFrame?: (result: PoseResult, t: number) => void;
   /** Called with every detector event, for keeping a full log. */
   onEvent?: (event: PunchEvent) => void;
+  /** False watches the body without counting anything: the screen before a session starts. */
+  counting?: boolean;
   /** Off for recording mode, where the prompts already say what to do. */
   startCheck?: boolean;
 }
@@ -59,7 +61,7 @@ export interface StartCheckHud {
 }
 
 /** The whole camera pipeline: camera, pose model, detector, tally, cues and framing checks. */
-export function usePunchTracking({ stance, processing = true, onCue, onPoseFrame, onEvent, startCheck = true }: Options) {
+export function usePunchTracking({ stance, processing = true, onCue, onPoseFrame, onEvent, counting = true, startCheck = true }: Options) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const detectorRef = useRef(new PunchDetector(stance));
@@ -67,6 +69,8 @@ export function usePunchTracking({ stance, processing = true, onCue, onPoseFrame
   const handMarkRef = useRef<HandMark | null>(null);
   const stanceRef = useRef(stance);
   stanceRef.current = stance;
+  const countingRef = useRef(counting);
+  countingRef.current = counting;
   const startCheckRef = useRef<StartCheck | null>(null);
   const [check, setCheck] = useState<StartCheckHud>({ running: false, secondsLeft: 0, result: null });
   const setLastStartCheck = usePunchPrefsStore((state) => state.setLastStartCheck);
@@ -112,7 +116,7 @@ export function usePunchTracking({ stance, processing = true, onCue, onPoseFrame
       }
     }
 
-    for (const event of detectorRef.current.push({ t, landmarks: result.world })) {
+    for (const event of countingRef.current ? detectorRef.current.push({ t, landmarks: result.world }) : []) {
       applyEvent(roundRef.current, event);
       callbacksRef.current.onEvent?.(event);
       // A punch gets a marker at the hand, a correction gets the telestrator. Not when the hand is a guess.
