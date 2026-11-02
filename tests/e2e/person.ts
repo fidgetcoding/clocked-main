@@ -68,6 +68,11 @@ const layoutProblems = (page: Page) =>
         const [p, q] = [a.getBoundingClientRect(), b.getBoundingClientRect()];
         const x = Math.min(p.right, q.right) - Math.max(p.left, q.left);
         const y = Math.min(p.bottom, q.bottom) - Math.max(p.top, q.top);
+        // A mic button set into the corner of a text box is meant to sit there
+        const field = [a, b].find((el) => /^(INPUT|TEXTAREA)$/.test(el.tagName));
+        const other = field === a ? q : p;
+        const host = field?.getBoundingClientRect();
+        if (host && other.left >= host.left - 1 && other.right <= host.right + 1 && other.top >= host.top - 1 && other.bottom <= host.bottom + 1) continue;
         if (x > 2 && y > 2) found.push(`"${label(a)}" overlaps "${label(b)}"`);
       }
     }

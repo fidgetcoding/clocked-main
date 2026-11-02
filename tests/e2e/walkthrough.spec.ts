@@ -446,3 +446,38 @@ test.describe("bad networks", () => {
     expect(person.problems).toEqual([]);
   });
 });
+
+test("building a set by hand and with the AI builder, then logging one by hand", async ({ page }) => {
+  test.setTimeout(120_000);
+  const person = watch(page, "builder");
+  await accountStart(person);
+  await page.getByRole("button", { name: /CREATE SET/ }).click();
+  await person.look("builder");
+  await page.getByPlaceholder("Workout Name").fill("Walk Set");
+  await page.getByRole("button", { name: /Add Phase/i }).click();
+  await person.look("phase added");
+  await page.getByRole("button", { name: /Add Segment/i }).first().click();
+  await person.look("segment added");
+  await page.getByRole("button", { name: /SAVE WORKOUT/i }).click();
+  await page.getByText("Your Sets").waitFor();
+  await expect(page.getByText("Walk Set").first()).toBeVisible();
+  await person.look("home with new set");
+  await page.goto(`${ACCOUNT_URL}/build`);
+  await page.getByRole("button", { name: /AI BUILDER/i }).click();
+  await person.look("ai builder");
+  const ask = page.getByPlaceholder(/heavy bag workout/);
+  await ask.fill("Three rounds of heavy bag with rest");
+  await page.getByRole("button", { name: "Generate", exact: true }).click();
+  await page.waitForTimeout(4000);
+  await person.look("ai builder answered");
+  await page.goto(`${ACCOUNT_URL}/history`);
+  await page.getByRole("button", { name: "Log Workout" }).click();
+  // The form covers the whole screen, bottom bar included
+  person.allow(/manual log form: "(HOME|MY STATS|FIGHT CLUB|PROFILE|Log Workout)" (is covered by|overlaps) "(Log Workout|HOME|MY STATS|FIGHT CLUB|PROFILE)"/);
+  await person.look("manual log form");
+  await page.getByPlaceholder("e.g., Heavy Bag Session").fill("Hand Logged");
+  await page.getByRole("button", { name: "Log Workout" }).last().click();
+  await expect(page.getByRole("button", { name: /Hand Logged/ })).toBeVisible();
+  await person.look("manual entry in the log");
+  expect(person.problems).toEqual([]);
+});
