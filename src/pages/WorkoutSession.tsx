@@ -344,7 +344,9 @@ const WorkoutSession = () => {
     tempSegments.forEach((item, idx) => {
       const { segment, sectionName, phase, repeatIndex, megasetIndex } = item;
       
-      if (sectionName === 'grind') {
+      // The Get Ready before the first round isn't a round
+      const isRound = sectionName === 'grind' && !phase.id.startsWith('transition-');
+      if (isRound) {
         const phaseRepeatKey = `${phase.id}-${repeatIndex}`;
         if (phaseRepeatKey !== `${lastPhaseId}-${lastRepeatIndex}`) {
           cumulativeRound++;
@@ -382,7 +384,7 @@ const WorkoutSession = () => {
         reps: segment.reps,
         repeatIndex: phase.repeats > 1 ? repeatIndex + 1 : undefined,
         megasetIndex,
-        cumulativeRound: sectionName === 'grind' ? cumulativeRound : undefined,
+        cumulativeRound: isRound ? cumulativeRound : undefined,
       });
     });
     

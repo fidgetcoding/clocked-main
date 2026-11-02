@@ -49,7 +49,7 @@ function LandscapePlain({ view, actions, flash, cameraOn, feed, onDismissProblem
         </div>
         <SegmentTitle view={view} className="ml-3 mt-1" />
         {bellXP != null && <BellPlate view={view} xp={bellXP} className="mt-1" />}
-        <ClockFace view={view} className="ml-3 mt-1 flex-1" />
+        <ClockFace view={view} className="ml-3 mt-1 flex-1 mr-[7cqh]" />
         {view.segmentCount > 0 && (
           <SegmentBar
             className="ml-3 mt-1"

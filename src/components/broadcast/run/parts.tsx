@@ -227,13 +227,15 @@ const twoDigit = (seconds: number) => `${Math.floor(seconds / 60)}:${String(seco
 export function SessionTape({ view, className }: { view: RunView; className?: string }) {
   return (
     <div className={cn('divide-y divide-surface-2', className)}>
-      <div className="flex items-baseline justify-between gap-3 py-1.5">
-        <span className="lab">Up next</span>
-        <span className="fx truncate text-3xl text-volt">
-          {view.upNext}
-          {view.upNextSeconds != null && <span className="ml-3 text-foreground">{twoDigit(view.upNextSeconds)}</span>}
-        </span>
-      </div>
+      {view.upNext && (
+        <div className="flex items-baseline justify-between gap-3 py-1.5">
+          <span className="lab">Up next</span>
+          <span className="fx truncate text-3xl text-volt">
+            {view.upNext}
+            {view.upNextSeconds != null && <span className="ml-3 text-foreground">{twoDigit(view.upNextSeconds)}</span>}
+          </span>
+        </div>
+      )}
       <div className="flex items-baseline justify-between gap-3 py-1.5">
         <span className="lab">Session XP</span>
         <span className="fx text-3xl text-volt" data-testid="session-xp">

@@ -25,6 +25,8 @@ const port = (value) => String(value + PORT_OFFSET);
 const FAKE_AI_PORT = port(57399);
 const APP_PORT = port(57337);
 const NO_BACKEND_PORT = port(57338);
+const PROD_PORT = port(57339);
+const PROD_NO_BACKEND_PORT = port(57340);
 const AI_BASE_URL = `http://${FAKE_AI}:8080/v1/`;
 
 const background = [];
@@ -133,6 +135,8 @@ async function main() {
     STACK_FAKE_AI_URL: `http://127.0.0.1:${FAKE_AI_PORT}`,
     STACK_APP_URL: `http://127.0.0.1:${APP_PORT}`,
     STACK_NO_BACKEND_URL: `http://127.0.0.1:${NO_BACKEND_PORT}`,
+    STACK_PROD_URL: `http://127.0.0.1:${PROD_PORT}`,
+    STACK_PROD_NO_BACKEND_URL: `http://127.0.0.1:${PROD_NO_BACKEND_PORT}`,
   };
 
   writeFileSync(join(WORK, 'test-env.json'), JSON.stringify({ ...testEnv, PROJECT_ID, FAKE_AI }));
@@ -169,10 +173,21 @@ async function main() {
     delete noBackendEnv.VITE_SUPABASE_URL;
     delete noBackendEnv.VITE_SUPABASE_PUBLISHABLE_KEY;
     run('npx', ['vite', 'build', '--outDir', join(WORK, 'dist-no-backend'), '--emptyOutDir'], { env: noBackendEnv });
+    // What Vercel builds, with no test switches, for tests/e2e/walkthrough.spec.ts
+    const prodEnv = { ...noBackendEnv };
+    delete prodEnv.VITE_E2E_POSE_FEED;
+    run('npx', ['vite', 'build', '--outDir', join(WORK, 'dist-prod-no-backend'), '--emptyOutDir'], { env: prodEnv });
+    run('npx', ['vite', 'build', '--outDir', join(WORK, 'dist-prod'), '--emptyOutDir'], {
+      env: { ...prodEnv, VITE_SUPABASE_URL: stack.API_URL, VITE_SUPABASE_PUBLISHABLE_KEY: stack.PUBLISHABLE_KEY },
+    });
   });
 
   startBackground('npx', ['vite', 'preview', '--host', '127.0.0.1', '--port', APP_PORT, '--strictPort', '--outDir', join(WORK, 'dist-backend')]);
   startBackground('npx', ['vite', 'preview', '--host', '127.0.0.1', '--port', NO_BACKEND_PORT, '--strictPort', '--outDir', join(WORK, 'dist-no-backend')]);
+  startBackground('npx', ['vite', 'preview', '--host', '127.0.0.1', '--port', PROD_PORT, '--strictPort', '--outDir', join(WORK, 'dist-prod')]);
+  startBackground('npx', ['vite', 'preview', '--host', '127.0.0.1', '--port', PROD_NO_BACKEND_PORT, '--strictPort', '--outDir', join(WORK, 'dist-prod-no-backend')]);
+  await waitFor(reachable(testEnv.STACK_PROD_URL), 'the production build');
+  await waitFor(reachable(testEnv.STACK_PROD_NO_BACKEND_URL), 'the no-backend production build');
   await waitFor(reachable(testEnv.STACK_APP_URL), 'the connected app');
   await waitFor(reachable(testEnv.STACK_NO_BACKEND_URL), 'the no-backend app');
 

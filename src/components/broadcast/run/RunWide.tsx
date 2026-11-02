@@ -58,7 +58,7 @@ function WidePlain({ view, actions, flash, cameraOn, feed, onDismissProblem, pro
             <BellPlate view={view} xp={bellXP} className="pl-7" />
           </div>
         )}
-        <ClockFace view={view} className="mt-2 flex-1" />
+        <ClockFace view={view} className="mr-[6cqh] mt-2 flex-1" />
         {view.segmentCount > 0 && (
           <SegmentBar
             className="mt-2"

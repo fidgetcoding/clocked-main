@@ -1,7 +1,7 @@
 // Every browser test goes through here, so that none can make a sound on the machine running it.
 // Import `test` and `expect` from this file, never from @playwright/test. A check in
 // src/test/e2eSilence.test.ts fails the suite if a spec doesn't.
-import { test as base, expect, type Browser, type Page } from "@playwright/test";
+import { test as base, expect, type Browser, type Page, type PlaywrightWorkerArgs } from "@playwright/test";
 
 export { expect };
 
@@ -78,6 +78,13 @@ const silenceNewContexts = (browser: Browser) => {
     return context;
   };
 };
+
+/** A muted Chromium with flags of its own, for what can only be set when the browser starts, like its camera. */
+export async function launchSilentChromium(playwright: PlaywrightWorkerArgs["playwright"], args: string[]): Promise<Browser> {
+  const browser = await playwright.chromium.launch({ ...silentLaunch.chromium, args: [...silentLaunch.chromium.args, ...args] });
+  silenceNewContexts(browser);
+  return browser;
+}
 
 export const test = base.extend<object, { silentBrowser: void }>({
   silentBrowser: [

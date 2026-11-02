@@ -159,7 +159,7 @@ const PunchRound = () => {
               <i className="bg-volt" />
               <i className="bg-background" />
             </div>
-            <Plate tone="red" bleed="both" className="flex h-20 justify-start px-4 text-6xl">We lost the feed</Plate>
+            <Plate tone="red" bleed="both" className="flex h-20 justify-start whitespace-nowrap px-4 text-[min(3.75rem,13vw)]">We lost the feed</Plate>
             <h1 className="fx mt-4 px-4 text-5xl">{message.title}</h1>
             <p className="mt-2 px-4 text-lg">{message.body}</p>
             <div className="mt-5 space-y-3 px-5">

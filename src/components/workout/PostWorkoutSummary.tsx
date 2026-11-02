@@ -126,10 +126,10 @@ export function PostWorkoutSummary({
 
       {/* The number: what this session earned, on a plate off the edge */}
       <div className="mt-3 flex items-center gap-5">
-        <Plate tone="lime" bleed="left" className="h-28 justify-start pl-4 pr-9 text-[6.5rem]">
+        <Plate tone="lime" bleed="left" className="h-28 min-w-0 justify-start pl-4 pr-9 text-[clamp(3.25rem,18vw,6.5rem)]">
           +{result.sessionTotal.toLocaleString()}
         </Plate>
-        <div>
+        <div className="shrink-0 pr-2">
           <p className="lab">XP Earned</p>
           <p className="fx mt-1 text-4xl">{formatTimeCompact(totalElapsed)}</p>
           <p className="lab">Duration</p>
