@@ -172,7 +172,13 @@ export function usePunchCamera({ videoRef, onPose, processing = true }: Options)
     try {
       stream = await navigator.mediaDevices.getUserMedia(VIDEO_CONSTRAINTS);
     } catch (error) {
-      if (run === runRef.current) fail(cameraProblemFrom(error));
+      let reason = cameraProblemFrom(error);
+      // A block set in the browser doesn't always come back as a permission error, so ask it directly
+      if (reason === 'unknown') {
+        const permission = await navigator.permissions?.query({ name: 'camera' as PermissionName }).catch(() => null);
+        if (permission?.state === 'denied') reason = 'denied';
+      }
+      if (run === runRef.current) fail(reason);
       return;
     }
     // They may have left while the permission prompt was up

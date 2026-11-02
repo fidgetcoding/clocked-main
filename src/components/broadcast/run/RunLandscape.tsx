@@ -94,10 +94,10 @@ function LandscapeFeed({ view, actions, flash, cameraOn, feed, counting, onDismi
       <FlashLayer flash={flash} className="left-0 top-[30cqh]" />
       <div className="absolute bottom-2 left-4 z-20 flex w-[42cqw] flex-col items-start gap-1.5">
         <XpChip flash={flash} />
+        {feed?.cue && <CuePlate cue={feed.cue} className="-ml-4 w-[50cqw]" textClass="text-[3rem] whitespace-normal" />}
         <FeedBanner feed={feed} onDismiss={onDismissProblem} dismissed={problemDismissed} />
         <AirLight view={view} cameraOn={cameraOn} feedLive={live} />
       </div>
-      {feed?.cue && <CuePlate cue={feed.cue} className="absolute bottom-9 left-0 z-20 w-[50cqw]" textClass="text-[3rem] whitespace-normal" />}
       <div className="stage-land-col">
         <ToolStrip actions={actions} cameraOn={cameraOn} className="text-base" />
         <div className="mt-1 flex items-center justify-between gap-3">

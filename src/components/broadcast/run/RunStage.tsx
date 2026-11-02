@@ -81,7 +81,7 @@ export function RunStage(props: RunStageProps) {
     <div ref={stageRef} className="stage" data-panel-mode={free.mode} data-panel-side={free.side} data-panel-edge={free.edge} data-layout={layout} data-camera={showFeed ? 'on' : 'off'} data-tone={tone} data-testid="run-stage" data-counting={!!props.counting}>
       <div className="stage-feed">{camera}</div>
       {showFeed && feed?.status !== 'live' && !feed?.paused && (
-        <div className={cn('stage-incoming', asking && 'z-30')} aria-live="polite" data-testid="camera-asking">
+        <div className={cn('stage-incoming', asking && 'stage-asking')} aria-live="polite" data-testid="camera-asking">
           <span className="fx text-5xl text-volt">{asking ? 'Allow your camera' : 'Camera starting'}</span>
           <span className="lab lab-w">Stays on this device. Not recorded or uploaded.</span>
           {asking && (

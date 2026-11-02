@@ -378,14 +378,23 @@
 .stage[data-layout="wide"] .stage-check {
   top: auto;
   left: 2rem;
-  bottom: 4rem;
+  bottom: 11rem;
   max-width: 30cqw;
 }
 
 .stage[data-layout="landscape"] .stage-check {
-  top: auto;
-  bottom: 2rem;
+  top: 3rem;
+  bottom: auto;
   max-width: 50cqw;
+}
+
+/* Still asking for the camera: a box in the middle, so Leave and the camera switch stay in reach */
+.stage-incoming.stage-asking {
+  z-index: 30;
+  inset: 30cqh auto auto 50%;
+  width: min(26rem, 88cqw);
+  transform: translateX(-50%);
+  background: hsl(var(--tech-black) / 0.9);
 }
 
 /* Round start */

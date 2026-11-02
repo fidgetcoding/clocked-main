@@ -101,3 +101,42 @@ test("the feed shows before start, and leaving turns the camera off", async ({ p
   await page.waitForURL((url) => url.pathname === "/");
   await expect.poll(() => page.evaluate(() => (window as unknown as { __stopped: number }).__stopped)).toBeGreaterThan(0);
 });
+
+test("a camera blocked in the browser's settings says blocked, whatever error it comes back with", async ({ page }) => {
+  await withCamera(page, "async () => { throw new DOMException('Not supported', 'NotSupportedError'); }");
+  await page.context().addInitScript(() => {
+    Object.defineProperty(navigator, "permissions", { configurable: true, value: { query: async () => ({ state: "denied" }) } });
+  });
+  await finishGuestOnboarding(page, NO_BACKEND_URL, "Blocked Settings");
+  await cameraOn(page);
+  await page.goto(`${NO_BACKEND_URL}/quick-session`);
+  await expect(page.getByText("Camera access is blocked")).toBeVisible();
+});
+
+test("while the camera is still asking, you can still leave", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await withCamera(page, "() => new Promise(() => {})");
+  await finishGuestOnboarding(page, NO_BACKEND_URL, "Stuck");
+  await cameraOn(page);
+  await page.goto(`${NO_BACKEND_URL}/quick-session`);
+  await expect(page.getByText("Allow your camera")).toBeVisible();
+  await page.getByRole("button", { name: /^Leave/ }).first().click();
+  await page.waitForURL((url) => url.pathname === "/");
+});
+
+for (const viewport of [{ width: 844, height: 390 }, { width: 1280, height: 720 }]) {
+  test(`the start check and the framing warning don't overlap at ${viewport.width}x${viewport.height}`, async ({ page }) => {
+    await page.setViewportSize(viewport);
+    await withCamera(page, fakeStream);
+    await finishGuestOnboarding(page, NO_BACKEND_URL, "Overlap");
+    await cameraOn(page);
+    await page.goto(`${NO_BACKEND_URL}/quick-session`);
+    const warning = page.getByTestId("camera-panel-warning");
+    const check = page.getByTestId("start-check").or(page.getByTestId("start-check-result"));
+    await expect(warning).toBeVisible({ timeout: 30_000 });
+    await expect(check).toBeVisible();
+    const a = (await warning.boundingBox())!;
+    const b = (await check.boundingBox())!;
+    expect(a.x < b.x + b.width && b.x < a.x + a.width && a.y < b.y + b.height && b.y < a.y + a.height).toBe(false);
+  });
+}

@@ -88,7 +88,7 @@ const PunchCameraPanel = ({ counting, preview = false, onSummary, onCue, onEvent
   startRef.current = start;
   const message = counting ? hud.cue ?? hud.warning : null;
   const shownCount = displayCount ?? hud.count;
-  const signature = [status, paused, problem, shownCount, hud.cue, hud.warning, hud.combo, hud.lastLabel, counting, check.running, check.secondsLeft, check.result?.cameraAngle].join('|');
+  const signature = [status, paused, problem, shownCount, hud.cue, hud.warning, hud.combo, hud.lastLabel, counting, preview, check.running, check.secondsLeft, check.result?.cameraAngle].join('|');
   useEffect(() => {
     const summary = getSummary();
     onFeedRef.current?.({
@@ -97,7 +97,7 @@ const PunchCameraPanel = ({ counting, preview = false, onSummary, onCue, onEvent
       problem,
       count: shownCount,
       cue: counting ? hud.cue : null,
-      warning: counting ? hud.warning : null,
+      warning: counting || preview ? hud.warning : null,
       combo: hud.combo,
       lastLabel: hud.lastLabel,
       counts: summary.counts,
