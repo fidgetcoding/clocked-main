@@ -88,6 +88,10 @@ for (const viewport of [{ width: 1366, height: 768 }, { width: 390, height: 844 
     await openQuickSession(page, NO_BACKEND_URL);
     await playButton(page).click();
 
+    // The start check runs on the stage, and says what it saw when it's done
+    await expect(page.getByTestId("start-check")).toBeVisible({ timeout: 20_000 });
+    await expect(page.getByTestId("start-check-result")).toBeVisible({ timeout: 20_000 });
+
     await expect(page.getByTestId("log-live-total")).toHaveText(String(PUNCHES.length), { timeout: 20_000 });
 
     // Everything needed mid-session stays on screen, drawn over the camera picture rather than under it
@@ -172,7 +176,31 @@ test("an account's punches go in the database and come back in history", async (
     })
     .toBe(PUNCHES.length);
 
+  // A short session still adds its real punches to the career counts
+  const { data: logged } = await service.from("workout_history").select("punch_log").eq("user_id", userId).single();
+  const byType = logged?.punch_log.totals.byType;
+  await expect
+    .poll(async () => {
+      const { data } = await service.from("profiles").select("punch_1_count, punch_2_count, punch_3_count, punch_4_count, punch_5_count, punch_6_count").eq("user_id", userId).single();
+      return data;
+    })
+    .toEqual({
+      punch_1_count: byType.jab,
+      punch_2_count: byType.cross,
+      punch_3_count: byType.lead_hook,
+      punch_4_count: byType.rear_hook,
+      punch_5_count: byType.lead_uppercut,
+      punch_6_count: byType.rear_uppercut,
+    });
+
+  // The list leaves the logs behind, and opening a session fetches its own
+  const historyReads: string[] = [];
+  page.on("request", (request) => {
+    if (request.url().includes("/rest/v1/workout_history")) historyReads.push(decodeURIComponent(request.url()));
+  });
   await page.goto(`${APP_URL}/history`);
   await page.getByText("Quick Session").first().click();
   await expect(page.getByTestId("log-total")).toHaveText(String(PUNCHES.length));
+  expect(historyReads.filter((url) => url.includes("user_id=")).every((url) => !url.includes("punch_log") && !url.includes("select=*"))).toBe(true);
+  expect(historyReads.some((url) => url.includes("select=punch_log"))).toBe(true);
 });

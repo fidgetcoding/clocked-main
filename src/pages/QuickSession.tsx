@@ -28,7 +28,7 @@ import { useProfile } from '@/hooks/useProfile';
 import { getStreakMultiplier, getLevelFromXP, getLevelProgress, getXPWithinCurrentLevel } from '@/lib/xpSystem';
 import { LevelUpOverlay } from '@/components/ui/LevelUpOverlay';
 import { useSoundEffects } from '@/hooks/useSoundEffects';
-import { computePostLogStats } from '@/lib/workoutTracking';
+import { computePostLogStats, punchCountIncrements } from '@/lib/workoutTracking';
 import { wholeSecondsSince } from '@/lib/sessionClock';
 import { MIN_REWARD_SECONDS, qualifiesForRewards } from '@/lib/sessionEffort';
 import { usePunchPrefsStore } from '@/stores/punchPrefsStore';
@@ -228,6 +228,7 @@ const QuickSession = () => {
   const handleLog = () => {
     endSession();
     const xpEarned = Math.round(accumulatedXP);
+    const finishedLog = punchLog.finish();
     addHistoryEntry.mutate({
       workout_id: null,
       workout_name: 'Quick Session',
@@ -236,7 +237,7 @@ const QuickSession = () => {
       xp_earned: xpEarned,
       difficulty: difficultyRating || null,
       notes: notes || null,
-      punch_log: punchLog.finish() ?? undefined,
+      punch_log: finishedLog ?? undefined,
       is_manual_entry: false,
       round_feedback: [],
     }, {
@@ -244,8 +245,10 @@ const QuickSession = () => {
         setLogged(true);
         if (user?.id && profile) {
           const stats = await computePostLogStats(profile.user_id, profile, totalElapsed);
-          if (stats) {
-            updateProfile.mutate(stats);
+          // Real punches count however short the session was. The minimum is only for streaks and session counts.
+          const counts = finishedLog ? punchCountIncrements(profile, finishedLog.totals.byType) : {};
+          if (stats || Object.keys(counts).length > 0) {
+            updateProfile.mutate({ ...stats, ...counts });
           }
         }
       },

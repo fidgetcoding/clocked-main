@@ -24,11 +24,30 @@ export interface WorkoutHistoryEntry {
   created_at: string;
 }
 
-const toHistoryEntry = (row: Database['public']['Tables']['workout_history']['Row']): WorkoutHistoryEntry => ({
+type HistoryRow = Database['public']['Tables']['workout_history']['Row'];
+
+// Everything but punch_log, which can run to megabytes across a history. It's fetched when a session is opened.
+const LIST_COLUMNS = 'id, user_id, workout_id, workout_name, completed_at, duration, xp_earned, difficulty, notes, is_manual_entry, round_feedback, created_at';
+
+const toHistoryEntry = (row: Omit<HistoryRow, 'punch_log'>): WorkoutHistoryEntry => ({
   ...row,
   round_feedback: fromJson<RoundFeedback[]>(row.round_feedback),
-  punch_log: parsePunchLog(row.punch_log),
 });
+
+/** One opened session's log. A guest's is already on the entry, kept in this browser. */
+export function useWorkoutPunchLog(entry: WorkoutHistoryEntry) {
+  const { isGuest } = useAuth();
+  const { data = null } = useQuery({
+    queryKey: ['workout-punch-log', entry.id],
+    queryFn: async () => {
+      const { data, error } = await supabase.from('workout_history').select('punch_log').eq('id', entry.id).single();
+      if (error) throw error;
+      return parsePunchLog(data.punch_log);
+    },
+    enabled: !isGuest,
+  });
+  return isGuest ? entry.punch_log ?? null : data;
+}
 
 export function useWorkoutHistory() {
   const { user, isGuest } = useAuth();
@@ -42,7 +61,7 @@ export function useWorkoutHistory() {
       
       const { data, error } = await supabase
         .from('workout_history')
-        .select('*')
+        .select(LIST_COLUMNS)
         .eq('user_id', user.id)
         .order('completed_at', { ascending: false });
       
@@ -62,7 +81,7 @@ export function useWorkoutHistory() {
       const { data, error } = await supabase
         .from('workout_history')
         .insert({ ...entry, round_feedback: toJson(entry.round_feedback), punch_log: toJson(entry.punch_log), user_id: user.id })
-        .select()
+        .select(LIST_COLUMNS)
         .single();
       
       if (error) throw error;
@@ -83,7 +102,7 @@ export function useWorkoutHistory() {
         .update({ ...updates, round_feedback: updates.round_feedback && toJson(updates.round_feedback), punch_log: toJson(updates.punch_log) })
         .eq('id', id)
         .eq('user_id', user.id)
-        .select()
+        .select(LIST_COLUMNS)
         .single();
       
       if (error) throw error;

@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { BroadcastPage, EmptyPlate, FitText, OnAir, Plate } from '@/components/broadcast';
 import { Button } from '@/components/ui/button';
-import { useWorkoutHistory } from '@/hooks/useWorkoutHistory';
+import { useWorkoutHistory, useWorkoutPunchLog, type WorkoutHistoryEntry } from '@/hooks/useWorkoutHistory';
 import { useProfile } from '@/hooks/useProfile';
 import { AddWorkoutModal } from '@/components/AddWorkoutModal';
 import { cn } from '@/lib/utils';
@@ -23,6 +23,17 @@ function formatDuration(seconds: number): string {
   const hours = Math.floor(mins / 60);
   const remainingMins = mins % 60;
   return remainingMins > 0 ? `${hours}h ${remainingMins}m` : `${hours}h`;
+}
+
+function OpenedPunchLog({ workout }: { workout: WorkoutHistoryEntry }) {
+  const log = useWorkoutPunchLog(workout);
+  if (!log) return null;
+  return (
+    <div className="mt-3">
+      <p className="lab">Punch Log</p>
+      <PunchLogDetails log={log} className="mt-1 bg-surface-2 p-3" />
+    </div>
+  );
 }
 
 const History = () => {
@@ -161,12 +172,7 @@ const History = () => {
                       </div>
                     )}
 
-                    {workout.punch_log && (
-                      <div className="mt-3">
-                        <p className="lab">Punch Log</p>
-                        <PunchLogDetails log={workout.punch_log} className="mt-1 bg-surface-2 p-3" />
-                      </div>
-                    )}
+                    <OpenedPunchLog workout={workout} />
 
                     {workout.notes && (
                       <div className="pt-3">

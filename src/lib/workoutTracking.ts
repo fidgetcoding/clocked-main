@@ -1,3 +1,4 @@
+import type { PunchClass } from '@/lib/punch/types';
 import type { Profile } from '@/hooks/useProfile';
 import { supabase } from '@/integrations/supabase/client';
 import { Prestige, getLevelFromXP } from '@/lib/xpSystem';
@@ -279,5 +280,27 @@ export function computePostL100Increments(
   increments.pullbacks_count = (profile.pullbacks_count || 0) + Math.round(pullbacks * REP_MULTIPLIER);
   increments.circles_count = (profile.circles_count || 0) + Math.round(circles * REP_MULTIPLIER);
   
+  return increments;
+}
+
+const PUNCH_COUNT_FIELDS = {
+  jab: 'punch_1_count',
+  cross: 'punch_2_count',
+  lead_hook: 'punch_3_count',
+  rear_hook: 'punch_4_count',
+  lead_uppercut: 'punch_5_count',
+  rear_uppercut: 'punch_6_count',
+} as const;
+
+/**
+ * What a camera session's real punches add to the career counts. A plain "punch" names nothing, so it adds
+ * nothing. Workouts don't use this: computePostL100Increments estimates theirs from the combos.
+ */
+export function punchCountIncrements(profile: Profile, byType: Partial<Record<PunchClass, number>>): Partial<Profile> {
+  const increments: Partial<Profile> = {};
+  for (const [punch, field] of Object.entries(PUNCH_COUNT_FIELDS) as [keyof typeof PUNCH_COUNT_FIELDS, (typeof PUNCH_COUNT_FIELDS)[keyof typeof PUNCH_COUNT_FIELDS]][]) {
+    const thrown = byType[punch] ?? 0;
+    if (thrown > 0) increments[field] = (profile[field] || 0) + thrown;
+  }
   return increments;
 }
