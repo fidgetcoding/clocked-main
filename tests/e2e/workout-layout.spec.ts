@@ -30,6 +30,8 @@ for (const viewport of [
     const skip = skipButton(page);
     for (let i = 0; i < 60 && !(await combo.isVisible()); i++) await skip.click();
     await expect(combo).toBeVisible();
+    // The combo card slides in, so measure where it lands rather than where it is mid-slide.
+    await page.evaluate(() => Promise.all(document.getAnimations().filter((a) => a.effect?.getComputedTiming().iterations !== Infinity).map((a) => a.finished.catch(() => undefined))));
 
     const adjust = await page.getByRole("button", { name: "+30s" }).boundingBox();
     const card = await combo.locator("..").boundingBox();
