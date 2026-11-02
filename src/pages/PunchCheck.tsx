@@ -135,8 +135,12 @@ const PunchRound = () => {
         onSuccess: async () => {
           setLogged(true);
           if (profile) {
-            const stats = await computePostLogStats(profile.user_id, profile, Math.round(elapsedMsRef.current / 1000));
-            if (stats) updateProfile.mutate(stats);
+            try {
+              const stats = await computePostLogStats(profile.user_id, profile, Math.round(elapsedMsRef.current / 1000));
+              if (stats) updateProfile.mutate(stats);
+            } catch (error) {
+              console.error('Failed to update stats after Punch Check:', error);
+            }
           }
         },
         onError: (error) => console.error('Failed to log Punch Check:', error),

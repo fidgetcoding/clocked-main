@@ -735,6 +735,7 @@ const WorkoutSession = () => {
   const prevSegmentIndexRef = useRef<number>(-1);
   const xpAwardedRef = useRef(false);
   const localXPPaid = useRef(false);
+  const historySaved = useRef(false);
   const prevComboSegRef = useRef<number>(-1);
 
   // Voice countdown at 3 seconds
@@ -1120,25 +1121,28 @@ const WorkoutSession = () => {
     
     // mutateAsync, because End & Save leaves the page and a callback passed to mutate would never run
     try {
-      await addHistoryEntry.mutateAsync({
-      workout_id: workout?.id || null,
-      workout_name: workout?.name || 'Workout',
-      completed_at: new Date().toISOString(),
-      duration: totalElapsed,
-      xp_earned: sessionResult.sessionTotal,
-      difficulty: difficultyRating || null,
-      notes: [notes, punchSummary?.total ? punchSummary.note : ''].filter(Boolean).join('\n') || null,
-      punch_log: punchLog.finish() ?? undefined,
-      is_manual_entry: false,
-      round_feedback: feedbackMode === 'advanced' ? roundFeedback : [],
-      });
-      setLogged(true);
-      if (qualifiesForRewards(totalElapsed)) {
-        postWorkoutComplete.mutate({
-          workoutName: workout?.name || 'Workout',
-          xpEarned: sessionResult.sessionTotal,
-          duration: totalElapsed,
+      // A retry after the stats failed doesn't put the session in the history twice
+      if (!historySaved.current) {
+        await addHistoryEntry.mutateAsync({
+        workout_id: workout?.id || null,
+        workout_name: workout?.name || 'Workout',
+        completed_at: new Date().toISOString(),
+        duration: totalElapsed,
+        xp_earned: sessionResult.sessionTotal,
+        difficulty: difficultyRating || null,
+        notes: [notes, punchSummary?.total ? punchSummary.note : ''].filter(Boolean).join('\n') || null,
+        punch_log: punchLog.finish() ?? undefined,
+        is_manual_entry: false,
+        round_feedback: feedbackMode === 'advanced' ? roundFeedback : [],
         });
+        historySaved.current = true;
+        if (qualifiesForRewards(totalElapsed)) {
+          postWorkoutComplete.mutate({
+            workoutName: workout?.name || 'Workout',
+            xpEarned: sessionResult.sessionTotal,
+            duration: totalElapsed,
+          });
+        }
       }
       if (user?.id && profile) {
         const postLogStats = await computePostLogStats(profile.user_id, profile, totalElapsed);
@@ -1152,7 +1156,7 @@ const WorkoutSession = () => {
           const credit = getSessionCredit(totalElapsed, tier, sessionLog.content);
           
           
-          updateProfile.mutate({
+          await updateProfile.mutateAsync({
             ...postLogStats,
             ...postL100Increments,
             total_xp: (profile.total_xp || 0) + sessionResult.sessionTotal,
@@ -1167,6 +1171,8 @@ const WorkoutSession = () => {
           });
         }
       }
+      // Only now: the streak and totals are saved too
+      setLogged(true);
     } catch (error) {
       console.error('Failed to log workout:', error);
       toast.error("Couldn't save your workout. Check your connection and try again.");

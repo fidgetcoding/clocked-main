@@ -7,8 +7,7 @@ import { useHistoryStore } from '@/stores/historyStore';
 import { MIN_REWARD_SECONDS, qualifiesForRewards } from '@/lib/sessionEffort';
 
 /**
- * Calculate streak and workout count after logging a session.
- * Call this in handleLog's onSuccess callback.
+ * Calculate streak and workout count after logging a session. Throws when the history can't be counted.
  */
 export async function computePostLogStats(
   userId: string,
@@ -36,10 +35,8 @@ export async function computePostLogStats(
       .eq('user_id', userId)
       .gte('duration', MIN_REWARD_SECONDS);
 
-    if (error) {
-      console.error('Failed to count workout history:', error);
-      return null;
-    }
+    // Thrown, not skipped, so a streak never goes unsaved without the person being told
+    if (error) throw new Error(`Couldn't count workout history: ${error.message}`);
 
     workoutsCompleted = count || 0;
 

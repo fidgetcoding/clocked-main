@@ -484,3 +484,41 @@ test("building a set by hand and with the AI builder, then logging one by hand",
   await person.look("manual entry in the log");
   expect(person.problems).toEqual([]);
 });
+
+test.describe("the streak and totals are saved before it says logged", () => {
+  for (const kind of ["full set", "Quick Session"] as const) {
+    test(`a ${kind} that can't save its stats says so, and a retry saves it once`, async ({ page }) => {
+      test.setTimeout(120_000);
+      const person = watch(page, `stats-save-${kind.replace(" ", "-")}`);
+      await accountStart(person);
+      if (kind === "full set") {
+        await page.getByRole("button", { name: /^Start /, exact: false }).first().click();
+        await playButton(page).click();
+        await skipButton(page).click();
+        await page.waitForTimeout(2200);
+        await page.getByTitle("Complete workout early").click();
+      } else {
+        await page.getByRole("button", { name: /QUICK SESSION/ }).click();
+        await playButton(page).click();
+        await page.waitForTimeout(2200);
+        await finishSessionButton(page).click();
+      }
+      // The profile update is what fails, after the history entry went in
+      person.allow(/profiles|request failed|Failed to log|Failed to fetch|Failed to load resource: net::ERR_FAILED/);
+      await page.route(/\/rest\/v1\/profiles/, (route) => (route.request().method() === "PATCH" ? route.abort() : route.fallback()));
+      const log = page.getByRole("button", { name: kind === "full set" ? "Log Workout" : "Log Session" });
+      await log.click();
+      await expect(page.getByText(/Couldn't save your (workout|session)/)).toBeVisible();
+      await expect(page.getByText(/(Workout|Session) Logged!/)).toHaveCount(0);
+      await person.look("stats save failed");
+      await page.unroute(/\/rest\/v1\/profiles/);
+      await log.click();
+      await expect(page.getByText(/(Workout|Session) Logged!/)).toBeVisible();
+      await visit(page, `${ACCOUNT_URL}/history`);
+      await expect(page.getByRole("button", { name: kind === "full set" ? /Loadout/ : /Quick Session/ })).toHaveCount(1);
+      await visit(page, `${ACCOUNT_URL}/profile`);
+      await expect(page.getByText(/^1$/).first()).toBeVisible();
+      expect(person.problems).toEqual([]);
+    });
+  }
+});

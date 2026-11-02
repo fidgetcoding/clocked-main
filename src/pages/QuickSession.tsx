@@ -218,34 +218,43 @@ const QuickSession = () => {
   }, [accumulatedXP, addLocalXP, addProfileXP, user?.id, snapshotOf, endPunchRound]);
 
   // mutateAsync, because leaving unmounts this page and a callback passed to mutate would never run
+  const historySaved = useRef(false);
   const saveToHistory = async () => {
     const finishedLog = punchLog.finish();
-    await addHistoryEntry.mutateAsync({
-      workout_id: null,
-      workout_name: 'Quick Session',
-      completed_at: new Date().toISOString(),
-      duration: totalElapsed,
-      xp_earned: Math.round(accumulatedXP),
-      difficulty: difficultyRating || null,
-      notes: notes || null,
-      punch_log: finishedLog ?? undefined,
-      is_manual_entry: false,
-      round_feedback: [],
-    });
-    setLogged(true);
+    // A retry after the stats failed doesn't put the session in the history twice
+    if (!historySaved.current) {
+      await addHistoryEntry.mutateAsync({
+        workout_id: null,
+        workout_name: 'Quick Session',
+        completed_at: new Date().toISOString(),
+        duration: totalElapsed,
+        xp_earned: Math.round(accumulatedXP),
+        difficulty: difficultyRating || null,
+        notes: notes || null,
+        punch_log: finishedLog ?? undefined,
+        is_manual_entry: false,
+        round_feedback: [],
+      });
+      historySaved.current = true;
+    }
     if (user?.id && profile) {
       const stats = await computePostLogStats(profile.user_id, profile, totalElapsed);
       // Real punches count however short the session was. The minimum is only for streaks and session counts.
       const counts = finishedLog ? punchCountIncrements(profile, finishedLog.totals.byType) : {};
       if (stats || Object.keys(counts).length > 0) {
-        updateProfile.mutate({ ...stats, ...counts });
+        await updateProfile.mutateAsync({ ...stats, ...counts });
       }
     }
+    // Only now: the streak and totals are saved too
+    setLogged(true);
   };
 
   const onLogFailed = (error: unknown) => {
     console.error('Failed to log session:', error);
     toast.error("Couldn't save your session. Check your connection and try again.");
+    // Still in this browser until it's really saved, so a reload can pick it back up
+    sessionEnded.current = false;
+    if (user?.id) saveSession(snapshotOf(user.id, true));
   };
 
   const handleConfirmExit = (save: boolean = true) => {
