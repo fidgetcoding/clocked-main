@@ -11,6 +11,8 @@ import { isRest } from './view';
 // Long enough to be a moment, short enough to be gone before the next combo
 const BELL_MS = 4000;
 const LAST_TEN_MIN_DURATION = 15;
+// The conditioning segments go full white when the camera's off. False keeps them on the dark stage.
+const WHITE_CONDITIONING = true;
 
 const isLastTen = (view: RunView) =>
   !view.paused &&
@@ -27,7 +29,7 @@ function stageTone(view: RunView, showFeed: boolean) {
   if (isRest(view) || view.cooldown) return 'rest';
   if (view.championship) return 'gold';
   if (isLastTen(view)) return showFeed ? 'live-urgent' : 'last10';
-  if (view.kind === 'exercise' && !showFeed) return 'white';
+  if (WHITE_CONDITIONING && view.kind === 'exercise' && !showFeed) return 'white';
   return 'live';
 }
 

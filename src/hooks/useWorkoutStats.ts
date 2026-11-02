@@ -1,7 +1,10 @@
 import { useMemo } from 'react';
 import { useWorkoutHistory, type WorkoutHistoryEntry } from './useWorkoutHistory';
 import { useProfile } from './useProfile';
-import { startOfWeek, subWeeks, isAfter, isBefore, parseISO } from 'date-fns';
+import { startOfWeek, subDays, subWeeks, isAfter, isBefore, parseISO } from 'date-fns';
+
+// The tale of the tape's weeks. 'calendar' runs Monday to now, so Monday looks thin; 'rolling' is the last 7 days.
+const TAPE_WEEK = 'calendar' as 'calendar' | 'rolling';
 
 // Difficulty feedback to intensity score mapping (1-5 scale)
 const DIFFICULTY_TO_INTENSITY: Record<string, number> = {
@@ -198,7 +201,7 @@ export function useWorkoutStats() {
 
     // Calculate weekly changes
     const now = new Date();
-    const thisWeekStart = startOfWeek(now, { weekStartsOn: 1 }); // Monday
+    const thisWeekStart = TAPE_WEEK === 'rolling' ? subDays(now, 7) : startOfWeek(now, { weekStartsOn: 1 }); // Monday
     const lastWeekStart = subWeeks(thisWeekStart, 1);
     const lastWeekEnd = thisWeekStart;
 
