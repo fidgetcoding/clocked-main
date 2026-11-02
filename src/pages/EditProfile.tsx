@@ -56,9 +56,14 @@ const EditProfile = () => {
   const useImperialRef = useLatest(useImperial);
   const savedWeightKg = profile?.weight_kg;
   const savedHeightCm = profile?.height_cm;
+  // Once, when the profile first loads. Filling them again on every save would overwrite a field
+  // being typed in while the save before it was on its way, like the inches after the feet.
+  const metricsFilled = useRef(false);
   useEffect(() => {
     const useImperial = useImperialRef.current;
+    if (metricsFilled.current) return;
     if (savedWeightKg || savedHeightCm) {
+      metricsFilled.current = true;
       if (savedWeightKg) {
         setWeightInput(useImperial ? Math.round(savedWeightKg * 2.20462).toString() : savedWeightKg.toString());
       }
@@ -222,13 +227,19 @@ const EditProfile = () => {
     }
   };
 
-  // Saved as the field loses focus, so a refusal has nowhere else to show
-  const saveBodyMetric = async (updates: { weight_kg?: number; height_cm?: number }) => {
-    try {
-      await updateProfile.mutateAsync(updates);
-    } catch {
-      toast.error("Couldn't save that. Check the number and try again.");
-    }
+  // Saved as the field loses focus, so a refusal has nowhere else to show. Saves run one after another:
+  // tabbing from feet to inches fires two, and if they landed out of order the older height would win.
+  const metricQueue = useRef<Promise<void>>(Promise.resolve());
+  const saveBodyMetric = (updates: { weight_kg?: number; height_cm?: number }) => {
+    const next = metricQueue.current.then(async () => {
+      try {
+        await updateProfile.mutateAsync(updates);
+      } catch {
+        toast.error("Couldn't save that. Check the number and try again.");
+      }
+    });
+    metricQueue.current = next;
+    return next;
   };
 
   const joinedDate = profile?.created_at ? new Date(profile.created_at).toLocaleDateString() : 'N/A';

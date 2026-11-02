@@ -202,8 +202,20 @@ test.describe("editing a profile", () => {
     await test.step("body metrics", async () => {
       await page.getByPlaceholder("165").fill("180");
       await page.getByPlaceholder("165").blur();
+      // Feet saves on its own as it's left. The inches typed while that save is out must survive it.
+      // A slow connection: each save takes a moment to come back, the way it does on a phone
+      await page.route("**/rest/v1/profiles**", async (route) => {
+        if (route.request().method() === "PATCH") await new Promise((resolve) => setTimeout(resolve, 800));
+        await route.continue();
+      });
+      const feetSave = page.waitForResponse((response) => response.url().includes("/rest/v1/profiles") && response.request().method() === "PATCH" && (response.request().postData() ?? "").includes("height_cm"));
       await page.getByPlaceholder("5", { exact: true }).fill("5");
       await page.getByPlaceholder("10", { exact: true }).fill("11");
+      await feetSave;
+      // The profile refetches after the save. It mustn't put the saved 5'0" back over what was typed.
+      await page.waitForTimeout(1500);
+      await expect(page.getByPlaceholder("10", { exact: true })).toHaveValue("11");
+      await page.unroute("**/rest/v1/profiles**");
       await page.getByPlaceholder("10", { exact: true }).blur();
       await expect.poll(async () => (await profile())?.weight_kg).toBeCloseTo(81.6, 1);
       await expect.poll(async () => (await profile())?.height_cm).toBeCloseTo(180.3, 1);
@@ -217,6 +229,7 @@ test.describe("editing a profile", () => {
       await expect(page.getByPlaceholder("165")).toHaveValue("180");
       await expect(page.getByPlaceholder("5", { exact: true })).toHaveValue("5");
       await expect(page.getByPlaceholder("10", { exact: true })).toHaveValue("11");
+      await page.unroute("**/rest/v1/profiles**");
       await page.goto(`${APP_URL}/profile`);
       await expect(page.getByText("Southpaw from the east side")).toBeVisible();
     });
