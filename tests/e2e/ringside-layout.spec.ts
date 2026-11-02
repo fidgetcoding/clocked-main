@@ -83,10 +83,21 @@ for (const viewport of SIZES) {
       await controlsAreClear(page);
       await noSidewaysScroll(page);
 
-      const combo = page.getByText("INCOMING COMBO");
+      const combo = page.locator(".combo-plate").first();
       for (let i = 0; i < 60 && !(await combo.isVisible()); i++) await skipButton(page).click();
       await expect(combo).toBeVisible();
       await controlsAreClear(page);
+      // Numerals you can read from back there, not slivers
+      const plate = await page.locator(".combo-plate").first().boundingBox();
+      expect(plate?.height ?? 0).toBeGreaterThanOrEqual(56);
+      // The panel stops short of the controls and holds everything it has
+      if (camera && viewport.height > 500) {
+        const panel = page.getByTestId("free-panel");
+        const box = await panel.boundingBox();
+        const pause = await page.getByRole("button", { name: "Pause", exact: true }).boundingBox();
+        if (viewport.width < 500) expect((box?.y ?? 0) + (box?.height ?? 0)).toBeLessThanOrEqual(pause?.y ?? 0);
+        expect(await panel.evaluate((el) => el.scrollHeight - el.clientHeight)).toBeLessThanOrEqual(1);
+      }
       await noSidewaysScroll(page);
     });
   }

@@ -27,11 +27,16 @@ interface PunchCameraPanelProps {
 /** The camera picture and its tracker, filling whatever it sits in. Failing never affects the screen around it. */
 const PunchCameraPanel = ({ counting, onSummary, onCue, onEvent, onTracking, displayCount, onCountingChange, onFeed, className }: PunchCameraPanelProps) => {
   const { stance } = useStance();
+  const poseRef = useRef<CameraFeedState['pose']['current']>(null);
   const { videoRef, canvasRef, status, problem, paused, hud, start, getSummary, check, runStartCheck, skipStartCheck } = usePunchTracking({
     stance,
     processing: counting,
     onCue,
     onEvent,
+    onPoseFrame: (result) => {
+      const video = videoRef.current;
+      poseRef.current = result.image && video?.videoWidth ? { points: result.image, aspect: video.videoWidth / video.videoHeight } : null;
+    },
   });
 
   useEffect(() => {
@@ -94,6 +99,7 @@ const PunchCameraPanel = ({ counting, onSummary, onCue, onEvent, onTracking, dis
       lastLabel: hud.lastLabel,
       counts: summary.counts,
       cleanPercent: summary.cleanPercent,
+      pose: poseRef,
       check,
       skipCheck: skipStartCheck,
       rerunCheck: runStartCheck,

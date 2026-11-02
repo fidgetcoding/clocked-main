@@ -1,5 +1,6 @@
 export { FitText } from './FitText';
 export { LevelBar } from './LevelBar';
+export { LitNumber, LitText } from './LitNumber';
 export { Logo } from './Logo';
 export { OnAir } from './OnAir';
 export { Plate } from './Plate';

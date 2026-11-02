@@ -5,6 +5,7 @@ import { RunWide } from './RunWide';
 import { RoundWipe } from './RoundWipe';
 import { StartCheckStatus } from '@/components/punch/StartCheckStatus';
 import type { RunStageProps, RunView } from './types';
+import { useFreeSide } from './useFreeSide';
 import { useStageLayout } from './useStageLayout';
 import { isRest } from './view';
 
@@ -69,10 +70,12 @@ export function RunStage(props: RunStageProps) {
   const showFeed = cameraOn && !!camera && !feed?.problem;
   const bellXP = useRoundBell(view);
   const tone = stageTone(view, showFeed);
-  const shared = { ...props, showFeed, bellXP };
+  const stageRef = useRef<HTMLDivElement>(null);
+  const free = useFreeSide(stageRef, showFeed ? feed?.pose : undefined, layout);
+  const shared = { ...props, showFeed, bellXP, free };
 
   return (
-    <div className="stage" data-layout={layout} data-camera={showFeed ? 'on' : 'off'} data-tone={tone} data-testid="run-stage">
+    <div ref={stageRef} className="stage" data-panel-mode={free.mode} data-panel-side={free.side} data-panel-edge={free.edge} data-layout={layout} data-camera={showFeed ? 'on' : 'off'} data-tone={tone} data-testid="run-stage">
       <div className="stage-feed">{camera}</div>
       {showFeed && feed?.status !== 'live' && !feed?.paused && (
         <div className="stage-incoming" aria-live="polite">

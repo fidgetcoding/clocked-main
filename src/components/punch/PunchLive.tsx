@@ -1,5 +1,5 @@
 import type { RefObject } from 'react';
-import { CameraIcon, OnAir, Plate, ScoreBug, Ticker } from '@/components/broadcast';
+import { CameraIcon, LitNumber, OnAir, Plate, ScoreBug, Ticker } from '@/components/broadcast';
 import { PunchStats } from '@/components/broadcast/run/parts';
 import { useStageLayout } from '@/components/broadcast/run/useStageLayout';
 import { Button } from '@/components/ui/button';
@@ -83,10 +83,10 @@ export function PunchLive({
 
         <div className="mt-2 flex items-start justify-between px-3">
           <span className="fx timer-display stage-shadow text-[4.5rem]" data-testid="punch-clock" role="timer">
-            {formatClock(hud.clock)}
+            <LitNumber value={formatClock(hud.clock)} />
           </span>
-          <OnAir state={hud.paused ? 'off' : 'live'} className="mt-2 bg-background/70 px-1.5 py-0.5">
-            {hud.paused ? 'Off air' : 'On air'}
+          <OnAir state={hud.paused ? 'off' : 'grind'} className="mt-2 bg-background/70 px-1.5 py-0.5">
+            {hud.paused ? 'Paused' : 'Grind'}
           </OnAir>
         </div>
 
@@ -124,8 +124,8 @@ export function PunchLive({
             </div>
           )}
           <div className={`flex items-end gap-3 px-4 ${wide ? 'gap-8' : ''}`}>
-            <p className={`fx shrink-0 text-volt ${wide ? 'text-[9rem]' : 'text-[6.5rem] [@media(max-height:480px)]:text-[3.5rem]'}`} data-testid="punch-count">
-              {hud.count}
+            <p className={`fx shrink-0 ${wide ? 'text-[7rem]' : 'text-[4.5rem] [@media(max-height:480px)]:text-[3rem]'}`} data-testid="punch-count">
+              <LitNumber value={hud.count} />
             </p>
             <div className="min-w-0 pb-1">
               <p className="lab">{punchWord(hud.count)}, last combo</p>
@@ -143,6 +143,7 @@ export function PunchLive({
         </div>
         <Ticker
           tone="lime"
+          lit
           paused={hud.paused}
           items={PUNCH_ORDER.filter((punch) => punch !== 'punch' && counts[punch] > 0).map((punch) => `${PUNCH_LABELS[punch]} ${counts[punch]}`).concat('Stays on this device')}
           className={wide ? 'ticker-wide' : undefined}

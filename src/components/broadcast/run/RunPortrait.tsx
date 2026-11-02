@@ -21,10 +21,12 @@ import {
   Transport,
   XpChip,
 } from './parts';
+import { FreeSidePanel } from './FreeSidePanel';
 import type { RunStageProps } from './types';
+import type { FreeSide } from './useFreeSide';
 import { BellPlate, StageHeadline } from './headlines';
 
-type Props = RunStageProps & { showFeed: boolean; bellXP: number | null };
+type Props = RunStageProps & { showFeed: boolean; bellXP: number | null; free: FreeSide };
 
 /** A phone held upright. With the camera on the numbers sit on the floor below your feet. */
 export function RunPortrait(props: Props) {
@@ -97,52 +99,22 @@ function PortraitPlain({ view, actions, flash, cameraOn, feed, onDismissProblem,
   );
 }
 
-function PortraitFeed({ view, actions, flash, cameraOn, feed, counting, onDismissProblem, problemDismissed, bellXP, liveLog }: Props) {
-  const hasCombo = view.combo.length > 0;
-  const live = feed?.status === 'live';
+function PortraitFeed(props: Props) {
+  const { view, actions, flash, cameraOn, feed, onDismissProblem, problemDismissed } = props;
   return (
     <div className="stage-col">
       <div className="stage-toprow">
         <StageBug view={view} className="min-w-0" />
-        <AirLight view={view} cameraOn={cameraOn} feedLive={live} className="pr-3.5" />
+        <AirLight view={view} className="pr-3.5" />
       </div>
       <ToolStrip actions={actions} cameraOn={cameraOn} className="mt-1.5 px-4" />
       <FlashLayer flash={flash} className="left-0 top-[24cqh]" />
-      <FeedBanner feed={feed} onDismiss={onDismissProblem} dismissed={problemDismissed} className="mx-4 mt-2" />
-      <XpChip flash={flash} className="ml-4 mt-1.5" />
-
-      {hasCombo && (
-        <div className="mt-2 flex items-start justify-between gap-2 pr-3">
-          <div className="min-w-0 space-y-1">
-            <StageHeadline view={view} />
-            <SegmentTitle view={view} className="pl-1" />
-          </div>
-          <ClockFace view={view} className="h-[14cqh] w-[42cqw] [@media(max-height:620px)]:h-[10cqh]" />
-        </div>
-      )}
-
-      <div className="stage-floor mt-auto pt-6">
-        {feed?.cue && <CuePlate cue={feed.cue} className="mb-2" textClass="text-[3.5rem] whitespace-normal max-w-[85cqw]" />}
-        {bellXP != null && <BellPlate view={view} xp={bellXP} className="mb-1" />}
-        {hasCombo ? (
-          <ComboBlock view={view} className="h-[27cqh] px-4 [@media(max-height:620px)]:h-[23cqh]" />
-        ) : view.kind === 'freestyle' ? (
-          <div className="h-[9cqh] px-4">
-            <FreestylePlate />
-          </div>
-        ) : null}
-        {!hasCombo && <SegmentTitle view={view} className="mx-4" />}
-        {!hasCombo && <ClockFace view={view} className="mx-3 h-[26cqh] [@media(max-height:620px)]:h-[20cqh]" />}
-        {hasCombo && <NextComboRow view={view} className="mx-4 mt-1 [@media(max-height:620px)]:hidden" />}
-        <div className="mt-1 flex items-center gap-3 px-4">
-          <PunchCount feed={feed} counting={counting} size="text-[3.75rem]" className="shrink-0" />
-          {liveLog ? <div className="min-w-0 flex-1">{liveLog}</div> : <PunchStats feed={feed} className="min-w-0 flex-1 [@media(max-height:620px)]:hidden" />}
-        </div>
-        {view.paused && <TimeAdjust onAdjust={actions.onAdjust} className="mx-5 mt-2" />}
+      <XpChip flash={flash} className="relative z-20 ml-4 mt-1.5" />
+      <FreeSidePanel {...props} banner={<FeedBanner feed={feed} onDismiss={onDismissProblem} dismissed={problemDismissed} />} />
+      <div className="mt-auto">
         <Transport view={view} actions={actions} className="mx-5 my-2.5" />
       </div>
       <RunTicker view={view} feedCount={feed?.count} flash={flash} />
     </div>
   );
 }
-

@@ -1,6 +1,6 @@
 import type { CameraProblem } from '@/lib/punch/framing';
 import type { StartCheckHud } from '@/hooks/usePunchTracking';
-import type { PunchClass } from '@/lib/punch/types';
+import type { Landmark, PunchClass } from '@/lib/punch/types';
 
 /** What the camera hands up to the graphics drawn over it. */
 export interface CameraFeedState {
@@ -15,6 +15,8 @@ export interface CameraFeedState {
   lastLabel: string | null;
   counts: Record<PunchClass, number>;
   cleanPercent: number | null;
+  /** The latest body the tracker saw, for placing graphics. Changes every frame, so it's a ref. */
+  pose: { current: { points: Landmark[]; aspect: number } | null };
   check: StartCheckHud;
   skipCheck: () => void;
   rerunCheck: () => void;

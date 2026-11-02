@@ -1,10 +1,13 @@
 import type { CSSProperties } from 'react';
 import { cn } from '@/lib/utils';
+import { LitText } from './LitNumber';
 
 interface TickerProps {
   items: (string | null | undefined | false)[];
   tone?: 'lime' | 'dark';
   paused?: boolean;
+  /** Numbers as lit readouts, on the run screens. */
+  lit?: boolean;
   className?: string;
 }
 
@@ -13,7 +16,7 @@ const TARGET_WIDTH_CHARS = 420;
 const PIXELS_PER_SECOND_PER_CHAR = 0.16;
 
 /** The crawl along the bottom. It only ever carries real numbers. */
-export function Ticker({ items, tone = 'lime', paused, className }: TickerProps) {
+export function Ticker({ items, tone = 'lime', paused, lit, className }: TickerProps) {
   const shown = items.filter((item): item is string => !!item);
   if (shown.length === 0) return null;
 
@@ -28,7 +31,7 @@ export function Ticker({ items, tone = 'lime', paused, className }: TickerProps)
     <span key={key} aria-hidden={hidden || undefined}>
       {shown.map((item, index) => (
         <span key={index}>
-          {item}
+          {lit ? <LitText>{item}</LitText> : item}
           <i aria-hidden="true">///</i>
         </span>
       ))}

@@ -24,9 +24,11 @@ import {
   Transport,
   XpChip,
 } from './parts';
+import { FreeSidePanel } from './FreeSidePanel';
 import type { RunStageProps } from './types';
+import type { FreeSide } from './useFreeSide';
 
-type Props = RunStageProps & { showFeed: boolean; bellXP: number | null };
+type Props = RunStageProps & { showFeed: boolean; bellXP: number | null; free: FreeSide };
 
 /** A laptop across the room. With the camera on it's the full broadcast. */
 export function RunWide(props: Props) {
@@ -104,66 +106,25 @@ function WidePlain({ view, actions, flash, cameraOn, feed, onDismissProblem, pro
   );
 }
 
-function WideFeed({ view, actions, flash, cameraOn, feed, counting, onDismissProblem, problemDismissed, bellXP, liveLog }: Props) {
-  const hasCombo = view.combo.length > 0;
-  const live = feed?.status === 'live';
+function WideFeed(props: Props) {
+  const { view, actions, flash, cameraOn, feed, onDismissProblem, problemDismissed } = props;
   return (
     <div className="stage-col">
       <div className="stage-toprow">
         <StageBug view={view} className="min-w-0" />
         <div className="flex items-center gap-6">
           <ToolStrip actions={actions} cameraOn={cameraOn} className="w-[26rem]" />
-          <AirLight view={view} cameraOn={cameraOn} feedLive={live} className="stage-air" />
+          <AirLight view={view} className="stage-air" />
         </div>
       </div>
       <FlashLayer flash={flash} className="left-0 top-[66cqh]" />
-
-      <div className="stage-wide-body">
-        {/* The punch-stat panel, cut on the slant */}
-        <div className="stage-panel">
-          <div className="flex items-center justify-between gap-2">
-            <span className="lab lab-lime text-base">Punch stats, this session</span>
-            <XpChip flash={flash} />
-          </div>
-          <PunchCount feed={feed} counting={counting} size="text-[8rem]" className="mt-1" />
-          {liveLog ? <div className="mt-3">{liveLog}</div> : <PunchStats feed={feed} large className="mt-3" />}
-          <p className="lab mt-3">Stays on this device</p>
-        </div>
-
-        <div className="stage-wide-right">
-          <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-            <StageHeadline view={view} bleed={false} className="!h-9 !text-[1.625rem]" />
-            <SegmentTitle view={view} className="bg-background/70 px-1.5 py-0.5 text-sm" />
-            <span className="lab lab-w ml-auto bg-background/70 px-1.5 py-0.5 text-sm">
-              Elapsed <span data-testid="run-elapsed">{view.elapsed}</span>
-            </span>
-          </div>
-          {bellXP != null && <BellPlate view={view} xp={bellXP} className="mt-1" />}
-          <ClockFace view={view} className={cn('stage-shadow mt-1', hasCombo ? 'flex-[2]' : 'flex-[3]')} />
-          {view.paused && <TimeAdjust onAdjust={actions.onAdjust} className="mt-1.5 text-2xl" />}
-          {hasCombo ? (
-            <ComboBlock view={view} bleed={false} className="mt-2 flex-[3]" />
-          ) : view.kind === 'freestyle' ? (
-            <div className="mt-2 min-h-0 flex-1">
-              <FreestylePlate />
-            </div>
-          ) : view.upNext ? (
-            <Plate tone="black" className="mt-2 h-[4.5rem] w-full shrink-0 px-5">
-              <FitText className="h-[70%]" align="center" lineHeight={0.92}>
-                {`Next: ${view.upNext}`}
-              </FitText>
-            </Plate>
-          ) : null}
-          <Transport view={view} actions={actions} size="lg" className="mt-2.5 shrink-0" />
-        </div>
-
-        <div className="absolute bottom-3 left-0 right-[38cqw] z-20 flex flex-col items-start gap-2">
-          <FeedBanner feed={feed} onDismiss={onDismissProblem} dismissed={problemDismissed} className="ml-8" />
-          {feed?.cue && <CuePlate cue={feed.cue} textClass="text-[8rem] pl-8" />}
-        </div>
+      <XpChip flash={flash} className="absolute left-8 top-20 z-20" />
+      <FreeSidePanel {...props} />
+      <div className="absolute bottom-12 left-8 z-20 flex max-w-[50cqw] flex-col items-start gap-2">
+        <FeedBanner feed={feed} onDismiss={onDismissProblem} dismissed={problemDismissed} />
       </div>
-
-      <RunTicker view={view} feedCount={feed?.count} flash={flash} className="ticker-wide" />
+      <Transport view={view} actions={actions} size="lg" className="stage-controls-wide" />
+      <RunTicker view={view} feedCount={feed?.count} flash={flash} className="ticker-wide mt-auto" />
     </div>
   );
 }

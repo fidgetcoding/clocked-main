@@ -6,6 +6,7 @@ import { PUNCH_LABELS, PUNCH_ORDER } from '@/lib/punch/round';
 import type { PunchClass } from '@/lib/punch/types';
 import { cn } from '@/lib/utils';
 import { FitText } from '../FitText';
+import { LitNumber, LitText } from '../LitNumber';
 import { OnAir } from '../OnAir';
 import { Plate } from '../Plate';
 import { ScoreBug } from '../ScoreBug';
@@ -15,17 +16,17 @@ import type { ComboMove } from './moves';
 import type { RunActions, RunFlash, RunStageProps, RunView } from './types';
 import { isRest, runTickerItems } from './view';
 
-/** The light in the corner says what's actually going out. */
-function airLabel(view: RunView, cameraOn: boolean, feedLive: boolean) {
+/** The light in the corner says what you're doing: working, resting or stopped. Nothing to do with the tracker. */
+function stateLabel(view: RunView) {
   if (view.idle) return { state: 'off' as const, text: 'Standing by' };
   if (view.paused) return { state: 'off' as const, text: 'Paused' };
-  if (isRest(view)) return { state: 'off' as const, text: 'Back soon' };
-  if (cameraOn && !feedLive) return { state: 'on' as const, text: 'Feed incoming' };
-  return { state: 'live' as const, text: 'On air' };
+  if (view.kind === 'prep') return { state: 'off' as const, text: 'Get ready' };
+  if (isRest(view)) return { state: 'off' as const, text: 'Rest' };
+  return { state: 'grind' as const, text: 'Grind' };
 }
 
-export function AirLight({ view, cameraOn, feedLive, className }: { view: RunView; cameraOn: boolean; feedLive: boolean; className?: string }) {
-  const { state, text } = airLabel(view, cameraOn, feedLive);
+export function AirLight({ view, className }: { view: RunView; cameraOn?: boolean; feedLive?: boolean; className?: string }) {
+  const { state, text } = stateLabel(view);
   return (
     <OnAir state={state} className={className}>
       {text}
@@ -41,7 +42,7 @@ export function StageBug({ view, className }: { view: RunView; className?: strin
       : isRest(view) && view.round
         ? `After round ${view.round}`
         : view.roundLabel ?? view.phaseName;
-  return <ScoreBug tone={tone} mid={mid} className={cn('max-w-full', className)} />;
+  return <ScoreBug tone={tone} mid={mid ? <LitText>{mid}</LitText> : mid} className={cn('max-w-full', className)} />;
 }
 
 /** The small jobs: leave, start over, call it done, camera. */
@@ -78,7 +79,7 @@ export function ToolStrip({ actions, cameraOn, className }: { actions: RunAction
   );
 }
 
-export function ClockFace({ view, className, max }: { view: RunView; className?: string; max?: number }) {
+export function ClockFace({ view, className }: { view: RunView; className?: string }) {
   return (
     <div
       role="timer"
@@ -86,9 +87,7 @@ export function ClockFace({ view, className, max }: { view: RunView; className?:
       data-testid="run-clock"
       className={cn('clock-face fx timer-display min-h-0', className)}
     >
-      <FitText className="h-full" max={max}>
-        {view.clock}
-      </FitText>
+      <LitNumber value={view.clock} fill />
     </div>
   );
 }
@@ -256,6 +255,7 @@ export function RunTicker({ view, feedCount, flash, className }: { view: RunView
       items={runTickerItems(view, feedCount, flash)}
       tone={isRest(view) || view.idle ? 'dark' : 'lime'}
       paused={view.paused}
+      lit
       className={className}
     />
   );
@@ -287,7 +287,7 @@ export function PunchStats({ feed, counts = feed?.counts, large, className }: { 
             className={cn('block -skew-x-[14deg] transition-[width] duration-150', row.value > 0 ? 'bg-volt' : 'bg-surface-3', large ? 'h-4' : 'h-3')}
             style={{ width: row.value > 0 ? `${(row.value / top) * 100}%` : '6px' }}
           />
-          <em className="text-right not-italic">{row.value}</em>
+          <em className="text-right not-italic"><LitNumber value={row.value} className="lit-inline" /></em>
         </div>
       ))}
     </div>
@@ -298,8 +298,8 @@ export function PunchCount({ feed, counting, className, size = 'text-[5.5rem]' }
   if (!feed || feed.status !== 'live') return null;
   return (
     <div className={cn('flex items-end gap-2.5', className)}>
-      <span className={cn('fx text-volt', size)} data-testid="camera-panel-count">
-        {feed.count}
+      <span className={cn('fx', size)} data-testid="camera-panel-count">
+        <LitNumber value={feed.count} />
       </span>
       <span className="pb-1">
         <span className="lab lab-w block">{counting ? (feed.count === 1 ? 'Punch' : 'Punches') : 'Not counting'}</span>
