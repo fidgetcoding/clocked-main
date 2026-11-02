@@ -3,6 +3,7 @@ import { RunLandscape } from './RunLandscape';
 import { RunPortrait } from './RunPortrait';
 import { RunWide } from './RunWide';
 import { RoundWipe } from './RoundWipe';
+import { StartCheckStatus } from '@/components/punch/StartCheckStatus';
 import type { RunStageProps, RunView } from './types';
 import { useStageLayout } from './useStageLayout';
 import { isRest } from './view';
@@ -78,6 +79,9 @@ export function RunStage(props: RunStageProps) {
         </div>
       )}
       {layout === 'wide' ? <RunWide {...shared} /> : layout === 'landscape' ? <RunLandscape {...shared} /> : <RunPortrait {...shared} />}
+      {showFeed && feed?.status === 'live' && !feed.paused && props.counting && (
+        <StartCheckStatus check={feed.check} onSkip={feed.skipCheck} onRerun={feed.rerunCheck} className="stage-check" />
+      )}
       <RoundWipe view={view} />
       {children}
     </div>

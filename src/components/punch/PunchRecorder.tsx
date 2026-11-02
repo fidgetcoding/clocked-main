@@ -39,7 +39,7 @@ export function PunchRecorder() {
     framesRef.current.push({ t, image: packLandmarks(result.image), world: packLandmarks(result.world) });
   }, []);
 
-  const { videoRef, canvasRef, status, problem, paused, hud, start, stop } = usePunchTracking({ stance, onPoseFrame });
+  const { videoRef, canvasRef, status, problem, paused, hud, start, stop } = usePunchTracking({ stance, startCheck: false, onPoseFrame });
 
   const [stage, setStage] = useState<Stage>('intro');
   const [stepIndex, setStepIndex] = useState(0);

@@ -27,9 +27,17 @@ const BONE = '#D4FF00';
 const JOINT = '#F5F6F3';
 const JOINT_EDGE = '#07080B';
 const MIN_VISIBILITY = 0.5;
+const FIX = '#FF3120';
+
+/** A ring drawn at one hand for a moment: lime where a punch landed, red where the correction is. */
+export interface HandMark {
+  side: 'left' | 'right';
+  tone: 'punch' | 'fix';
+  until: number;
+}
 
 /** Draws the tracked body onto a canvas sized to the video. The caller's CSS does the mirroring. */
-export function drawSkeleton(canvas: HTMLCanvasElement, video: HTMLVideoElement, landmarks: Landmark[] | null) {
+export function drawSkeleton(canvas: HTMLCanvasElement, video: HTMLVideoElement, landmarks: Landmark[] | null, mark: HandMark | null = null) {
   if (canvas.width !== video.videoWidth || canvas.height !== video.videoHeight) {
     canvas.width = video.videoWidth;
     canvas.height = video.videoHeight;
@@ -65,6 +73,15 @@ export function drawSkeleton(canvas: HTMLCanvasElement, video: HTMLVideoElement,
     context.beginPath();
     context.arc(point.x * canvas.width, point.y * canvas.height, 4.5 * scale, 0, Math.PI * 2);
     context.fill();
+    context.stroke();
+  }
+
+  const wrist = mark && landmarks[mark.side === 'left' ? LM.LEFT_WRIST : LM.RIGHT_WRIST];
+  if (mark && seen(wrist ?? undefined)) {
+    context.strokeStyle = mark.tone === 'fix' ? FIX : BONE;
+    context.lineWidth = (mark.tone === 'fix' ? 9 : 7) * scale;
+    context.beginPath();
+    context.arc(wrist!.x * canvas.width, wrist!.y * canvas.height, 26 * scale, 0, Math.PI * 2);
     context.stroke();
   }
 }

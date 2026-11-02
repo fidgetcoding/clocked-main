@@ -10,7 +10,7 @@ export type FramingStatus =
   | 'out_of_frame'
   | 'too_close'
   | 'too_far'
-  | 'facing_away';
+  | 'head_cut';
 
 export const FRAMING_MESSAGES: Record<Exclude<FramingStatus, 'ok'>, string> = {
   no_person: "Can't see anyone. Step in front of the camera.",
@@ -19,7 +19,7 @@ export const FRAMING_MESSAGES: Record<Exclude<FramingStatus, 'ok'>, string> = {
   out_of_frame: 'Get your head, shoulders and hips in the picture.',
   too_close: 'Too close. Step back to about 6 to 8 feet.',
   too_far: 'Too far away. Step in to about 6 to 8 feet.',
-  facing_away: 'Face the camera.',
+  head_cut: 'Your head is at the top of the picture. Tilt the screen back or step back.',
 };
 
 /** Judges one frame of image-space landmarks (x and y from 0 to 1, image not mirrored). */
@@ -27,12 +27,14 @@ export function assessFraming(
   landmarks: Landmark[] | null,
   meanLuma: number | null,
   config: PunchConfig = PUNCH_CONFIG,
+  /** Picture width over height, since landmarks are fractions of each. */
+  aspect = 4 / 3,
 ): FramingStatus {
   const { framing } = config;
   if (meanLuma !== null && meanLuma < framing.darkLuma) return 'too_dark';
   if (!landmarks) return 'no_person';
 
-  const core = [LM.NOSE, LM.LEFT_SHOULDER, LM.RIGHT_SHOULDER, LM.LEFT_HIP, LM.RIGHT_HIP].map((i) => landmarks[i]);
+  const core = [LM.LEFT_SHOULDER, LM.RIGHT_SHOULDER, LM.LEFT_HIP, LM.RIGHT_HIP].map((i) => landmarks[i]);
   if (core.some((point) => !point)) return 'no_person';
   const inFrame = (point: Landmark) =>
     point.x >= framing.edgeMargin &&
@@ -47,11 +49,15 @@ export function assessFraming(
     tracked.reduce((sum, point) => sum + (point?.visibility ?? 0), 0) / tracked.length;
   if (meanVisibility < framing.minVisibility) return 'low_confidence';
 
-  // The person's left shoulder is on the right of an unmirrored image when they face the camera
-  const width = landmarks[LM.LEFT_SHOULDER].x - landmarks[LM.RIGHT_SHOULDER].x;
-  if (width <= 0) return 'facing_away';
+  // Turned from the camera the shoulders look narrow, so the torso's height sets a floor on the size
+  const left = landmarks[LM.LEFT_SHOULDER];
+  const right = landmarks[LM.RIGHT_SHOULDER];
+  const torso = ((landmarks[LM.LEFT_HIP].y + landmarks[LM.RIGHT_HIP].y) / 2 - (left.y + right.y) / 2) / aspect;
+  const width = Math.max(Math.abs(left.x - right.x), torso * config.view.torsoToShoulderWidth);
   if (width > framing.tooCloseWidth) return 'too_close';
   if (width < framing.tooFarWidth) return 'too_far';
+  const nose = landmarks[LM.NOSE];
+  if (!nose || !inFrame(nose) || nose.y < framing.minHeadroom) return 'head_cut';
   return 'ok';
 }
 

@@ -1,11 +1,13 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { drawSkeleton } from '@/components/punch/skeleton';
+import { drawSkeleton, type HandMark } from '@/components/punch/skeleton';
 import { usePunchCamera } from '@/hooks/usePunchCamera';
 import { PunchDetector } from '@/lib/punch/detector';
 import { assessFraming, FRAMING_MESSAGES, FramingMonitor, type FramingStatus } from '@/lib/punch/framing';
 import type { PoseResult } from '@/lib/punch/poseModel';
 import { applyEvent, comboReadout, CueQueue, cuesFor, newRound, PUNCH_LABELS, summarize, type RoundState } from '@/lib/punch/round';
-import type { PunchDetected, PunchEvent, Stance } from '@/lib/punch/types';
+import { StartCheck, type StartCheckResult } from '@/lib/punch/startCheck';
+import { usePunchPrefsStore } from '@/stores/punchPrefsStore';
+import type { Hand, PunchDetected, PunchEvent, Stance } from '@/lib/punch/types';
 
 export interface TrackingHud {
   count: number;
@@ -41,22 +43,41 @@ interface Options {
   onPoseFrame?: (result: PoseResult, t: number) => void;
   /** Called with every detector event, for keeping a full log. */
   onEvent?: (event: PunchEvent) => void;
+  /** Off for recording mode, where the prompts already say what to do. */
+  startCheck?: boolean;
+}
+
+// Long enough to catch from across the room
+const HAND_MARK_MS = 450;
+
+const sideOf = (hand: Hand, stance: Stance): HandMark['side'] => ((hand === 'lead') === (stance === 'orthodox') ? 'left' : 'right');
+
+export interface StartCheckHud {
+  running: boolean;
+  secondsLeft: number;
+  result: StartCheckResult | null;
 }
 
 /** The whole camera pipeline: camera, pose model, detector, tally, cues and framing checks. */
-export function usePunchTracking({ stance, processing = true, onCue, onPoseFrame, onEvent }: Options) {
+export function usePunchTracking({ stance, processing = true, onCue, onPoseFrame, onEvent, startCheck = true }: Options) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const detectorRef = useRef(new PunchDetector(stance));
   const roundRef = useRef<RoundState>(newRound());
+  const handMarkRef = useRef<HandMark | null>(null);
+  const stanceRef = useRef(stance);
+  stanceRef.current = stance;
+  const startCheckRef = useRef<StartCheck | null>(null);
+  const [check, setCheck] = useState<StartCheckHud>({ running: false, secondsLeft: 0, result: null });
+  const setLastStartCheck = usePunchPrefsStore((state) => state.setLastStartCheck);
   const cuesRef = useRef(new CueQueue());
   const framingRef = useRef(new FramingMonitor());
   const lumaRef = useRef<number | null>(null);
   const framingStatusRef = useRef<FramingStatus>('ok');
   const lastCueRef = useRef<string | null>(null);
   const lastLabelRef = useRef<string | null>(null);
-  const callbacksRef = useRef({ onCue, onPoseFrame, onEvent });
-  callbacksRef.current = { onCue, onPoseFrame, onEvent };
+  const callbacksRef = useRef({ onCue, onPoseFrame, onEvent, setLastStartCheck });
+  callbacksRef.current = { onCue, onPoseFrame, onEvent, setLastStartCheck };
 
   const [hud, setHud] = useState<TrackingHud>(EMPTY_HUD);
   const [lastPunch, setLastPunch] = useState<PunchDetected | null>(null);
@@ -69,13 +90,34 @@ export function usePunchTracking({ stance, processing = true, onCue, onPoseFrame
 
   const onPose = useCallback((result: PoseResult, t: number, meanLuma: number | null) => {
     callbacksRef.current.onPoseFrame?.(result, t);
-    if (videoRef.current && canvasRef.current) drawSkeleton(canvasRef.current, videoRef.current, result.image);
+    const mark = handMarkRef.current && t < handMarkRef.current.until ? handMarkRef.current : null;
+    if (videoRef.current && canvasRef.current) drawSkeleton(canvasRef.current, videoRef.current, result.image, mark);
     if (meanLuma !== null) lumaRef.current = meanLuma;
-    framingStatusRef.current = framingRef.current.push(assessFraming(result.image, lumaRef.current), t);
+    const video = videoRef.current;
+    const aspect = video?.videoWidth && video.videoHeight ? video.videoWidth / video.videoHeight : undefined;
+    framingStatusRef.current = framingRef.current.push(assessFraming(result.image, lumaRef.current, undefined, aspect), t);
+
+    const running = startCheckRef.current;
+    if (running) {
+      running.push(t, result.world, result.image);
+      if (running.isDone(t)) {
+        const seen = running.result();
+        startCheckRef.current = null;
+        if (seen.guard) detectorRef.current.applyGuard(seen.guard);
+        callbacksRef.current.setLastStartCheck(seen);
+        setCheck({ running: false, secondsLeft: 0, result: seen });
+      } else {
+        const secondsLeft = Math.ceil(running.remaining(t));
+        setCheck((current) => (current.secondsLeft === secondsLeft && current.running ? current : { running: true, secondsLeft, result: null }));
+      }
+    }
 
     for (const event of detectorRef.current.push({ t, landmarks: result.world })) {
       applyEvent(roundRef.current, event);
       callbacksRef.current.onEvent?.(event);
+      // A punch gets a marker at the hand, a correction gets the telestrator. Not when the hand is a guess.
+      if (event.type !== 'punch') handMarkRef.current = { side: sideOf(event.hand, stanceRef.current), tone: 'fix', until: t + HAND_MARK_MS };
+      else if (!event.handUnsure) handMarkRef.current = { side: sideOf(event.hand, stanceRef.current), tone: 'punch', until: t + HAND_MARK_MS };
       if (event.type === 'punch') {
         lastLabelRef.current = PUNCH_LABELS[event.punch];
         setLastPunch(event);
@@ -96,10 +138,24 @@ export function usePunchTracking({ stance, processing = true, onCue, onPoseFrame
     processing,
   });
 
+  const runStartCheck = useCallback(() => {
+    startCheckRef.current = new StartCheck();
+    setCheck({ running: true, secondsLeft: Math.ceil(new StartCheck().remaining(0)), result: null });
+  }, []);
+
+  /** Skipping falls back to what the last check saw, if anything. */
+  const skipStartCheck = useCallback(() => {
+    startCheckRef.current = null;
+    const last = usePunchPrefsStore.getState().lastStartCheck;
+    if (last?.guard) detectorRef.current.applyGuard(last.guard);
+    setCheck({ running: false, secondsLeft: 0, result: null });
+  }, []);
+
   const start = useCallback(() => {
     setPaused(false);
+    if (startCheck) runStartCheck();
     return startCamera();
-  }, [startCamera]);
+  }, [startCamera, startCheck, runStartCheck]);
 
   const stop = useCallback(() => {
     setPaused(false);
@@ -169,5 +225,5 @@ export function usePunchTracking({ stance, processing = true, onCue, onPoseFrame
 
   const getSummary = useCallback(() => summarize(roundRef.current), []);
 
-  return { videoRef, canvasRef, status, problem, paused, hud, lastPunch, start, stop, reset, getSummary };
+  return { videoRef, canvasRef, status, problem, paused, hud, lastPunch, start, stop, reset, getSummary, check, runStartCheck, skipStartCheck };
 }

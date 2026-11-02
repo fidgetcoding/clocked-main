@@ -37,6 +37,7 @@ import { useBadges } from '@/hooks/useBadges';
 import { useRepeatingCheck } from '@/hooks/useRepeatingCheck';
 import { ACTIVITY_XP_RATES, ActivityType, getStreakMultiplier, getActivityTypeFromName, calculateComboXP, getLevelFromXP, getLevelProgress, getXPWithinCurrentLevel, Prestige, isPrestigeEligible as checkPrestigeEligible, isMaxLevel as checkIsMaxLevel } from '@/lib/xpSystem';
 import { computePostLogStats, computePostL100Increments } from '@/lib/workoutTracking';
+import { useSessionPunchLog } from '@/hooks/useSessionPunchLog';
 import { buildSessionBadgeStats, FRESH_SESSION, getSessionCredit, getSessionEffort, noteTraining, qualifiesForRewards, SessionLog, toSessionFacts } from '@/lib/sessionEffort';
 import { checkBadges, sumBadgeXP } from '@/data/badges';
 import { checkPostL100Badges } from '@/data/postL100Badges';
@@ -401,6 +402,8 @@ const WorkoutSession = () => {
   const [roundFeedback, setRoundFeedback] = useState<RoundFeedback[]>([]);
   const [xpBubble, setXpBubble] = useState<{ amount: number; id: number } | null>(null);
   const [hasStartedOnce, setHasStartedOnce] = useState(false);
+  const punchLog = useSessionPunchLog(totalElapsed);
+  const { snapshot: punchSnapshot, restore: restorePunchLog } = punchLog;
   const [hasAwardedXP, setHasAwardedXP] = useState(false);
   const [accumulatedXP, setAccumulatedXP] = useState(0);
   const [showExitConfirm, setShowExitConfirm] = useState(false);
@@ -904,9 +907,10 @@ const WorkoutSession = () => {
       isPreparation,
       timerXP: accumulatedXP - liveBadgesEarned.reduce((sum, earned) => sum + earned.badge.xpReward, 0),
       log: sessionLog,
+      punchLog: punchSnapshot(),
       isComplete,
     });
-  }, [logged, workout, user?.id, flatSegments.length, currentSegmentIndex, timeRemaining, totalElapsed, isPreparation, accumulatedXP, liveBadgesEarned, sessionLog, isComplete]);
+  }, [punchSnapshot, logged, workout, user?.id, flatSegments.length, currentSegmentIndex, timeRemaining, totalElapsed, isPreparation, accumulatedXP, liveBadgesEarned, sessionLog, isComplete]);
 
   // Comes back paused with the clock where it was. Only trained runs get saved, so the start bonus is already in timerXP.
   const restoreSession = useCallback((saved: SessionSnapshot) => {
@@ -917,6 +921,7 @@ const WorkoutSession = () => {
     setIsPreparation(saved.isPreparation);
     setAccumulatedXP(saved.timerXP);
     setSessionLog(saved.log);
+    restorePunchLog(saved.punchLog);
     startBonusPaidRef.current = true;
     setHasStartedOnce(true);
     setIsPaused(true);
@@ -925,7 +930,7 @@ const WorkoutSession = () => {
     xpAwardedRef.current = saved.isComplete;
     setHasAwardedXP(saved.isComplete);
     setResumable(null);
-  }, []);
+  }, [restorePunchLog]);
 
   useEffect(() => {
     if (resumeChecked.current || !workout || flatSegments.length === 0 || !user?.id) return;
@@ -1092,6 +1097,7 @@ const WorkoutSession = () => {
       xp_earned: sessionResult.sessionTotal,
       difficulty: difficultyRating || null,
       notes: [notes, punchSummary?.total ? punchSummary.note : ''].filter(Boolean).join('\n') || null,
+      punch_log: punchLog.finish() ?? undefined,
       is_manual_entry: false,
       round_feedback: feedbackMode === 'advanced' ? roundFeedback : [],
     }, {
@@ -1296,7 +1302,16 @@ const WorkoutSession = () => {
           // Asks for the camera once the session has started. Only boxing segments are counted.
           cameraOn && hasStartedOnce ? (
             <Suspense fallback={null}>
-              <PunchCameraPanel key={cameraSession} counting={counting} onSummary={setPunchSummary} onFeed={setFeed} />
+              <PunchCameraPanel
+                key={cameraSession}
+                counting={counting}
+                onSummary={setPunchSummary}
+                onEvent={punchLog.onEvent}
+                onTracking={punchLog.onTracking}
+                displayCount={punchLog.log.totals.punches}
+                onCountingChange={(on) => (on ? punchLog.startRound() : punchLog.endRound())}
+                onFeed={setFeed}
+              />
             </Suspense>
           ) : undefined
         }

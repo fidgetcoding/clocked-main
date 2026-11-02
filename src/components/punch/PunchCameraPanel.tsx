@@ -17,15 +17,17 @@ interface PunchCameraPanelProps {
   onTracking?: () => void;
   /** The count to show, for a session whose log began before this panel did. Defaults to this panel's own. */
   displayCount?: number;
+  /** Told when counting starts and stops, for a log that keeps rounds. */
+  onCountingChange?: (counting: boolean) => void;
   /** Called when something the graphics show has changed. */
   onFeed?: (feed: CameraFeedState) => void;
   className?: string;
 }
 
 /** The camera picture and its tracker, filling whatever it sits in. Failing never affects the screen around it. */
-const PunchCameraPanel = ({ counting, onSummary, onCue, onEvent, onTracking, displayCount, onFeed, className }: PunchCameraPanelProps) => {
+const PunchCameraPanel = ({ counting, onSummary, onCue, onEvent, onTracking, displayCount, onCountingChange, onFeed, className }: PunchCameraPanelProps) => {
   const { stance } = useStance();
-  const { videoRef, canvasRef, status, problem, paused, hud, start, getSummary } = usePunchTracking({
+  const { videoRef, canvasRef, status, problem, paused, hud, start, getSummary, check, runStartCheck, skipStartCheck } = usePunchTracking({
     stance,
     processing: counting,
     onCue,
@@ -37,6 +39,14 @@ const PunchCameraPanel = ({ counting, onSummary, onCue, onEvent, onTracking, dis
     // Asked for once, when the panel first appears
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const onCountingChangeRef = useRef(onCountingChange);
+  onCountingChangeRef.current = onCountingChange;
+  useEffect(() => {
+    if (!counting) return;
+    onCountingChangeRef.current?.(true);
+    return () => onCountingChangeRef.current?.(false);
+  }, [counting]);
 
   const onTrackingRef = useRef(onTracking);
   onTrackingRef.current = onTracking;
@@ -70,7 +80,7 @@ const PunchCameraPanel = ({ counting, onSummary, onCue, onEvent, onTracking, dis
   startRef.current = start;
   const message = counting ? hud.cue ?? hud.warning : null;
   const shownCount = displayCount ?? hud.count;
-  const signature = [status, paused, problem, shownCount, hud.cue, hud.warning, hud.combo, hud.lastLabel, counting].join('|');
+  const signature = [status, paused, problem, shownCount, hud.cue, hud.warning, hud.combo, hud.lastLabel, counting, check.running, check.secondsLeft, check.result?.cameraAngle].join('|');
   useEffect(() => {
     const summary = getSummary();
     onFeedRef.current?.({
@@ -84,6 +94,9 @@ const PunchCameraPanel = ({ counting, onSummary, onCue, onEvent, onTracking, dis
       lastLabel: hud.lastLabel,
       counts: summary.counts,
       cleanPercent: summary.cleanPercent,
+      check,
+      skipCheck: skipStartCheck,
+      rerunCheck: runStartCheck,
       resume: () => void startRef.current(),
     });
     // The signature covers everything read here
@@ -107,7 +120,7 @@ const PunchCameraPanel = ({ counting, onSummary, onCue, onEvent, onTracking, dis
         muted
         className={cn(
           'absolute inset-0 h-full w-full object-cover -scale-x-100 transition-[filter] duration-300',
-          !counting && 'saturate-[.35] brightness-[.72]',
+          counting ? 'feed-graded' : 'saturate-[.35] brightness-[.72]',
         )}
       />
       <canvas ref={canvasRef} className="pointer-events-none absolute inset-0 h-full w-full object-cover -scale-x-100" />

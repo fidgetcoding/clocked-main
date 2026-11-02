@@ -26,6 +26,39 @@ export const PUNCH_CONFIG = {
     glitchHoldMs: 200,
   },
 
+  view: {
+    /** How quickly the body frame follows the fighter turning. It holds still during a punch. */
+    headingTauMs: 800,
+    /** Scale floor from the torso, for when turning makes the shoulders read narrow. */
+    torsoToShoulderWidth: 0.55,
+    /** Between these turns, measured as the model reads them, arc checks start trusting depth. */
+    arcDepthFrom: 25,
+    arcDepthFull: 60,
+    /** Turned this far, the far arm is mostly hidden behind the body. */
+    farArmYaw: 55,
+    farArmConfidence: 0.5,
+    /** Turned this far, the model can't keep the arms apart, so punches are counted but not named. */
+    sideOnYaw: 65,
+    /**
+     * Off-axis, the model's depth makes a hook's arm look long, so a hook can pass for a straight. One
+     * whose path bowed this much could be either, so it's called "punch". That bend alone isn't proof
+     * of a hook: on my recording turned in software, crosses bow this much too.
+     */
+    offAxisYaw: 10,
+    /** Punches on both arms this close together, off-axis, are one punch seen twice. */
+    mirrorWindowMs: 250,
+    unsureBend: 0.1,
+    unsureMaxUpShare: 0.5,
+    /**
+     * How far the spine can tilt toward or away from the camera before it's put down to the camera's
+     * height. Within this range a real lean can't be told from a camera angle, so it's left alone.
+     */
+    leanForwardMax: 20,
+    leanBackMax: 15,
+    /** Where the head sits when it's out of the picture, in shoulder widths above the shoulders. */
+    assumedNoseHeight: 0.7,
+  },
+
   motion: {
     /** The wrist must be this far from rest and moving this fast to start a punch. */
     startDistance: 0.22,
@@ -43,6 +76,13 @@ export const PUNCH_CONFIG = {
     /** How far the wrist must move relative to its own shoulder. */
     minArmMove: 0.25,
     minPeakSpeed: 2.5,
+    /**
+     * A shaky picture, like one with the head at the top edge, makes a still hand look fast. A punch
+     * has to beat that hand's own idle speed by this much.
+     */
+    noiseSpeedFactor: 2,
+    noiseTauMs: 1000,
+    noiseSpeedCap: 25,
     minDurationMs: 50,
     maxDurationMs: 900,
     /** Give up on an extension that has run this long. */
@@ -194,6 +234,33 @@ export const PUNCH_CONFIG = {
     gapMs: 1200,
   },
 
+  log: {
+    /** A break this long between punches starts a new round in the session log. */
+    roundGapSeconds: 30,
+  },
+
+  startCheck: {
+    durationMs: 5000,
+    /** Fewer tracked frames than this and it says nothing about the camera. */
+    minPoses: 30,
+    framedShare: 0.6,
+    /** Cut off for this share of the check counts as cut off. */
+    cutShare: 0.6,
+    /** Camera angles, in degrees from straight in front of you. */
+    frontWithin: 20,
+    sideFrom: 70,
+    /** Spine tilt, in degrees, read as the camera looking down or up at you. */
+    highFrom: 25,
+    lowFrom: 25,
+    /** How far apart front to back, in metres for the feet and shoulder widths for the hands, to call a stance. */
+    feetApart: 0.08,
+    handsApart: 0.25,
+    /** Median hand speed, in shoulder widths a second, above which tracking counts as shaky. */
+    shakySpeed: 3,
+    /** A hand moving more than this, in shoulder widths, isn't resting. */
+    guardSteady: 0.2,
+  },
+
   cues: {
     /** How long a cue stays up, and how soon the same one may repeat. */
     holdMs: 1600,
@@ -204,6 +271,8 @@ export const PUNCH_CONFIG = {
     minVisibility: 0.5,
     /** Key joints must sit at least this far inside the image. */
     edgeMargin: 0.01,
+    /** Tracking gets shaky with the head this close to the top of the picture, as a share of its height. */
+    minHeadroom: 0.08,
     /** Shoulder width as a share of image width. */
     tooCloseWidth: 0.42,
     tooFarWidth: 0.09,

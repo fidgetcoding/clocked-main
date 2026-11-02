@@ -165,6 +165,8 @@ describe('classifier', () => {
     forearmFromLevel: 50,
     upperArmBelowLevel: 50,
     visibility: 0.95,
+    pathBend: 0,
+    viewYaw: 0,
   };
   const trueUppercut = {
     ...straightish,

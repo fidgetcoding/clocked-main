@@ -64,9 +64,9 @@ export function PunchSetup({ onStart, onBack }: PunchSetupProps) {
       <SectionRule title="Set up your camera" />
       <ol>
         {[
-          'Turn a little to one side of it. Dead straight on hides your jab and cross',
-          'Stand 6 to 8 feet back',
-          'Keep your head, hands and hips in the picture',
+          "Put it anywhere, but about 30° to one side reads best. Dead straight on hides your jab and cross, and fully side on hides your far arm",
+          "Stand 6 to 8 feet back, or further if it's on a desk",
+          'Leave room above your head, and keep your hands and hips in the picture',
           'Put the light in front of you, not behind',
         ].map((tip, index) => (
           <li key={tip} className="flex items-baseline gap-3 border-b border-surface-2 px-4 py-1.5 text-lg">

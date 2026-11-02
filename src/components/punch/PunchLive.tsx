@@ -3,7 +3,8 @@ import { CameraIcon, OnAir, Plate, ScoreBug, Ticker } from '@/components/broadca
 import { PunchStats } from '@/components/broadcast/run/parts';
 import { useStageLayout } from '@/components/broadcast/run/useStageLayout';
 import { Button } from '@/components/ui/button';
-import type { TrackingHud } from '@/hooks/usePunchTracking';
+import { StartCheckStatus } from '@/components/punch/StartCheckStatus';
+import type { StartCheckHud, TrackingHud } from '@/hooks/usePunchTracking';
 import { formatClock, PUNCH_LABELS, PUNCH_ORDER, punchWord } from '@/lib/punch/round';
 import type { PunchClass, PunchDetected } from '@/lib/punch/types';
 
@@ -24,6 +25,9 @@ interface PunchLiveProps {
   onExit: () => void;
   onFinish: () => void;
   onResume: () => void;
+  check: StartCheckHud;
+  onSkipCheck: () => void;
+  onRerunCheck: () => void;
 }
 
 const fixed = (value: number, digits = 2) => value.toFixed(digits);
@@ -39,6 +43,9 @@ export function PunchLive({
   onExit,
   onFinish,
   onResume,
+  check,
+  onSkipCheck,
+  onRerunCheck,
 }: PunchLiveProps) {
   const layout = useStageLayout();
   const wide = layout === 'wide';
@@ -58,7 +65,7 @@ export function PunchLive({
     >
       <div className="stage-feed bg-black">
         {/* Both layers are flipped together so the picture acts like a mirror */}
-        <video ref={videoRef} playsInline muted className="absolute inset-0 h-full w-full object-cover -scale-x-100" />
+        <video ref={videoRef} playsInline muted className="feed-graded absolute inset-0 h-full w-full object-cover -scale-x-100" />
         <canvas ref={canvasRef} className="pointer-events-none absolute inset-0 h-full w-full object-cover -scale-x-100" />
       </div>
 
@@ -108,6 +115,7 @@ export function PunchLive({
         )}
 
         <div className="stage-floor mt-auto pt-8">
+          {!hud.paused && !loading && <StartCheckStatus check={check} onSkip={onSkipCheck} onRerun={onRerunCheck} className="mx-3 mb-2" />}
           {hud.cue && !hud.paused && !loading && (
             <div role="status" data-testid="punch-cue" className="plate-slap pointer-events-none mb-2">
               <Plate tone="red" bleed="left" className={`flex w-fit justify-start py-2 pl-3 pr-8 leading-[.86] ${wide ? 'text-[7rem]' : 'text-[3.25rem]'}`}>

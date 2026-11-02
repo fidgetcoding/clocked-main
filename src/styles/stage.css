@@ -362,6 +362,28 @@
   right: 38cqw;
 }
 
+/* The start check: a lower third over the feed, clear of the controls */
+.stage-check {
+  position: absolute;
+  z-index: 25;
+  left: 0;
+  max-width: min(30rem, 88cqw);
+  top: 34cqh;
+}
+
+.stage[data-layout="wide"] .stage-check {
+  top: auto;
+  left: 2rem;
+  bottom: 4rem;
+  max-width: 30cqw;
+}
+
+.stage[data-layout="landscape"] .stage-check {
+  top: auto;
+  bottom: 0.5rem;
+  max-width: 50cqw;
+}
+
 /* Round start */
 .round-wipe {
   position: absolute;
