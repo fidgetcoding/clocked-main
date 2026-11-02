@@ -165,6 +165,8 @@ describe('classifier', () => {
     forearmFromLevel: 50,
     upperArmBelowLevel: 50,
     visibility: 0.95,
+    lowestVisibility: 0.95,
+    spineTilt: 0,
     pathBend: 0,
     viewYaw: 0,
   };

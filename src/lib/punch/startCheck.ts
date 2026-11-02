@@ -5,7 +5,7 @@ import type { Landmark, Stance } from './types';
 const LEFT_ANKLE = 27;
 const RIGHT_ANKLE = 28;
 
-export type CameraSide = 'front' | 'left' | 'right' | 'side_left' | 'side_right';
+export type CameraSide = 'front' | 'left' | 'right' | 'side_left' | 'side_right' | 'behind';
 export type CameraHeight = 'level' | 'high' | 'low';
 
 export interface StartCheckResult {
@@ -27,6 +27,10 @@ export interface StartCheckResult {
   gaveUp: boolean;
   /** Still hands looked like they were moving, so tracking won't be reliable from here. */
   shaky: boolean;
+  /** Share of the check with a person in the picture. A bag between you and the camera drops this. */
+  seenShare: number;
+  /** Your body was seen but a hand mostly wasn't, because of your body or the bag. */
+  handsHidden: boolean;
 }
 
 const median = (values: number[]) => {
@@ -71,6 +75,8 @@ export class StartCheck {
   private tilts: number[] = [];
   private widths: number[] = [];
   private feetForward: number[] = [];
+  private seenFrames = 0;
+  private wristVisibility: { left: number[]; right: number[] } = { left: [], right: [] };
   private startT: number | null = null;
 
   constructor(private readonly config: PunchConfig = PUNCH_CONFIG) {
@@ -91,6 +97,9 @@ export class StartCheck {
     this.startT ??= t;
     this.frames += 1;
     if (!world || !image) return;
+    this.seenFrames += 1;
+    this.wristVisibility.left.push(image[LM.LEFT_WRIST]?.visibility ?? 0);
+    this.wristVisibility.right.push(image[LM.RIGHT_WRIST]?.visibility ?? 0);
     const { framing } = this.config;
     const inPicture = (index: number) => {
       const point = image[index];
@@ -133,7 +142,7 @@ export class StartCheck {
     const size = Math.abs(cameraAngle);
     const onLeft = cameraAngle > 0;
     const cameraSide: CameraSide =
-      size < startCheck.frontWithin ? 'front' : size < startCheck.sideFrom ? (onLeft ? 'left' : 'right') : onLeft ? 'side_left' : 'side_right';
+      size >= startCheck.behindFrom ? 'behind' : size < startCheck.frontWithin ? 'front' : size < startCheck.sideFrom ? (onLeft ? 'left' : 'right') : onLeft ? 'side_left' : 'side_right';
 
     const tilt = median(this.tilts);
     const cameraHeight: CameraHeight = tilt > startCheck.highFrom ? 'high' : tilt < -startCheck.lowFrom ? 'low' : 'level';
@@ -144,8 +153,13 @@ export class StartCheck {
     const handsForward = median(up.map((pose) => pose.left.wrist!.z - pose.right.wrist!.z));
     const feet = median(this.feetForward);
     let stance: Stance | null = null;
-    if (this.feetForward.length >= startCheck.minPoses && Math.abs(feet) >= startCheck.feetApart) stance = feet > 0 ? 'orthodox' : 'southpaw';
-    else if (Math.abs(handsForward) >= startCheck.handsApart) stance = handsForward > 0 ? 'orthodox' : 'southpaw';
+    const byFeet = this.feetForward.length >= startCheck.minPoses && Math.abs(feet) >= startCheck.feetApart ? (feet > 0 ? 'orthodox' : 'southpaw') : null;
+    const byHands = Math.abs(handsForward) >= startCheck.handsApart ? (handsForward > 0 ? 'orthodox' : 'southpaw') : null;
+    // Off to one side either alone was wrong too often to suggest a switch, so there they must agree
+    stance = size < startCheck.frontWithin ? byFeet ?? byHands : byFeet === byHands ? byFeet : null;
+
+    // Side on or from behind the arms and feet can't be told apart, so it mustn't suggest a switch
+    if (cameraSide === 'behind' || cameraSide === 'side_left' || cameraSide === 'side_right') stance = null;
 
     // Only a guard held still counts as where the hands rest
     const middle = (axis: 'x' | 'y' | 'z', side: 'left' | 'right') => median(up.map((pose) => wristOf(pose, side)![axis]));
@@ -179,13 +193,15 @@ export class StartCheck {
       stance,
       guard,
       gaveUp,
+      seenShare: this.seenFrames / frames,
+      handsHidden: !gaveUp && Math.min(median(this.wristVisibility.left), median(this.wristVisibility.right)) < startCheck.handsSeen,
     };
   }
 }
 
 /** The one line that says what the check saw, like "Camera on your left, about 40°." */
 export function describeCamera(result: StartCheckResult): string {
-  if (result.gaveUp) return "Couldn't get a read on you. Tracking anyway.";
+  if (result.gaveUp) return "I can't see you from here.";
   const angle = Math.abs(result.cameraAngle);
   switch (result.cameraSide) {
     case 'front':
@@ -198,17 +214,40 @@ export function describeCamera(result: StartCheckResult): string {
       return `Camera on your left, about ${angle}°. Your right arm is mostly hidden.`;
     case 'side_right':
       return `Camera on your right, about ${angle}°. Your left arm is mostly hidden.`;
+    case 'behind':
+      return 'Camera behind you. Your hands are hidden by your body.';
   }
 }
 
 /** What to change, or null when the setup is fine. */
 export function placementAdvice(result: StartCheckResult): string | null {
-  if (result.gaveUp || !result.framed) return 'Get your shoulders and hips in the picture, about 6 to 8 feet back.';
-  if (result.headCut) return 'Your head is cut off. Tilt the screen back or step back a little.';
-  if (result.shaky) return 'Tracking looks shaky from here. Step back so your head and hands have room, and add some light.';
-  if (result.cameraSide === 'side_left' || result.cameraSide === 'side_right') {
-    return 'From the side it can only tell you a punch landed on the far arm. For every punch by name, put the camera in front of you or up to about 45° to one side.';
+  if (result.gaveUp) {
+    return "If the bag is between you and the phone, move the phone about 60° around to your side, 6 to 10 feet back, so you're both in the picture.";
   }
-  if (result.cameraHeight === 'high') return 'The camera is looking down on you, which makes uppercuts harder to read. Chest height works best.';
+  if (!result.framed) return 'Get your shoulders and hips in the picture, about 6 to 10 feet back. If the bag is in the way, move the phone around to your side.';
+  if (result.headCut) return 'Your head is cut off. Tilt the phone back or move it further away.';
+  if (result.shaky) return 'Tracking looks shaky from here. Move the phone back so your head and hands have room, and add some light.';
+  if (result.cameraSide === 'behind') return 'For a better count and some punches by name, move the phone around to about 60° on your side, at hip or chest height.';
+  if (result.handsHidden) return 'The bag or your body is hiding a hand. Move the phone a little further around to your side, or further back.';
+  if (result.cameraSide === 'side_left' || result.cameraSide === 'side_right') {
+    return 'For some punches by name, move the phone around toward your front, to about 60°.';
+  }
+  if (result.cameraHeight === 'low') return 'The phone is looking up at you, which blurs punch types. Raise it to hip or chest height if you can.';
+  if (result.cameraHeight === 'high') return 'The phone is looking down on you, which blurs punch types. Chest height works best.';
   return null;
+}
+
+/** What this spot will give them, in a line. Measured on a rendered figure, so it's a guide. */
+export function expectedQuality(result: StartCheckResult): string {
+  if (result.gaveUp) return "From here: nothing counted until I can see you.";
+  if (result.cameraSide === 'behind' || result.cameraSide === 'side_left' || result.cameraSide === 'side_right') {
+    return "From here: it counts most punches, but won't name them or say which hand.";
+  }
+  if (result.handsHidden || result.cameraHeight !== 'level') {
+    return 'From here: it counts most punches and names only the clear ones.';
+  }
+  if (result.cameraSide === 'front') {
+    return "From here: punches by name, some of them wrong. If the phone is really behind you, it can mix up your hands, so move it to your side.";
+  }
+  return 'From here: it counts most punches. Treat the names as a rough guide: jabs, crosses and hooks get mixed up.';
 }

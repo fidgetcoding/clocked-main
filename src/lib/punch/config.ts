@@ -45,6 +45,29 @@ export const PUNCH_CONFIG = {
      * of a hook: on my recording turned in software, crosses bow this much too.
      */
     offAxisYaw: 10,
+    /** Off-axis, an arm joint the model places with at least this visibility is still followed. */
+    hiddenArmVisibility: 0.03,
+    /** Below this visibility at any point on the way out, the punch is counted but not named. */
+    namedArmVisibility: 0.6,
+    /** The same limit nearer the front, where a real fighter's arm can dip without being hidden. */
+    partlyHiddenVisibility: 0.4,
+    /**
+     * Off-axis the model blurs straights and hooks, so each name needs clear evidence or it's "punch".
+     * Fitted to the mannequin, where naming them on the front-view rules was right about half the time.
+     */
+    clearNamesYaw: 22,
+    /** The spine reads tilted this far, in degrees, when the camera is well below or above the fighter. */
+    lowCameraTilt: 15,
+    highCameraTilt: 14,
+    offAxisStraightElbow: 125,
+    offAxisStraightReach: 0.85,
+    offAxisStraightBend: 0.15,
+    offAxisHookBend: 0.25,
+    offAxisHookElbow: 115,
+    offAxisUppercutUpShare: 0.6,
+    offAxisUppercutRise: 0.6,
+    /** A hidden arm's position is partly the model's guess, so a punch from it has to move further. */
+    hiddenMinDistance: 0.6,
     /** Punches on both arms this close together, off-axis, are one punch seen twice. */
     mirrorWindowMs: 250,
     unsureBend: 0.1,
@@ -249,9 +272,12 @@ export const PUNCH_CONFIG = {
     /** Camera angles, in degrees from straight in front of you. */
     frontWithin: 20,
     sideFrom: 70,
+    behindFrom: 115,
+    /** A wrist seen less than this through the check counts as hidden. */
+    handsSeen: 0.5,
     /** Spine tilt, in degrees, read as the camera looking down or up at you. */
-    highFrom: 25,
-    lowFrom: 25,
+    highFrom: 14,
+    lowFrom: 15,
     /** How far apart front to back, in metres for the feet and shoulder widths for the hands, to call a stance. */
     feetApart: 0.08,
     handsApart: 0.25,

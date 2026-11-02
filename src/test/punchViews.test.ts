@@ -3,7 +3,7 @@ import { BodyTracker, LM, pictureLength, seenLength } from '@/lib/punch/body';
 import { classifyPunch } from '@/lib/punch/classify';
 import { PunchDetector } from '@/lib/punch/detector';
 import { assessFraming } from '@/lib/punch/framing';
-import { cameraAngleFromReading, describeCamera, placementAdvice, StartCheck, type StartCheckResult } from '@/lib/punch/startCheck';
+import { cameraAngleFromReading, describeCamera, expectedQuality, placementAdvice, StartCheck, type StartCheckResult } from '@/lib/punch/startCheck';
 import type { Landmark, PoseFrame, PunchDetected, PunchEvent } from '@/lib/punch/types';
 import { simulate } from './punchSynth';
 
@@ -49,6 +49,8 @@ const shape = {
   forearmFromLevel: 20,
   upperArmBelowLevel: 10,
   visibility: 0.95,
+  lowestVisibility: 0.95,
+  spineTilt: 0,
   pathBend: 0,
   viewYaw: 0,
 };
@@ -209,7 +211,7 @@ describe('the start check', () => {
     expect(check.isDone(5000)).toBe(true);
     const result = check.result();
     expect(result.gaveUp).toBe(true);
-    expect(describeCamera(result)).toMatch(/Couldn't get a read/);
+    expect(describeCamera(result)).toMatch(/can't see you/);
     expect(placementAdvice(result)).toMatch(/in the picture/);
   });
 
@@ -218,7 +220,7 @@ describe('the start check', () => {
       framed: true, headCut: false, legsCut: false, scale: 0.3, cameraAngle: 0, cameraSide: 'front', cameraHeight: 'level', stance: null, guard: null, gaveUp: false, shaky: false,
     };
     expect(placementAdvice(base)).toBeNull();
-    expect(placementAdvice({ ...base, cameraSide: 'side_left', cameraAngle: 85 })).toMatch(/far arm/);
+    expect(placementAdvice({ ...base, cameraSide: 'side_left', cameraAngle: 85 })).toMatch(/toward your front/);
     expect(placementAdvice({ ...base, headCut: true })).toMatch(/head/);
     expect(placementAdvice({ ...base, cameraHeight: 'high' })).toMatch(/looking down/);
     expect(placementAdvice({ ...base, shaky: true })).toMatch(/shaky/);
@@ -229,5 +231,41 @@ describe('the start check', () => {
     expect(cameraAngleFromReading(35)).toBe(60);
     expect(cameraAngleFromReading(-35)).toBe(-60);
     expect(cameraAngleFromReading(80)).toBe(90);
+  });
+});
+
+describe('placements around a bag', () => {
+  const base = {
+    framed: true, headCut: false, legsCut: false, scale: 0.4, cameraAngle: 0, cameraSide: 'front', cameraHeight: 'level',
+    stance: null, guard: null, gaveUp: false, shaky: false, seenShare: 1, handsHidden: false,
+  } as StartCheckResult;
+
+  it('tells someone blocked by the bag to move the phone, and that nothing counts yet', () => {
+    const blocked = { ...base, gaveUp: true, framed: false, seenShare: 0 };
+    expect(placementAdvice(blocked)).toMatch(/bag is between/);
+    expect(expectedQuality(blocked)).toMatch(/nothing counted/);
+  });
+
+  it('says a camera behind or side on counts but does not name', () => {
+    for (const cameraSide of ['behind', 'side_left', 'side_right'] as const) {
+      expect(expectedQuality({ ...base, cameraSide })).toMatch(/won't name/);
+    }
+    expect(describeCamera({ ...base, cameraSide: 'behind' })).toMatch(/behind you/);
+  });
+
+  it('warns when a hand is hidden, and when the camera is well off chest height', () => {
+    expect(placementAdvice({ ...base, cameraSide: 'left', handsHidden: true })).toMatch(/hiding a hand/);
+    expect(expectedQuality({ ...base, cameraHeight: 'low' })).toMatch(/only the clear ones/);
+  });
+
+  it('never names a punch whose arm was hidden, seen from behind, or from a steep off-axis angle', () => {
+    const clear = { reach: 0.95, elbow: 160, elbowHeldMax: 160, elbowOpening: 60, forwardShare: 0.6, upShare: 0, armAcross: 0, armAcrossShare: 0, outwardShare: 0, rise: 0, startBelowShoulder: 0, forearmFromVertical: 80, forearmFromLevel: 10, upperArmBelowLevel: 10, visibility: 0.95, lowestVisibility: 0.95, spineTilt: 0, pathBend: 0.02, viewYaw: 30 };
+    expect(classifyPunch('lead', clear).punch).toBe('jab');
+    expect(classifyPunch('lead', { ...clear, lowestVisibility: 0.2 }).punch).toBe('punch');
+    expect(classifyPunch('lead', { ...clear, spineTilt: -20 }).punch).toBe('punch');
+    const back = classifyPunch('lead', { ...clear, viewYaw: -175 });
+    expect(back.punch).toBe('punch');
+    expect(back.handUnsure).toBe(true);
+    expect(classifyPunch('lead', { ...clear, viewYaw: 0, spineTilt: -20 }).punch).toBe('jab');
   });
 });

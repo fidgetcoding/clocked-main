@@ -13,13 +13,13 @@ export type FramingStatus =
   | 'head_cut';
 
 export const FRAMING_MESSAGES: Record<Exclude<FramingStatus, 'ok'>, string> = {
-  no_person: "Can't see anyone. Step in front of the camera.",
+  no_person: "Can't see anyone. Step into the picture, and move the phone if the bag is in the way.",
   too_dark: 'Too dark to track you. Turn on a light in front of you.',
-  low_confidence: "Can't see your arms clearly. Add light or clear what's in the way.",
+  low_confidence: "Can't see your arms clearly. Add light, or move the phone if the bag is in the way.",
   out_of_frame: 'Get your head, shoulders and hips in the picture.',
-  too_close: 'Too close. Step back to about 6 to 8 feet.',
-  too_far: 'Too far away. Step in to about 6 to 8 feet.',
-  head_cut: 'Your head is at the top of the picture. Tilt the screen back or step back.',
+  too_close: 'Too close. Step back to about 6 to 10 feet.',
+  too_far: 'Too far away. Step in to about 6 to 10 feet.',
+  head_cut: 'Your head is at the top of the picture. Tilt the phone back or step back.',
 };
 
 /** Judges one frame of image-space landmarks (x and y from 0 to 1, image not mirrored). */

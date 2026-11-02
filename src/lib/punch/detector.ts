@@ -391,6 +391,10 @@ export class PunchDetector {
 
     const arm = armOf(peak.pose, state.side);
     if (!arm.wrist || !arm.elbow) return;
+    const toPeakVisibility = state.samples.slice(0, state.peakIndex + 1).map((s) => armOf(s.pose, state.side).visibility);
+    const lowestVisibility = Math.min(...toPeakVisibility);
+    const offAxis = Math.abs(peak.pose.viewYaw) >= view.offAxisYaw;
+    if (offAxis && lowestVisibility < view.namedArmVisibility && distance < view.hiddenMinDistance) return;
     const across = state.side === 'left' ? -delta.x : delta.x;
     const upperArm = dist(arm.shoulder, arm.elbow);
     const foreArm = dist(arm.elbow, arm.wrist);
@@ -438,6 +442,8 @@ export class PunchDetector {
       forearmFromLevel: degrees(Math.atan2(Math.abs(forearm.y), forearmSideways)),
       upperArmBelowLevel: degrees(Math.asin(Math.max(-1, Math.min(1, (arm.shoulder.y - arm.elbow.y) / Math.max(upperArm, 1e-6))))),
       visibility,
+      lowestVisibility,
+      spineTilt: peak.pose.spineTilt,
       pathBend: pathBendOf(toPeak, origin, peak.wrist, peak.pose.camera),
       viewYaw: peak.pose.viewYaw,
     };
