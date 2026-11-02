@@ -92,7 +92,8 @@ for (const viewport of [{ width: 1366, height: 768 }, { width: 390, height: 844 
 
     // The start check runs on the stage, and says what it saw when it's done
     await expect(page.getByTestId("start-check")).toBeVisible({ timeout: 20_000 });
-    await expect(page.getByTestId("start-check-result")).toBeVisible({ timeout: 20_000 });
+    // An upright phone has no room for what it saw, so only a wide screen shows the result
+    if (viewport.width > 500) await expect(page.getByTestId("start-check-result")).toBeVisible({ timeout: 20_000 });
 
     await expect(page.getByTestId("log-live-total")).toHaveText(String(PUNCHES.length), { timeout: 20_000 });
 
