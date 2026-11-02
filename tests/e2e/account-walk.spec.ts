@@ -395,7 +395,7 @@ test.describe("clubs and the feed", () => {
       await sharer.page.locator("button:has(svg.lucide-pencil)").first().click();
       await sharer.page.waitForURL("**/build**");
       await sharer.page.getByTitle("Share to Fight Club").click();
-      await expect(sharer.page.getByLabel("Workout Name")).not.toHaveValue("");
+      await expect(sharer.page.locator("#share-name")).not.toHaveValue("");
       const dialog = sharer.page.getByRole("dialog");
       await dialog.locator("input").first().fill(shareName);
       await dialog.getByRole("button", { name: "Share", exact: true }).click();
