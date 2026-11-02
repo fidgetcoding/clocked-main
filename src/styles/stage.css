@@ -49,6 +49,11 @@
   flex: none;
 }
 
+/* The picture itself, graded like a broadcast feed */
+.feed-graded {
+  filter: contrast(1.1) saturate(0.82) brightness(1.08);
+}
+
 /* Combos */
 .combo-grid {
   display: grid;
@@ -73,7 +78,8 @@
   width: calc(100% - 22cqh);
   margin-inline: auto;
   min-height: 0;
-  padding: 0.25rem 0.5rem;
+  /* Tall plates lean further at the corners, so the numeral stays clear of the slant */
+  padding: 0.25rem max(0.5rem, 7cqh);
 }
 
 .combo-glyph {

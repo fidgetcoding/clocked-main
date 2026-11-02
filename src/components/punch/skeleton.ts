@@ -13,7 +13,6 @@ const BONES: [number, number][] = [
 ];
 
 const JOINTS = [
-  LM.NOSE,
   LM.LEFT_SHOULDER,
   LM.RIGHT_SHOULDER,
   LM.LEFT_ELBOW,
@@ -59,7 +58,7 @@ export function drawSkeleton(canvas: HTMLCanvasElement, video: HTMLVideoElement,
 
   context.fillStyle = JOINT;
   context.strokeStyle = JOINT_EDGE;
-  context.lineWidth = 1.5 * scale;
+  context.lineWidth = 2 * scale;
   for (const index of JOINTS) {
     const point = landmarks[index];
     if (!seen(point)) continue;

@@ -172,7 +172,7 @@ export function ComboPlates({ moves, names = true, className }: { moves: ComboMo
               move.type === 'defense' ? 'plate-white plate-back' : move.type === 'movement' ? 'plate-steel' : 'plate-lime',
               drills && 'combo-plate-text',
             )}
-            style={{ animationDelay: `${index * 70}ms` }}
+            style={{ animationDelay: `calc(${index} * var(--wipe-stagger))` }}
           >
             <FitText className="combo-glyph" align="center" lineHeight={0.92}>
               {move.display}

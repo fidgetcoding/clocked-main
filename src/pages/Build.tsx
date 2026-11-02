@@ -883,6 +883,12 @@ const Build = () => {
                   promptEmailLink('share workouts');
                   return;
                 }
+                // onOpenChange doesn't fire when the dialog is opened from here, so the form starts fresh now
+                setShareName(name);
+                setShareDestination('feed');
+                setShareClubId(null);
+                setShareTags([]);
+                setShareMessage('');
                 setShowShareDialog(true);
               }}
               className="plate plate-graphite fx h-11 gap-2 px-4 text-xl"
@@ -1671,16 +1677,7 @@ const Build = () => {
         )}
 
         {/* Share to Fight Club Dialog */}
-        <Dialog open={showShareDialog} onOpenChange={(open) => {
-          setShowShareDialog(open);
-          if (open) {
-            setShareName(name);
-            setShareDestination('feed');
-            setShareClubId(null);
-            setShareTags([]);
-            setShareMessage('');
-          }
-        }}>
+        <Dialog open={showShareDialog} onOpenChange={setShowShareDialog}>
           <DialogContent>
             <DialogHeader>
               <DialogTitle className="text-5xl">Share to Fight Club</DialogTitle>
