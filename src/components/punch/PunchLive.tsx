@@ -201,7 +201,7 @@ export function PunchLive({
           lit
           paused={hud.paused}
           items={PUNCH_ORDER.filter((punch) => punch !== 'punch' && counts[punch] > 0).map((punch) => `${PUNCH_LABELS[punch]} ${counts[punch]}`).concat('Stays on this device')}
-          className={wide ? 'ticker-wide' : undefined}
+          className={wide ? 'ticker-wide mt-auto' : undefined}
         />
       </div>
 

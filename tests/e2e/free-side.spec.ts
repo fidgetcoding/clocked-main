@@ -102,6 +102,8 @@ test("Punch Check uses the same panel, and the end button stays clear", async ({
   await expect(panel).toHaveAttribute("data-side", "right", { timeout: 10_000 });
   await expect(page.getByTestId("punch-clock").locator("svg")).toBeVisible();
   await expect(page.getByRole("button", { name: "End round" })).toBeInViewport();
+  const ticker = await page.locator("[data-ticker]").boundingBox();
+  expect((ticker?.y ?? 0) + (ticker?.height ?? 0)).toBeGreaterThan(780);
 });
 
 test("nobody sees on-air copy before a session", async ({ page }) => {
