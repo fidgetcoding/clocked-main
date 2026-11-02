@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import type { StartCheckHud } from '@/hooks/usePunchTracking';
 import { useStance } from '@/hooks/useStance';
-import { describeCamera, placementAdvice } from '@/lib/punch/startCheck';
+import { describeCamera, expectedQuality, placementAdvice } from '@/lib/punch/startCheck';
 import { cn } from '@/lib/utils';
 
 // Long enough to read from where you're standing, then the feed is yours again
@@ -42,6 +42,7 @@ export function StartCheckStatus({ check, onSkip, onRerun, className }: StartChe
   return (
     <div data-testid="start-check-result" className={cn('bg-background/85 py-2 pl-4 pr-3', className)}>
       <p className="prose-w text-lg leading-snug">{describeCamera(check.result)}</p>
+      <p className="text-base leading-snug text-muted-foreground">{expectedQuality(check.result)}</p>
       {advice && <p className="text-base leading-snug text-muted-foreground">{advice}</p>}
       <div className="mt-2 flex flex-wrap gap-3">
         {switchTo && (

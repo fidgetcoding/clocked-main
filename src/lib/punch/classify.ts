@@ -32,6 +32,10 @@ export interface PunchShapeFeatures {
   /** Degrees the upper arm hangs below level at the peak. Negative means the elbow is above the shoulder. */
   upperArmBelowLevel: number;
   visibility: number;
+  /** Spine tilt as read, which says how far the camera is below or above the fighter. */
+  spineTilt: number;
+  /** The lowest arm visibility on the way to the peak. */
+  lowestVisibility: number;
   /** How far the wrist's path bowed from a straight line in the picture, as a share of its length. */
   pathBend: number;
   /** Degrees the fighter is turned from the camera, as the model read it. */
@@ -99,7 +103,16 @@ export function classifyPunch(hand: Hand, f: PunchShapeFeatures, config: PunchCo
   const sideOn = Math.abs(f.viewYaw) >= view.sideOnYaw;
   const maybeHook = shape === 'straight' && Math.abs(f.viewYaw) >= view.offAxisYaw && f.pathBend >= view.unsureBend && f.upShare < view.unsureMaxUpShare;
   const confidence = scores[shape] * Math.min(1, f.visibility / 0.8);
-  const isConfident = !sideOn && !maybeHook && confidence >= config.classify.minConfidence;
+  const steep = Math.abs(f.viewYaw) >= view.clearNamesYaw && (f.spineTilt <= -view.lowCameraTilt || f.spineTilt >= view.highCameraTilt);
+  const hidden = f.lowestVisibility < (Math.abs(f.viewYaw) >= view.clearNamesYaw ? view.namedArmVisibility : view.partlyHiddenVisibility);
+  const offAxis = Math.abs(f.viewYaw) >= view.clearNamesYaw;
+  const clearOffAxis =
+    shape === 'straight'
+      ? f.elbow >= view.offAxisStraightElbow && f.reach >= view.offAxisStraightReach && f.pathBend < view.offAxisStraightBend
+      : shape === 'hook'
+        ? f.pathBend >= view.offAxisHookBend && f.elbow < view.offAxisHookElbow
+        : f.upShare >= view.offAxisUppercutUpShare && f.rise >= view.offAxisUppercutRise;
+  const isConfident = !sideOn && !maybeHook && !hidden && !steep && (!offAxis || clearOffAxis) && confidence >= config.classify.minConfidence;
   return {
     punch: isConfident ? LABELS[shape][hand] : ('punch' as const),
     shape: isConfident ? shape : null,

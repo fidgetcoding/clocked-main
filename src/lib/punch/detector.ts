@@ -54,6 +54,7 @@ interface HandState {
   idleSpeed: number;
   /** When this hand last landed a punch. */
   lastPunchT: number;
+  lastGuessedT: number;
   /** State of the other hand while this one extends. */
   otherStartedIdle: boolean;
   otherStartedLow: boolean;
@@ -89,6 +90,7 @@ const newHand = (side: Side, hand: Hand): HandState => ({
   restPose: null,
   idleSpeed: 0,
   lastPunchT: -Infinity,
+  lastGuessedT: -Infinity,
   otherStartedIdle: false,
   otherStartedLow: false,
 });
@@ -196,6 +198,7 @@ export class PunchDetector {
   }
 
   private step(state: HandState, other: HandState, pose: BodyPose, events: PunchEvent[]) {
+    if (armOf(pose, state.side).guessed) state.lastGuessedT = pose.t;
     const wrist = armOf(pose, state.side).wrist;
     if (!wrist) {
       // Not seen: abandon any extension in progress rather than judging it on missing data
@@ -391,6 +394,13 @@ export class PunchDetector {
 
     const arm = armOf(peak.pose, state.side);
     if (!arm.wrist || !arm.elbow) return;
+    const toPeakVisibility = state.samples.slice(0, state.peakIndex + 1).map((s) => armOf(s.pose, state.side).visibility);
+    const lowestVisibility = Math.min(...toPeakVisibility);
+    const offAxis = Math.abs(peak.pose.viewYaw) >= view.offAxisYaw;
+    if (state.samples[0].pose.t - state.lastGuessedT <= view.guessedRecentlyMs || state.samples.slice(0, state.peakIndex + 1).some((s) => armOf(s.pose, state.side).guessed)) {
+      const turned = Math.max(Math.abs(startPose.shoulderYaw - peak.pose.shoulderYaw), Math.abs(startPose.hipYaw - peak.pose.hipYaw));
+      if (distance < view.hiddenMinDistance || turned < view.hiddenMinRotation) return;
+    }
     const across = state.side === 'left' ? -delta.x : delta.x;
     const upperArm = dist(arm.shoulder, arm.elbow);
     const foreArm = dist(arm.elbow, arm.wrist);
@@ -438,6 +448,8 @@ export class PunchDetector {
       forearmFromLevel: degrees(Math.atan2(Math.abs(forearm.y), forearmSideways)),
       upperArmBelowLevel: degrees(Math.asin(Math.max(-1, Math.min(1, (arm.shoulder.y - arm.elbow.y) / Math.max(upperArm, 1e-6))))),
       visibility,
+      lowestVisibility,
+      spineTilt: peak.pose.spineTilt,
       pathBend: pathBendOf(toPeak, origin, peak.wrist, peak.pose.camera),
       viewYaw: peak.pose.viewYaw,
     };

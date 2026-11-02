@@ -44,6 +44,8 @@ export interface ArmPose {
   shoulder: Vec3;
   /** Mean visibility of the arm's joints. */
   visibility: number;
+  /** The model only guessed where the wrist or elbow is, because it couldn't see it. */
+  guessed: boolean;
 }
 
 /**
@@ -81,6 +83,8 @@ export interface BodyPose {
   viewYaw: number;
   /** The direction of the camera in this frame, which is where depth is weakest. */
   camera: Vec3;
+  /** Spine tilt as the model reads it, positive toward the camera at the top. Low cameras read negative. */
+  spineTilt: number;
   /** False when the head is out of the picture and its position is assumed. */
   headSeen: boolean;
 }
@@ -109,6 +113,7 @@ export class BodyTracker {
   /** The part of the spine's tilt put down to camera height, in radians. */
   private cameraTilt = 0;
   private lastTiltSet = false;
+  private spineTilt: number | null = null;
 
   constructor(private readonly config: PunchConfig = PUNCH_CONFIG) {}
 
@@ -121,6 +126,7 @@ export class BodyTracker {
     this.lastNose = null;
     this.cameraTilt = 0;
     this.lastTiltSet = false;
+    this.spineTilt = null;
   }
 
   /** A camera high up or down low makes a standing fighter look tilted, so that tilt is taken out. */
@@ -161,16 +167,28 @@ export class BodyTracker {
     return this.heading;
   }
 
-  private seen(landmark: Landmark | undefined): landmark is Landmark {
+  private seen(landmark: Landmark | undefined, min: number = this.config.input.minVisibility): landmark is Landmark {
     if (!landmark || !Number.isFinite(landmark.x + landmark.y + landmark.z)) return false;
-    return (landmark.visibility ?? 1) >= this.config.input.minVisibility;
+    return (landmark.visibility ?? 1) >= min;
+  }
+
+  /**
+   * Off-axis an arm is often behind the body or the bag. The model still places it and it still moves
+   * when thrown, so it's kept for counting, and its low visibility stops the punch being named.
+   */
+  private minVisibilityFor(index: number) {
+    const { input, view } = this.config;
+    const isArm = index === LM.LEFT_ELBOW || index === LM.RIGHT_ELBOW || index === LM.LEFT_WRIST || index === LM.RIGHT_WRIST;
+    if (!isArm || !this.heading) return input.minVisibility;
+    const yawNow = Math.abs((Math.atan2(this.heading.z, this.heading.x) * 180) / Math.PI);
+    return yawNow >= view.hiddenArmYaw ? view.hiddenArmVisibility : input.minVisibility;
   }
 
   private smooth(landmarks: Landmark[], dt: number) {
     const alpha = 1 - Math.exp(-dt / this.config.input.smoothingTauMs);
     for (const index of JOINTS) {
       const raw = landmarks[index];
-      if (!this.seen(raw)) {
+      if (!this.seen(raw, this.minVisibilityFor(index))) {
         this.smoothed.delete(index);
         this.recent.delete(index);
         continue;
@@ -227,9 +245,16 @@ export class BodyTracker {
     const origin = mid(leftShoulder, rightShoulder);
     const turn = (x: number, z: number) => ({ x: x * heading.x + z * heading.z, z: -x * heading.z + z * heading.x });
     let tilt = this.cameraTilt;
+    let spineTilt = this.spineTilt;
     if (leftHip && rightHip) {
       const hips = mid(leftHip, rightHip);
       const spine = turn(origin.x - hips.x, hips.z - origin.z);
+      if (!holdHeading) {
+        const alpha = 1 - Math.exp(-dt / this.config.view.headingTauMs);
+        const reading = (Math.atan2(hips.z - origin.z, hips.y - origin.y) * 180) / Math.PI;
+        this.spineTilt = this.spineTilt === null ? reading : this.spineTilt + alpha * (reading - this.spineTilt);
+      }
+      spineTilt = this.spineTilt;
       tilt = this.updateTilt(spine.z, hips.y - origin.y, dt, holdHeading);
     }
     const cosTilt = Math.cos(tilt);
@@ -252,6 +277,7 @@ export class BodyTracker {
         shoulder: toBody(shoulder),
         visibility:
           ((wrist?.visibility ?? 0) + (elbow?.visibility ?? 0) + (shoulder.visibility ?? 1)) / 3,
+        guessed: [wrist, elbow].some((joint) => !!joint && (joint.visibility ?? 1) < this.config.input.minVisibility),
       };
     };
 
@@ -272,6 +298,7 @@ export class BodyTracker {
       hipYaw: leftHip && rightHip ? yaw(leftHip, rightHip) : yaw(leftShoulder, rightShoulder),
       viewYaw: (Math.atan2(heading.z, heading.x) * 180) / Math.PI,
       camera: { x: cameraFlat.x, ...level(0, cameraFlat.z) },
+      spineTilt: spineTilt ?? 0,
       headSeen: !!nose,
     };
   }
