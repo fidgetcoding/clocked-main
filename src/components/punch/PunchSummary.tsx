@@ -41,7 +41,7 @@ export function PunchSummary({ summary, seconds, logged, logging, logFailed, onL
 
         {summary.total === 0 ? (
           <p className="mt-3 px-4 text-lg">
-            No punches spotted. Check that your head, hands and hips are in the picture, 6 to 8 feet from the camera,
+            No punches spotted. Check that your head, hands and hips are in the picture, 6 to 10 feet from the camera,
             and that the room is well lit.
           </p>
         ) : (

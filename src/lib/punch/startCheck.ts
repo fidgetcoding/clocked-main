@@ -232,7 +232,7 @@ export function placementAdvice(result: StartCheckResult): string | null {
   if (result.cameraSide === 'side_left' || result.cameraSide === 'side_right') {
     return 'For some punches by name, move the phone around toward your front, to about 60°.';
   }
-  if (result.cameraHeight === 'low') return 'The phone is looking up at you, which blurs punch types. Raise it to hip or chest height if you can.';
+  if (result.cameraHeight === 'low') return 'The phone is looking up at you, which blurs punch types. Raise it on a box or step, or to hip height if you can.';
   if (result.cameraHeight === 'high') return 'The phone is looking down on you, which blurs punch types. Chest height works best.';
   return null;
 }
@@ -243,6 +243,7 @@ export function expectedQuality(result: StartCheckResult): string {
   if (result.cameraSide === 'behind' || result.cameraSide === 'side_left' || result.cameraSide === 'side_right') {
     return "From here: it counts most punches, but won't name them or say which hand.";
   }
+  if (result.cameraHeight === 'low') return 'From here: it counts most punches and names only the clear ones. It may add a few extra.';
   if (result.handsHidden || result.cameraHeight !== 'level') {
     return 'From here: it counts most punches and names only the clear ones.';
   }
