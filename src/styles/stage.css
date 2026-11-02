@@ -631,6 +631,11 @@
   .stage-check .fx {
     font-size: 1.25rem;
   }
+
+  /* No room for what it saw next to the clock: the countdown shows, the result doesn't */
+  .stage[data-layout="portrait"] .stage-check[data-testid="start-check-result"] {
+    display: none;
+  }
 }
 
 /* The start check sits away from the panel */
