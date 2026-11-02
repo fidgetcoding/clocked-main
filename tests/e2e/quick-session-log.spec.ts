@@ -270,3 +270,36 @@ test("End & Save from the back button puts an account's session and counts in th
     })
     .toBeGreaterThan(0);
 });
+
+test("End & Save on a full workout puts an account's session, punch log and XP in the database", async ({ page }) => {
+  await fakeCameraAndPoses(page);
+  const email = `workout-leave-${Date.now()}@example.com`;
+  await requestSignInEmail(page, APP_URL, email);
+  await clickNewestEmailLink(page, email);
+  await finishAccountOnboarding(page, "Log Workout Leaver");
+  await page.evaluate(() =>
+    localStorage.setItem("get-clocked-punch-prefs", JSON.stringify({ state: { roundSeconds: 0, voiceCues: false, quickSessionCamera: true, workoutCamera: true }, version: 0 })),
+  );
+  await page.goto(APP_URL);
+  await playButton(page).click();
+  await page.waitForURL("**/workout/**");
+  await playButton(page).click();
+  const combo = page.locator(".combo-plate").first();
+  for (let i = 0; i < 60 && !(await combo.isVisible()); i++) await page.getByRole("button", { name: "Skip segment" }).click();
+  await expect(page.getByTestId("camera-panel-count")).toHaveText(String(PUNCHES.length), { timeout: 30_000 });
+
+  await page.getByRole("button", { name: "Leave workout" }).click();
+  await page.getByRole("button", { name: "End & Save" }).click();
+  await page.waitForURL((url) => url.pathname === "/");
+
+  const userId = await userIdFor(email);
+  await expect
+    .poll(async () => {
+      const { data } = await service.from("workout_history").select("punch_log, xp_earned, duration").eq("user_id", userId);
+      return data?.length === 1 && data[0].xp_earned > 0 && data[0].duration > 0 ? data[0].punch_log?.punches?.length : null;
+    })
+    .toBe(PUNCHES.length);
+  await expect
+    .poll(async () => (await service.from("profiles").select("total_xp").eq("user_id", userId).single()).data?.total_xp ?? 0)
+    .toBeGreaterThan(0);
+});

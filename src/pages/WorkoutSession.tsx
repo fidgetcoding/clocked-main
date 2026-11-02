@@ -953,7 +953,7 @@ const WorkoutSession = () => {
     return () => window.removeEventListener('popstate', askBeforeLeaving);
   }, [isRunning, isComplete]);
 
-  const handleConfirmExit = (saveXP: boolean = false) => {
+  const handleConfirmExit = () => {
     endSession();
     cancelSpeech();
     setShowExitConfirm(false);
@@ -1018,6 +1018,23 @@ const WorkoutSession = () => {
         last_used_at: new Date().toISOString(),
       });
     }
+  };
+
+  // End & Save finishes the session the way Done does, then logs it and goes home without stopping at the summary.
+  // Waits for the result, so the XP and stats are worked out in the one place they always are.
+  const [savingOnLeave, setSavingOnLeave] = useState(false);
+  const logRef = useRef<() => Promise<void>>();
+  const leaveLogged = useRef(false);
+  useEffect(() => {
+    if (!savingOnLeave || !sessionResult || leaveLogged.current) return;
+    leaveLogged.current = true;
+    void logRef.current?.().finally(() => navigate('/'));
+  }, [savingOnLeave, sessionResult, navigate]);
+
+  const handleEndAndSave = () => {
+    setShowExitConfirm(false);
+    setSavingOnLeave(true);
+    handleCompleteEarly();
   };
 
   const noteCutShort = () => {
@@ -1089,7 +1106,9 @@ const WorkoutSession = () => {
       try { addLocalXP(sessionResult.sessionTotal, true); } catch (e) { console.error('Local XP update failed:', e); }
     }
     
-    addHistoryEntry.mutate({
+    // mutateAsync, because End & Save leaves the page and a callback passed to mutate would never run
+    try {
+      await addHistoryEntry.mutateAsync({
       workout_id: workout?.id || null,
       workout_name: workout?.name || 'Workout',
       completed_at: new Date().toISOString(),
@@ -1100,50 +1119,59 @@ const WorkoutSession = () => {
       punch_log: punchLog.finish() ?? undefined,
       is_manual_entry: false,
       round_feedback: feedbackMode === 'advanced' ? roundFeedback : [],
-    }, {
-      onSuccess: async () => {
-        setLogged(true);
-        if (qualifiesForRewards(totalElapsed)) {
-          postWorkoutComplete.mutate({
-            workoutName: workout?.name || 'Workout',
-            xpEarned: sessionResult.sessionTotal,
-            duration: totalElapsed,
+      });
+      setLogged(true);
+      if (qualifiesForRewards(totalElapsed)) {
+        postWorkoutComplete.mutate({
+          workoutName: workout?.name || 'Workout',
+          xpEarned: sessionResult.sessionTotal,
+          duration: totalElapsed,
+        });
+      }
+      if (user?.id && profile) {
+        const postLogStats = await computePostLogStats(profile.user_id, profile, totalElapsed);
+        if (postLogStats) {
+          const postL100Increments = computePostL100Increments(
+            profile,
+            sessionResult.sessionTotal,
+            flatSegments,
+            getSessionEffort(totalElapsed),
+          );
+          const credit = getSessionCredit(totalElapsed, tier, sessionLog.content);
+          
+          
+          updateProfile.mutate({
+            ...postLogStats,
+            ...postL100Increments,
+            total_xp: (profile.total_xp || 0) + sessionResult.sessionTotal,
+            combos_landed: (profile.combos_landed || 0) + credit.combos,
+            total_pushups: (profile.total_pushups || 0) + credit.pushups,
+            total_burpees: (profile.total_burpees || 0) + credit.burpees,
+            total_curlups: (profile.total_curlups || 0) + credit.curlups,
+            total_jog_run_minutes: (profile.total_jog_run_minutes || 0) + credit.jogRunMinutes,
+            complex_combos: (profile.complex_combos || 0) + credit.complexCombos,
+            defense_combos: (profile.defense_combos || 0) + credit.defenseCombos,
+            counter_combos: (profile.counter_combos || 0) + credit.counterCombos,
           });
         }
-        if (user?.id && profile) {
-          const postLogStats = await computePostLogStats(profile.user_id, profile, totalElapsed);
-          if (postLogStats) {
-            const postL100Increments = computePostL100Increments(
-              profile,
-              sessionResult.sessionTotal,
-              flatSegments,
-              getSessionEffort(totalElapsed),
-            );
-            const credit = getSessionCredit(totalElapsed, tier, sessionLog.content);
-            
-            
-            updateProfile.mutate({
-              ...postLogStats,
-              ...postL100Increments,
-              total_xp: (profile.total_xp || 0) + sessionResult.sessionTotal,
-              combos_landed: (profile.combos_landed || 0) + credit.combos,
-              total_pushups: (profile.total_pushups || 0) + credit.pushups,
-              total_burpees: (profile.total_burpees || 0) + credit.burpees,
-              total_curlups: (profile.total_curlups || 0) + credit.curlups,
-              total_jog_run_minutes: (profile.total_jog_run_minutes || 0) + credit.jogRunMinutes,
-              complex_combos: (profile.complex_combos || 0) + credit.complexCombos,
-              defense_combos: (profile.defense_combos || 0) + credit.defenseCombos,
-              counter_combos: (profile.counter_combos || 0) + credit.counterCombos,
-            });
-          }
-        }
-      },
-      onError: (error) => console.error('Failed to log workout:', error),
-    });
+      }
+    } catch (error) {
+      console.error('Failed to log workout:', error);
+    }
   };
+  logRef.current = handleLog;
 
   // Workout complete screen
   if (isComplete) {
+    if (savingOnLeave) {
+      return (
+        <AppLayout hideNav>
+          <div className="min-h-screen flex items-center justify-center">
+            <p className="fx text-4xl text-volt">Saving...</p>
+          </div>
+        </AppLayout>
+      );
+    }
     if (!sessionResult) {
       return (
         <AppLayout hideNav>
@@ -1338,7 +1366,7 @@ const WorkoutSession = () => {
               <AlertDialogTitle>Leave Workout?</AlertDialogTitle>
               <AlertDialogDescription>
                 {accumulatedXP > 0 
-                  ? `You have +${Math.round(accumulatedXP)} XP accumulated. Leaving without logging will discard your XP.`
+                  ? `You have +${Math.round(accumulatedXP)} XP so far. End & Save keeps your XP, history and punch log.`
                   : "Are you sure you want to leave this workout?"}
               </AlertDialogDescription>
             </AlertDialogHeader>
@@ -1346,9 +1374,11 @@ const WorkoutSession = () => {
               <AlertDialogCancel>
                 Cancel
               </AlertDialogCancel>
-              <AlertDialogAction onClick={() => handleConfirmExit()} className={buttonVariants({ variant: 'destructive' })}>
-                Leave
+              <AlertDialogAction onClick={handleConfirmExit} className={buttonVariants({ variant: 'destructive' })}>
+                Leave Without Saving
               </AlertDialogAction>
+              {/* Nothing trained, nothing to save */}
+              {totalElapsed > 0 && <AlertDialogAction onClick={handleEndAndSave}>End & Save</AlertDialogAction>}
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>

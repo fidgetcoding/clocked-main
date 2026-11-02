@@ -238,3 +238,39 @@ test("a shared speed bag phase keeps drills and punches apart", async ({ page })
   await expect(page.getByText("FREESTYLE")).toBeVisible();
   await expect(page.getByText("Double Left Lead")).toHaveCount(0);
 });
+
+const historyInBrowser = (page: Page) =>
+  page.evaluate(() => JSON.parse(localStorage.getItem("get-clocked-history") ?? "{}").state?.guestHistory ?? []);
+
+test("End & Save on a workout keeps the XP and the history, and leaves nothing to resume", async ({ page }) => {
+  await startFirstSet(page);
+  await train(page, 30);
+  await page.goBack();
+  await page.getByRole("button", { name: "End & Save" }).click();
+  await page.getByText("Your Sets").waitFor();
+  await expect.poll(async () => (await historyInBrowser(page)).length).toBe(1);
+  const [saved] = await historyInBrowser(page);
+  expect(saved.duration).toBeGreaterThan(0);
+  expect(saved.xp_earned).toBeGreaterThan(0);
+  await expect.poll(() => storedXP(page)).toBeGreaterThan(0);
+  expect(await savedSession(page)).toBeNull();
+});
+
+test("Leave Without Saving on a workout adds no history", async ({ page }) => {
+  await startFirstSet(page);
+  await train(page, 30);
+  await page.goBack();
+  await page.getByRole("button", { name: "Leave Without Saving" }).click();
+  await page.getByText("Your Sets").waitFor();
+  expect(await historyInBrowser(page)).toHaveLength(0);
+});
+
+test("a workout with nothing trained has nothing to save", async ({ page }) => {
+  await startFirstSet(page);
+  await page.goBack();
+  await expect(page.getByText("Leave Workout?")).toBeVisible();
+  await expect(page.getByRole("button", { name: "End & Save" })).toHaveCount(0);
+  await page.getByRole("button", { name: "Leave Without Saving" }).click();
+  await page.getByText("Your Sets").waitFor();
+  expect(await historyInBrowser(page)).toHaveLength(0);
+});
