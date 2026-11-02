@@ -229,7 +229,7 @@ const AdminPortal = () => {
 
   return (
     <AppLayout>
-      <BroadcastPage show="Crew" onBack={() => navigate('/settings')}>
+      <BroadcastPage show="Admin" onBack={() => navigate('/settings')}>
         <div className="px-4 pt-3" role="heading" aria-level={1}>
           <FitText className="fx h-14" max={72}>ADMIN PANEL</FitText>
         </div>

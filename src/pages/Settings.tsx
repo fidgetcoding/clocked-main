@@ -136,7 +136,7 @@ const Settings = () => {
 
     return (
       <div className="flex min-w-0 flex-col border-b border-surface-2 px-4 py-3 odd:border-r sm:border-b-0 sm:border-r sm:last:border-r-0">
-        <span className="lab">Ch {channel}</span>
+        <span className="lab">Sound {channel}</span>
         <SwitchPrimitives.Root
           checked={isEnabled}
           onCheckedChange={(checked) => handleTogglePreference(prefKey, checked)}
@@ -157,7 +157,7 @@ const Settings = () => {
   return (
     <AppLayout>
       <BroadcastPage onBack={() => navigate('/profile')}>
-        <p className="lab lab-lime px-4 pt-3">Control room</p>
+        <p className="lab lab-lime px-4 pt-3">Settings</p>
         <h1 className="px-4 pt-1">
           <FitText className="fx h-[clamp(4rem,22vw,6.5rem)]" max={104}>SETTINGS</FitText>
         </h1>

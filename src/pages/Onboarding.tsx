@@ -355,7 +355,7 @@ const Onboarding = () => {
     ] as const;
     return (
       <PreShow
-        show="Casting"
+        show="Profile"
         segment={segment}
         segments={segments}
         title="Who are you?"
@@ -386,12 +386,12 @@ const Onboarding = () => {
   if (step === 'name') {
     return (
       <PreShow
-        show="Name graphic"
+        show="Name"
         segment={segment}
         segments={segments}
         title="What should we call you?"
         sub="Enter your name or nickname"
-        ticker={['Your lower third, on every session']}
+        ticker={['Shown on your sessions']}
         onNext={() => handleNext()}
       >
         <div className="overflow-hidden pb-1" aria-hidden="true">
@@ -422,7 +422,7 @@ const Onboarding = () => {
   if (step === 'stance') {
     return (
       <PreShow
-        show="Tale of the tape"
+        show="Stance"
         segment={segment}
         segments={segments}
         title="Your Stance"
@@ -457,12 +457,12 @@ const Onboarding = () => {
   if (step === 'experience') {
     return (
       <PreShow
-        show="Weigh-in"
+        show="Level"
         segment={segment}
         segments={segments}
         title="Experience Level"
         sub="How much combat sports experience do you have?"
-        ticker={['Your division sets your first loadout']}
+        ticker={['Your level sets your first loadout']}
         onNext={() => handleNext()}
       >
         <div className="space-y-2">
@@ -537,7 +537,7 @@ const Onboarding = () => {
   // Coach tools aren't built yet, so this says so instead of collecting a roster nothing would save
   if (step === 'coachTools') {
     return (
-      <BroadcastPage show="Pilot episode" className="flex flex-col">
+      <BroadcastPage show="Coming soon" className="flex flex-col">
         <div className="mt-4 flex-1">
           <div className="overflow-hidden py-5" style={pilotStripes}>
             <SectionChyron className="plate-slap h-10 text-[2rem]">Coming soon</SectionChyron>
@@ -556,12 +556,12 @@ const Onboarding = () => {
   if (step === 'goals') {
     return (
       <PreShow
-        show="Storylines"
+        show="Goals"
         segment={segment}
         segments={segments}
         title={role === 'coach' ? 'Your Coaching Goals' : 'Your Goals'}
         sub={role === 'coach' ? 'What do you want to achieve with your team?' : 'What do you want to achieve?'}
-        ticker={[`${goals.length} ${goals.length === 1 ? 'storyline' : 'storylines'} picked`]}
+        ticker={[`${goals.length} ${goals.length === 1 ? 'goal' : 'goals'} picked`]}
         onNext={() => setStep('complete')}
       >
         <div className="space-y-2.5">

@@ -68,7 +68,7 @@ const Gloves = () => {
 
   return (
     <AppLayout>
-      <BroadcastPage show="In the corner">
+      <BroadcastPage show="Gloves">
         <h1 className="sr-only">Gloves</h1>
 
         {/* In the corner: what you're wearing */}

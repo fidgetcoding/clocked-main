@@ -341,7 +341,7 @@ export function FeedBanner({
     if (dismissed) return null;
     return (
       <div data-testid="camera-panel-problem" className={cn('bg-background/90 p-3', className)}>
-        <span className="lab lab-w">We lost the feed</span>
+        <span className="lab lab-w">Camera problem</span>
         <p className="fx mt-1 text-2xl">{CAMERA_MESSAGES[feed.problem].title}</p>
         <p className="text-base text-muted-foreground">Your session carries on without it.</p>
         <Button size="sm" variant="secondary" className="mt-2" onClick={onDismiss} aria-label="Dismiss camera message">
@@ -353,7 +353,7 @@ export function FeedBanner({
   if (feed.paused) {
     return (
       <div className={cn('bg-background/90 p-3', className)}>
-        <p className="fx text-2xl">Feed cut. You left the tab.</p>
+        <p className="fx text-2xl">Camera off. You left the tab.</p>
         <Button size="sm" className="mt-2 gap-2" onClick={feed.resume}>
           <CameraIcon className="size-4" />
           Turn camera back on
@@ -395,7 +395,7 @@ export function FlashLayer({ flash, className }: { flash?: RunFlash; className?:
         <div key={flash.badge.id} className="plate-slap flex items-center gap-2.5 bg-background/90 py-1.5 pl-3 pr-4">
           <BadgeArt id={flash.badge.artId} className="size-12" />
           <span>
-            <span className="lab lab-lime block">Stat alert</span>
+            <span className="lab lab-lime block">New badge</span>
             <span className="fx block text-2xl">
               {flash.badge.name} <span className="text-volt">+{flash.badge.xp.toLocaleString()} XP</span>
             </span>

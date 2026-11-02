@@ -39,7 +39,7 @@ export function PrestigePrompt({ currentPrestige, onPrestige, onDefer }: Prestig
 
   if (confirming) {
     return (
-      <BroadcastPage show="Official ruling" className="pb-6">
+      <BroadcastPage show="Rank up" className="pb-6">
         <Plate as="h2" tone="white" bleed="both" className="mt-3 flex h-20 justify-start px-4 text-6xl">
           Are you sure?
         </Plate>
@@ -63,7 +63,7 @@ export function PrestigePrompt({ currentPrestige, onPrestige, onDefer }: Prestig
   }
 
   return (
-    <BroadcastPage show="Title fight" className="pb-6">
+    <BroadcastPage show="Rank up" className="pb-6">
       <div className="relative mt-2 flex min-h-[13rem] items-start overflow-hidden">
         <div className="relative z-10 px-4 pt-2">
           <p className="lab lab-lime">You've conquered</p>
@@ -95,7 +95,7 @@ export function PrestigePrompt({ currentPrestige, onPrestige, onDefer }: Prestig
  */
 export function MaxLevelCelebration({ onDismiss }: { onDismiss: () => void }) {
   return (
-    <BroadcastPage show="Final" className="pb-6">
+    <BroadcastPage show="Done" className="pb-6">
       <Plate as="h1" tone="gold" bleed="both" className="mt-6 flex h-24 justify-start px-4 text-7xl">
         MAX LEVEL
       </Plate>

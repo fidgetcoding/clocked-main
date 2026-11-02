@@ -16,13 +16,13 @@ const NotFound = () => {
         </div>
       </div>
       <Plate tone="white" bleed="both" className="-mt-6 flex w-full px-4 py-2">
-        <FitText className="h-16 sm:h-24 [@media(max-height:500px)]:h-12" max={110}>Please stand by</FitText>
+        <FitText className="h-16 sm:h-24 [@media(max-height:500px)]:h-12" max={110}>Page not found</FitText>
       </Plate>
       <div className="mx-auto w-full max-w-[46rem] px-4 pt-4">
         <h1 className="fx text-[clamp(2.75rem,12vw,4rem)]">404</h1>
         <p className="fx mt-1 text-3xl">Oops! Page not found</p>
         <p className="prose-w mt-2 text-lg leading-snug">
-          There's no fight on this channel. The ring announcer has been talking for an hour.
+          This page doesn't exist.
         </p>
         <a href="/" className={cn(buttonVariants({ size: 'lg' }), 'my-4 w-full [@media(max-height:500px)]:h-12 [@media(max-height:500px)]:text-2xl')}>
           Return to Home

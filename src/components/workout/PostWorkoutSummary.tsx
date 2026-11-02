@@ -116,7 +116,7 @@ export function PostWorkoutSummary({
   );
 
   return (
-    <BroadcastPage show="Final" className="pb-6">
+    <BroadcastPage show="Done" className="pb-6">
       <div className="px-4 pt-3">
         <div role="heading" aria-level={1} className="fx h-16">
           <FitText className="h-full" max={72}>WORKOUT COMPLETE!</FitText>

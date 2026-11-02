@@ -22,7 +22,7 @@ export function PunchSetup({ onStart, onBack }: PunchSetupProps) {
   const { hasChosen, setStance } = useStance();
 
   return (
-    <BroadcastPage show="Pre-fight" onBack={onBack} backLabel="Home" className="pb-6">
+    <BroadcastPage show="Setup" onBack={onBack} backLabel="Home" className="pb-6">
       <div className="px-4 pt-3">
         <h1 className="fx text-7xl">Punch Check</h1>
         <p className="mt-2 text-lg">

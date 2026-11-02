@@ -105,7 +105,7 @@ const History = () => {
 
   return (
     <AppLayout>
-      <BroadcastPage show="Replays">
+      <BroadcastPage show="History">
         <h1 className="px-4 pt-3">
           <FitText className="fx h-[clamp(3rem,15vw,5rem)]" max={80}>WORKOUT LOG</FitText>
         </h1>

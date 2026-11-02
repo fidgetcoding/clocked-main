@@ -51,7 +51,7 @@ const Auth = () => {
   );
 
   return (
-    <BroadcastPage show="Season pass" className="flex flex-col">
+    <BroadcastPage show="Sign in" className="flex flex-col">
       {!isBackendConfigured ? (
         <div className="bg-slash flex flex-1 flex-col justify-center overflow-hidden py-6">
           <Plate tone="white" bleed="both" className="plate-slap flex w-full px-4 py-2">

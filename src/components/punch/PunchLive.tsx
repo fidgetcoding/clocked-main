@@ -207,14 +207,14 @@ export function PunchLive({
 
       {loading && (
         <div className="stage-incoming z-20">
-          <span className="fx text-5xl text-volt">Feed incoming</span>
+          <span className="fx text-5xl text-volt">Camera starting</span>
           <span className="lab lab-w">Starting the camera and pose tracker</span>
         </div>
       )}
 
       {hud.paused && (
         <div data-testid="punch-paused" className="absolute inset-0 z-20 flex flex-col justify-center gap-3 bg-background/95">
-          <Plate tone="white" bleed="both" className="flex h-24 justify-start px-4 text-7xl">Feed cut</Plate>
+          <Plate tone="white" bleed="both" className="flex h-24 justify-start px-4 text-7xl">Camera off</Plate>
           <p className="fx px-4 text-4xl">Camera off because you left the tab.</p>
           <div className="px-5">
             <Button size="lg" onClick={onResume} className="w-full gap-3">
