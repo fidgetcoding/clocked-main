@@ -148,7 +148,7 @@ const PunchRound = () => {
     const message = CAMERA_MESSAGES[problem];
     return (
       <AppLayout hideNav>
-        <BroadcastPage show="Technical difficulties" className="pb-6">
+        <BroadcastPage show="Camera problem" className="pb-6">
           <div data-testid="punch-problem">
             <div className="mt-4 grid h-28 grid-cols-7 -skew-x-[14deg] scale-x-125" aria-hidden="true">
               <i className="bg-foreground" />
@@ -159,7 +159,7 @@ const PunchRound = () => {
               <i className="bg-volt" />
               <i className="bg-background" />
             </div>
-            <Plate tone="red" bleed="both" className="flex h-20 justify-start whitespace-nowrap px-4 text-[min(3.75rem,13vw)]">We lost the feed</Plate>
+            <Plate tone="red" bleed="both" className="flex h-20 justify-start whitespace-nowrap px-4 text-[min(3.75rem,13vw)]">Camera problem</Plate>
             <h1 className="fx mt-4 px-4 text-5xl">{message.title}</h1>
             <p className="mt-2 px-4 text-lg">{message.body}</p>
             <div className="mt-5 space-y-3 px-5">

@@ -871,7 +871,7 @@ const Build = () => {
 
   return (
     <AppLayout hideNav>
-      <BroadcastPage show={<><span className="max-[359px]:hidden">Run of show</span><span className="min-[360px]:hidden">Show</span></>} onBack={() => navigate('/')}>
+      <BroadcastPage show={<><span className="max-[359px]:hidden">Your set</span><span className="min-[360px]:hidden">Set</span></>} onBack={() => navigate('/')}>
         <div className="flex min-h-11 items-center justify-between gap-3 px-4 pt-2">
           <h1 className="lab lab-lime not-italic">
             {editId ? 'Edit Set' : 'Create New Set'}

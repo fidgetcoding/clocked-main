@@ -84,7 +84,7 @@ const FightClub = () => {
     { id: 'chat', label: 'Chat' },
     { id: 'leaderboard', label: 'Ranks' },
   ];
-  const onAir: Record<Tab, string> = { feed: 'Around the league', clubs: 'The league', presets: 'Listings' };
+  const heading: Record<Tab, string> = { feed: 'Feed', clubs: 'Clubs', presets: 'Presets' };
 
   const deleteMyPost = (postId: string) => {
     deletePost.mutate(postId, {
@@ -261,7 +261,7 @@ const FightClub = () => {
   const hasFeedPosts = !!communityPosts && communityPosts.length > 0;
   return (
     <AppLayout>
-      <BroadcastPage show={onAir[activeTab]}>
+      <BroadcastPage show={heading[activeTab]}>
         <h1 className="sr-only">Fight Club</h1>
         <PlateTabs<Tab> tabs={tabs} value={activeTab} onChange={setActiveTab} className="px-4 pt-3" />
 
