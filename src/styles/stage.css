@@ -464,6 +464,8 @@
   transform: skewX(calc(var(--plate-angle) * -1));
   vertical-align: middle;
   font-style: normal;
+  /* The slant leans an eighth of the height past each side, so keep the neighbours that far off */
+  margin-inline: 0.18em;
 }
 
 .lit svg {
@@ -482,11 +484,18 @@
   fill: var(--lit-ghost);
 }
 
-/* Fills the box it's given, and lets the digits fit whichever way is tighter */
+/* Fills the box it's given, and lets the digits fit whichever way is tighter. The box is a size container,
+   so the plate can give back the quarter of its height that the slant pushes past its two sides. */
+.clock-face,
+.free-clock {
+  container-type: size;
+}
+
 .lit-fill {
   display: flex;
-  width: 100%;
+  width: calc(100% - 25cqh);
   height: 100%;
+  margin-inline: auto;
   box-sizing: border-box;
   padding: 4% 6%;
 }
@@ -500,7 +509,7 @@
 .lit-inline {
   height: max(0.72em, 12px);
   padding: 0.1em 0.22em;
-  margin-inline: 0.08em;
+  margin-inline: 0.14em;
 }
 
 .stage[data-tone="gold"] .lit {

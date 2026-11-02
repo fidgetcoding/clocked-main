@@ -36,7 +36,7 @@ export function FreeSidePanel({ view, actions, feed, counting, bellXP, liveLog, 
           <FreestylePlate />
         </div>
       ) : view.upNext ? (
-        <p className="fx text-3xl">Next: {view.upNext}</p>
+        <p className="fx min-w-0 truncate text-3xl" title={view.upNext}>Next: {view.upNext}</p>
       ) : null}
       <div className="free-count min-w-0">
         <PunchCount feed={feed} counting={counting} size="text-[3rem]" />

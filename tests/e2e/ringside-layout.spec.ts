@@ -35,6 +35,32 @@ const onboard = async (page: Page) => {
   await page.getByText("Your Sets").waitFor();
 };
 
+/** The lit readouts lean on a slant. The slant stays inside the readout's own box, and no words sit under it. */
+const noSlantSpill = async (page: Page) => {
+  const problems = await page.evaluate(() => {
+    const found: string[] = [];
+    const overlap = (a: DOMRect, b: DOMRect) => a.left < b.right - 1 && b.left < a.right - 1 && a.top < b.bottom - 1 && b.top < a.bottom - 1;
+    const words = [...document.querySelectorAll('[data-testid="run-stage"] *, [data-testid="punch-live"] *')].filter((el) => {
+      if (el.closest(".lit, .sr-only, [data-testid='camera-asking'], .stage-check, [data-ticker]")) return false;
+      if (!(el as HTMLElement).offsetParent) return false;
+      return [...el.childNodes].some((node) => node.nodeType === 3 && node.textContent?.trim());
+    });
+    for (const plate of document.querySelectorAll(".lit-fill")) {
+      // getBoundingClientRect includes the skew, so this is the slanted plate's full reach
+      const reach = plate.getBoundingClientRect();
+      const box = (plate.parentElement as HTMLElement).getBoundingClientRect();
+      if (reach.left < box.left - 1 || reach.right > box.right + 1) found.push(`the clock plate leans out of its box by ${Math.round(Math.max(box.left - reach.left, reach.right - box.right))}px`);
+      for (const word of words) {
+        const range = document.createRange();
+        range.selectNodeContents(word);
+        for (const line of range.getClientRects()) if (overlap(line, reach)) found.push(`"${word.textContent?.trim().slice(0, 30)}" sits under the clock plate`);
+      }
+    }
+    return found;
+  });
+  expect(problems).toEqual([]);
+};
+
 const noSidewaysScroll = async (page: Page) =>
   expect(await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(0);
 
@@ -81,6 +107,7 @@ for (const viewport of SIZES) {
       await playButton(page).click();
       await expect(page.getByTestId("run-stage")).toHaveAttribute("data-camera", camera ? "on" : "off");
       await controlsAreClear(page);
+      await noSlantSpill(page);
       await noSidewaysScroll(page);
 
       const combo = page.locator(".combo-plate").first();
