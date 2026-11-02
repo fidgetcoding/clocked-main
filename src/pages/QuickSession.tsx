@@ -1,4 +1,5 @@
-import { lazy, Suspense, useState, useEffect, useRef, useCallback } from 'react';
+import { toast } from 'sonner';
+import { lazy, useState, useEffect, useRef, useCallback } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { ResumeSessionDialog } from '@/components/workout/ResumeSessionDialog';
 import { FRESH_SESSION } from '@/lib/sessionEffort';
@@ -33,9 +34,11 @@ import { wholeSecondsSince } from '@/lib/sessionClock';
 import { MIN_REWARD_SECONDS, qualifiesForRewards } from '@/lib/sessionEffort';
 import { usePunchPrefsStore } from '@/stores/punchPrefsStore';
 import { PunchLogDetails, PunchLogLive } from '@/components/punch/PunchLogView';
+import { CameraBoundary } from '@/components/errors/CameraBoundary';
 import { useSessionPunchLog } from '@/hooks/useSessionPunchLog';
 
 // Lazy so the camera pipeline stays out of the main bundle
+const CAMERA_FAILED = "The camera couldn't load. Your session carries on without it. Reload to try again.";
 const PunchCameraPanel = lazy(() => import('@/components/punch/PunchCameraPanel'));
 
 const QUICK_SESSION_XP_RATE = 0.10; // XP per second
@@ -74,6 +77,11 @@ const QuickSession = () => {
   const [difficultyRating, setDifficultyRating] = useState<'too_easy' | 'just_right' | 'too_hard' | null>(null);
   const [showExitConfirm, setShowExitConfirm] = useState(false);
   const [levelUpLevel, setLevelUpLevel] = useState<number | null>(null);
+  const [cameraFailed, setCameraFailed] = useState(false);
+  const onCameraFailed = useCallback(() => {
+    setCameraFailed(true);
+    toast.error(CAMERA_FAILED);
+  }, []);
   const punchLog = useSessionPunchLog(totalElapsed);
   const { snapshot: punchSnapshot, restore: restorePunchLog, endRound: endPunchRound } = punchLog;
   const cameraOn = usePunchPrefsStore((state) => state.quickSessionCamera);
@@ -380,11 +388,11 @@ const QuickSession = () => {
             setCameraOn(!cameraOn);
           },
         }}
-        cameraOn={cameraOn}
+        cameraOn={cameraOn && !cameraFailed}
         camera={
           // The camera asks for permission here, once the session has started
-          cameraOn && isRunning ? (
-            <Suspense fallback={null}>
+          cameraOn && !cameraFailed && isRunning ? (
+            <CameraBoundary onFailed={onCameraFailed}>
               <PunchCameraPanel
                 counting={!isPaused}
                 onEvent={punchLog.onEvent}
@@ -392,7 +400,7 @@ const QuickSession = () => {
                 displayCount={punchLog.log.totals.punches}
                 onFeed={setFeed}
               />
-            </Suspense>
+            </CameraBoundary>
           ) : undefined
         }
         feed={cameraOn ? feed : null}

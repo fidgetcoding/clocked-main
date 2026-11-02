@@ -1,8 +1,9 @@
+import { toast } from 'sonner';
 import type { SegmentType, WorkoutPhase, WorkoutSegment } from '@/types';
 import type { Badge } from '@/data/badges';
 import type { PostL100Badge } from '@/data/postL100Badges';
 import { splitStoredPhases } from '@/lib/storedPhases';
-import { lazy, Suspense, useState, useEffect, useMemo, useRef, useCallback } from 'react';
+import { lazy, useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { RoundFeedbackPanel } from '@/components/workout/RoundFeedbackPanel';
 import { RoundFeedback } from '@/types';
@@ -37,6 +38,7 @@ import { useBadges } from '@/hooks/useBadges';
 import { useRepeatingCheck } from '@/hooks/useRepeatingCheck';
 import { ACTIVITY_XP_RATES, ActivityType, getStreakMultiplier, getActivityTypeFromName, calculateComboXP, getLevelFromXP, getLevelProgress, getXPWithinCurrentLevel, Prestige, isPrestigeEligible as checkPrestigeEligible, isMaxLevel as checkIsMaxLevel } from '@/lib/xpSystem';
 import { computePostLogStats, computePostL100Increments } from '@/lib/workoutTracking';
+import { CameraBoundary } from '@/components/errors/CameraBoundary';
 import { useSessionPunchLog } from '@/hooks/useSessionPunchLog';
 import { buildSessionBadgeStats, FRESH_SESSION, getSessionCredit, getSessionEffort, noteTraining, qualifiesForRewards, SessionLog, toSessionFacts } from '@/lib/sessionEffort';
 import { checkBadges, sumBadgeXP } from '@/data/badges';
@@ -49,6 +51,7 @@ import { usePunchPrefsStore } from '@/stores/punchPrefsStore';
 import type { PunchSessionReport } from '@/lib/punch/round';
 
 // Lazy so the camera pipeline stays out of the main bundle
+const CAMERA_FAILED = "The camera couldn't load. Your session carries on without it. Reload to try again.";
 const PunchCameraPanel = lazy(() => import('@/components/punch/PunchCameraPanel'));
 
 interface TempSegment {
@@ -402,6 +405,11 @@ const WorkoutSession = () => {
   const [roundFeedback, setRoundFeedback] = useState<RoundFeedback[]>([]);
   const [xpBubble, setXpBubble] = useState<{ amount: number; id: number } | null>(null);
   const [hasStartedOnce, setHasStartedOnce] = useState(false);
+  const [cameraFailed, setCameraFailed] = useState(false);
+  const onCameraFailed = useCallback(() => {
+    setCameraFailed(true);
+    toast.error(CAMERA_FAILED);
+  }, []);
   const punchLog = useSessionPunchLog(totalElapsed);
   const { snapshot: punchSnapshot, restore: restorePunchLog } = punchLog;
   const [hasAwardedXP, setHasAwardedXP] = useState(false);
@@ -1325,11 +1333,11 @@ const WorkoutSession = () => {
             ? { count: liveBadgesEarned.length, xp: liveBadgesEarned.reduce((sum, earned) => sum + earned.badge.xpReward, 0) }
             : null,
         }}
-        cameraOn={cameraOn}
+        cameraOn={cameraOn && !cameraFailed}
         camera={
           // Asks for the camera once the session has started. Only boxing segments are counted.
-          cameraOn && hasStartedOnce ? (
-            <Suspense fallback={null}>
+          cameraOn && !cameraFailed && hasStartedOnce ? (
+            <CameraBoundary onFailed={onCameraFailed}>
               <PunchCameraPanel
                 key={cameraSession}
                 counting={counting}
@@ -1340,7 +1348,7 @@ const WorkoutSession = () => {
                 onCountingChange={(on) => (on ? punchLog.startRound() : punchLog.endRound())}
                 onFeed={setFeed}
               />
-            </Suspense>
+            </CameraBoundary>
           ) : undefined
         }
         feed={cameraOn ? feed : null}

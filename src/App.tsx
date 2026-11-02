@@ -5,6 +5,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { AppErrorBoundary } from "@/components/errors/AppErrorBoundary";
 import { RequireAccount } from "@/components/RequireAccount";
 import Index from "./pages/Index";
 import Build from "./pages/Build";
@@ -28,6 +29,7 @@ const PunchCheck = lazy(() => import("./pages/PunchCheck"));
 const queryClient = new QueryClient();
 
 const App = () => (
+  <AppErrorBoundary>
   <QueryClientProvider client={queryClient}>
     <AuthProvider>
       <TooltipProvider>
@@ -65,6 +67,7 @@ const App = () => (
       </TooltipProvider>
     </AuthProvider>
   </QueryClientProvider>
+  </AppErrorBoundary>
 );
 
 export default App;
