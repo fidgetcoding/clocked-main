@@ -1,4 +1,7 @@
-import { startOfWeek, subWeeks } from 'date-fns';
+import { startOfWeek, subDays, subWeeks } from 'date-fns';
+
+// 'calendar' runs Monday to now, so Monday looks thin against last week; 'rolling' is the last 7 days against the 7 before.
+const TAPE_WEEK = 'calendar' as 'calendar' | 'rolling';
 
 export interface WeekTotals {
   sessions: number;
@@ -23,7 +26,7 @@ const empty = (): WeekTotals => ({ sessions: 0, seconds: 0, xp: 0 });
 
 /** This calendar week against the last one, Monday to Sunday, from what's actually in the log. */
 export function weeklyTape(history: Entry[], now: Date = new Date()): WeeklyTape {
-  const thisStart = startOfWeek(now, { weekStartsOn: 1 }).getTime();
+  const thisStart = (TAPE_WEEK === 'rolling' ? subDays(now, 7) : startOfWeek(now, { weekStartsOn: 1 })).getTime();
   const lastStart = subWeeks(new Date(thisStart), 1).getTime();
   const thisWeek = empty();
   const lastWeek = empty();
