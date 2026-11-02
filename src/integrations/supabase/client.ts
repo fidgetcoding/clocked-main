@@ -17,17 +17,23 @@ function isValidUrl(value: string | undefined): value is string {
 }
 
 /**
- * Supabase's own cross-tab lock, except that a background refresh which finds it taken gives up before
- * asking for it. Asking anyway works, but Firefox reports the refusal as an uncaught error on every page.
+ * Supabase's own cross-tab lock, except for the background refresh that only wants the lock if it's free.
+ * Supabase throws from inside the lock request when it isn't, and Firefox reports that as an uncaught
+ * error on every page. Here the refusal is thrown after the request has finished instead.
  */
 const crossTabLock: LockFunc = async (name, acquireTimeout, fn) => {
-  if (acquireTimeout === 0 && globalThis.navigator?.locks) {
-    const { held } = await globalThis.navigator.locks.query();
-    if (held?.some((lock) => lock.name === name)) {
-      throw new NavigatorLockAcquireTimeoutError(`Acquiring an exclusive Navigator LockManager lock "${name}" immediately failed`);
-    }
+  const locks = globalThis.navigator?.locks;
+  if (acquireTimeout !== 0 || !locks) return navigatorLock(name, acquireTimeout, fn);
+  let acquired = false;
+  const result = await locks.request(name, { mode: 'exclusive', ifAvailable: true }, async (lock) => {
+    if (!lock) return undefined;
+    acquired = true;
+    return fn();
+  });
+  if (!acquired) {
+    throw new NavigatorLockAcquireTimeoutError(`Acquiring an exclusive Navigator LockManager lock "${name}" immediately failed`);
   }
-  return navigatorLock(name, acquireTimeout, fn);
+  return result as Awaited<ReturnType<typeof fn>>;
 };
 
 /** False when this copy has no Supabase project: the app runs in guest mode with no network. */

@@ -92,6 +92,11 @@ export function watch(page: Page, label: string): Person {
   const note = (what: string) => {
     if (!allowed.some((pattern) => pattern.test(what))) problems.push(`[${page.url().replace(/^https?:\/\/[^/]+/, "")}] ${what}`);
   };
+  const pending = new Set<unknown>();
+  inFlight.set(page, pending);
+  page.on("request", (request) => pending.add(request));
+  page.on("requestfinished", (request) => pending.delete(request));
+  page.on("requestfailed", (request) => pending.delete(request));
   page.on("console", (message) => {
     if (message.type() === "error") note(`console error: ${message.text().slice(0, 300)}`);
   });
@@ -143,11 +148,26 @@ export function watch(page: Page, label: string): Person {
   };
 }
 
+const inFlight = new WeakMap<Page, Set<unknown>>();
+
+/** Wait until the page has had nothing in flight for half a second, as a person waits for a screen to settle. */
+export async function settle(page: Page): Promise<void> {
+  const pending = inFlight.get(page);
+  if (!pending) return;
+  let quietSince = Date.now();
+  const deadline = Date.now() + 15_000;
+  while (Date.now() < deadline) {
+    if (pending.size > 0) quietSince = Date.now();
+    else if (Date.now() - quietSince >= 500) return;
+    await page.waitForTimeout(100);
+  }
+}
+
 /**
- * Typing an address while the page is still fetching cancels those fetches, and WebKit reports each
- * one as a page error "due to access control checks". A person lets the screen load first.
+ * Typing an address while the page is still fetching cancels those fetches, and WebKit and Firefox
+ * report each one as an error. A person lets the screen settle first.
  */
 export async function visit(page: Page, url: string): Promise<void> {
-  await page.waitForLoadState("networkidle").catch(() => {});
+  await settle(page);
   await page.goto(url);
 }

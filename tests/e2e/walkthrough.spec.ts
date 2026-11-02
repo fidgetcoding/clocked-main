@@ -4,7 +4,7 @@ import type { Page } from "@playwright/test";
 import { expect, launchSilentChromium, test } from "./silent";
 import { finishSessionButton, pauseButton, playButton, skipButton } from "./controls";
 import { clickNewestEmailLink, finishAccountOnboarding, requestSignInEmail } from "./helpers";
-import { SIZES, visit, watch, type Person } from "./person";
+import { SIZES, settle, visit, watch, type Person } from "./person";
 
 const GUEST_URL = process.env.STACK_PROD_NO_BACKEND_URL as string;
 
@@ -331,6 +331,7 @@ for (const [sizeName, viewport] of Object.entries(SIZES)) {
     }
     await visit(page, ACCOUNT_URL);
     await page.clock.install();
+    await settle(page);
     await page.reload();
     const log = page.getByRole("button", { name: "Log Workout" });
     await page.getByRole("button", { name: /^Start /, exact: false }).first().click();
@@ -413,7 +414,7 @@ test.describe("bad networks", () => {
     await skipButton(page).click();
     await page.waitForTimeout(1500);
     await context.setOffline(true);
-    person.allow(/request failed|ERR_INTERNET_DISCONNECTED|Failed to (fetch|log|load)|TypeError/);
+    person.allow(/request failed|ERR_INTERNET_DISCONNECTED|Failed to (fetch|log|load)|TypeError|Cross-Origin Request Blocked|NetworkError|Load failed/);
     await page.waitForTimeout(2000);
     await person.look("offline, still running");
     await page.getByRole("button", { name: "Done" }).or(page.getByTitle("Complete workout early")).first().click();
@@ -436,7 +437,7 @@ test.describe("bad networks", () => {
     const person = watch(page, "offline-guest");
     await guestStart(person);
     await context.setOffline(true);
-    person.allow(/request failed|ERR_INTERNET_DISCONNECTED|dynamically imported module|couldn't load/);
+    person.allow(/request failed|ERR_INTERNET_DISCONNECTED|dynamically imported module|couldn't load|camera failed to load|console error: JSHandle@object|Failed to load resource|Importing a module script failed/);
     await page.getByRole("button", { name: /QUICK SESSION/ }).click();
     await playButton(page).click();
     await page.waitForTimeout(1500);
