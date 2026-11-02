@@ -4,13 +4,13 @@ import type { Page } from "@playwright/test";
 import { expect, launchSilentChromium, test } from "./silent";
 import { finishSessionButton, pauseButton, playButton, skipButton } from "./controls";
 import { clickNewestEmailLink, finishAccountOnboarding, requestSignInEmail } from "./helpers";
-import { SIZES, watch, type Person } from "./person";
+import { SIZES, visit, watch, type Person } from "./person";
 
 const GUEST_URL = process.env.STACK_PROD_NO_BACKEND_URL as string;
 
 const guestStart = async (person: Person, { name = "Sam", level = "", gear = false } = {}) => {
   const { page } = person;
-  await page.goto(GUEST_URL);
+  await visit(page, GUEST_URL);
   await person.look("first screen");
   await page.getByRole("button", { name: "GET STARTED" }).click();
   await person.look("onboarding who");
@@ -41,7 +41,7 @@ for (const [sizeName, viewport] of Object.entries(SIZES)) {
     const person = watch(page, `guest-${sizeName}`);
     await guestStart(person);
     for (const route of ROUTES) {
-      await page.goto(GUEST_URL + route);
+      await visit(page, GUEST_URL + route);
       await person.look(route.slice(1) || "home");
     }
     await context.close();
@@ -107,7 +107,7 @@ for (const { level, size } of FULL_RUNS) {
       await page.getByRole("link", { name: tab }).or(page.getByRole("button", { name: tab })).first().click();
       await person.look(tab);
     }
-    await page.goto(`${GUEST_URL}/history`);
+    await visit(page, `${GUEST_URL}/history`);
     await person.look("log");
     await context.close();
     expect(person.problems).toEqual([]);
@@ -155,7 +155,7 @@ test.describe("controls on a running set", () => {
       await page.getByRole("button", { name: "Leave workout" }).click();
       await page.getByRole("button", { name: "End & Save" }).click();
       await page.getByText("Your Sets").waitFor();
-      await page.goto(`${GUEST_URL}/history`);
+      await visit(page, `${GUEST_URL}/history`);
       await expect(page.getByText("Beginner Loadout").first()).toBeVisible();
       await person.look("saved in the log");
       await context.close();
@@ -178,9 +178,9 @@ test.describe("controls on a running set", () => {
     await person.look("leave asks");
     await page.getByRole("button", { name: "Leave Without Saving" }).click();
     await page.getByText("Your Sets").waitFor();
-    await page.goto(`${GUEST_URL}/history`);
+    await visit(page, `${GUEST_URL}/history`);
     await page.getByText("NO HISTORY YET", { exact: false }).waitFor();
-    await page.goto(GUEST_URL);
+    await visit(page, GUEST_URL);
     await quick();
     await page.reload();
     await page.getByRole("button", { name: "Resume" }).click();
@@ -197,7 +197,7 @@ test.describe("controls on a running set", () => {
     await page.getByRole("button", { name: "Log Session" }).click();
     await page.getByText("Session Logged!").waitFor();
     await page.getByRole("button", { name: "Back to Home" }).click();
-    await page.goto(`${GUEST_URL}/history`);
+    await visit(page, `${GUEST_URL}/history`);
     await person.look("log with sessions");
     expect(person.problems).toEqual([]);
   });
@@ -214,7 +214,8 @@ const CAMERA_STATES = [
 for (const { state, args } of CAMERA_STATES) {
   test.describe(`camera ${state}`, () => {
     for (const sizeName of ["phone", "proppedPhone", "laptop"] as const) {
-      test(`start with the camera on at ${sizeName}`, async ({ playwright }) => {
+      test(`start with the camera on at ${sizeName}`, async ({ playwright, browserName }) => {
+        test.skip(browserName !== "chromium", "Fake cameras and permission flags are Chromium's");
         test.setTimeout(150_000);
         const browser = await launchSilentChromium(playwright, args);
         const context = await browser.newContext({ viewport: SIZES[sizeName] });
@@ -230,7 +231,7 @@ for (const { state, args } of CAMERA_STATES) {
         await expect(pauseButton(page).or(finishSessionButton(page)).first()).toBeVisible();
         await finishSessionButton(page).click();
         await person.look("quick summary");
-        await page.goto(`${GUEST_URL}/punch-check`);
+        await visit(page, `${GUEST_URL}/punch-check`);
         await person.look("punch check setup");
         await page.getByRole("button", { name: /START CAMERA/i }).click();
         await page.waitForTimeout(6000);
@@ -323,12 +324,12 @@ for (const [sizeName, viewport] of Object.entries(SIZES)) {
     await page.getByRole("button", { name: /QUICK SESSION/ }).click();
     // Clocked's own camera question sits over the screen until the browser answers it
     await person.look("quick ready");
-    await page.goto(ACCOUNT_URL);
+    await visit(page, ACCOUNT_URL);
     for (const route of ROUTES.slice(1)) {
-      await page.goto(ACCOUNT_URL + route);
+      await visit(page, ACCOUNT_URL + route);
       await person.look(route.slice(1));
     }
-    await page.goto(ACCOUNT_URL);
+    await visit(page, ACCOUNT_URL);
     await page.clock.install();
     await page.reload();
     const log = page.getByRole("button", { name: "Log Workout" });
@@ -338,15 +339,15 @@ for (const [sizeName, viewport] of Object.entries(SIZES)) {
     await person.look("account summary");
     await log.click();
     await page.getByText("Workout Logged!").waitFor();
-    await page.goto(`${ACCOUNT_URL}/history`);
+    await visit(page, `${ACCOUNT_URL}/history`);
     await person.look("account log");
     await page.getByRole("button", { name: /Loadout/ }).first().click();
     await person.look("log entry opened");
-    await page.goto(`${ACCOUNT_URL}/stats`);
+    await visit(page, `${ACCOUNT_URL}/stats`);
     await person.look("account stats");
-    await page.goto(`${ACCOUNT_URL}/profile`);
+    await visit(page, `${ACCOUNT_URL}/profile`);
     await person.look("account profile");
-    await page.goto(`${ACCOUNT_URL}/fight-club`);
+    await visit(page, `${ACCOUNT_URL}/fight-club`);
     await person.look("fight club with own post");
     await context.close();
     expect(person.problems).toEqual([]);
@@ -360,11 +361,11 @@ test("every button on every screen does something", async ({ page }) => {
   const dead: string[] = [];
   const fingerprint = () => page.evaluate(() => `${location.href}|${document.body.innerText}|${document.querySelectorAll("[data-state=checked],[aria-pressed=true],[data-state=open],[role=dialog],[role=alertdialog]").length}|${[...document.querySelectorAll("button")].map((b) => b.className).join()}`);
   for (const route of ["/", "/build", "/history", "/stats", "/fight-club", "/profile", "/settings", "/edit-profile", "/gloves", "/punch-check"]) {
-    await page.goto(ACCOUNT_URL + route);
+    await visit(page, ACCOUNT_URL + route);
     await page.waitForTimeout(600);
     const count = await page.locator("main button:visible, nav button:visible").count();
     for (let i = 0; i < count; i++) {
-      await page.goto(ACCOUNT_URL + route);
+      await visit(page, ACCOUNT_URL + route);
       await page.waitForTimeout(350);
       const button = page.locator("main button:visible, nav button:visible").nth(i);
       if (!(await button.count()) || (await button.isDisabled())) continue;
@@ -385,7 +386,8 @@ test("every button on every screen does something", async ({ page }) => {
 });
 
 test.describe("bad networks", () => {
-  test("a slow connection still gets through sign-in and a screen", async ({ browser }) => {
+  test("a slow connection still gets through sign-in and a screen", async ({ browser, browserName }) => {
+    test.skip(browserName !== "chromium", "Network throttling goes through Chromium's DevTools protocol");
     test.setTimeout(240_000);
     const context = await browser.newContext({ viewport: SIZES.phone });
     const page = await context.newPage();
@@ -393,7 +395,7 @@ test.describe("bad networks", () => {
     await cdp.send("Network.enable");
     await cdp.send("Network.emulateNetworkConditions", { offline: false, latency: 800, downloadThroughput: 50_000, uploadThroughput: 20_000 });
     const person = watch(page, "slow");
-    await page.goto(GUEST_URL);
+    await visit(page, GUEST_URL);
     await person.look("first screen slowly");
     await page.getByRole("button", { name: "GET STARTED" }).waitFor({ timeout: 120_000 });
     await context.close();
@@ -422,7 +424,7 @@ test.describe("bad networks", () => {
     await context.setOffline(false);
     await page.getByRole("button", { name: "Log Workout" }).click();
     await page.getByText("Workout Logged!").waitFor();
-    await page.goto(`${ACCOUNT_URL}/history`);
+    await visit(page, `${ACCOUNT_URL}/history`);
     await expect(page.getByRole("button", { name: /Loadout/ }).first(), "the retry saved it").toBeVisible();
     await context.close();
     expect(person.problems).toEqual([]);
@@ -462,7 +464,7 @@ test("building a set by hand and with the AI builder, then logging one by hand",
   await page.getByText("Your Sets").waitFor();
   await expect(page.getByText("Walk Set").first()).toBeVisible();
   await person.look("home with new set");
-  await page.goto(`${ACCOUNT_URL}/build`);
+  await visit(page, `${ACCOUNT_URL}/build`);
   await page.getByRole("button", { name: /AI BUILDER/i }).click();
   await person.look("ai builder");
   const ask = page.getByPlaceholder(/heavy bag workout/);
@@ -470,7 +472,7 @@ test("building a set by hand and with the AI builder, then logging one by hand",
   await page.getByRole("button", { name: "Generate", exact: true }).click();
   await page.waitForTimeout(4000);
   await person.look("ai builder answered");
-  await page.goto(`${ACCOUNT_URL}/history`);
+  await visit(page, `${ACCOUNT_URL}/history`);
   await page.getByRole("button", { name: "Log Workout" }).click();
   // The form covers the whole screen, bottom bar included
   person.allow(/manual log form: "(HOME|MY STATS|FIGHT CLUB|PROFILE|Log Workout)" (is covered by|overlaps) "(Log Workout|HOME|MY STATS|FIGHT CLUB|PROFILE)"/);

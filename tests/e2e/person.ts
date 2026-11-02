@@ -142,3 +142,12 @@ export function watch(page: Page, label: string): Person {
     },
   };
 }
+
+/**
+ * Typing an address while the page is still fetching cancels those fetches, and WebKit reports each
+ * one as a page error "due to access control checks". A person lets the screen load first.
+ */
+export async function visit(page: Page, url: string): Promise<void> {
+  await page.waitForLoadState("networkidle").catch(() => {});
+  await page.goto(url);
+}
