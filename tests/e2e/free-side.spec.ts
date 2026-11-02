@@ -89,3 +89,26 @@ test("the numbers are lit readouts and the light says what you're doing", async 
   await page.getByRole("button", { name: "Pause", exact: true }).click();
   await expect(page.getByTestId("run-stage").getByText("Paused", { exact: true })).toBeVisible();
 });
+
+test("Punch Check uses the same panel, and the end button stays clear", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await fakeCamera(page, body(0.05, 0.3));
+  await finishGuestOnboarding(page, NO_BACKEND_URL, "Free Check");
+  await page.goto(`${NO_BACKEND_URL}/punch-check`);
+  await page.getByRole("button", { name: /start|go/i }).first().click();
+  const panel = page.getByTestId("free-panel");
+  await expect(panel).toHaveAttribute("data-side", "left", { timeout: 20_000 });
+  await setBody(page, body(0.7, 0.95));
+  await expect(panel).toHaveAttribute("data-side", "right", { timeout: 10_000 });
+  await expect(page.getByTestId("punch-clock").locator("svg")).toBeVisible();
+  await expect(page.getByRole("button", { name: "End round" })).toBeInViewport();
+});
+
+test("nobody sees on-air copy before a session", async ({ page }) => {
+  await page.goto(`${NO_BACKEND_URL}/onboarding`);
+  await page.getByRole("button", { name: "GET STARTED" }).waitFor();
+  await expect(page.getByText(/on air|stand by|tonight, live/i)).toHaveCount(0);
+  await expect(page.locator("[data-ticker]")).toHaveCount(0);
+  await finishGuestOnboarding(page, NO_BACKEND_URL, "No Filler");
+  await expect(page.getByText(/on air/i)).toHaveCount(0);
+});

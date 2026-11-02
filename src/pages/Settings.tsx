@@ -146,7 +146,7 @@ const Settings = () => {
             isEnabled ? 'plate-red' : 'plate-graphite text-muted-foreground',
           )}
         >
-          {isEnabled ? 'On air' : 'Off air'}
+          {isEnabled ? 'On' : 'Off'}
         </SwitchPrimitives.Root>
         <span className="fx text-2xl leading-[0.95]">{label}</span>
         <span className="prose-w mt-1 text-[0.9375rem] leading-tight text-muted-foreground">{description}</span>

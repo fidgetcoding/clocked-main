@@ -1,4 +1,4 @@
-import { Plate, FitText, Ticker } from '@/components/broadcast';
+import { Plate, FitText } from '@/components/broadcast';
 import { buttonVariants } from '@/components/ui/button-variants';
 import { cn } from '@/lib/utils';
 
@@ -28,7 +28,6 @@ const NotFound = () => {
           Return to Home
         </a>
       </div>
-      <Ticker tone="dark" items={['Technical difficulties', 'Regular programming will resume']} />
     </div>
   );
 };

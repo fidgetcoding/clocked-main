@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { BroadcastPage, FitText, OnAir, Plate, Ticker } from '@/components/broadcast';
+import { BroadcastPage, FitText, Plate } from '@/components/broadcast';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { isBackendConfigured, supabase } from '@/integrations/supabase/client';
@@ -51,7 +51,7 @@ const Auth = () => {
   );
 
   return (
-    <BroadcastPage show="Season pass" air={!isBackendConfigured ? <OnAir state="off">Off air</OnAir> : undefined} className="flex flex-col">
+    <BroadcastPage show="Season pass" className="flex flex-col">
       {!isBackendConfigured ? (
         <div className="bg-slash flex flex-1 flex-col justify-center overflow-hidden py-6">
           <Plate tone="white" bleed="both" className="plate-slap flex w-full px-4 py-2">
@@ -148,7 +148,6 @@ const Auth = () => {
           </form>
         </div>
       )}
-      <Ticker tone="dark" items={['Sign in and your record follows you', 'Your training stays saved on this device']} className="[@media(max-height:500px)]:hidden" />
     </BroadcastPage>
   );
 };

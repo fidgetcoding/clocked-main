@@ -1,7 +1,7 @@
 import type { UserProfile } from '@/types';
 import { useState, useEffect, useRef, type CSSProperties, type ReactNode } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { BroadcastPage, FitText, Logo, OnAir, Plate, SectionChyron, SegmentBar, Ticker, plateClass } from '@/components/broadcast';
+import { BroadcastPage, FitText, Logo, Plate, SectionChyron, SegmentBar, Ticker, plateClass } from '@/components/broadcast';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useUserStore } from '@/stores/userStore';
@@ -330,17 +330,11 @@ const Onboarding = () => {
   if (step === 'welcome') {
     return (
       <div className="flex min-h-dvh flex-col overflow-x-clip" style={welcomeSlash}>
-        <div className="px-4 pt-[max(0.75rem,env(safe-area-inset-top))]">
-          <Plate tone="black" className="h-8 px-3">
-            <OnAir>Tonight, live</OnAir>
-          </Plate>
-        </div>
         <div className="flex flex-1 flex-col items-center justify-center gap-5 py-4 [@media(max-height:500px)]:gap-2 [@media(max-height:500px)]:py-1">
           <Logo kind="mark" className="aspect-[900/670] w-[min(64vw,21rem)] text-tech-black [@media(max-height:500px)]:w-28 [@media(max-height:600px)]:w-44" />
           <Plate tone="black" bleed="both" className="fx w-full px-4 pb-1 pt-2 text-[clamp(2rem,10.5vw,3.5rem)] [@media(max-height:500px)]:text-3xl">
             Knockout Intelligence.
           </Plate>
-          <p className="text-lg font-bold text-tech-black">Your session is on air.</p>
           <div className="flex w-full max-w-md flex-col gap-3 px-6 [@media(max-height:500px)]:max-w-xl [@media(max-height:500px)]:flex-row">
             <Button variant="black" size="lg" onClick={() => handleNext()} className="w-full text-volt [@media(max-height:500px)]:h-12 [@media(max-height:500px)]:text-2xl">
               GET STARTED
@@ -350,7 +344,6 @@ const Onboarding = () => {
             </Button>
           </div>
         </div>
-        <Ticker tone="dark" items={['Rounds, combos, XP and a camera that watches your hands', 'Your session is on air']} />
       </div>
     );
   }
@@ -587,7 +580,7 @@ const Onboarding = () => {
   }
 
   return (
-    <BroadcastPage show="Going live" air={<OnAir />} className="flex flex-col">
+    <BroadcastPage show="All set" className="flex flex-col">
       <div className="bg-slash flex flex-1 flex-col justify-center overflow-hidden py-6">
         <h2 className="px-4">
           <FitText className="fx h-24 [@media(max-height:500px)]:h-14" max={110}>You're All Set!</FitText>
@@ -610,7 +603,7 @@ const Onboarding = () => {
       <OnwardBar
         label={role === 'coach' ? "LET'S WORK" : 'START TRAINING'}
         onClick={handleComplete}
-        ticker={['Stand by', 'Your session is on air']}
+        ticker={[]}
       />
     </BroadcastPage>
   );

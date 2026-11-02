@@ -10,7 +10,7 @@ export const RequireAccount = ({ children }: { children: ReactNode }) => {
   if (loading) {
     return (
       <div className="page-frame px-4 pt-4" role="status">
-        <OnAir state="off">Stand by</OnAir>
+        <OnAir state="off">Loading</OnAir>
       </div>
     );
   }

@@ -323,7 +323,7 @@ const FightClub = () => {
             {postsLoading && <p className="lab px-4 py-8">Loading posts...</p>}
 
             {/* The community feed is only readable with an account */}
-            {isGuest && <EmptyPlate title="Off air" body="Sign in with an email link to see the community feed." />}
+            {isGuest && <EmptyPlate title="Sign in to see this" body="Sign in with an email link to see the community feed." />}
 
             {!isGuest && !postsLoading && !hasFeedPosts && feedFilter === 'following' && (
               <EmptyPlate title="No posts from people you follow yet." body="Follow more fighters to see their posts here!" />

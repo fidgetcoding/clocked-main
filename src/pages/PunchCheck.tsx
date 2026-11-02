@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { BroadcastPage, Plate } from '@/components/broadcast';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
+import type { CameraFeedState } from '@/components/punch/feedState';
 import { PunchLive } from '@/components/punch/PunchLive';
 import { PunchRecorder } from '@/components/punch/PunchRecorder';
 import { PunchSetup } from '@/components/punch/PunchSetup';
@@ -42,8 +43,16 @@ const PunchRound = () => {
     [speak],
   );
 
+  const poseRef = useRef<CameraFeedState['pose']['current']>(null);
   const { videoRef, canvasRef, status, problem, paused, hud, lastPunch, start, stop, reset, getSummary, check, runStartCheck, skipStartCheck } =
-    usePunchTracking({ stance, onCue });
+    usePunchTracking({
+      stance,
+      onCue,
+      onPoseFrame: (result) => {
+        const video = videoRef.current;
+        poseRef.current = result.image && video?.videoWidth ? { points: result.image, aspect: video.videoWidth / video.videoHeight } : null;
+      },
+    });
 
   // The clock only runs while the camera is on
   const elapsedMsRef = useRef(0);
@@ -178,6 +187,7 @@ const PunchRound = () => {
           onExit={() => navigate('/')}
           onFinish={finish}
           onResume={() => void start()}
+          pose={poseRef}
           check={check}
           onSkipCheck={skipStartCheck}
           onRerunCheck={runStartCheck}

@@ -1,4 +1,4 @@
-import { BroadcastPage, FitText, OnAir, Plate } from '@/components/broadcast';
+import { BroadcastPage, FitText, Plate } from '@/components/broadcast';
 import { Button } from '@/components/ui/button';
 import { formatClock, PUNCH_LABELS, PUNCH_ORDER, punchWord, type RoundSummary } from '@/lib/punch/round';
 
@@ -18,7 +18,7 @@ export function PunchSummary({ summary, seconds, logged, logging, logFailed, onL
   const top = Math.max(1, ...thrown.map((punch) => summary.counts[punch]));
 
   return (
-    <BroadcastPage show="Punch Check" air={<OnAir state="off">Off air</OnAir>} className="pb-6">
+    <BroadcastPage show="Punch Check" className="pb-6">
       <div data-testid="punch-summary">
         <div role="heading" aria-level={1} className="fx mx-4 mt-3 h-20">
           <FitText className="h-full" max={96}>ROUND DONE</FitText>

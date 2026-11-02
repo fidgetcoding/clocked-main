@@ -26,7 +26,7 @@ export const LiveStreamPreview = ({ onClose }: LiveStreamPreviewProps) => (
       <div className="relative aspect-video max-h-[45dvh] w-full overflow-hidden bg-surface-1">
         <div className="absolute inset-y-0 -right-8 left-[58%] -skew-x-[14deg] bg-surface-2" />
         <div className="absolute inset-y-0 left-[58%] w-1.5 -skew-x-[14deg] bg-volt" />
-        <OnAir state="off" className="absolute left-3 top-3">Not on air</OnAir>
+        <OnAir state="off" className="absolute left-3 top-3">Not live</OnAir>
         <p className="lab lab-w absolute bottom-3 left-3 max-w-[48%]">Your session would show here</p>
       </div>
 

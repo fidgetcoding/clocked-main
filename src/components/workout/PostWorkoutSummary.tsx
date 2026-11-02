@@ -3,7 +3,7 @@ import type { PostL100Badge } from '@/data/postL100Badges';
 import { MIN_REWARD_SECONDS } from '@/lib/sessionEffort';
 import { useState } from 'react';
 import type { Badge } from '@/data/badges';
-import { BroadcastPage, FitText, LevelBar, OnAir, Plate, SectionRule, StatRow } from '@/components/broadcast';
+import { BroadcastPage, FitText, LevelBar, Plate, SectionRule, StatRow } from '@/components/broadcast';
 import { DifficultyPicker } from '@/components/workout/DifficultyPicker';
 import { Textarea } from '@/components/ui/textarea';
 import { 
@@ -116,7 +116,7 @@ export function PostWorkoutSummary({
   );
 
   return (
-    <BroadcastPage show="Final" air={<OnAir state="off">Off air</OnAir>} className="pb-6">
+    <BroadcastPage show="Final" className="pb-6">
       <div className="px-4 pt-3">
         <div role="heading" aria-level={1} className="fx h-16">
           <FitText className="h-full" max={72}>WORKOUT COMPLETE!</FitText>

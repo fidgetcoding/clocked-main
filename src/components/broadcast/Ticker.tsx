@@ -20,6 +20,15 @@ export function Ticker({ items, tone = 'lime', paused, lit, className }: TickerP
   const shown = items.filter((item): item is string => !!item);
   if (shown.length === 0) return null;
 
+  // One line has nothing to crawl past, and repeating it to fill the width is only noise
+  if (shown.length === 1) {
+    return (
+      <div className={cn('ticker', tone === 'dark' && 'ticker-dark', className)} data-ticker>
+        <span className="px-3">{lit ? <LitText>{shown[0]}</LitText> : shown[0]}</span>
+      </div>
+    );
+  }
+
   const length = shown.join('').length + shown.length * 6;
   const copies = Math.max(2, Math.ceil(TARGET_WIDTH_CHARS / length));
   const style = {

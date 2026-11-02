@@ -3,7 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { ResumeSessionDialog } from '@/components/workout/ResumeSessionDialog';
 import { FRESH_SESSION } from '@/lib/sessionEffort';
 import { clearSession, findResumableSession, QUICK_SESSION_ID, saveSession, type SessionSnapshot } from '@/lib/sessionRecovery';
-import { BroadcastPage, FitText, OnAir, Plate } from '@/components/broadcast';
+import { BroadcastPage, FitText, Plate } from '@/components/broadcast';
 import { DifficultyPicker } from '@/components/workout/DifficultyPicker';
 import { Textarea } from '@/components/ui/textarea';
 import { buttonVariants } from '@/components/ui/button-variants';
@@ -266,7 +266,7 @@ const QuickSession = () => {
 
     return (
       <AppLayout hideNav>
-        <BroadcastPage show="Quick Session" air={<OnAir state="off">Off air</OnAir>} className="pb-6">
+        <BroadcastPage show="Quick Session" className="pb-6">
           <div className="px-4 pt-3">
             <div role="heading" aria-level={1} className="fx h-16">
               <FitText className="h-full" max={72}>SESSION COMPLETE!</FitText>

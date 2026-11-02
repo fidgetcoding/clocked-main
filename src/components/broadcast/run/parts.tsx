@@ -18,7 +18,7 @@ import { isRest, runTickerItems } from './view';
 
 /** The light in the corner says what you're doing: working, resting or stopped. Nothing to do with the tracker. */
 function stateLabel(view: RunView) {
-  if (view.idle) return { state: 'off' as const, text: 'Standing by' };
+  if (view.idle) return { state: 'off' as const, text: 'Ready' };
   if (view.paused) return { state: 'off' as const, text: 'Paused' };
   if (view.kind === 'prep') return { state: 'off' as const, text: 'Get ready' };
   if (isRest(view)) return { state: 'off' as const, text: 'Rest' };
@@ -132,7 +132,7 @@ export function Transport({ view, actions, size = 'md', className }: { view: Run
         className={cn('plate fx min-w-0 flex-1 gap-3', pauseTone, heightClass)}
       >
         {main ? <PlayIcon className="size-5" /> : <PauseIcon className="size-5" />}
-        {!main ? 'Pause' : view.kind === 'freeform' && view.idle ? 'Go live' : 'Play'}
+        {!main ? 'Pause' : view.kind === 'freeform' && view.idle ? 'Start' : 'Play'}
       </button>
       {actions.onSkip && (
         <button type="button" onClick={actions.onSkip} aria-label="Skip segment" className={cn('plate plate-graphite fx w-[4.125rem] shrink-0', heightClass)}>
