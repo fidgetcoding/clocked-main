@@ -243,6 +243,11 @@ const QuickSession = () => {
     }
   };
 
+  const onLogFailed = (error: unknown) => {
+    console.error('Failed to log session:', error);
+    toast.error("Couldn't save your session. Check your connection and try again.");
+  };
+
   const handleConfirmExit = (save: boolean = true) => {
     endSession();
     if (save && accumulatedXP > 0 && !xpAwardedRef.current) {
@@ -257,7 +262,7 @@ const QuickSession = () => {
     }
     // Nothing trained, nothing to put in the history
     if (save && totalElapsed > 0) {
-      saveToHistory().catch((error) => console.error('Failed to log session:', error));
+      saveToHistory().catch(onLogFailed);
     }
     setShowExitConfirm(false);
     navigate('/');
@@ -265,7 +270,7 @@ const QuickSession = () => {
 
   const handleLog = () => {
     endSession();
-    saveToHistory().catch((error) => console.error('Failed to log session:', error));
+    saveToHistory().catch(onLogFailed);
   };
 
   // Completion screen

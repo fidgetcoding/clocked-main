@@ -734,6 +734,7 @@ const WorkoutSession = () => {
 
   const prevSegmentIndexRef = useRef<number>(-1);
   const xpAwardedRef = useRef(false);
+  const localXPPaid = useRef(false);
   const prevComboSegRef = useRef<number>(-1);
 
   // Voice countdown at 3 seconds
@@ -1112,7 +1113,8 @@ const WorkoutSession = () => {
       } catch (e) { console.error('Badge award failed:', e); }
     }
     
-    if (sessionResult.sessionTotal > 0) {
+    if (sessionResult.sessionTotal > 0 && !localXPPaid.current) {
+      localXPPaid.current = true;
       try { addLocalXP(sessionResult.sessionTotal, true); } catch (e) { console.error('Local XP update failed:', e); }
     }
     
@@ -1167,6 +1169,10 @@ const WorkoutSession = () => {
       }
     } catch (error) {
       console.error('Failed to log workout:', error);
+      toast.error("Couldn't save your workout. Check your connection and try again.");
+      // Still in this browser until it's really saved, so a reload can pick it back up
+      sessionEnded.current = false;
+      setSessionLog((log) => ({ ...log }));
     }
   };
   logRef.current = handleLog;

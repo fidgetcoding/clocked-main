@@ -27,7 +27,9 @@ import NotFound from "./pages/NotFound";
 // Lazy so the pose tracker and its page stay out of the main bundle
 const PunchCheck = lazy(() => import("./pages/PunchCheck"));
 
-const queryClient = new QueryClient();
+// Offline, React Query would otherwise park a save without a word: nothing for guests, whose saves
+// are local, and for accounts a pile of duplicates once the connection comes back.
+const queryClient = new QueryClient({ defaultOptions: { mutations: { networkMode: "always" } } });
 
 const App = () => (
   <AppErrorBoundary>
@@ -35,7 +37,7 @@ const App = () => (
     <AuthProvider>
       <TooltipProvider>
         <Toaster />
-        <Sonner />
+        <Sonner position="top-center" />
         <BrowserRouter>
           <ScrollToTop />
           <Routes>

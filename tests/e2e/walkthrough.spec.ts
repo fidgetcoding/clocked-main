@@ -3,6 +3,7 @@
 import type { Page } from "@playwright/test";
 import { expect, launchSilentChromium, test } from "./silent";
 import { finishSessionButton, pauseButton, playButton, skipButton } from "./controls";
+import { clickNewestEmailLink, finishAccountOnboarding, requestSignInEmail } from "./helpers";
 import { SIZES, watch, type Person } from "./person";
 
 const GUEST_URL = process.env.STACK_PROD_NO_BACKEND_URL as string;
@@ -297,4 +298,151 @@ test.describe("things a person noticed", () => {
       expect(clockRight).toBeLessThanOrEqual(label!.x);
     });
   }
+});
+
+const ACCOUNT_URL = process.env.STACK_PROD_URL as string;
+
+async function accountStart(person: Person) {
+  const { page } = person;
+  const email = `walker-${Date.now()}-${Math.random().toString(36).slice(2, 7)}@example.com`;
+  await requestSignInEmail(page, ACCOUNT_URL, email);
+  await person.look("check your email");
+  await clickNewestEmailLink(page, email);
+  await finishAccountOnboarding(page, "Walker");
+  return email;
+}
+
+for (const [sizeName, viewport] of Object.entries(SIZES)) {
+  test(`an account signs in by email link and sees every screen at ${sizeName}`, async ({ browser }) => {
+    test.setTimeout(240_000);
+    const context = await browser.newContext({ viewport });
+    const page = await context.newPage();
+    const person = watch(page, `account-${sizeName}`);
+    await accountStart(person);
+    await person.look("home");
+    await page.getByRole("button", { name: /QUICK SESSION/ }).click();
+    // Clocked's own camera question sits over the screen until the browser answers it
+    await person.look("quick ready");
+    await page.goto(ACCOUNT_URL);
+    for (const route of ROUTES.slice(1)) {
+      await page.goto(ACCOUNT_URL + route);
+      await person.look(route.slice(1));
+    }
+    await page.goto(ACCOUNT_URL);
+    await page.clock.install();
+    await page.reload();
+    const log = page.getByRole("button", { name: "Log Workout" });
+    await page.getByRole("button", { name: /^Start /, exact: false }).first().click();
+    await playButton(page).click();
+    for (let i = 0; i < 800 && !(await log.isVisible()); i++) await page.clock.fastForward(5000);
+    await person.look("account summary");
+    await log.click();
+    await page.getByText("Workout Logged!").waitFor();
+    await page.goto(`${ACCOUNT_URL}/history`);
+    await person.look("account log");
+    await page.getByRole("button", { name: /Loadout/ }).first().click();
+    await person.look("log entry opened");
+    await page.goto(`${ACCOUNT_URL}/stats`);
+    await person.look("account stats");
+    await page.goto(`${ACCOUNT_URL}/profile`);
+    await person.look("account profile");
+    await page.goto(`${ACCOUNT_URL}/fight-club`);
+    await person.look("fight club with own post");
+    await context.close();
+    expect(person.problems).toEqual([]);
+  });
+}
+
+test("every button on every screen does something", async ({ page }) => {
+  test.setTimeout(900_000);
+  const person = watch(page, "buttons");
+  await accountStart(person);
+  const dead: string[] = [];
+  const fingerprint = () => page.evaluate(() => `${location.href}|${document.body.innerText}|${document.querySelectorAll("[data-state=checked],[aria-pressed=true],[data-state=open],[role=dialog],[role=alertdialog]").length}|${[...document.querySelectorAll("button")].map((b) => b.className).join()}`);
+  for (const route of ["/", "/build", "/history", "/stats", "/fight-club", "/profile", "/settings", "/edit-profile", "/gloves", "/punch-check"]) {
+    await page.goto(ACCOUNT_URL + route);
+    await page.waitForTimeout(600);
+    const count = await page.locator("main button:visible, nav button:visible").count();
+    for (let i = 0; i < count; i++) {
+      await page.goto(ACCOUNT_URL + route);
+      await page.waitForTimeout(350);
+      const button = page.locator("main button:visible, nav button:visible").nth(i);
+      if (!(await button.count()) || (await button.isDisabled())) continue;
+      const name = ((await button.getAttribute("aria-label")) || (await button.innerText())).trim().slice(0, 30);
+      // Don't delete the account's only set
+      if (/remove|delete|sign ?out|log ?out/i.test(name)) continue;
+      const before = await fingerprint();
+      const clicked = await button.click({ timeout: 2500 }).then(() => true, () => false);
+      await page.waitForTimeout(400);
+      if (!clicked) dead.push(`${route}: "${name}" can't be clicked`);
+      else if ((await fingerprint()) === before) dead.push(`${route}: "${name}" does nothing`);
+    }
+  }
+  // Already on that tab, or already picked, and Change photo opens the system file picker
+  const expected = /^\/.*: "(HOME|MY STATS|FIGHT CLUB|PROFILE|FEED|ALL|CUSTOM BUILD|ROUNDS|NO TIMER|ORTHODOX[^"]*|Change photo)" does nothing$/;
+  expect(dead.filter((line) => !expected.test(line))).toEqual([]);
+  expect(person.problems).toEqual([]);
+});
+
+test.describe("bad networks", () => {
+  test("a slow connection still gets through sign-in and a screen", async ({ browser }) => {
+    test.setTimeout(240_000);
+    const context = await browser.newContext({ viewport: SIZES.phone });
+    const page = await context.newPage();
+    const cdp = await context.newCDPSession(page);
+    await cdp.send("Network.enable");
+    await cdp.send("Network.emulateNetworkConditions", { offline: false, latency: 800, downloadThroughput: 50_000, uploadThroughput: 20_000 });
+    const person = watch(page, "slow");
+    await page.goto(GUEST_URL);
+    await person.look("first screen slowly");
+    await page.getByRole("button", { name: "GET STARTED" }).waitFor({ timeout: 120_000 });
+    await context.close();
+    expect(person.problems).toEqual([]);
+  });
+
+  test("going offline mid-session keeps the run and logs nothing lost", async ({ browser }) => {
+    test.setTimeout(180_000);
+    const context = await browser.newContext({ viewport: SIZES.phone });
+    const page = await context.newPage();
+    const person = watch(page, "offline");
+    await accountStart(person);
+    await page.getByRole("button", { name: /^Start /, exact: false }).first().click();
+    await playButton(page).click();
+    await skipButton(page).click();
+    await page.waitForTimeout(1500);
+    await context.setOffline(true);
+    person.allow(/request failed|ERR_INTERNET_DISCONNECTED|Failed to (fetch|log|load)|TypeError/);
+    await page.waitForTimeout(2000);
+    await person.look("offline, still running");
+    await page.getByRole("button", { name: "Done" }).or(page.getByTitle("Complete workout early")).first().click();
+    await person.look("offline summary");
+    await page.getByRole("button", { name: "Log Workout" }).click();
+    await expect(page.getByText("Couldn't save your workout", { exact: false }), "a person is told the log didn't save").toBeVisible();
+    await person.look("offline after logging");
+    await context.setOffline(false);
+    await page.getByRole("button", { name: "Log Workout" }).click();
+    await page.getByText("Workout Logged!").waitFor();
+    await page.goto(`${ACCOUNT_URL}/history`);
+    await expect(page.getByRole("button", { name: /Loadout/ }).first(), "the retry saved it").toBeVisible();
+    await context.close();
+    expect(person.problems).toEqual([]);
+  });
+
+  test("a guest offline after loading keeps working; opening fresh offline is explained", async ({ browser }) => {
+    const context = await browser.newContext({ viewport: SIZES.phone });
+    const page = await context.newPage();
+    const person = watch(page, "offline-guest");
+    await guestStart(person);
+    await context.setOffline(true);
+    person.allow(/request failed|ERR_INTERNET_DISCONNECTED|dynamically imported module|couldn't load/);
+    await page.getByRole("button", { name: /QUICK SESSION/ }).click();
+    await playButton(page).click();
+    await page.waitForTimeout(1500);
+    await person.look("guest offline quick");
+    await finishSessionButton(page).click();
+    await page.getByRole("button", { name: "Log Session" }).click();
+    await page.getByText("Session Logged!").waitFor();
+    await context.close();
+    expect(person.problems).toEqual([]);
+  });
 });

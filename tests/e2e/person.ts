@@ -82,7 +82,8 @@ const isSpinning = (page: Page) =>
 
 export function watch(page: Page, label: string): Person {
   const problems: string[] = [];
-  const allowed: RegExp[] = [];
+  // The app's own camera question holds the screen until the browser answers, which is its design
+  const allowed: RegExp[] = [/is covered by "Allow your camera/];
   const note = (what: string) => {
     if (!allowed.some((pattern) => pattern.test(what))) problems.push(`[${page.url().replace(/^https?:\/\/[^/]+/, "")}] ${what}`);
   };
