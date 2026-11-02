@@ -74,7 +74,8 @@ export function useWorkoutHistory() {
   const history = isGuest ? guestHistory : dbHistory;
 
   const addHistoryEntry = useMutation({
-    mutationFn: async (entry: Omit<WorkoutHistoryEntry, 'id' | 'user_id' | 'created_at'>) => {
+    /** Pass an id to make the insert safe to repeat: the row it already made comes back instead of a second one. */
+    mutationFn: async (entry: Omit<WorkoutHistoryEntry, 'id' | 'user_id' | 'created_at'> & { id?: string }) => {
       if (isGuest) return useHistoryStore.getState().addGuestEntry(entry);
       if (!user?.id) throw new Error('Not authenticated');
       
@@ -84,6 +85,11 @@ export function useWorkoutHistory() {
         .select(LIST_COLUMNS)
         .single();
       
+      if (error?.code === '23505' && entry.id) {
+        const { data: saved, error: readError } = await supabase.from('workout_history').select(LIST_COLUMNS).eq('id', entry.id).single();
+        if (readError) throw readError;
+        return toHistoryEntry(saved);
+      }
       if (error) throw error;
       return toHistoryEntry(data);
     },

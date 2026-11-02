@@ -736,6 +736,8 @@ const WorkoutSession = () => {
   const xpAwardedRef = useRef(false);
   const localXPPaid = useRef(false);
   const historySaved = useRef(false);
+  // One id per run, kept with the saved run, so its history row is only ever added once
+  const historyId = useRef<string>(crypto.randomUUID());
   const prevComboSegRef = useRef<number>(-1);
 
   // Voice countdown at 3 seconds
@@ -921,11 +923,13 @@ const WorkoutSession = () => {
       log: sessionLog,
       punchLog: punchSnapshot(),
       isComplete,
+      historyId: historyId.current,
     });
   }, [punchSnapshot, logged, workout, user?.id, flatSegments.length, currentSegmentIndex, timeRemaining, totalElapsed, isPreparation, accumulatedXP, liveBadgesEarned, sessionLog, isComplete]);
 
   // Comes back paused with the clock where it was. Only trained runs get saved, so the start bonus is already in timerXP.
   const restoreSession = useCallback((saved: SessionSnapshot) => {
+    if (saved.historyId) historyId.current = saved.historyId;
     prevSegmentIndexRef.current = saved.segmentIndex;
     setCurrentSegmentIndex(saved.segmentIndex);
     setTimeRemaining(saved.timeRemaining);
@@ -974,6 +978,7 @@ const WorkoutSession = () => {
 
   const handleConfirmRestart = () => {
     clearSession();
+    historyId.current = crypto.randomUUID();
     cancelSpeech();
     setShowRestartConfirm(false);
     setCurrentSegmentIndex(0);
@@ -1124,6 +1129,7 @@ const WorkoutSession = () => {
       // A retry after the stats failed doesn't put the session in the history twice
       if (!historySaved.current) {
         await addHistoryEntry.mutateAsync({
+        id: historyId.current,
         workout_id: workout?.id || null,
         workout_name: workout?.name || 'Workout',
         completed_at: new Date().toISOString(),

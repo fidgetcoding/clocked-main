@@ -24,6 +24,8 @@ export interface SessionSnapshot {
   /** The camera's punch log so far, read back through parsePunchLog. */
   punchLog?: unknown;
   isComplete: boolean;
+  /** The id its history row gets. Logging again after a reload finds that row instead of adding another. */
+  historyId?: string;
   savedAt: number;
 }
 

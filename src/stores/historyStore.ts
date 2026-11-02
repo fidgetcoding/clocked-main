@@ -17,7 +17,7 @@ interface HistoryStore {
   deleteCompletedWorkout: (id: string) => void;
   // Guest rows keep the database row shape so useWorkoutHistory returns the same thing either way
   guestHistory: WorkoutHistoryEntry[];
-  addGuestEntry: (entry: Omit<WorkoutHistoryEntry, 'id' | 'user_id' | 'created_at'>) => WorkoutHistoryEntry;
+  addGuestEntry: (entry: Omit<WorkoutHistoryEntry, 'id' | 'user_id' | 'created_at'> & { id?: string }) => WorkoutHistoryEntry;
   updateGuestEntry: (id: string, updates: Partial<WorkoutHistoryEntry>) => WorkoutHistoryEntry;
   deleteGuestEntry: (id: string) => void;
 }
@@ -29,9 +29,12 @@ export const useHistoryStore = create<HistoryStore>()(
       guestHistory: [],
 
       addGuestEntry: (entry) => {
+        // The same run logged twice, after a reload, is the one row it already has
+        const existing = entry.id && get().guestHistory.find((row) => row.id === entry.id);
+        if (existing) return existing;
         const row: WorkoutHistoryEntry = {
           ...entry,
-          id: crypto.randomUUID(),
+          id: entry.id ?? crypto.randomUUID(),
           user_id: GUEST_USER_ID,
           created_at: new Date().toISOString(),
         };

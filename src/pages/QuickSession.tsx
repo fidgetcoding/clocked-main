@@ -138,6 +138,8 @@ const QuickSession = () => {
   const [resumable, setResumable] = useState<SessionSnapshot | null>(null);
   const sessionEnded = useRef(false);
 
+  // One id per run, kept with the saved run, so its history row is only ever added once
+  const historyId = useRef<string>(crypto.randomUUID());
   const snapshotOf = useCallback((userId: string, complete: boolean) => ({
     userId,
     workoutId: QUICK_SESSION_ID,
@@ -150,6 +152,7 @@ const QuickSession = () => {
     log: FRESH_SESSION,
     punchLog: punchSnapshot(),
     isComplete: complete,
+    historyId: historyId.current,
   }), [totalElapsed, accumulatedXP, punchSnapshot]);
 
   useEffect(() => {
@@ -159,6 +162,7 @@ const QuickSession = () => {
 
   // Comes back paused. A finished run already paid out its XP, so it stays marked as paid.
   const restoreSession = useCallback((saved: SessionSnapshot) => {
+    if (saved.historyId) historyId.current = saved.historyId;
     setTotalElapsed(saved.totalElapsed);
     restorePunchLog(saved.punchLog);
     setAccumulatedXP(saved.timerXP);
@@ -224,6 +228,7 @@ const QuickSession = () => {
     // A retry after the stats failed doesn't put the session in the history twice
     if (!historySaved.current) {
       await addHistoryEntry.mutateAsync({
+        id: historyId.current,
         workout_id: null,
         workout_name: 'Quick Session',
         completed_at: new Date().toISOString(),

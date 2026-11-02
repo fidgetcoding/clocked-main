@@ -56,3 +56,23 @@ test("a streak save that fails says so, keeps the run, and a retry doesn't log i
   expect(await historyRows(userId)).toBe(1);
   await expect.poll(() => streak(userId)).toBeGreaterThan(0);
 });
+
+test("a reload between a failed streak save and the retry still logs the workout once", async ({ page }) => {
+  await page.clock.install();
+  const userId = await signIn(page, "streak-reload");
+  await page.goto(APP_URL);
+  await trainAndFinish(page, 360);
+
+  await profileSaves(page, (route) => route.fulfill({ status: 500, contentType: "application/json", body: '{"message":"down"}' }));
+  await page.getByRole("button", { name: "Log Workout" }).click();
+  await expect(page.getByText("Couldn't save your workout", { exact: false })).toBeVisible();
+  await expect.poll(() => historyRows(userId)).toBe(1);
+
+  await page.unroute("**/rest/v1/profiles**");
+  await page.reload();
+  await page.getByRole("button", { name: "Resume" }).click();
+  await page.getByRole("button", { name: "Log Workout" }).click();
+  await expect(page.getByText("Workout Logged!")).toBeVisible();
+  expect(await historyRows(userId)).toBe(1);
+  await expect.poll(() => streak(userId)).toBeGreaterThan(0);
+});
