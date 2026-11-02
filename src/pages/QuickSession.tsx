@@ -209,9 +209,35 @@ const QuickSession = () => {
     });
   }, [accumulatedXP, addLocalXP, addProfileXP, user?.id, snapshotOf, endPunchRound]);
 
-  const handleConfirmExit = (saveXP: boolean = true) => {
+  // mutateAsync, because leaving unmounts this page and a callback passed to mutate would never run
+  const saveToHistory = async () => {
+    const finishedLog = punchLog.finish();
+    await addHistoryEntry.mutateAsync({
+      workout_id: null,
+      workout_name: 'Quick Session',
+      completed_at: new Date().toISOString(),
+      duration: totalElapsed,
+      xp_earned: Math.round(accumulatedXP),
+      difficulty: difficultyRating || null,
+      notes: notes || null,
+      punch_log: finishedLog ?? undefined,
+      is_manual_entry: false,
+      round_feedback: [],
+    });
+    setLogged(true);
+    if (user?.id && profile) {
+      const stats = await computePostLogStats(profile.user_id, profile, totalElapsed);
+      // Real punches count however short the session was. The minimum is only for streaks and session counts.
+      const counts = finishedLog ? punchCountIncrements(profile, finishedLog.totals.byType) : {};
+      if (stats || Object.keys(counts).length > 0) {
+        updateProfile.mutate({ ...stats, ...counts });
+      }
+    }
+  };
+
+  const handleConfirmExit = (save: boolean = true) => {
     endSession();
-    if (saveXP && accumulatedXP > 0 && !xpAwardedRef.current) {
+    if (save && accumulatedXP > 0 && !xpAwardedRef.current) {
       xpAwardedRef.current = true;
       const xpEarned = Math.round(accumulatedXP);
       try {
@@ -221,39 +247,17 @@ const QuickSession = () => {
         console.error('Failed to award XP on exit:', error);
       }
     }
+    // Nothing trained, nothing to put in the history
+    if (save && totalElapsed > 0) {
+      saveToHistory().catch((error) => console.error('Failed to log session:', error));
+    }
     setShowExitConfirm(false);
     navigate('/');
   };
 
   const handleLog = () => {
     endSession();
-    const xpEarned = Math.round(accumulatedXP);
-    const finishedLog = punchLog.finish();
-    addHistoryEntry.mutate({
-      workout_id: null,
-      workout_name: 'Quick Session',
-      completed_at: new Date().toISOString(),
-      duration: totalElapsed,
-      xp_earned: xpEarned,
-      difficulty: difficultyRating || null,
-      notes: notes || null,
-      punch_log: finishedLog ?? undefined,
-      is_manual_entry: false,
-      round_feedback: [],
-    }, {
-      onSuccess: async () => {
-        setLogged(true);
-        if (user?.id && profile) {
-          const stats = await computePostLogStats(profile.user_id, profile, totalElapsed);
-          // Real punches count however short the session was. The minimum is only for streaks and session counts.
-          const counts = finishedLog ? punchCountIncrements(profile, finishedLog.totals.byType) : {};
-          if (stats || Object.keys(counts).length > 0) {
-            updateProfile.mutate({ ...stats, ...counts });
-          }
-        }
-      },
-      onError: (error) => console.error('Failed to log session:', error),
-    });
+    saveToHistory().catch((error) => console.error('Failed to log session:', error));
   };
 
   // Completion screen
@@ -416,7 +420,7 @@ const QuickSession = () => {
           <AlertDialogHeader>
             <AlertDialogTitle>End Session?</AlertDialogTitle>
             <AlertDialogDescription>
-              You've trained for {formatTimeCompact(totalElapsed)}. Your XP will be saved.
+              You've trained for {formatTimeCompact(totalElapsed)}. Your XP, history and punch log will be saved.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

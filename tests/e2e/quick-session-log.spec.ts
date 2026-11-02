@@ -204,3 +204,69 @@ test("an account's punches go in the database and come back in history", async (
   expect(historyReads.filter((url) => url.includes("user_id=")).every((url) => !url.includes("punch_log") && !url.includes("select=*"))).toBe(true);
   expect(historyReads.some((url) => url.includes("select=punch_log"))).toBe(true);
 });
+
+const leaveFromTheStage = async (page: Page, choice: string) => {
+  await page.getByRole("button", { name: /^Leave/ }).first().click();
+  await page.getByRole("button", { name: choice }).click();
+  await page.waitForURL((url) => url.pathname === "/");
+};
+
+const guestHistory = (page: Page) =>
+  page.evaluate(() => JSON.parse(localStorage.getItem("get-clocked-history") ?? "{}").state?.guestHistory ?? []);
+
+test("End & Save from the back button keeps a guest's history and punch log", async ({ page }) => {
+  await fakeCameraAndPoses(page);
+  await finishGuestOnboarding(page, NO_BACKEND_URL, "Log Leaver");
+  await openQuickSession(page, NO_BACKEND_URL);
+  await playButton(page).click();
+  await expect(page.getByTestId("log-live-total")).toHaveText(String(PUNCHES.length), { timeout: 20_000 });
+
+  await leaveFromTheStage(page, "End & Save");
+
+  await expect.poll(async () => (await guestHistory(page)).length).toBe(1);
+  const [saved] = await guestHistory(page);
+  expect(saved.workout_name).toBe("Quick Session");
+  expect(saved.duration).toBeGreaterThan(0);
+  expect(saved.punch_log.punches).toHaveLength(PUNCHES.length);
+});
+
+test("Leave Without Saving adds nothing to the history", async ({ page }) => {
+  await fakeCameraAndPoses(page);
+  await finishGuestOnboarding(page, NO_BACKEND_URL, "Log Walkout");
+  await openQuickSession(page, NO_BACKEND_URL);
+  await playButton(page).click();
+  await expect(page.getByTestId("log-live-total")).toHaveText(String(PUNCHES.length), { timeout: 20_000 });
+
+  await leaveFromTheStage(page, "Leave Without Saving");
+
+  await page.waitForTimeout(500);
+  expect(await guestHistory(page)).toHaveLength(0);
+});
+
+test("End & Save from the back button puts an account's session and counts in the database", async ({ page }) => {
+  await fakeCameraAndPoses(page);
+  const email = `punch-leave-${Date.now()}@example.com`;
+  await requestSignInEmail(page, APP_URL, email);
+  await clickNewestEmailLink(page, email);
+  await finishAccountOnboarding(page, "Log Account Leaver");
+  await openQuickSession(page, APP_URL);
+  await playButton(page).click();
+  await expect(page.getByTestId("log-live-total")).toHaveText(String(PUNCHES.length), { timeout: 20_000 });
+
+  await leaveFromTheStage(page, "End & Save");
+
+  const userId = await userIdFor(email);
+  await expect
+    .poll(async () => {
+      const { data } = await service.from("workout_history").select("punch_log").eq("user_id", userId);
+      return data?.length === 1 ? data[0].punch_log?.punches?.length : null;
+    })
+    .toBe(PUNCHES.length);
+  // The profile update comes after the history row, from a page that has already gone
+  await expect
+    .poll(async () => {
+      const { data } = await service.from("profiles").select("punch_1_count, punch_2_count, punch_3_count, punch_4_count, punch_5_count, punch_6_count").eq("user_id", userId).single();
+      return Object.values(data ?? {}).reduce((sum: number, count) => sum + Number(count ?? 0), 0);
+    })
+    .toBeGreaterThan(0);
+});
