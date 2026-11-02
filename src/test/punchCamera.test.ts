@@ -88,6 +88,8 @@ describe('usePunchCamera', () => {
     act(() => {
       starting = result.current.start();
     });
+    // The prompt is up once it has asked
+    await waitFor(() => expect(getUserMedia).toHaveBeenCalled());
     unmount();
     grant(stream);
     await starting;

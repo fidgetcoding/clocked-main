@@ -344,9 +344,16 @@ export function FeedBanner({
         <span className="lab lab-w">Camera problem</span>
         <p className="fx mt-1 text-2xl">{CAMERA_MESSAGES[feed.problem].title}</p>
         <p className="text-base text-muted-foreground">Your session carries on without it.</p>
-        <Button size="sm" variant="secondary" className="mt-2" onClick={onDismiss} aria-label="Dismiss camera message">
-          Dismiss
-        </Button>
+        <div className="mt-2 flex gap-2">
+          {(feed.problem === 'unknown' || feed.problem === 'in_use' || feed.problem === 'model_failed') && (
+            <Button size="sm" onClick={feed.resume}>
+              Try again
+            </Button>
+          )}
+          <Button size="sm" variant="secondary" onClick={onDismiss} aria-label="Dismiss camera message">
+            Dismiss
+          </Button>
+        </div>
       </div>
     );
   }

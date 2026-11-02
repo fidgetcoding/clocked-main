@@ -152,3 +152,42 @@ for (const viewport of [{ width: 844, height: 390 }, { width: 1280, height: 720 
     expect(a.x < b.x + b.width && b.x < a.x + a.width && a.y < b.y + b.height && b.y < a.y + a.height).toBe(false);
   });
 }
+
+test("a device with no camera says so plainly and starts without it", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await page.context().addInitScript(() => {
+    (window as unknown as { __asked: number }).__asked = 0;
+    Object.defineProperty(navigator, "mediaDevices", {
+      configurable: true,
+      value: {
+        enumerateDevices: async () => [{ kind: "audioinput", deviceId: "", groupId: "", label: "" }],
+        getUserMedia: async () => {
+          (window as unknown as { __asked: number }).__asked++;
+          throw new DOMException("none", "NotFoundError");
+        },
+      },
+    });
+  });
+  await finishGuestOnboarding(page, NO_BACKEND_URL, "No Camera");
+  await cameraOn(page);
+  await page.goto(`${NO_BACKEND_URL}/quick-session`);
+  await expect(page.getByText("No camera found")).toBeVisible();
+  await expect(page.getByText(/something went wrong/i)).toHaveCount(0);
+  expect(await page.evaluate(() => (window as unknown as { __asked: number }).__asked)).toBe(0);
+  await playButton(page).click();
+  await expect(page.getByRole("button", { name: "Pause", exact: true })).toBeVisible();
+});
+
+test("a camera error nobody can name says Camera unavailable, offers Try again, and start works", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await withCamera(page, "async () => { throw new DOMException('odd', 'SomethingNewError'); }");
+  await finishGuestOnboarding(page, NO_BACKEND_URL, "Odd Camera");
+  await cameraOn(page);
+  await page.goto(`${NO_BACKEND_URL}/quick-session`);
+  await expect(page.getByText("Camera unavailable")).toBeVisible();
+  await expect(page.getByText(/something went wrong/i)).toHaveCount(0);
+  await page.getByRole("button", { name: "Try again" }).click();
+  await expect(page.getByText("Camera unavailable")).toBeVisible();
+  await playButton(page).click();
+  await expect(page.getByRole("button", { name: "Pause", exact: true })).toBeVisible();
+});

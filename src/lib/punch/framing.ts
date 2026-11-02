@@ -119,8 +119,8 @@ export const CAMERA_MESSAGES: Record<CameraProblem, { title: string; body: strin
     body: 'Check your connection and try again. If it keeps happening, try a recent version of Chrome or Safari.',
   },
   unknown: {
-    title: "The camera didn't start",
-    body: 'Something went wrong starting it. Try again.',
+    title: 'Camera unavailable',
+    body: "The camera couldn't be started. Try again, or train without it.",
   },
 };
 

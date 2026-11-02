@@ -168,6 +168,15 @@ export function usePunchCamera({ videoRef, onPose, processing = true }: Options)
 
     setStatus('starting');
 
+    // No camera at all is a plain answer, not an error, and it needn't ask for permission to find out.
+    // An empty list says nothing: some browsers hide every device until asked.
+    const devices = await navigator.mediaDevices.enumerateDevices?.().catch(() => null);
+    if (run !== runRef.current) return;
+    if (devices && devices.length > 0 && !devices.some((device) => device.kind === 'videoinput')) {
+      fail('no_camera');
+      return;
+    }
+
     let stream: MediaStream;
     try {
       stream = await navigator.mediaDevices.getUserMedia(VIDEO_CONSTRAINTS);
