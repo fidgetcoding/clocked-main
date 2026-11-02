@@ -77,6 +77,18 @@ test("the camera is asked for on arrival, and start waits until it answers", asy
   await expect(playButton(page)).toBeEnabled();
 });
 
+test("a camera prompt nobody answers stops holding start after a few seconds", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await withCamera(page, "() => new Promise(() => {})");
+  await finishGuestOnboarding(page, NO_BACKEND_URL, "Ignored");
+  await cameraOn(page);
+  await page.goto(`${NO_BACKEND_URL}/quick-session`);
+  await expect(playButton(page)).toBeDisabled();
+  await expect(playButton(page)).toBeEnabled({ timeout: 15_000 });
+  await playButton(page).click();
+  await expect(page.getByRole("button", { name: "Pause", exact: true })).toBeVisible();
+});
+
 test("a blocked camera says so before start, and you can still train", async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 800 });
   await withCamera(page, "async () => { throw new DOMException('no', 'NotAllowedError'); }");

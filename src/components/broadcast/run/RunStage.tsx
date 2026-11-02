@@ -13,6 +13,8 @@ import { isRest } from './view';
 // Long enough to be a moment, short enough to be gone before the next combo
 const BELL_MS = 4000;
 const LAST_TEN_MIN_DURATION = 15;
+// Some browsers leave the camera prompt open until it's answered. Start stops waiting after this, and the camera can still join.
+const ASK_HOLD_MS = 10_000;
 // The conditioning segments go full white when the camera's off. False keeps them on the dark stage.
 const WHITE_CONDITIONING = true;
 
@@ -70,7 +72,13 @@ export function RunStage(props: RunStageProps) {
   const layout = useStageLayout();
   const showFeed = cameraOn && !!camera && !feed?.problem;
   const asking = given.idle && showFeed && feed?.status !== 'live' && !feed?.paused;
-  const view = asking ? { ...given, startHeld: true } : given;
+  const [askedLong, setAskedLong] = useState(false);
+  useEffect(() => {
+    if (!asking) return;
+    const timer = setTimeout(() => setAskedLong(true), ASK_HOLD_MS);
+    return () => clearTimeout(timer);
+  }, [asking]);
+  const view = asking && !askedLong ? { ...given, startHeld: true } : given;
   const bellXP = useRoundBell(view);
   const tone = stageTone(view, showFeed);
   const stageRef = useRef<HTMLDivElement>(null);
