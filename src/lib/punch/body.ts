@@ -44,6 +44,8 @@ export interface ArmPose {
   shoulder: Vec3;
   /** Mean visibility of the arm's joints. */
   visibility: number;
+  /** The model only guessed where the wrist or elbow is, because it couldn't see it. */
+  guessed: boolean;
 }
 
 /**
@@ -179,7 +181,7 @@ export class BodyTracker {
     const isArm = index === LM.LEFT_ELBOW || index === LM.RIGHT_ELBOW || index === LM.LEFT_WRIST || index === LM.RIGHT_WRIST;
     if (!isArm || !this.heading) return input.minVisibility;
     const yawNow = Math.abs((Math.atan2(this.heading.z, this.heading.x) * 180) / Math.PI);
-    return yawNow >= view.offAxisYaw ? view.hiddenArmVisibility : input.minVisibility;
+    return yawNow >= view.hiddenArmYaw ? view.hiddenArmVisibility : input.minVisibility;
   }
 
   private smooth(landmarks: Landmark[], dt: number) {
@@ -275,6 +277,7 @@ export class BodyTracker {
         shoulder: toBody(shoulder),
         visibility:
           ((wrist?.visibility ?? 0) + (elbow?.visibility ?? 0) + (shoulder.visibility ?? 1)) / 3,
+        guessed: [wrist, elbow].some((joint) => !!joint && (joint.visibility ?? 1) < this.config.input.minVisibility),
       };
     };
 

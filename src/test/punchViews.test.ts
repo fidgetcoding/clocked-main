@@ -268,4 +268,16 @@ describe('placements around a bag', () => {
     expect(back.handUnsure).toBe(true);
     expect(classifyPunch('lead', { ...clear, viewYaw: 0, spineTilt: -20 }).punch).toBe('jab');
   });
+
+  it('keeps a hidden arm out of the count when the body never turned with it', () => {
+    const still = simulate({ stance: 'orthodox', punches: [], durationMs: 6000, startMs: 1000 });
+    const detector = new PunchDetector('orthodox');
+    const events: PunchEvent[] = [];
+    still.forEach((frame, i) => {
+      // The hidden wrist's guess wanders while everything else holds still
+      const landmarks = frame.landmarks!.map((p, index) => (index === LM.LEFT_WRIST ? { ...p, x: p.x + 0.5 * Math.sin(i / 3), visibility: 0.1 } : index === LM.LEFT_ELBOW ? { ...p, visibility: 0.1 } : p));
+      events.push(...detector.push({ t: frame.t, landmarks: turnFrame({ t: frame.t, landmarks }, 60).landmarks }));
+    });
+    expect(events.filter((event) => event.type === 'punch')).toEqual([]);
+  });
 });

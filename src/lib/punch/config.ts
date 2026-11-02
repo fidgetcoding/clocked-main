@@ -68,6 +68,12 @@ export const PUNCH_CONFIG = {
     offAxisUppercutRise: 0.6,
     /** A hidden arm's position is partly the model's guess, so a punch from it has to move further. */
     hiddenMinDistance: 0.6,
+    /** And the body has to turn with it, in degrees at the shoulders or hips, which still hands don't do. */
+    hiddenMinRotation: 10,
+    /** Hidden arms are followed from this far around. */
+    hiddenArmYaw: 10,
+    /** A joint guessed this recently makes a move untrustworthy too, as the guess wanders and snaps back. Set on the mannequin. */
+    guessedRecentlyMs: 3000,
     /** Punches on both arms this close together, off-axis, are one punch seen twice. */
     mirrorWindowMs: 250,
     unsureBend: 0.1,

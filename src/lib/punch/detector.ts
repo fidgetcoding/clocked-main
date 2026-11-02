@@ -54,6 +54,7 @@ interface HandState {
   idleSpeed: number;
   /** When this hand last landed a punch. */
   lastPunchT: number;
+  lastGuessedT: number;
   /** State of the other hand while this one extends. */
   otherStartedIdle: boolean;
   otherStartedLow: boolean;
@@ -89,6 +90,7 @@ const newHand = (side: Side, hand: Hand): HandState => ({
   restPose: null,
   idleSpeed: 0,
   lastPunchT: -Infinity,
+  lastGuessedT: -Infinity,
   otherStartedIdle: false,
   otherStartedLow: false,
 });
@@ -196,6 +198,7 @@ export class PunchDetector {
   }
 
   private step(state: HandState, other: HandState, pose: BodyPose, events: PunchEvent[]) {
+    if (armOf(pose, state.side).guessed) state.lastGuessedT = pose.t;
     const wrist = armOf(pose, state.side).wrist;
     if (!wrist) {
       // Not seen: abandon any extension in progress rather than judging it on missing data
@@ -394,7 +397,10 @@ export class PunchDetector {
     const toPeakVisibility = state.samples.slice(0, state.peakIndex + 1).map((s) => armOf(s.pose, state.side).visibility);
     const lowestVisibility = Math.min(...toPeakVisibility);
     const offAxis = Math.abs(peak.pose.viewYaw) >= view.offAxisYaw;
-    if (offAxis && lowestVisibility < view.namedArmVisibility && distance < view.hiddenMinDistance) return;
+    if (state.samples[0].pose.t - state.lastGuessedT <= view.guessedRecentlyMs || state.samples.slice(0, state.peakIndex + 1).some((s) => armOf(s.pose, state.side).guessed)) {
+      const turned = Math.max(Math.abs(startPose.shoulderYaw - peak.pose.shoulderYaw), Math.abs(startPose.hipYaw - peak.pose.hipYaw));
+      if (distance < view.hiddenMinDistance || turned < view.hiddenMinRotation) return;
+    }
     const across = state.side === 'left' ? -delta.x : delta.x;
     const upperArm = dist(arm.shoulder, arm.elbow);
     const foreArm = dist(arm.elbow, arm.wrist);

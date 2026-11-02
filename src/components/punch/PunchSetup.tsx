@@ -66,7 +66,7 @@ export function PunchSetup({ onStart, onBack }: PunchSetupProps) {
         {[
           "Don't put it behind the bag, it can't see you there. Go about two-thirds of the way around from the bag to your side, either side",
           'Prop it at hip or chest height if you can, 6 to 10 feet back',
-          "On the floor? Same spot, leaned back so all of you shows. It counts but won't name punches, and may add a few extra. A box or step gets some names back",
+          "On the floor? Same spot, leaned back so all of you shows. It counts but won't name punches, and may add a few extra. Hip height names more",
           'Directly side on or behind you only counts, and misses more',
           'Leave room above your head, and keep your hands and hips in the picture',
           'Put the light in front of you, not behind',
