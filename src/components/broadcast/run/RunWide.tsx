@@ -147,13 +147,13 @@ function WideFeed({ view, actions, flash, cameraOn, feed, counting, onDismissPro
             <div className="mt-2 min-h-0 flex-1">
               <FreestylePlate />
             </div>
-          ) : (
+          ) : view.upNext ? (
             <Plate tone="black" className="mt-2 h-[4.5rem] w-full shrink-0 px-5">
               <FitText className="h-[70%]" align="center" lineHeight={0.92}>
-                {view.upNext ? `Next: ${view.upNext}` : ''}
+                {`Next: ${view.upNext}`}
               </FitText>
             </Plate>
-          )}
+          ) : null}
           <Transport view={view} actions={actions} size="lg" className="mt-2.5 shrink-0" />
         </div>
 

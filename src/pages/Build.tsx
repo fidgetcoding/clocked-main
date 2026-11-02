@@ -392,7 +392,8 @@ const Build = () => {
   const [editingExerciseSegmentId, setEditingExerciseSegmentId] = useState<string | null>(null);
   const [showShareDialog, setShowShareDialog] = useState(false);
   const [shareMessage, setShareMessage] = useState('');
-  const [shareName, setShareName] = useState('');
+  // Null until edited, so it follows the set's name even if the set is still loading
+  const [shareName, setShareName] = useState<string | null>(null);
   const [shareDestination, setShareDestination] = useState<'feed' | 'club'>('feed');
   const [shareTags, setShareTags] = useState<string[]>([]);
   const [shareClubId, setShareClubId] = useState<string | null>(null);
@@ -884,7 +885,7 @@ const Build = () => {
                   return;
                 }
                 // onOpenChange doesn't fire when the dialog is opened from here, so the form starts fresh now
-                setShareName(name);
+                setShareName(null);
                 setShareDestination('feed');
                 setShareClubId(null);
                 setShareTags([]);
@@ -1691,7 +1692,7 @@ const Build = () => {
                 <label htmlFor="share-name" className="lab block">Workout Name</label>
                 <Input
                   id="share-name"
-                  value={shareName}
+                  value={shareName ?? name}
                   onChange={(e) => setShareName(e.target.value)}
                   placeholder="Workout name"
                   className={cn(FX_FIELD, 'h-14 border-volt text-5xl')}
@@ -1811,7 +1812,7 @@ const Build = () => {
                     { 
                       workout, 
                       message: shareMessage || undefined,
-                      customName: shareName !== name ? shareName : undefined,
+                      customName: shareName && shareName !== name ? shareName : undefined,
                       tags: shareTags.length > 0 ? shareTags : undefined,
                       destination: shareDestination,
                       clubId: shareDestination === 'club' ? (shareClubId || undefined) : undefined,

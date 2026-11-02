@@ -226,6 +226,10 @@
     width: 4.5rem;
   }
 
+  .stage .lab {
+    letter-spacing: 0.03em;
+  }
+
   .stage .on-air {
     font-size: 0;
     gap: 0;
@@ -367,8 +371,8 @@
   position: absolute;
   z-index: 25;
   left: 0;
-  max-width: min(30rem, 88cqw);
-  top: 34cqh;
+  max-width: 88cqw;
+  top: 22cqh;
 }
 
 .stage[data-layout="wide"] .stage-check {
@@ -380,7 +384,7 @@
 
 .stage[data-layout="landscape"] .stage-check {
   top: auto;
-  bottom: 0.5rem;
+  bottom: 2rem;
   max-width: 50cqw;
 }
 

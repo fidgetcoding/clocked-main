@@ -28,8 +28,8 @@ export function StartCheckStatus({ check, onSkip, onRerun, className }: StartChe
   if (check.running) {
     return (
       <div role="status" data-testid="start-check" className={cn('flex items-center gap-4 bg-background/85 py-2 pl-4 pr-3', className)}>
-        <span className="fx text-3xl leading-none">Hands up, checking your setup</span>
-        <span className="fx text-5xl leading-none text-volt">{check.secondsLeft}</span>
+        <span className="fx text-2xl leading-none">Hands up, checking setup</span>
+        <span className="fx text-4xl leading-none text-volt">{check.secondsLeft}</span>
         <button type="button" onClick={onSkip} className="plate plate-graphite fx h-11 shrink-0 px-4 text-xl">
           Skip
         </button>
