@@ -640,11 +640,12 @@
   .stage-check .fx {
     font-size: 1.25rem;
   }
+}
 
-  /* No room for what it saw next to the clock: the countdown shows, the result doesn't */
-  .stage[data-layout="portrait"] .stage-check[data-testid="start-check-result"] {
-    display: none;
-  }
+/* An upright phone's strip can stand most of the screen, so what the check saw has nowhere to go that
+   misses the clock: the countdown shows, the result doesn't. Punch Check gives the full advice. */
+.stage[data-layout="portrait"] .stage-check[data-testid="start-check-result"] {
+  display: none;
 }
 
 /* The start check sits away from the panel */
