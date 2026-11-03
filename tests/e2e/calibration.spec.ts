@@ -50,7 +50,8 @@ const fakeBody = async (page: Page, swap: Record<string, string> = {}) => {
         const punch = document.querySelector("[data-calibration-punch]")?.getAttribute("data-calibration-punch") ?? "";
         const waiting = document.querySelector('[data-testid="calibration-step-line"]')?.textContent?.startsWith("Throw") ?? false;
         const prompt = waiting ? punch : "";
-        if (prompt && prompt !== asked) {
+        // A new prompt gets its punch, and one still up after a few seconds gets it again, like a person would
+        if (prompt && (prompt !== asked || (!playing && timestampMs - startedAt > 3000))) {
           playing = (throws as Record<string, Point[][]>)[(swap as Record<string, string>)[prompt] ?? prompt];
           startedAt = timestampMs;
         }
