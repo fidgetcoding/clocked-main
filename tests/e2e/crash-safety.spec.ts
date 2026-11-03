@@ -107,7 +107,8 @@ test("the feed shows before start, and leaving turns the camera off", async ({ p
   await cameraOn(page);
   await page.goto(`${NO_BACKEND_URL}/quick-session`);
   await expect(page.getByTestId("run-stage")).toHaveAttribute("data-camera", "on");
-  await expect(playButton(page)).toBeEnabled({ timeout: 30_000 });
+  // Calibration opens once the feed is live
+  await expect(page.getByTestId("calibration")).toBeVisible({ timeout: 30_000 });
   await expect(page.getByTestId("camera-panel").locator("video")).toBeVisible();
   await page.getByRole("button", { name: /^Leave/ }).first().click();
   await page.waitForURL((url) => url.pathname === "/");
