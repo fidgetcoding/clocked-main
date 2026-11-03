@@ -3,9 +3,11 @@
  * Built from src/lib/voice/lines.ts, so it never drifts from what the app actually says.
  *
  *   npm run voice:script -- out.md
+ *   npm run voice:script -- --read-sheet out.md   Just the lines for one long take, numbered, to read off
  */
 import { writeFileSync } from 'node:fs';
 import { VOICE_LINES, VOICE_SECTIONS } from '../src/lib/voice/lines';
+import { TAKE_SECTIONS } from '../src/lib/voice/takeSplit';
 
 const SAY: Record<string, string> = {
   'clock-3-2-1': 'Three, two, one',
@@ -23,6 +25,7 @@ Every line the app says out loud, ${VOICE_LINES.length} in all. Record each one 
 - Want variety? Say it again in a separate file: \`<id>-2\`, \`<id>-3\`. The app picks one at random each time.
 - Coach energy, short and punchy. Don't leave a gap at the start or end; the import trims silence anyway.
 - Put the files in one folder and run \`npm run voice:import -- <folder>\` in the repo. It converts them, adds them to the app and lists what's still missing.
+- Or skip the file names: read the read sheet in one long take and run \`npm run voice:import -- --take <file>\`. One section at a time works too: \`--take <file> --section numbers\`. Fluffed a line? Say "again" and read it once more.
 
 ## How the long lines get built
 
@@ -41,11 +44,34 @@ const sections = VOICE_SECTIONS.map(({ section, title, about }) => {
   return [`## ${title} (${lines.length})`, '', about, '', '| File id | Say |', '|---|---|', ...rows].join('\n');
 });
 
-const markdown = `${HEADER}\n${sections.join('\n\n')}\n`;
-const out = process.argv[2];
+/** The read sheet: the take's lines in order, numbered, and nothing else to trip over. */
+function readSheet() {
+  const take = TAKE_SECTIONS.map((section) => ({
+    title: VOICE_SECTIONS.find((entry) => entry.section === section)!.title,
+    lines: VOICE_LINES.filter((line) => line.section === section),
+  }));
+  const count = take.reduce((sum, section) => sum + section.lines.length, 0);
+  let n = 0;
+  const blocks = take.map(({ title, lines }, index) => {
+    const rows = lines.map((line) => `## ${++n}. ${SAY[line.id] ?? line.text}`);
+    const after = index < take.length - 1 ? 'then wait 3 seconds' : 'done';
+    return [`*${title}* (${lines.length})`, '', ...rows, '', `*…${after}*`].join('\n');
+  });
+  const intro = `# Coach voice: read sheet
+
+${count} lines, top to bottom, in one recording. **Wait 1 second between lines** and **3 seconds between sections**. Say each line in one breath, coach energy, and say *Three, two, one* quickly with no gaps. Fluffed one? Say **again**, then read that line once more. Or stop, and record that section again on its own.
+
+Then run: \`npm run voice:import -- --take <file>\``;
+  return { count, markdown: `${intro}\n\n${blocks.join('\n\n')}\n` };
+}
+
+const args = process.argv.slice(2);
+const sheet = args.includes('--read-sheet');
+const out = args.find((arg) => !arg.startsWith('--'));
+const { count, markdown } = sheet ? readSheet() : { count: VOICE_LINES.length, markdown: `${HEADER}\n${sections.join('\n\n')}\n` };
 if (out) {
   writeFileSync(out, markdown);
-  console.log(`Wrote ${VOICE_LINES.length} lines to ${out}`);
+  console.log(`Wrote ${count} lines to ${out}`);
 } else {
   process.stdout.write(markdown);
 }
