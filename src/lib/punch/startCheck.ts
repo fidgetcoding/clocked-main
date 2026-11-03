@@ -201,7 +201,7 @@ export class StartCheck {
 
 /** The one line that says what the check saw, like "Camera on your left, about 40°." */
 export function describeCamera(result: StartCheckResult): string {
-  if (result.gaveUp) return "I can't see you from here.";
+  if (result.gaveUp) return "Can't see you from here.";
   const angle = Math.abs(result.cameraAngle);
   switch (result.cameraSide) {
     case 'front':
@@ -239,7 +239,7 @@ export function placementAdvice(result: StartCheckResult): string | null {
 
 /** What this spot will give them, in a line. Measured on a rendered figure, so it's a guide. */
 export function expectedQuality(result: StartCheckResult): string {
-  if (result.gaveUp) return "From here: nothing counted until I can see you.";
+  if (result.gaveUp) return 'From here: nothing counted until it can see you.';
   if (result.cameraSide === 'behind') return "From here: it misses most punches, and won't name them or say which hand.";
   if (result.cameraSide === 'side_left' || result.cameraSide === 'side_right') {
     return "From here: it counts about half your punches, and won't name them or say which hand.";

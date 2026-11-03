@@ -211,7 +211,7 @@ describe('the start check', () => {
     expect(check.isDone(5000)).toBe(true);
     const result = check.result();
     expect(result.gaveUp).toBe(true);
-    expect(describeCamera(result)).toMatch(/can't see you/);
+    expect(describeCamera(result)).toBe("Can't see you from here.");
     expect(placementAdvice(result)).toMatch(/in the picture/);
   });
 
