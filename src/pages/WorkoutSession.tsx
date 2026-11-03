@@ -28,6 +28,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { useWorkouts, DbWorkout } from '@/hooks/useWorkouts';
+import { useTimesCompleted } from '@/hooks/useTimesCompleted';
 import { useWorkoutHistory } from '@/hooks/useWorkoutHistory';
 import { useUserStore } from '@/stores/userStore';
 import { useProfile } from '@/hooks/useProfile';
@@ -147,6 +148,8 @@ const WorkoutSession = () => {
   const oneOffName = (location.state)?.workoutName;
 
   const dbWorkout = workouts.find((w) => w.id === id);
+  const { mutate: updateWorkoutRow } = updateWorkout;
+  const { ranToEnd: countRanToEnd, saved: countSaved, reset: resetTimesCompleted } = useTimesCompleted(dbWorkout, updateWorkoutRow);
   
   const workout = useMemo(() => {
     if (dbWorkout) return dbWorkoutToLocal(dbWorkout);
@@ -841,17 +844,10 @@ const WorkoutSession = () => {
         setSessionLog(log => ({ ...log, ranToEnd: true }));
         setIsComplete(true);
         setIsRunning(false);
-        
-        if (dbWorkout) {
-          updateWorkout.mutate({
-            id: dbWorkout.id,
-            times_completed: (dbWorkout.times_completed || 0) + 1,
-            last_used_at: new Date().toISOString(),
-          });
-        }
+        countRanToEnd();
       }
     }
-  }, [timeRemaining, isRunning, isPreparation, currentSegmentIndex, flatSegments, dbWorkout, updateWorkout, cancelSpeech, isComplete, accumulatedXP, streakMultiplier, isBoxingSegment]);
+  }, [timeRemaining, isRunning, isPreparation, currentSegmentIndex, flatSegments, countRanToEnd, cancelSpeech, isComplete, accumulatedXP, streakMultiplier, isBoxingSegment]);
 
 
   const showXpBubble = (amount: number) => {
@@ -978,6 +974,7 @@ const WorkoutSession = () => {
 
   const handleConfirmRestart = () => {
     clearSession();
+    resetTimesCompleted();
     historyId.current = crypto.randomUUID();
     cancelSpeech();
     setShowRestartConfirm(false);
@@ -1027,14 +1024,7 @@ const WorkoutSession = () => {
     setIsRunning(false);
     xpAwardedRef.current = true;
     setHasAwardedXP(true);
-    
-    if (dbWorkout) {
-      updateWorkout.mutate({
-        id: dbWorkout.id,
-        times_completed: (dbWorkout.times_completed || 0) + 1,
-        last_used_at: new Date().toISOString(),
-      });
-    }
+    // Counted toward times_completed only once it's saved, in handleLog
   };
 
   // End & Save finishes the session the way Done does, then logs it and goes home without stopping at the summary.
@@ -1142,6 +1132,7 @@ const WorkoutSession = () => {
         round_feedback: feedbackMode === 'advanced' ? roundFeedback : [],
         });
         historySaved.current = true;
+        countSaved();
         if (qualifiesForRewards(totalElapsed)) {
           postWorkoutComplete.mutate({
             workoutName: workout?.name || 'Workout',
