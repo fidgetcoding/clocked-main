@@ -424,6 +424,7 @@ const QuickSession = () => {
           ) : undefined
         }
         feed={cameraOn ? feed : null}
+        startLabel="Start session"
         counting={isRunning && !isPaused}
         problemDismissed={feedProblemDismissed}
         onDismissProblem={() => setFeedProblemDismissed(true)}

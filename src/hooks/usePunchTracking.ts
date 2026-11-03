@@ -1,11 +1,11 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { drawSkeleton, type HandMark } from '@/components/punch/skeleton';
 import { usePunchCamera } from '@/hooks/usePunchCamera';
 import { PunchDetector } from '@/lib/punch/detector';
 import { assessFraming, FRAMING_MESSAGES, FramingMonitor, type FramingStatus } from '@/lib/punch/framing';
 import type { PoseResult } from '@/lib/punch/poseModel';
 import { applyEvent, comboReadout, CueQueue, cuesFor, newRound, PUNCH_LABELS, summarize, type RoundState } from '@/lib/punch/round';
-import { StartCheck, type StartCheckResult } from '@/lib/punch/startCheck';
+import { Calibration, type CalibrationActions, type CalibrationView } from '@/lib/punch/calibration';
 import { usePunchPrefsStore } from '@/stores/punchPrefsStore';
 import type { Hand, PunchDetected, PunchEvent, Stance } from '@/lib/punch/types';
 
@@ -46,7 +46,7 @@ interface Options {
   /** False watches the body without counting anything: the screen before a session starts. */
   counting?: boolean;
   /** Off for recording mode, where the prompts already say what to do. */
-  startCheck?: boolean;
+  calibrate?: boolean;
 }
 
 // Long enough to catch from across the room
@@ -54,14 +54,8 @@ const HAND_MARK_MS = 450;
 
 const sideOf = (hand: Hand, stance: Stance): HandMark['side'] => ((hand === 'lead') === (stance === 'orthodox') ? 'left' : 'right');
 
-export interface StartCheckHud {
-  running: boolean;
-  secondsLeft: number;
-  result: StartCheckResult | null;
-}
-
 /** The whole camera pipeline: camera, pose model, detector, tally, cues and framing checks. */
-export function usePunchTracking({ stance, processing = true, onCue, onPoseFrame, onEvent, counting = true, startCheck = true }: Options) {
+export function usePunchTracking({ stance, processing = true, onCue, onPoseFrame, onEvent, counting = true, calibrate = true }: Options) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const detectorRef = useRef(new PunchDetector(stance));
@@ -71,8 +65,9 @@ export function usePunchTracking({ stance, processing = true, onCue, onPoseFrame
   stanceRef.current = stance;
   const countingRef = useRef(counting);
   countingRef.current = counting;
-  const startCheckRef = useRef<StartCheck | null>(null);
-  const [check, setCheck] = useState<StartCheckHud>({ running: false, secondsLeft: 0, result: null });
+  const calibrationRef = useRef<Calibration | null>(null);
+  const calibrationKeyRef = useRef('');
+  const [calibration, setCalibration] = useState<CalibrationView | null>(null);
   const setLastStartCheck = usePunchPrefsStore((state) => state.setLastStartCheck);
   const cuesRef = useRef(new CueQueue());
   const framingRef = useRef(new FramingMonitor());
@@ -84,6 +79,15 @@ export function usePunchTracking({ stance, processing = true, onCue, onPoseFrame
   callbacksRef.current = { onCue, onPoseFrame, onEvent, setLastStartCheck };
 
   const [hud, setHud] = useState<TrackingHud>(EMPTY_HUD);
+
+  // Redraws only when something on screen would change, not every frame
+  const publishCalibration = useCallback((force = false) => {
+    const current = calibrationRef.current;
+    const key = current ? current.key() : '';
+    if (!force && key === calibrationKeyRef.current) return;
+    calibrationKeyRef.current = key;
+    setCalibration(current ? current.view() : null);
+  }, []);
   const [lastPunch, setLastPunch] = useState<PunchDetected | null>(null);
   const [paused, setPaused] = useState(false);
 
@@ -101,19 +105,22 @@ export function usePunchTracking({ stance, processing = true, onCue, onPoseFrame
     const aspect = video?.videoWidth && video.videoHeight ? video.videoWidth / video.videoHeight : undefined;
     framingStatusRef.current = framingRef.current.push(assessFraming(result.image, lumaRef.current, undefined, aspect), t);
 
-    const running = startCheckRef.current;
-    if (running) {
-      running.push(t, result.world, result.image);
-      if (running.isDone(t)) {
-        const seen = running.result();
-        startCheckRef.current = null;
+    const calibrating = calibrationRef.current && !calibrationRef.current.done ? calibrationRef.current : null;
+    if (calibrating) {
+      if (calibrating.push(t, framingStatusRef.current, result.world, result.image)) {
+        const seen = calibrating.checkResult!;
         if (seen.guard) detectorRef.current.applyGuard(seen.guard);
         callbacksRef.current.setLastStartCheck(seen);
-        setCheck({ running: false, secondsLeft: 0, result: seen });
-      } else {
-        const secondsLeft = Math.ceil(running.remaining(t));
-        setCheck((current) => (current.secondsLeft === secondsLeft && current.running ? current : { running: true, secondsLeft, result: null }));
       }
+      // Punches thrown for the walkthrough are read the usual way, but never counted
+      if (calibrating.listening && !countingRef.current) {
+        for (const event of detectorRef.current.push({ t, landmarks: result.world })) {
+          if (event.type !== 'punch') continue;
+          calibrating.onPunch(event);
+          if (!event.handUnsure) handMarkRef.current = { side: sideOf(event.hand, stanceRef.current), tone: 'punch', until: t + HAND_MARK_MS };
+        }
+      }
+      publishCalibration();
     }
 
     for (const event of countingRef.current ? detectorRef.current.push({ t, landmarks: result.world }) : []) {
@@ -134,7 +141,7 @@ export function usePunchTracking({ stance, processing = true, onCue, onPoseFrame
       lastCueRef.current = cue;
       if (cue) callbacksRef.current.onCue?.(cue);
     }
-  }, []);
+  }, [publishCalibration]);
 
   const { status, problem, statsRef, start: startCamera, stop: stopCamera } = usePunchCamera({
     videoRef,
@@ -142,24 +149,49 @@ export function usePunchTracking({ stance, processing = true, onCue, onPoseFrame
     processing,
   });
 
-  const runStartCheck = useCallback(() => {
-    startCheckRef.current = new StartCheck();
-    setCheck({ running: true, secondsLeft: Math.ceil(new StartCheck().remaining(0)), result: null });
+  /** A fresh detector once calibration ends, so nothing from the walkthrough carries into the count. */
+  const freshDetector = useCallback(() => {
+    detectorRef.current = new PunchDetector(stanceRef.current);
+    const guard = calibrationRef.current?.checkResult?.guard ?? usePunchPrefsStore.getState().lastStartCheck?.guard;
+    if (guard) detectorRef.current.applyGuard(guard);
   }, []);
 
-  /** Skipping falls back to what the last check saw, if anything. */
-  const skipStartCheck = useCallback(() => {
-    startCheckRef.current = null;
-    const last = usePunchPrefsStore.getState().lastStartCheck;
-    if (last?.guard) detectorRef.current.applyGuard(last.guard);
-    setCheck({ running: false, secondsLeft: 0, result: null });
-  }, []);
+  const calibrationActions = useMemo<CalibrationActions>(() => {
+    const act = (change: (current: Calibration) => void) => () => {
+      const current = calibrationRef.current;
+      if (!current) return;
+      const wasDone = current.done;
+      change(current);
+      if (current.done && !wasDone) freshDetector();
+      publishCalibration(true);
+    };
+    return {
+      begin: act((current) => current.begin()),
+      skip: act((current) => current.skip()),
+      skipStep: act((current) => current.skipStep()),
+      retryPunch: act((current) => current.retryPunch()),
+      skipPunch: act((current) => current.skipPunch()),
+      finish: act((current) => current.finish()),
+      restart: act((current) => current.restart()),
+    };
+  }, [freshDetector, publishCalibration]);
 
   const start = useCallback(() => {
     setPaused(false);
-    if (startCheck) runStartCheck();
+    // Once per session: coming back to the tab carries on where it was. A session already counting goes without.
+    if (calibrate && !calibrationRef.current) {
+      calibrationRef.current = new Calibration();
+      if (countingRef.current) calibrationRef.current.skip();
+      if (calibrationRef.current.done) freshDetector();
+      publishCalibration(true);
+    }
     return startCamera();
-  }, [startCamera, startCheck, runStartCheck]);
+  }, [calibrate, freshDetector, publishCalibration, startCamera]);
+
+  // Starting the session while calibration is still up skips the rest of it
+  useEffect(() => {
+    if (counting && calibrationRef.current && !calibrationRef.current.done) calibrationActions.skip();
+  }, [counting, calibrationActions]);
 
   const stop = useCallback(() => {
     setPaused(false);
@@ -175,10 +207,12 @@ export function usePunchTracking({ stance, processing = true, onCue, onPoseFrame
     framingStatusRef.current = 'ok';
     lastCueRef.current = null;
     lastLabelRef.current = null;
+    calibrationRef.current = null;
+    publishCalibration(true);
     setHud(EMPTY_HUD);
     setLastPunch(null);
     setPaused(false);
-  }, [stance]);
+  }, [stance, publishCalibration]);
 
   // Nothing tracked means no skeleton left frozen on the picture and no stale warning or cue
   useEffect(() => {
@@ -229,5 +263,5 @@ export function usePunchTracking({ stance, processing = true, onCue, onPoseFrame
 
   const getSummary = useCallback(() => summarize(roundRef.current), []);
 
-  return { videoRef, canvasRef, status, problem, paused, hud, lastPunch, start, stop, reset, getSummary, check, runStartCheck, skipStartCheck };
+  return { videoRef, canvasRef, status, problem, paused, hud, lastPunch, start, stop, reset, getSummary, calibration, calibrationActions };
 }

@@ -77,6 +77,8 @@ export interface RunStageProps {
   problemDismissed?: boolean;
   /** A session's own running log, shown instead of the plain tally. */
   liveLog?: React.ReactNode;
+  /** The button that ends calibration and starts the session. */
+  startLabel?: string;
   /** Dialogs and overlays that sit on top of the stage. */
   children?: React.ReactNode;
 }

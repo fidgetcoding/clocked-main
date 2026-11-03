@@ -4,7 +4,8 @@ import { RunLandscape } from './RunLandscape';
 import { RunPortrait } from './RunPortrait';
 import { RunWide } from './RunWide';
 import { RoundWipe } from './RoundWipe';
-import { StartCheckStatus } from '@/components/punch/StartCheckStatus';
+import { CalibrationFlow } from '@/components/punch/CalibrationFlow';
+import { isCalibrating } from '@/components/punch/feedState';
 import type { RunStageProps, RunView } from './types';
 import { useFreeSide } from './useFreeSide';
 import { useStageLayout } from './useStageLayout';
@@ -68,7 +69,7 @@ function useRoundBell(view: RunView) {
  * the phone or resizing the window never restarts it.
  */
 export function RunStage(props: RunStageProps) {
-  const { view: given, cameraOn, camera, feed, children } = props;
+  const { view: given, cameraOn, camera, feed, children, startLabel } = props;
   const layout = useStageLayout();
   const showFeed = cameraOn && !!camera && !feed?.problem;
   const asking = given.idle && showFeed && feed?.status !== 'live' && !feed?.paused;
@@ -85,6 +86,13 @@ export function RunStage(props: RunStageProps) {
   const free = useFreeSide(stageRef, showFeed ? feed?.pose : undefined, layout);
   const shared = { ...props, view, showFeed, bellXP, free };
 
+  // Calibration runs before the first press of play. Starting some other way skips what's left of it.
+  const calibrating = showFeed && feed?.status === 'live' && !feed.paused && isCalibrating(feed.calibration);
+  const skipCalibration = feed?.calibrationActions.skip;
+  useEffect(() => {
+    if (!given.idle && calibrating) skipCalibration?.();
+  }, [given.idle, calibrating, skipCalibration]);
+
   return (
     <div ref={stageRef} className="stage" data-panel-mode={free.mode} data-panel-side={free.side} data-panel-edge={free.edge} data-layout={layout} data-camera={showFeed ? 'on' : 'off'} data-tone={tone} data-testid="run-stage" data-counting={!!props.counting}>
       <div className="stage-feed">{camera}</div>
@@ -100,8 +108,8 @@ export function RunStage(props: RunStageProps) {
         </div>
       )}
       {layout === 'wide' ? <RunWide {...shared} /> : layout === 'landscape' ? <RunLandscape {...shared} /> : <RunPortrait {...shared} />}
-      {showFeed && feed?.status === 'live' && !feed.paused && (props.counting || view.idle || view.kind === 'prep') && (
-        <StartCheckStatus check={feed.check} onSkip={feed.skipCheck} onRerun={feed.rerunCheck} className="stage-check" />
+      {calibrating && given.idle && feed?.calibration && (
+        <CalibrationFlow calibration={feed.calibration} actions={feed.calibrationActions} onStart={props.actions.onPlay} startLabel={startLabel} />
       )}
       <RoundWipe view={view} />
       {children}

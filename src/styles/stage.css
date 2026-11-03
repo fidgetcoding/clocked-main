@@ -366,26 +366,28 @@
   right: 38cqw;
 }
 
-/* The start check: a lower third over the feed, clear of the controls */
-.stage-check {
+/* Calibration: a sheet along the bottom of an upright phone, a box in the corner of anything wider.
+   Above the controls, since it runs before the session starts. The top row and Leave stay in reach. */
+.calibration {
   position: absolute;
-  z-index: 25;
+  z-index: 35;
   left: 0;
-  max-width: 88cqw;
-  top: 22cqh;
+  right: 0;
+  bottom: 0;
+  max-height: 64cqh;
+  overflow-y: auto;
+  padding: 1rem 1rem calc(1rem + env(safe-area-inset-bottom));
+  border-top: 2px solid hsl(var(--electric-volt));
 }
 
-.stage[data-layout="wide"] .stage-check {
-  top: auto;
-  left: 2rem;
-  bottom: 11rem;
-  max-width: 30cqw;
-}
-
-.stage[data-layout="landscape"] .stage-check {
-  top: 3rem;
-  bottom: auto;
-  max-width: 50cqw;
+.stage[data-layout="wide"] .calibration,
+.stage[data-layout="landscape"] .calibration {
+  left: 1.5rem;
+  right: auto;
+  bottom: 1.5rem;
+  width: min(30rem, 48cqw);
+  max-height: calc(100cqh - 6rem);
+  border: 2px solid hsl(var(--electric-volt));
 }
 
 /* Still asking for the camera: a box in the middle, so Leave and the camera switch stay in reach */
@@ -637,32 +639,10 @@
     height: 4.5rem;
   }
 
-  .stage-check .fx {
-    font-size: 1.25rem;
+  .calibration .fx.text-4xl,
+  .calibration .fx.text-5xl {
+    font-size: 1.875rem;
   }
-}
-
-/* An upright phone's strip can stand most of the screen, so what the check saw has nowhere to go that
-   misses the clock: the countdown shows, the result doesn't. Punch Check gives the full advice. */
-.stage[data-layout="portrait"] .stage-check[data-testid="start-check-result"] {
-  display: none;
-}
-
-/* The start check sits away from the panel */
-.stage[data-panel-mode="side"][data-panel-side="left"] .stage-check {
-  left: auto;
-  right: 2rem;
-  bottom: 9rem;
-}
-
-.stage[data-panel-mode="strip"][data-panel-edge="bottom"] .stage-check {
-  top: 22cqh;
-  bottom: auto;
-}
-
-.stage[data-panel-mode="strip"][data-panel-edge="top"] .stage-check {
-  top: auto;
-  bottom: 7rem;
 }
 
 .stage-controls-wide {

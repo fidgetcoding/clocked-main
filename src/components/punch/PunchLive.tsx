@@ -3,10 +3,11 @@ import { CameraIcon, LitNumber, OnAir, Plate, ScoreBug, Ticker } from '@/compone
 import { PunchStats } from '@/components/broadcast/run/parts';
 import { useFreeSide } from '@/components/broadcast/run/useFreeSide';
 import { useStageLayout } from '@/components/broadcast/run/useStageLayout';
-import type { CameraFeedState } from '@/components/punch/feedState';
+import { isCalibrating, type CameraFeedState } from '@/components/punch/feedState';
 import { Button } from '@/components/ui/button';
-import { StartCheckStatus } from '@/components/punch/StartCheckStatus';
-import type { StartCheckHud, TrackingHud } from '@/hooks/usePunchTracking';
+import { CalibrationFlow } from '@/components/punch/CalibrationFlow';
+import type { TrackingHud } from '@/hooks/usePunchTracking';
+import type { CalibrationActions, CalibrationView } from '@/lib/punch/calibration';
 import { formatClock, PUNCH_LABELS, PUNCH_ORDER, punchWord } from '@/lib/punch/round';
 import type { PunchClass, PunchDetected } from '@/lib/punch/types';
 
@@ -29,9 +30,8 @@ interface PunchLiveProps {
   onResume: () => void;
   /** The latest body the tracker saw, for keeping the panel clear of it. */
   pose: CameraFeedState['pose'];
-  check: StartCheckHud;
-  onSkipCheck: () => void;
-  onRerunCheck: () => void;
+  calibration: CalibrationView | null;
+  calibrationActions: CalibrationActions;
 }
 
 const fixed = (value: number, digits = 2) => value.toFixed(digits);
@@ -48,15 +48,17 @@ export function PunchLive({
   onFinish,
   onResume,
   pose,
-  check,
-  onSkipCheck,
-  onRerunCheck,
+  calibration,
+  calibrationActions,
 }: PunchLiveProps) {
   const layout = useStageLayout();
   const wide = layout === 'wide';
   const stageRef = useRef<HTMLDivElement>(null);
   const free = useFreeSide(stageRef, pose, layout);
   const fps = hud.fps > 0 ? `${Math.round(hud.fps)} fps` : '';
+  const calibrating = isCalibrating(calibration);
+  // Calibration shows its own framing advice
+  const warning = calibrating ? null : hud.warning;
 
   return (
     <div
@@ -103,9 +105,9 @@ export function PunchLive({
             </OnAir>
           </div>
   
-          {hud.warning && !hud.paused && !loading && (
+          {warning && !hud.paused && !loading && (
             <div role="status" data-testid="punch-warning" className="pointer-events-none mx-3 mt-1">
-              <span className="fx inline-block bg-background/85 px-3 py-1.5 text-2xl leading-none">{hud.warning}</span>
+              <span className="fx inline-block bg-background/85 px-3 py-1.5 text-2xl leading-none">{warning}</span>
             </div>
           )}
   
@@ -128,7 +130,6 @@ export function PunchLive({
           )}
   
           <div className="stage-floor mt-auto pt-8">
-            {!hud.paused && !loading && <StartCheckStatus check={check} onSkip={onSkipCheck} onRerun={onRerunCheck} className="mx-3 mb-2" />}
             {hud.cue && !hud.paused && !loading && (
               <div role="status" data-testid="punch-cue" className="plate-slap pointer-events-none mb-2">
                 <Plate tone="red" bleed="left" className={`flex w-fit justify-start py-2 pl-3 pr-8 leading-[.86] ${wide ? 'text-[7rem]' : 'text-[3.25rem]'}`}>
@@ -162,9 +163,9 @@ export function PunchLive({
                 <OnAir state={hud.paused ? 'off' : 'grind'}>{hud.paused ? 'Paused' : 'Grind'}</OnAir>
                 <p className="lab truncate" data-testid="punch-last">Last: {hud.lastLabel ?? 'Combo'}</p>
               </div>
-              {hud.warning && !hud.paused && !loading && (
+              {warning && !hud.paused && !loading && (
                 <div role="status" data-testid="punch-warning" className="pointer-events-none">
-                  <span className="fx inline-block bg-background/85 px-3 py-1.5 text-2xl leading-none">{hud.warning}</span>
+                  <span className="fx inline-block bg-background/85 px-3 py-1.5 text-2xl leading-none">{warning}</span>
                 </div>
               )}
               {hud.cue && !hud.paused && !loading && (
@@ -193,8 +194,8 @@ export function PunchLive({
             </div>
           </>
         )}
-        {!hud.paused && !loading && layout !== 'landscape' && (
-          <StartCheckStatus check={check} onSkip={onSkipCheck} onRerun={onRerunCheck} className="stage-check" />
+        {calibration && calibrating && !hud.paused && !loading && (
+          <CalibrationFlow calibration={calibration} actions={calibrationActions} onStart={() => undefined} startLabel="Start round" />
         )}
         <Ticker
           tone="lime"

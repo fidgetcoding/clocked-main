@@ -44,9 +44,12 @@ const PunchRound = () => {
   );
 
   const poseRef = useRef<CameraFeedState['pose']['current']>(null);
-  const { videoRef, canvasRef, status, problem, paused, hud, lastPunch, start, stop, reset, getSummary, check, runStartCheck, skipStartCheck } =
+  // Nothing counts, and the clock doesn't run, until calibration is done or skipped
+  const [calibrated, setCalibrated] = useState(false);
+  const { videoRef, canvasRef, status, problem, paused, hud, lastPunch, start, stop, reset, getSummary, calibration, calibrationActions } =
     usePunchTracking({
       stance,
+      counting: calibrated,
       onCue,
       onPoseFrame: (result) => {
         const video = videoRef.current;
@@ -66,9 +69,14 @@ const PunchRound = () => {
   }, []);
 
   useEffect(() => {
-    if (status === 'live') clockStartRef.current = performance.now();
+    if (calibration?.phase === 'done') setCalibrated(true);
+  }, [calibration]);
+
+  const clockRunning = status === 'live' && calibrated;
+  useEffect(() => {
+    if (clockRunning) clockStartRef.current = performance.now();
     else stopClock();
-  }, [status, stopClock]);
+  }, [clockRunning, stopClock]);
 
   useEffect(() => {
     if (paused) cancelSpeech();
@@ -91,6 +99,7 @@ const PunchRound = () => {
 
   const handleStart = () => {
     reset();
+    setCalibrated(false);
     elapsedMsRef.current = 0;
     clockStartRef.current = null;
     setRoundLength(roundSeconds);
@@ -192,9 +201,8 @@ const PunchRound = () => {
           onFinish={finish}
           onResume={() => void start()}
           pose={poseRef}
-          check={check}
-          onSkipCheck={skipStartCheck}
-          onRerunCheck={runStartCheck}
+          calibration={calibration}
+          calibrationActions={calibrationActions}
         />
       )}
       {screen === 'summary' && summary && (

@@ -4,7 +4,7 @@ import { useStance } from '@/hooks/useStance';
 import { summaryNote, type PunchSessionReport } from '@/lib/punch/round';
 import type { PunchEvent } from '@/lib/punch/types';
 import { cn } from '@/lib/utils';
-import type { CameraFeedState } from './feedState';
+import { isCalibrating, type CameraFeedState } from './feedState';
 
 interface PunchCameraPanelProps {
   /** While false the preview stays on, but nothing is tracked or counted. */
@@ -30,7 +30,7 @@ interface PunchCameraPanelProps {
 const PunchCameraPanel = ({ counting, preview = false, onSummary, onCue, onEvent, onTracking, displayCount, onCountingChange, onFeed, className }: PunchCameraPanelProps) => {
   const { stance } = useStance();
   const poseRef = useRef<CameraFeedState['pose']['current']>(null);
-  const { videoRef, canvasRef, status, problem, paused, hud, start, getSummary, check, runStartCheck, skipStartCheck } = usePunchTracking({
+  const { videoRef, canvasRef, status, problem, paused, hud, start, getSummary, calibration, calibrationActions } = usePunchTracking({
     stance,
     processing: counting || preview,
     counting,
@@ -88,7 +88,7 @@ const PunchCameraPanel = ({ counting, preview = false, onSummary, onCue, onEvent
   startRef.current = start;
   const message = counting ? hud.cue ?? hud.warning : null;
   const shownCount = displayCount ?? hud.count;
-  const signature = [status, paused, problem, shownCount, hud.cue, hud.warning, hud.combo, hud.lastLabel, counting, preview, check.running, check.secondsLeft, check.result?.cameraAngle].join('|');
+  const signature = [status, paused, problem, shownCount, hud.cue, hud.warning, hud.combo, hud.lastLabel, counting, preview, JSON.stringify(calibration)].join('|');
   useEffect(() => {
     const summary = getSummary();
     onFeedRef.current?.({
@@ -97,15 +97,15 @@ const PunchCameraPanel = ({ counting, preview = false, onSummary, onCue, onEvent
       problem,
       count: shownCount,
       cue: counting ? hud.cue : null,
-      warning: counting || preview ? hud.warning : null,
+      // Calibration shows its own framing advice
+      warning: (counting || preview) && !isCalibrating(calibration) ? hud.warning : null,
       combo: hud.combo,
       lastLabel: hud.lastLabel,
       counts: summary.counts,
       cleanPercent: summary.cleanPercent,
       pose: poseRef,
-      check,
-      skipCheck: skipStartCheck,
-      rerunCheck: runStartCheck,
+      calibration,
+      calibrationActions,
       resume: () => void startRef.current(),
     });
     // The signature covers everything read here
