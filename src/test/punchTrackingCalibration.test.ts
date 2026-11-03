@@ -20,6 +20,9 @@ vi.hoisted(() => {
 // The camera is replaced by a hand that feeds poses straight to the tracker
 const camera = vi.hoisted(() => ({ onPose: null as null | ((result: PoseResult, t: number, luma: number | null) => void) }));
 
+const skeleton = vi.hoisted(() => ({ draw: vi.fn() }));
+vi.mock('@/components/punch/skeleton', () => ({ drawSkeleton: skeleton.draw }));
+
 vi.mock('@/hooks/usePunchCamera', () => ({
   usePunchCamera: ({ onPose }: { onPose: (result: PoseResult, t: number, luma: number | null) => void }) => {
     camera.onPose = onPose;
@@ -103,5 +106,36 @@ describe('calibration in the tracker', () => {
     const { result } = renderHook(() => usePunchTracking({ stance: 'orthodox', calibrate: false }));
     act(() => void result.current.start());
     expect(result.current.calibration).toBeNull();
+  });
+
+  it('draws the body only while calibrating, and the plain picture once it is done or skipped', () => {
+    const { result } = renderHook(() => usePunchTracking({ stance: 'orthodox', counting: false }));
+    (result.current.videoRef as { current: HTMLVideoElement }).current = document.createElement('video');
+    (result.current.canvasRef as { current: HTMLCanvasElement }).current = document.createElement('canvas');
+    const drawnBody = () => skeleton.draw.mock.calls.at(-1)?.[2];
+
+    act(() => void result.current.start());
+    act(() => result.current.calibrationActions.begin());
+    feed(simulate({ durationMs: 200 }));
+    expect(drawnBody()).not.toBeNull();
+
+    act(() => result.current.calibrationActions.skip());
+    skeleton.draw.mockClear();
+    feed(simulate({ startMs: 1300, durationMs: 1500, punches: [{ hand: 'lead', shape: 'straight', at: 1500 }] }));
+    expect(skeleton.draw).toHaveBeenCalled();
+    // Cleared every frame, with no body and no hand marker
+    for (const call of skeleton.draw.mock.calls) {
+      expect(call[2]).toBeNull();
+      expect(call[3]).toBeNull();
+    }
+  });
+
+  it('keeps drawing in recording mode, which has no calibration', () => {
+    const { result } = renderHook(() => usePunchTracking({ stance: 'orthodox', calibrate: false }));
+    (result.current.videoRef as { current: HTMLVideoElement }).current = document.createElement('video');
+    (result.current.canvasRef as { current: HTMLCanvasElement }).current = document.createElement('canvas');
+    act(() => void result.current.start());
+    feed(simulate({ durationMs: 100 }));
+    expect(skeleton.draw.mock.calls.at(-1)?.[2]).not.toBeNull();
   });
 });

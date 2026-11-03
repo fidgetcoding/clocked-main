@@ -63,6 +63,8 @@ export function usePunchTracking({ stance, processing = true, onCue, onPoseFrame
   const handMarkRef = useRef<HandMark | null>(null);
   const stanceRef = useRef(stance);
   stanceRef.current = stance;
+  const calibrateRef = useRef(calibrate);
+  calibrateRef.current = calibrate;
   const countingRef = useRef(counting);
   countingRef.current = counting;
   const calibrationRef = useRef<Calibration | null>(null);
@@ -99,7 +101,9 @@ export function usePunchTracking({ stance, processing = true, onCue, onPoseFrame
   const onPose = useCallback((result: PoseResult, t: number, meanLuma: number | null) => {
     callbacksRef.current.onPoseFrame?.(result, t);
     const mark = handMarkRef.current && t < handMarkRef.current.until ? handMarkRef.current : null;
-    if (videoRef.current && canvasRef.current) drawSkeleton(canvasRef.current, videoRef.current, result.image, mark);
+    // The body is drawn only while calibrating, where it helps with framing. A session shows the plain picture.
+    const drawing = !calibrateRef.current || (!!calibrationRef.current && !calibrationRef.current.done);
+    if (videoRef.current && canvasRef.current) drawSkeleton(canvasRef.current, videoRef.current, drawing ? result.image : null, drawing ? mark : null);
     if (meanLuma !== null) lumaRef.current = meanLuma;
     const video = videoRef.current;
     const aspect = video?.videoWidth && video.videoHeight ? video.videoWidth / video.videoHeight : undefined;
