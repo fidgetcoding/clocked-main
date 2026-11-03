@@ -6,3 +6,9 @@ export const pauseButton = (page: Page) => page.getByRole("button", { name: "Pau
 export const skipButton = (page: Page) => page.getByRole("button", { name: "Skip segment" });
 export const finishSessionButton = (page: Page) => page.getByRole("button", { name: "Finish session" });
 export const elapsedClock = (page: Page) => page.getByTestId("run-elapsed");
+
+/** Calibration opens over the stage once the camera is live. Specs that aren't about it skip it. */
+export const skipCalibration = async (page: Page) => {
+  await page.getByRole("button", { name: "Skip calibration" }).click({ timeout: 20_000 });
+  await page.getByTestId("calibration").waitFor({ state: "detached" });
+};

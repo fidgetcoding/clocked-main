@@ -2,7 +2,7 @@
 // The camera is a canvas stream, so no real camera is ever opened.
 import type { Page } from "@playwright/test";
 import { expect, test } from "./silent";
-import { playButton, skipButton } from "./controls";
+import { playButton, skipButton, skipCalibration } from "./controls";
 
 const base = process.env.STACK_NO_BACKEND_URL as string;
 const SIZES = [
@@ -103,6 +103,18 @@ for (const viewport of SIZES) {
       await page.goto(base);
       await playButton(page).click();
       await page.waitForURL("**/workout/**");
+      if (camera) {
+        // Calibration opens first, fully on screen, with its buttons big enough to hit
+        const calibration = page.getByTestId("calibration");
+        await expect(calibration).toBeVisible({ timeout: 30_000 });
+        const box = (await calibration.boundingBox())!;
+        expect(box.x).toBeGreaterThanOrEqual(0);
+        expect(box.x + box.width).toBeLessThanOrEqual(viewport.width + 1);
+        expect(box.y + box.height).toBeLessThanOrEqual(viewport.height + 1);
+        for (const button of await calibration.getByRole("button").all()) expect((await button.boundingBox())!.height).toBeGreaterThanOrEqual(44);
+        await noSidewaysScroll(page);
+        await skipCalibration(page);
+      }
       await controlsAreClear(page);
       await playButton(page).click();
       await expect(page.getByTestId("run-stage")).toHaveAttribute("data-camera", camera ? "on" : "off");

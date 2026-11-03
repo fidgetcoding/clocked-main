@@ -136,20 +136,37 @@ test("while the camera is still asking, you can still leave", async ({ page }) =
   await page.waitForURL((url) => url.pathname === "/");
 });
 
-for (const viewport of [{ width: 844, height: 390 }, { width: 1280, height: 720 }]) {
-  test(`the start check and the framing warning don't overlap at ${viewport.width}x${viewport.height}`, async ({ page }) => {
+for (const viewport of [{ width: 390, height: 844 }, { width: 844, height: 390 }, { width: 1280, height: 720 }]) {
+  test(`calibration coaches the setup in its own words and keeps Leave in reach at ${viewport.width}x${viewport.height}`, async ({ page }) => {
     await page.setViewportSize(viewport);
     await withCamera(page, fakeStream);
-    await finishGuestOnboarding(page, NO_BACKEND_URL, "Overlap");
+    await finishGuestOnboarding(page, NO_BACKEND_URL, "Setup");
     await cameraOn(page);
     await page.goto(`${NO_BACKEND_URL}/quick-session`);
-    const warning = page.getByTestId("camera-panel-warning");
-    const check = page.getByTestId("start-check").or(page.getByTestId("start-check-result"));
-    await expect(warning).toBeVisible({ timeout: 30_000 });
-    await expect(check).toBeVisible();
-    const a = (await warning.boundingBox())!;
-    const b = (await check.boundingBox())!;
-    expect(a.x < b.x + b.width && b.x < a.x + a.width && a.y < b.y + b.height && b.y < a.y + a.height).toBe(false);
+    const calibration = page.getByTestId("calibration");
+    await expect(calibration).toHaveAttribute("data-phase", "choose", { timeout: 30_000 });
+    await expect(calibration.getByRole("button", { name: "Calibrate" })).toBeInViewport();
+    await expect(calibration.getByRole("button", { name: "Skip calibration" })).toBeInViewport();
+    await calibration.getByRole("button", { name: "Calibrate" }).click();
+
+    // Nobody in the picture: setup says so, and holds there rather than moving on
+    await expect(page.getByTestId("calibration-framing")).toHaveText(/^Can't see anyone/, { timeout: 10_000 });
+    await expect(calibration).toHaveAttribute("data-phase", "setup");
+    await expect(page.getByTestId("camera-panel-warning")).toHaveCount(0);
+    await expect(calibration.getByText(/Don't put the phone behind the bag/)).toBeAttached();
+
+    const leave = page.getByRole("button", { name: /^Leave/ }).first();
+    await expect(leave).toBeInViewport();
+    const covered = await leave.evaluate((el) => {
+      const box = el.getBoundingClientRect();
+      return !!document.elementFromPoint(box.left + box.width / 2, box.top + box.height / 2)?.closest('[data-testid="calibration"]');
+    });
+    expect(covered).toBe(false);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+
+    await calibration.getByRole("button", { name: "Skip calibration" }).click();
+    await expect(calibration).toHaveCount(0);
+    await expect(page.getByTestId("camera-panel-warning")).toBeVisible({ timeout: 10_000 });
   });
 }
 

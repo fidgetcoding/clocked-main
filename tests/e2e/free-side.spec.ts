@@ -1,7 +1,7 @@
 // The Free Side panel on the camera screens, fed made-up bodies through the real tracker path. The camera is a canvas.
 import type { Page } from "@playwright/test";
 import { expect, test } from "./silent";
-import { playButton } from "./controls";
+import { playButton, skipCalibration } from "./controls";
 import { finishGuestOnboarding, NO_BACKEND_URL } from "./helpers";
 
 declare global {
@@ -42,6 +42,7 @@ const startSession = async (page: Page) => {
   await page.goto(`${NO_BACKEND_URL}/quick-session`);
   const camera = page.getByRole("switch", { name: "Punch camera" });
   if ((await camera.getAttribute("data-state")) !== "checked") await camera.click();
+  await skipCalibration(page);
   await playButton(page).click();
   await expect(page.getByTestId("free-panel")).toBeVisible({ timeout: 20_000 });
 };
@@ -96,6 +97,7 @@ test("Punch Check uses the same panel, and the end button stays clear", async ({
   await finishGuestOnboarding(page, NO_BACKEND_URL, "Free Check");
   await page.goto(`${NO_BACKEND_URL}/punch-check`);
   await page.getByRole("button", { name: /start|go/i }).first().click();
+  await skipCalibration(page);
   const panel = page.getByTestId("free-panel");
   await expect(panel).toHaveAttribute("data-side", "left", { timeout: 20_000 });
   await setBody(page, body(0.7, 0.95));

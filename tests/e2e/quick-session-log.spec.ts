@@ -5,7 +5,7 @@
 import type { Page } from "@playwright/test";
 import { simulate, type SynthPunch } from "../../src/test/punchSynth";
 import { expect, test } from "./silent";
-import { finishSessionButton, playButton } from "./controls";
+import { finishSessionButton, playButton, skipCalibration } from "./controls";
 import {
   APP_URL,
   clickNewestEmailLink,
@@ -59,11 +59,12 @@ const fakeCameraAndPoses = async (page: Page) => {
   }, frames);
 };
 
-const openQuickSession = async (page: Page, base: string) => {
+const openQuickSession = async (page: Page, base: string, { calibration = true } = {}) => {
   await page.goto(`${base}/quick-session`);
   await page.getByText("QUICK SESSION").waitFor();
   const camera = page.getByRole("switch", { name: "Punch camera" });
   if ((await camera.getAttribute("data-state")) !== "checked") await camera.click();
+  if (calibration) await skipCalibration(page);
 };
 
 const trainAndFinish = async (page: Page) => {
@@ -89,11 +90,6 @@ for (const viewport of [{ width: 1366, height: 768 }, { width: 390, height: 844 
     await finishGuestOnboarding(page, NO_BACKEND_URL, "Log Guest");
     await openQuickSession(page, NO_BACKEND_URL);
     await playButton(page).click();
-
-    // The start check runs on the stage, and says what it saw when it's done
-    await expect(page.getByTestId("start-check")).toBeVisible({ timeout: 20_000 });
-    // An upright phone has no room for what it saw, so only a wide screen shows the result
-    if (viewport.width > 500) await expect(page.getByTestId("start-check-result")).toBeVisible({ timeout: 20_000 });
 
     await expect(page.getByTestId("log-live-total")).toHaveText(String(PUNCHES.length), { timeout: 20_000 });
 
@@ -152,7 +148,7 @@ test("a camera that never starts logs nothing, and the session still works", asy
     });
   });
   await finishGuestOnboarding(page, NO_BACKEND_URL, "Log Denied");
-  await openQuickSession(page, NO_BACKEND_URL);
+  await openQuickSession(page, NO_BACKEND_URL, { calibration: false });
   await playButton(page).click();
   await page.getByTestId("camera-panel-problem").waitFor();
   await finishSessionButton(page).click();
@@ -286,6 +282,7 @@ test("End & Save on a full workout puts an account's session, punch log and XP i
   await page.goto(APP_URL);
   await playButton(page).click();
   await page.waitForURL("**/workout/**");
+  await skipCalibration(page);
   await playButton(page).click();
   const combo = page.locator(".combo-plate").first();
   for (let i = 0; i < 60 && !(await combo.isVisible()); i++) await page.getByRole("button", { name: "Skip segment" }).click();

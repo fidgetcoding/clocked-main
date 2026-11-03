@@ -112,10 +112,11 @@ export function usePunchTracking({ stance, processing = true, onCue, onPoseFrame
         if (seen.guard) detectorRef.current.applyGuard(seen.guard);
         callbacksRef.current.setLastStartCheck(seen);
       }
-      // Punches thrown for the walkthrough are read the usual way, but never counted
-      if (calibrating.listening && !countingRef.current) {
+      // The detector watches all through calibration, since it needs a moment to settle before the first punch.
+      // Punches thrown for the walkthrough are read the usual way, but never counted.
+      if (!countingRef.current) {
         for (const event of detectorRef.current.push({ t, landmarks: result.world })) {
-          if (event.type !== 'punch') continue;
+          if (event.type !== 'punch' || !calibrating.listening) continue;
           calibrating.onPunch(event);
           if (!event.handUnsure) handMarkRef.current = { side: sideOf(event.hand, stanceRef.current), tone: 'punch', until: t + HAND_MARK_MS };
         }
@@ -149,11 +150,11 @@ export function usePunchTracking({ stance, processing = true, onCue, onPoseFrame
     processing,
   });
 
-  /** A fresh detector once calibration ends, so nothing from the walkthrough carries into the count. */
-  const freshDetector = useCallback(() => {
-    detectorRef.current = new PunchDetector(stanceRef.current);
-    const guard = calibrationRef.current?.checkResult?.guard ?? usePunchPrefsStore.getState().lastStartCheck?.guard;
-    if (guard) detectorRef.current.applyGuard(guard);
+  /** Without a guard hold this time, where the hands rested last time is the best guess. */
+  const applyLastGuard = useCallback(() => {
+    if (calibrationRef.current?.checkResult?.guard) return;
+    const last = usePunchPrefsStore.getState().lastStartCheck;
+    if (last?.guard) detectorRef.current.applyGuard(last.guard);
   }, []);
 
   const calibrationActions = useMemo<CalibrationActions>(() => {
@@ -162,7 +163,7 @@ export function usePunchTracking({ stance, processing = true, onCue, onPoseFrame
       if (!current) return;
       const wasDone = current.done;
       change(current);
-      if (current.done && !wasDone) freshDetector();
+      if (current.done && !wasDone) applyLastGuard();
       publishCalibration(true);
     };
     return {
@@ -174,7 +175,7 @@ export function usePunchTracking({ stance, processing = true, onCue, onPoseFrame
       finish: act((current) => current.finish()),
       restart: act((current) => current.restart()),
     };
-  }, [freshDetector, publishCalibration]);
+  }, [applyLastGuard, publishCalibration]);
 
   const start = useCallback(() => {
     setPaused(false);
@@ -182,11 +183,11 @@ export function usePunchTracking({ stance, processing = true, onCue, onPoseFrame
     if (calibrate && !calibrationRef.current) {
       calibrationRef.current = new Calibration();
       if (countingRef.current) calibrationRef.current.skip();
-      if (calibrationRef.current.done) freshDetector();
+      if (calibrationRef.current.done) applyLastGuard();
       publishCalibration(true);
     }
     return startCamera();
-  }, [calibrate, freshDetector, publishCalibration, startCamera]);
+  }, [calibrate, applyLastGuard, publishCalibration, startCamera]);
 
   // Starting the session while calibration is still up skips the rest of it
   useEffect(() => {

@@ -59,6 +59,19 @@ describe('calibration in the tracker', () => {
     expect(result.current.getSummary().total).toBe(0);
   });
 
+  it('has the tracker settled in time for a punch thrown the moment the first prompt shows', () => {
+    const { result } = renderHook(() => usePunchTracking({ stance: 'orthodox', counting: false }));
+    act(() => void result.current.start());
+    act(() => result.current.calibrationActions.begin());
+    // Standing in the picture through setup, which the tracker watches too
+    feed(simulate({ durationMs: 2000 }));
+    act(() => result.current.calibrationActions.skipStep());
+    act(() => result.current.calibrationActions.skipStep());
+    expect(result.current.calibration?.phase).toBe('punches');
+    feed(simulate({ startMs: 3033, durationMs: 1500, punches: [{ hand: 'lead', shape: 'straight', at: 3100 }] }));
+    expect(result.current.calibration!.steps[0].status).toBe('seen');
+  });
+
   it('skips what is left of calibration once the session starts counting', () => {
     const { result, rerender } = renderHook(({ counting }) => usePunchTracking({ stance: 'orthodox', counting }), { initialProps: { counting: false } });
     act(() => void result.current.start());

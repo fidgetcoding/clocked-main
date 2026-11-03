@@ -30,7 +30,7 @@ const STATUS_MARK: Record<CalibrationStep['status'], string> = {
   waiting: '…',
   seen: 'Seen',
   unnamed: 'Counted',
-  wrong: 'Not sure',
+  wrong: 'Misread',
   missed: 'Missed',
   skipped: 'Skipped',
 };
