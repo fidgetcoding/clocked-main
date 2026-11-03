@@ -112,8 +112,8 @@ test("films spots, saves each take and its score, keeps a grid summary, and carr
 
   const summary = readFileSync(join(folder, "summary.md"), "utf8");
   expect(summary).toContain("| Position | Floor | Chair | All heights |");
-  expect(summary).toMatch(/\| Front-left \(10:30\) \| \d+% · \d+% · \d+ \| – \|/);
-  expect(summary).toMatch(/\| Left \(9 o'clock\) \| \d+% · \d+% · \d+ \| – \|/);
+  expect(summary).toMatch(/\| Front-left \(10:30\) \| \d+ of \d+ · \d+% · \d+% · \d+ \| – \|/);
+  expect(summary).toMatch(/\| Left \(9 o'clock\) \| \d+ of \d+ · \d+% · \d+% · \d+ \| – \|/);
   await expect(page.locator('[data-spot-state="done"]')).toHaveCount(2);
 
   // Skip spot 3, then stop for the day mid-take

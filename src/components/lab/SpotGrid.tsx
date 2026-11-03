@@ -1,7 +1,7 @@
 import {
   ANGLE_POINTS,
   ANGLE_SPOTS,
-  countedShare,
+  countedOf,
   HEIGHT_NAMES,
   HEIGHTS,
   positionName,
@@ -35,7 +35,7 @@ export function SpotGrid({ stance, current, rows, skipped, disabled, onPick }: P
         onClick={() => onPick(spot)}
         className={`w-full rounded-lg px-1.5 py-2 text-sm font-bold tabular-nums ${tone} ${spot === current ? 'ring-2 ring-volt' : ''} disabled:opacity-60`}
       >
-        {row ? `${Math.round(countedShare(row.score) * 100)}%` : label}
+        {row ? countedOf(row.score).replace(' of ', '/') : label}
       </button>
     );
   };

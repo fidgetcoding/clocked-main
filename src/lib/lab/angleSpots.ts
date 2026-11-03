@@ -76,7 +76,7 @@ const CHECKS: AngleSpot[] = [
     angle: 0,
     height: 'chair',
     bag: 'none',
-    run: 'full',
+    run: 'short',
     check: 'no-bag',
     extra: 'Step out from behind the bag and face the laptop. Punch the air.',
     why: 'A real-person check of the false-punch settings, with nothing in the way.',
@@ -240,20 +240,33 @@ export interface LabRow {
 const share = (part: number, whole: number) => (whole === 0 ? 0 : part / whole);
 const percent = (value: number) => `${Math.round(value * 100)}%`;
 
-export const countedShare = (score: SpotScore) => share(score.counted, score.expected);
 export const rightShare = (score: SpotScore) => share(score.right, score.expected);
 
-/** Good enough to recommend: most punches counted and most named right, with few extras. */
-const isBest = (score: SpotScore) => countedShare(score) >= 0.7 && rightShare(score) >= 0.5;
-/** Not worth suggesting: it misses most punches. */
-const isDead = (score: SpotScore, camera: CameraRead) => camera.gaveUp || countedShare(score) < 0.3;
+/**
+ * How close the count came to what was asked, from 0 to 1. Counting too many is as wrong as
+ * counting too few, so 22 of 18 and 14 of 18 both score 78%.
+ */
+export const countAccuracy = (score: SpotScore) =>
+  score.expected === 0 ? 0 : Math.max(0, 1 - Math.abs(score.counted - score.expected) / score.expected);
+
+export const countedOf = (score: SpotScore) => `${score.counted} of ${score.expected}`;
+
+/** Count accuracy and naming together, for ranking. */
+const spotScore = (score: SpotScore) => countAccuracy(score) + rightShare(score);
+
+/** Good enough to recommend: a count close to what was asked and most punches named right. */
+const isBest = (score: SpotScore) => countAccuracy(score) >= 0.7 && rightShare(score) >= 0.5;
+/** Not worth suggesting: the count is far off either way, or it couldn't see you. */
+const isDead = (score: SpotScore, camera: CameraRead) => camera.gaveUp || countAccuracy(score) < 0.3;
 
 const cell = (row: LabRow | undefined) =>
-  row ? `${percent(countedShare(row.score))} · ${percent(rightShare(row.score))} · ${row.score.falsePunches}` : '–';
+  row
+    ? `${countedOf(row.score)} · ${percent(countAccuracy(row.score))} · ${percent(rightShare(row.score))} · ${row.score.falsePunches}`
+    : '–';
 
 const mean = (values: number[]) => (values.length === 0 ? null : values.reduce((sum, v) => sum + v, 0) / values.length);
 const meanCell = (rows: LabRow[]) => {
-  const counted = mean(rows.map((row) => countedShare(row.score)));
+  const counted = mean(rows.map((row) => countAccuracy(row.score)));
   const right = mean(rows.map((row) => rightShare(row.score)));
   return counted === null || right === null ? '–' : `${percent(counted)} · ${percent(right)}`;
 };
@@ -268,7 +281,7 @@ export function summaryMarkdown(session: string, stance: LabStance, rows: LabRow
   const lines = [
     `# Angle tests, ${session} (${stance})`,
     '',
-    `${rows.length} of ${ANGLE_SPOTS.length} spots filmed. Each cell is counted % · named right % · false punches, scored by replaying the take through the punch tracker. Rescore any file with \`npm run punch:confusion -- <file>\`.`,
+    `${rows.length} of ${ANGLE_SPOTS.length} spots filmed. Each cell is counted of asked · count accuracy · named right % · false punches. Count accuracy treats counting too many the same as too few: 22 of 18 and 14 of 18 both score 78%. Averages are count accuracy · named right. All scored by replaying the take through the punch tracker. Rescore any file with \`npm run punch:confusion -- <file>\`.`,
     '',
     '## By position and height',
     '',
@@ -297,15 +310,15 @@ export function summaryMarkdown(session: string, stance: LabStance, rows: LabRow
   const graded = filmed(gridSpots).map((row) => ({ row, spot: spotById(row.spotId)! }));
   const best = graded
     .filter(({ row }) => isBest(row.score))
-    .sort((a, b) => rightShare(b.row.score) - rightShare(a.row.score) || countedShare(b.row.score) - countedShare(a.row.score) || a.row.score.falsePunches - b.row.score.falsePunches)
+    .sort((a, b) => spotScore(b.row.score) - spotScore(a.row.score) || a.row.score.falsePunches - b.row.score.falsePunches)
     .slice(0, 5);
   const dead = graded.filter(({ row }) => isDead(row.score, row.camera));
   const describe = ({ row, spot }: (typeof graded)[number]) =>
-    `- ${spot.id}. ${spotTitle(spot, stance)}: ${percent(countedShare(row.score))} counted, ${percent(rightShare(row.score))} named right, ${row.score.falsePunches} false. ${row.camera.says}`;
+    `- ${spot.id}. ${spotTitle(spot, stance)}: counted ${countedOf(row.score)} (${percent(countAccuracy(row.score))} accurate), ${percent(rightShare(row.score))} named right, ${row.score.falsePunches} false. ${row.camera.says}`;
 
-  lines.push('', '## Best spots', '', 'At least 70% counted and 50% named right, best first.', '');
+  lines.push('', '## Best spots', '', 'Count accuracy at least 70% and at least 50% named right, ranked on the two together.', '');
   lines.push(...(best.length ? best.map(describe) : ['- None yet.']));
-  lines.push('', '## Dead spots', '', 'Under 30% counted, or it could not see you.', '');
+  lines.push('', '## Dead spots', '', 'Count accuracy under 30%, too few or too many, or it could not see you.', '');
   lines.push(...(dead.length ? dead.map(describe) : ['- None yet.']));
   lines.push('');
   return lines.join('\n');
