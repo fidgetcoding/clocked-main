@@ -8,6 +8,7 @@ import {
   ANGLE_SPOTS,
   clockHour,
   clockWords,
+  countAccuracy,
   moveFromPrevious,
   positionName,
   sideWords,
@@ -50,8 +51,8 @@ describe('angle spots', () => {
     expect(ANGLE_SPOTS.slice(0, 8).every((spot) => spot.height === 'floor')).toBe(true);
     expect(ANGLE_SPOTS.slice(8, 16).every((spot) => spot.height === 'chair')).toBe(true);
     expect(ANGLE_SPOTS[16]).toMatchObject({ angle: 45, height: 'chair', run: 'shove', check: 'swing' });
-    expect(ANGLE_SPOTS[17]).toMatchObject({ angle: 0, height: 'chair', bag: 'none', run: 'full', check: 'no-bag' });
-    expect(ANGLE_SPOTS.filter((spot) => spot.run === 'full').map((spot) => spot.id)).toEqual(['9', '18']);
+    expect(ANGLE_SPOTS[17]).toMatchObject({ angle: 0, height: 'chair', bag: 'none', run: 'short', check: 'no-bag' });
+    expect(ANGLE_SPOTS.filter((spot) => spot.run === 'full').map((spot) => spot.id)).toEqual(['9']);
     expect(new Set(ANGLE_SPOTS.map((spot) => spotFileName(spot, 'orthodox'))).size).toBe(18);
   });
 
@@ -148,9 +149,9 @@ describe('angle lab saving', () => {
 
     const summary = readFileSync(join(root, '2026-11-03', 'summary.md'), 'utf8');
     expect(summary).toContain('| Position | Floor | Chair | All heights |');
-    expect(summary).toContain('| Front-left (10:30) | 100% · 100% · 0 | – | 100% · 100% |');
+    expect(summary).toContain('| Front-left (10:30) | 6 of 6 · 100% · 100% · 0 | – | 100% · 100% |');
     expect(summary).toContain('| 18 | Front, no bag, chair | 6 of 6 | 6 | 0 | Camera in front of you. |');
-    expect(summary).toContain('- 1. Front-left, floor: 100% counted, 100% named right, 0 false.');
+    expect(summary).toContain('- 1. Front-left, floor: counted 6 of 6 (100% accurate), 100% named right, 0 false.');
   });
 
   it('carries on the same session in a later sitting, skips included', () => {
@@ -194,6 +195,24 @@ describe('angle lab saving', () => {
     expect(() => saveSpot(root, { ...bad, recording: { ...bad.recording, format: 'nope' } })).toThrow(LabRequestError);
     expect(() => setSkipped(root, name, '99', true)).toThrow(LabRequestError);
     expect(currentSession(tempDir())).toBeNull();
+  });
+
+  it('ranks over-counting as badly as under-counting', () => {
+    const base = { expected: 18, right: 10, wrong: 0, unnamed: 0, falsePunches: 0, wrongHand: 0, seenShare: 1 };
+    expect(countAccuracy({ ...base, counted: 22 })).toBeCloseTo(countAccuracy({ ...base, counted: 14 }));
+    expect(countAccuracy({ ...base, counted: 35 })).toBeCloseTo(1 - 17 / 18);
+    expect(countAccuracy({ ...base, counted: 40 })).toBe(0);
+    const camera = { says: 'Camera on your left, about 60°.', side: 'left', angle: 60, height: 'level', seenShare: 1, handsHidden: false, gaveUp: false, advice: null };
+    const row = (spotId: string, counted: number, right: number): LabRow => ({
+      spotId, stance: 'orthodox', file: `${spotId}.json`, recordedAt: '', camera, score: { ...base, counted, right },
+    });
+    const summary = summaryMarkdown('s', 'orthodox', [row('1', 35, 12), row('2', 17, 11), row('3', 18, 9)]);
+    const best = summary.slice(summary.indexOf('## Best spots'), summary.indexOf('## Dead spots'));
+    const dead = summary.slice(summary.indexOf('## Dead spots'));
+    // 35 of 18 names plenty but over-counts: dead, not best
+    expect(best).not.toContain('- 1.');
+    expect(dead).toContain('- 1. Front-left, floor: counted 35 of 18 (6% accurate)');
+    expect(best.indexOf('- 2.')).toBeLessThan(best.indexOf('- 3.'));
   });
 
   it('writes the grid even before any spot', () => {
