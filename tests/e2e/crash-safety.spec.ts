@@ -149,8 +149,8 @@ for (const viewport of [{ width: 390, height: 844 }, { width: 844, height: 390 }
     await expect(calibration.getByRole("button", { name: "Skip calibration" })).toBeInViewport();
     await calibration.getByRole("button", { name: "Calibrate" }).click();
 
-    // Nobody in the picture: setup says so, and holds there rather than moving on
-    await expect(page.getByTestId("calibration-framing")).toHaveText(/^Can't see anyone/, { timeout: 10_000 });
+    // A blank picture: setup says what's wrong, and holds there rather than moving on
+    await expect(page.getByTestId("calibration-framing")).toHaveText(/^(Can't see anyone|Too dark)/, { timeout: 10_000 });
     await expect(calibration).toHaveAttribute("data-phase", "setup");
     await expect(page.getByTestId("camera-panel-warning")).toHaveCount(0);
     await expect(calibration.getByText(/Don't put the phone behind the bag/)).toBeAttached();

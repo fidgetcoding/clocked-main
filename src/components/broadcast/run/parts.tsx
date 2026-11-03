@@ -114,7 +114,7 @@ export function Transport({ view, actions, size = 'md', className }: { view: Run
   const heightClass = size === 'lg' ? 'h-16 text-[2.25rem]' : 'h-14 text-3xl';
   const pauseTone = view.kind === 'prep' || main ? 'plate-lime' : 'plate-white';
   return (
-    <div className={cn('flex items-center gap-3.5', className)}>
+    <div data-transport className={cn('flex items-center gap-3.5', className)}>
       {actions.onBack && (
         <button
           type="button"

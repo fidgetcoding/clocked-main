@@ -2,7 +2,7 @@
 // Runs against the build Vercel would make, not the one the other specs use.
 import type { Page } from "@playwright/test";
 import { expect, launchSilentChromium, test } from "./silent";
-import { finishSessionButton, pauseButton, playButton, skipButton } from "./controls";
+import { finishSessionButton, pauseButton, playButton, skipButton, skipCalibration } from "./controls";
 import { clickNewestEmailLink, finishAccountOnboarding, requestSignInEmail } from "./helpers";
 import { SIZES, settle, visit, watch, type Person } from "./person";
 
@@ -223,6 +223,8 @@ for (const { state, args } of CAMERA_STATES) {
         const person = watch(page, `camera-${state.replace(" ", "-")}-${sizeName}`);
         await guestStart(person);
         await page.getByRole("button", { name: /QUICK SESSION/ }).click();
+        // With the camera allowed, calibration opens first
+        if (state === "allowed") await skipCalibration(page);
         await playButton(page).click();
         await page.waitForTimeout(2500);
         await person.look("quick, camera just asked");

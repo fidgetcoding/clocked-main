@@ -366,6 +366,11 @@
   right: 38cqw;
 }
 
+/* While calibrating, Calibrate and Skip are the way on, so the transport steps aside */
+.stage[data-calibrating="true"] [data-transport] {
+  display: none;
+}
+
 /* Calibration: a sheet along the bottom of an upright phone, a box in the corner of anything wider.
    Above the controls, since it runs before the session starts. The top row and Leave stay in reach. */
 .calibration {

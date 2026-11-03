@@ -149,7 +149,7 @@ export function PunchLive({
               {wide && <PunchStats counts={counts} large className="ml-auto w-[26rem]" />}
             </div>
             {!wide && <PunchStats counts={counts} className="mt-2 px-4 [@media(max-height:620px)]:hidden" />}
-            <div className="px-5 py-2.5">
+            <div className={calibrating ? 'hidden' : 'px-5 py-2.5'}>
               <button type="button" onClick={onFinish} aria-label="End round" className="plate plate-white fx h-14 w-full text-3xl">
                 End round
               </button>
@@ -187,7 +187,7 @@ export function PunchLive({
                 <PunchStats counts={counts} large={wide} className="mt-1 [@media(max-height:620px)]:hidden" />
               </div>
             </section>
-            <div className={wide ? 'stage-controls-wide' : 'mt-auto px-5 py-2.5'}>
+            <div className={calibrating ? 'hidden' : wide ? 'stage-controls-wide' : 'mt-auto px-5 py-2.5'}>
               <button type="button" onClick={onFinish} aria-label="End round" className="plate plate-white fx h-14 w-full text-3xl">
                 End round
               </button>
