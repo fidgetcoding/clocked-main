@@ -2,13 +2,14 @@ import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
-import { LabRequestError, saveSpot, sessionRows, type SaveRequest } from '../../scripts/angle-lab-plugin';
+import { currentSession, LabRequestError, saveSpot, setSkipped, startSession, type SaveRequest } from '../../scripts/angle-lab-plugin';
 import { readCamera, scoreRecording } from '@/lib/lab/angleScore';
 import {
   ANGLE_SPOTS,
   clockHour,
   clockWords,
   moveFromPrevious,
+  positionName,
   sideWords,
   spotById,
   spotFileName,
@@ -43,41 +44,49 @@ function fakeRecording(stance: Stance, { guardPunches = 0, swap = {} as Partial<
 }
 
 describe('angle spots', () => {
-  it('covers every spot in the handoff once', () => {
-    expect(ANGLE_SPOTS.map((spot) => spot.id).sort()).toEqual(['1', '2', '3', '4', '5', '6a', '6b', '7', '8', '9']);
-    expect(new Set(ANGLE_SPOTS.map((spot) => spot.slug)).size).toBe(ANGLE_SPOTS.length);
+  it('films 8 points at 4 heights, then the two checks', () => {
+    expect(ANGLE_SPOTS).toHaveLength(34);
+    expect(ANGLE_SPOTS.map((spot) => spot.id)).toEqual(Array.from({ length: 34 }, (_, i) => String(i + 1)));
+    expect(ANGLE_SPOTS.slice(0, 4).map((spot) => spot.height)).toEqual(['floor', 'hip', 'chest', 'high']);
+    expect(ANGLE_SPOTS[32]).toMatchObject({ angle: 45, height: 'hip', run: 'shove', check: 'swing' });
+    expect(ANGLE_SPOTS[33]).toMatchObject({ angle: 0, height: 'chest', bag: 'none', run: 'full', check: 'no-bag' });
+    expect(ANGLE_SPOTS.filter((spot) => spot.run === 'full').map((spot) => spot.id)).toEqual(['2', '34']);
+    const names = ANGLE_SPOTS.map((spot) => spotFileName(spot, 'orthodox'));
+    expect(new Set(names).size).toBe(34);
   });
 
-  it('sweeps one way round, so the laptop never doubles back', () => {
-    const hours = ANGLE_SPOTS.map((spot) => clockHour(spot.angle, 'orthodox'));
-    const around = hours.map((hour) => (12 - hour + 12) % 12);
-    for (let i = 1; i < around.length; i += 1) expect(around[i]).toBeGreaterThanOrEqual(around[i - 1]);
+  it('goes round the circle from front-left, moving the laptop only between points', () => {
+    const points = ANGLE_SPOTS.filter((spot) => !spot.check).filter((_, i) => i % 4 === 0);
+    expect(points.map((spot) => positionName(spot.angle, 'orthodox'))).toEqual([
+      'Front-left', 'Left', 'Back-left', 'Back', 'Back-right', 'Right', 'Front-right', 'Front',
+    ]);
+    expect(points.map((spot) => clockWords(clockHour(spot.angle, 'orthodox')))).toEqual([
+      '10:30', "9 o'clock", '7:30', "6 o'clock", '4:30', "3 o'clock", '1:30', "12 o'clock",
+    ]);
+    const moves = ANGLE_SPOTS.slice(1, 32).map((spot, i) => moveFromPrevious(spot, ANGLE_SPOTS[i]));
+    expect(moves.filter((move) => move === 'Move the laptop.')).toHaveLength(7);
+    expect(moveFromPrevious(spotById('2')!, spotById('1')!)).toBe('Same spot. Change the height to HIP.');
   });
 
-  it('puts the lead side on the left for orthodox and mirrors it for southpaw', () => {
-    expect(clockHour(60, 'orthodox')).toBe(10);
-    expect(clockHour(60, 'southpaw')).toBe(2);
-    expect(clockHour(-60, 'orthodox')).toBe(2);
-    expect(clockHour(45, 'orthodox')).toBe(10.5);
-    expect(clockHour(90, 'southpaw')).toBe(3);
+  it('mirrors left and right for southpaw', () => {
+    expect(positionName(45, 'southpaw')).toBe('Front-right');
+    expect(positionName(-135, 'southpaw')).toBe('Back-left');
+    expect(clockHour(45, 'southpaw')).toBe(1.5);
     expect(clockHour(180, 'southpaw')).toBe(6);
-    expect(clockHour(0, 'orthodox')).toBe(12);
-    expect(clockWords(10.5)).toBe('between 10 and 11 o\'clock');
-    expect(sideWords(60, 'orthodox')).toBe('60° to your lead-hand side, your left');
-    expect(sideWords(60, 'southpaw')).toBe('60° to your lead-hand side, your right');
-    expect(sideWords(-60, 'orthodox')).toBe('60° to your rear-hand side, your right');
+    expect(spotFileName(spotById('1')!, 'southpaw')).toBe('01-front-right-floor-southpaw.json');
   });
 
-  it('says when the laptop can stay put', () => {
-    const [two, eight, floor] = ['2', '8', '6a'].map((id) => spotById(id)!);
-    expect(moveFromPrevious(eight, two)).toBe('The laptop stays where it is.');
-    expect(moveFromPrevious(floor, eight)).toBe('Same spot. Only the height changes.');
-    expect(spotLines(spotById('1')!, 'orthodox')[0]).toBe('Laptop at 6 o\'clock: directly behind you, 6 feet away.');
-  });
-
-  it('names files by filming order, slug and stance', () => {
-    expect(spotFileName(ANGLE_SPOTS[0], 'orthodox')).toBe('01-front-no-bag-orthodox.json');
-    expect(spotFileName(spotById('3')!, 'southpaw')).toBe('10-rear-60-hip-southpaw.json');
+  it('says the side in body terms, with the clock and what to stand the laptop on', () => {
+    expect(sideWords(45, 'orthodox')).toBe('diagonal, in front of you on your LEFT, your lead hand');
+    expect(sideWords(-135, 'orthodox')).toBe('diagonal, behind you on your RIGHT, your rear hand');
+    expect(sideWords(180, 'orthodox')).toBe('directly BEHIND you');
+    expect(spotLines(spotById('1')!, 'orthodox')).toEqual([
+      'Laptop diagonal, in front of you on your LEFT, your lead hand. 10:30, 6 feet away.',
+      'On the FLOOR, screen tilted back so it sees all of you.',
+      'Face the bag. The bag is at 12.',
+    ]);
+    expect(spotLines(spotById('29')!, 'orthodox')[0]).toBe("Laptop directly in FRONT of you, behind the bag. 12 o'clock, 6 feet away.");
+    expect(spotLines(spotById('8')!, 'orthodox')[1]).toBe('HIGH, about 6 feet: on a shelf, tilted down at you.');
   });
 });
 
@@ -118,44 +127,72 @@ describe('angle lab saving', () => {
   };
   afterEach(() => dirs.splice(0).forEach((dir) => rmSync(dir, { recursive: true, force: true })));
 
-  const request = (spotId: string, recording = fakeRecording('orthodox')): SaveRequest => {
+  const request = (session: string, spotId: string, recording = fakeRecording('orthodox')): SaveRequest => {
     const { score, camera } = scoreRecording(recording);
-    return { date: '2026-11-03', row: { spotId, stance: 'orthodox', recordedAt: recording.createdAt, score, camera }, recording };
+    return { session, row: { spotId, stance: 'orthodox', recordedAt: recording.createdAt, score, camera }, recording };
   };
 
-  it('writes a file punch:confusion can read, and a summary with every spot', () => {
+  it('writes a file punch:confusion can read, and a grid summary', () => {
     const root = tempDir();
-    const first = saveSpot(root, request('9'));
-    saveSpot(root, request('3'));
-    expect(first.path).toBe(join(root, '2026-11-03', '01-front-no-bag-orthodox.json'));
-    const saved = parseRecording(readFileSync(first.path, 'utf8'));
-    expect(saved.frames.length).toBeGreaterThan(0);
+    const { name } = startSession(root, '2026-11-03', 'orthodox');
+    const first = saveSpot(root, request(name, '1'));
+    saveSpot(root, request(name, '34'));
+    expect(first.path).toBe(join(root, '2026-11-03', '01-front-left-floor-orthodox.json'));
+    expect(parseRecording(readFileSync(first.path, 'utf8')).frames.length).toBeGreaterThan(0);
 
     const summary = readFileSync(join(root, '2026-11-03', 'summary.md'), 'utf8');
-    expect(summary).toContain('| 01 | 9 Front, no bag | orthodox | 6 of 6 | 6 | 0 | 0 | 0 | 0 | 100% | Camera in front of you. |');
-    expect(summary).toContain('| 10 | 3 60° rear side, hip height |');
-    expect(sessionRows(root, '2026-11-03').map((row) => row.file)).toEqual(['01-front-no-bag-orthodox.json', '10-rear-60-hip-orthodox.json']);
+    expect(summary).toContain('| Position | Floor | Hip | Chest | High | All heights |');
+    expect(summary).toContain('| Front-left (10:30) | 100% · 100% · 0 | – | – | – | 100% · 100% |');
+    expect(summary).toContain('| 34 | Front, no bag, chest | 6 of 6 | 6 | 0 | Camera in front of you. |');
+    expect(summary).toContain('- 1. Front-left, floor: 100% counted, 100% named right, 0 false.');
+  });
+
+  it('carries on the same session in a later sitting, skips included', () => {
+    const root = tempDir();
+    const { name } = startSession(root, '2026-11-03', 'orthodox');
+    saveSpot(root, request(name, '1'));
+    setSkipped(root, name, '2', true);
+    const later = currentSession(root)!;
+    expect(later.name).toBe(name);
+    expect(later.rows.map((row) => row.spotId)).toEqual(['1']);
+    expect(later.skipped).toEqual(['2']);
+    // Filming a skipped spot after all takes it off the skipped list
+    expect(saveSpot(root, request(name, '2')).session.skipped).toEqual([]);
+  });
+
+  it('starts a second session the same day in its own folder', () => {
+    const root = tempDir();
+    startSession(root, '2026-11-03', 'orthodox');
+    const second = startSession(root, '2026-11-03', 'southpaw');
+    expect(second.name).toBe('2026-11-03-2');
+    expect(currentSession(root)?.stance).toBe('southpaw');
   });
 
   it('replaces a spot\'s row on a redo', () => {
     const root = tempDir();
-    saveSpot(root, request('9'));
-    const redo = saveSpot(root, request('9', fakeRecording('orthodox', { guardPunches: 1 })));
-    expect(redo.rows).toHaveLength(1);
-    expect(redo.rows[0].score.falsePunches).toBe(1);
+    const { name } = startSession(root, '2026-11-03', 'orthodox');
+    saveSpot(root, request(name, '1'));
+    const redo = saveSpot(root, request(name, '1', fakeRecording('orthodox', { guardPunches: 1 })));
+    expect(redo.session.rows).toHaveLength(1);
+    expect(redo.session.rows[0].score.falsePunches).toBe(1);
   });
 
   it('refuses anything that could write outside the folder', () => {
     const root = tempDir();
-    expect(() => saveSpot(root, { ...request('9'), date: '../../etc' })).toThrow(LabRequestError);
-    expect(() => saveSpot(root, request('../9'))).toThrow(LabRequestError);
-    const bad = request('9');
-    expect(() => saveSpot(root, { ...bad, row: { ...bad.row, stance: 'x' as 'orthodox' } })).toThrow(LabRequestError);
+    const { name } = startSession(root, '2026-11-03', 'orthodox');
+    expect(() => saveSpot(root, request('../../etc', '1'))).toThrow(LabRequestError);
+    expect(() => saveSpot(root, request(name, '../1'))).toThrow(LabRequestError);
+    expect(() => startSession(root, '../x', 'orthodox')).toThrow(LabRequestError);
+    const bad = request(name, '1');
+    expect(() => saveSpot(root, { ...bad, row: { ...bad.row, stance: 'southpaw' } })).toThrow(LabRequestError);
     expect(() => saveSpot(root, { ...bad, recording: { ...bad.recording, format: 'nope' } })).toThrow(LabRequestError);
-    expect(() => sessionRows(root, '../x')).toThrow(LabRequestError);
+    expect(() => setSkipped(root, name, '99', true)).toThrow(LabRequestError);
+    expect(currentSession(tempDir())).toBeNull();
   });
 
-  it('writes one table even before any spot', () => {
-    expect(summaryMarkdown('2026-11-03', [] as LabRow[])).toContain('| # | Spot |');
+  it('writes the grid even before any spot', () => {
+    const summary = summaryMarkdown('2026-11-03', 'orthodox', [] as LabRow[]);
+    expect(summary).toContain('| Back (6 o\'clock) | – | – | – | – | – |');
+    expect(summary).toContain('- None yet.');
   });
 });

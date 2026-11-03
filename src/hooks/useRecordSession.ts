@@ -23,7 +23,7 @@ interface Options {
   stance: Stance;
   steps?: RecordStep[];
   getReadyMs?: number;
-  /** Seconds counted down out loud once the camera is live, before the first step. 0 goes straight in. */
+  /** Seconds counted down out loud from begin(), before the first step. 0 waits only for the camera. */
   countdownSeconds?: number;
   /** Said as the countdown starts. */
   countdownLine?: string;
@@ -92,14 +92,10 @@ export function useRecordSession({ stance, steps = RECORD_STEPS, getReadyMs = GE
 
   // Hold the sequence until the camera is live, then run each step off the wall clock
   useEffect(() => {
-    if (status !== 'live' || stage !== 'intro') return;
-    if (countdownSeconds > 0) {
-      setRemaining(countdownSeconds);
-      setStage('countdown');
-    } else {
-      goToStep(0);
-    }
-  }, [countdownSeconds, goToStep, stage, status]);
+    if (status === 'live' && stage === 'intro') goToStep(0);
+  }, [goToStep, stage, status]);
+  const statusRef = useRef(status);
+  statusRef.current = status;
 
   useEffect(() => {
     if (stage !== 'countdown') return;
@@ -111,9 +107,11 @@ export function useRecordSession({ stance, steps = RECORD_STEPS, getReadyMs = GE
       setRemaining(Math.max(0, left));
       if (left <= 0) {
         clearInterval(interval);
-        // The recording starts at the first step, so what happened while getting ready isn't scored
+        // The recording starts at the first step, so what happened while getting ready isn't scored.
+        // A camera still starting holds the first step until it's live.
         framesRef.current = [];
-        goToStep(0);
+        if (statusRef.current === 'live') goToStep(0);
+        else setStage('intro');
         return;
       }
       const whole = Math.ceil(left);
@@ -162,10 +160,12 @@ export function useRecordSession({ stance, steps = RECORD_STEPS, getReadyMs = GE
     segmentsRef.current = [];
     setRecording(null);
     setStepIndex(0);
-    setStage('intro');
+    // The countdown runs while the camera starts, so it begins the moment Ready is pressed
+    setRemaining(countdownSeconds);
+    setStage(countdownSeconds > 0 ? 'countdown' : 'intro');
     initializeSpeech();
     void start();
-  }, [initializeSpeech, start]);
+  }, [countdownSeconds, initializeSpeech, start]);
 
   /** Drops the recording in progress and turns the camera off. */
   const cancel = useCallback(() => {

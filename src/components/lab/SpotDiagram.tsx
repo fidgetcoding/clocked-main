@@ -1,4 +1,4 @@
-import { clockDegrees, clockHour, DISTANCE_FEET, type AngleSpot, type LabStance } from '@/lib/lab/angleSpots';
+import { clockDegrees, clockHour, DISTANCE_FEET, HEIGHT_LABELS, positionName, type AngleSpot, type LabStance } from '@/lib/lab/angleSpots';
 
 const RING = 78;
 const BAG_AT = 38;
@@ -7,8 +7,6 @@ const polar = (degrees: number, radius: number) => {
   const r = (degrees * Math.PI) / 180;
   return { x: Math.sin(r) * radius, y: -Math.cos(r) * radius };
 };
-
-const HEIGHT_LABEL: Record<AngleSpot['height'], string> = { chest: 'CHEST', hip: 'HIP', floor: 'FLOOR', box: 'ON A BOX' };
 
 /** From above: you in the middle facing 12, the bag, and where the laptop goes, mirrored for southpaws. */
 export function SpotDiagram({ spot, stance }: { spot: AngleSpot; stance: LabStance }) {
@@ -66,12 +64,23 @@ export function SpotDiagram({ spot, stance }: { spot: AngleSpot; stance: LabStan
           </text>
         </g>
 
+        {/* Your own sides, so the clock never has to be worked out */}
+        <text x={-52} y={16} textAnchor="middle" className="fill-muted-foreground" fontSize={8} fontWeight={800}>
+          YOUR LEFT
+        </text>
+        <text x={52} y={16} textAnchor="middle" className="fill-muted-foreground" fontSize={8} fontWeight={800}>
+          YOUR RIGHT
+        </text>
+        <text x={0} y={40} textAnchor="middle" className="fill-muted-foreground" fontSize={8} fontWeight={800}>
+          BEHIND YOU
+        </text>
+
         <g transform={`translate(${laptop.x} ${laptop.y}) rotate(${laptopDeg})`}>
           <rect x={-14} y={-4} width={28} height={9} rx={1.5} className="fill-volt" />
           <rect x={-12} y={-2.5} width={24} height={2} className="fill-background" />
         </g>
       </svg>
-      <figcaption className="mt-2 text-center text-2xl font-black uppercase tracking-wider text-volt">Laptop · {HEIGHT_LABEL[spot.height]}</figcaption>
+      <figcaption className="mt-2 text-center text-2xl font-black uppercase tracking-wider text-volt">Laptop: {positionName(spot.angle, stance)} · {HEIGHT_LABELS[spot.height]}</figcaption>
     </figure>
   );
 }

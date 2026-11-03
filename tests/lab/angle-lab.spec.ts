@@ -69,7 +69,7 @@ const fakeBody = async (page: Page) => {
 
 const today = () => new Date().toLocaleDateString("en-CA");
 
-test("films two spots, saves each take and its score, and keeps a summary", async ({ page }) => {
+test("films spots, saves each take and its score, keeps a grid summary, and carries on after a reload", async ({ page }) => {
   rmSync(LAB_TEST_DIR, { recursive: true, force: true });
   await fakeBody(page);
   await page.goto("/lab/angles?quick=1");
@@ -77,50 +77,65 @@ test("films two spots, saves each take and its score, and keeps a summary", asyn
 
   await page.getByRole("button", { name: "Orthodox" }).click();
   await expect(lab).toHaveAttribute("data-phase", "spot");
-  await expect(lab).toHaveAttribute("data-spot", "9");
-  await expect(page.getByTestId("spot-screen")).toContainText("Laptop at 12 o'clock");
-  await page.screenshot({ path: ".stack-test/lab-results/spot-9.png" });
+  await expect(lab).toHaveAttribute("data-spot", "1");
+  await expect(page.getByTestId("spot-screen")).toContainText("Laptop diagonal, in front of you on your LEFT");
+  await expect(page.getByTestId("spot-screen")).toContainText("On the FLOOR");
+  await page.screenshot({ path: ".stack-test/lab-results/spot-1.png" });
 
-  // Spot 9 from the space bar, as from across the room
+  // Spot 1 from the space bar, as from across the room
   await page.keyboard.press("Space");
   await expect(lab).toHaveAttribute("data-phase", "running");
   await expect(lab).toHaveAttribute("data-phase", "scored", { timeout: 90_000 });
-  const score = page.getByTestId("spot-score");
-  await expect(score).toContainText("Counted");
+  await expect(page.getByTestId("spot-score")).toContainText("Counted");
   const folder = join(LAB_TEST_DIR, today());
-  const first = join(folder, "01-front-no-bag-orthodox.json");
+  const first = join(folder, "01-front-left-floor-orthodox.json");
   await expect(page.getByTestId("saved-path")).toContainText(first);
-  await page.screenshot({ path: ".stack-test/lab-results/score-9.png" });
+  await page.screenshot({ path: ".stack-test/lab-results/score-1.png" });
 
   const saved = JSON.parse(readFileSync(first, "utf8"));
   expect(saved.format).toBe("clocked-punch-landmarks");
+  // The short run: guard and 3 of each punch
   expect(saved.segments).toHaveLength(7);
+  expect(saved.segments[1].expected).toBe(3);
   expect(saved.lab.score.counted).toBeGreaterThan(0);
   expect(saved.lab.score.right).toBeGreaterThan(0);
   expect(saved.lab.camera.says).toBeTruthy();
 
-  // Next is spot 5 (the bag between), filmed with the buttons this time
+  // Spot 2 is the same point at hip height, with a mouse click this time: the countdown starts at once
   await page.getByRole("button", { name: /Next spot/ }).click();
-  await expect(lab).toHaveAttribute("data-spot", "5");
-  await expect(page.getByTestId("spot-screen")).toContainText("The laptop stays where it is.");
+  await expect(lab).toHaveAttribute("data-spot", "2");
+  await expect(page.getByTestId("spot-screen")).toContainText("Same spot. Change the height to HIP.");
   await page.getByRole("button", { name: /Ready/ }).click();
+  await expect(lab).toHaveAttribute("data-stage", "countdown");
   await expect(lab).toHaveAttribute("data-phase", "scored", { timeout: 90_000 });
-  expect(existsSync(join(folder, "02-bag-between-orthodox.json"))).toBe(true);
+  expect(existsSync(join(folder, "02-front-left-hip-orthodox.json"))).toBe(true);
+  // Spot 2 is the full set: 10 of each
+  expect(JSON.parse(readFileSync(join(folder, "02-front-left-hip-orthodox.json"), "utf8")).segments[1].expected).toBe(10);
 
   const summary = readFileSync(join(folder, "summary.md"), "utf8");
-  expect(summary).toContain("| 01 | 9 Front, no bag | orthodox |");
-  expect(summary).toContain("| 02 | 5 Bag between you and the laptop | orthodox |");
+  expect(summary).toContain("| Position | Floor | Hip | Chest | High | All heights |");
+  expect(summary).toMatch(/\| Front-left \(10:30\) \| \d+% · \d+% · \d+ \| \d+% · \d+% · \d+ \| – \| – \|/);
   await expect(page.locator('[data-spot-state="done"]')).toHaveCount(2);
 
-  // Skipping goes on to the next spot without filming
+  // Skip spot 3, then stop for the day mid-take
   await page.keyboard.press("Space");
-  await expect(lab).toHaveAttribute("data-spot", "4");
+  await expect(lab).toHaveAttribute("data-spot", "3");
   await page.keyboard.press("s");
-  await expect(lab).toHaveAttribute("data-spot", "2");
-  await expect(page.locator('[data-spot-state="skipped"]')).toHaveCount(1);
-  await page.screenshot({ path: ".stack-test/lab-results/spot-2.png" });
+  await expect(lab).toHaveAttribute("data-spot", "4");
+  await page.getByRole("button", { name: /Ready/ }).click();
+  await page.getByRole("button", { name: /Pause/ }).click();
+  await expect(lab).toHaveAttribute("data-phase", "paused");
 
   const spoken = await spokenWords(page);
-  expect(spoken.some((line) => line.startsWith("Spot 9. Front, no bag."))).toBe(true);
+  expect(spoken.some((line) => line.startsWith("Spot 1. Front-left, floor."))).toBe(true);
   expect(spoken.some((line) => line.startsWith("Saved. Counted"))).toBe(true);
+
+  // A later sitting carries on at spot 4, with 2 done and 3 skipped
+  await page.reload();
+  await expect(page.getByTestId("welcome-screen")).toContainText("Carry on: 2 of 34 spots filmed, orthodox.");
+  await page.getByRole("button", { name: "Carry on" }).click();
+  await expect(lab).toHaveAttribute("data-spot", "4");
+  await expect(page.locator('[data-spot-state="done"]')).toHaveCount(2);
+  await expect(page.locator('[data-spot-state="skipped"]')).toHaveCount(1);
+  await page.screenshot({ path: ".stack-test/lab-results/spot-4.png" });
 });
