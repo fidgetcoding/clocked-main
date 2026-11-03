@@ -257,7 +257,7 @@ export default function AngleLab() {
           <div className="space-y-4">
             <p className="text-3xl font-black">{session ? 'Or start a new session' : 'Which stance?'}</p>
             <p className="text-xl text-muted-foreground">
-              8 spots round you at 4 heights, then 2 checks: {ANGLE_SPOTS.length} in all, about 75 seconds each. Face the bag at 12 o'clock. Every take saves
+              8 spots round you with the laptop on the floor, the same 8 on a chair, then 2 checks: {ANGLE_SPOTS.length} in all, about 75 seconds each. Face the bag at 12 o'clock. Every take saves
               itself, so you can stop and come back any time.
             </p>
             <div className="flex flex-wrap gap-4">

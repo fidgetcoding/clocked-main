@@ -1,11 +1,12 @@
 /**
  * The camera spots for filming a real heavy bag, for the angle lab (dev only, /lab/angles):
- * 8 points around you × 4 heights, then two checks. No imports, so the dev server's save
+ * a ring of 8 points around you at each height, then two checks. No imports, so the dev server's save
  * endpoint can use it too.
  */
 
 export type LabStance = 'orthodox' | 'southpaw';
-export type SpotHeight = 'floor' | 'hip' | 'chest' | 'high';
+/** Chest and high are kept for later. Only the heights in HEIGHTS are filmed. */
+export type SpotHeight = 'floor' | 'chair' | 'chest' | 'high';
 /** Where the bag is: in front of you, between you and the laptop, or out of the way. */
 export type SpotBag = 'ahead' | 'between' | 'none';
 /** short: 3 of each punch. full: the whole Punch Check set. shove: hands up, no punches. */
@@ -29,7 +30,8 @@ export const ANGLE_POINTS: AnglePoint[] = [
   { angle: 0, bag: 'between' },
 ];
 
-export const HEIGHTS: SpotHeight[] = ['floor', 'hip', 'chest', 'high'];
+/** The heights filmed, one full ring each, in this order. Add one here to add a ring. */
+export const HEIGHTS: SpotHeight[] = ['floor', 'chair'];
 
 export interface AngleSpot {
   /** 1 to 34, the filming order. */
@@ -46,14 +48,14 @@ export interface AngleSpot {
   why?: string;
 }
 
-const GRID: AngleSpot[] = ANGLE_POINTS.flatMap((point) =>
-  HEIGHTS.map((height) => ({
+const GRID: AngleSpot[] = HEIGHTS.flatMap((height) =>
+  ANGLE_POINTS.map((point) => ({
     id: '',
     angle: point.angle,
     height,
     bag: point.bag,
     // The recommended spot gets the full set, as the yardstick for the short ones
-    run: point.angle === 45 && height === 'hip' ? ('full' as const) : ('short' as const),
+    run: point.angle === 45 && height === 'chair' ? ('full' as const) : ('short' as const),
   })),
 );
 
@@ -62,7 +64,7 @@ const CHECKS: AngleSpot[] = [
   {
     id: '',
     angle: 45,
-    height: 'hip',
+    height: 'chair',
     bag: 'ahead',
     run: 'shove',
     check: 'swing',
@@ -72,7 +74,7 @@ const CHECKS: AngleSpot[] = [
   {
     id: '',
     angle: 0,
-    height: 'chest',
+    height: 'chair',
     bag: 'none',
     run: 'full',
     check: 'no-bag',
@@ -81,7 +83,7 @@ const CHECKS: AngleSpot[] = [
   },
 ];
 
-/** Every spot in filming order: all four heights at a point before the laptop moves on. */
+/** Every spot in filming order: the whole floor ring, then the chair ring, then the checks. */
 export const ANGLE_SPOTS: AngleSpot[] = [...GRID, ...CHECKS].map((spot, i) => ({ ...spot, id: String(i + 1) }));
 
 export const DISTANCE_FEET = 6;
@@ -101,17 +103,17 @@ export function positionName(angle: number, stance: LabStance): string {
   return `${size < 90 ? 'Front' : 'Back'}-${side}`;
 }
 
-export const HEIGHT_NAMES: Record<SpotHeight, string> = { floor: 'Floor', hip: 'Hip', chest: 'Chest', high: 'High' };
+export const HEIGHT_NAMES: Record<SpotHeight, string> = { floor: 'Floor', chair: 'Chair', chest: 'Chest', high: 'High' };
 
 export function spotTitle(spot: AngleSpot, stance: LabStance): string {
-  if (spot.check === 'swing') return `Swing check: ${positionName(spot.angle, stance)}, hip`;
-  if (spot.check === 'no-bag') return 'Front, no bag, chest';
+  if (spot.check === 'swing') return `Swing check: ${positionName(spot.angle, stance)}, chair`;
+  if (spot.check === 'no-bag') return 'Front, no bag, chair';
   return `${positionName(spot.angle, stance)}, ${HEIGHT_NAMES[spot.height].toLowerCase()}`;
 }
 
 const slugOf = (spot: AngleSpot, stance: LabStance) => {
   if (spot.check === 'swing') return 'swing-check';
-  if (spot.check === 'no-bag') return 'front-no-bag-chest';
+  if (spot.check === 'no-bag') return 'front-no-bag-chair';
   return `${positionName(spot.angle, stance).toLowerCase()}-${spot.height}`;
 };
 
@@ -147,7 +149,7 @@ export function sideWords(angle: number, stance: LabStance, bag: SpotBag = 'ahea
 
 const HEIGHT_WORDS: Record<SpotHeight, string> = {
   floor: 'On the FLOOR, screen tilted back so it sees all of you.',
-  hip: 'HIP height, about 2½ feet: on a chair.',
+  chair: 'On a CHAIR, about hip height.',
   chest: 'CHEST height, about 4 feet: on a counter or a tall table.',
   high: 'HIGH, about 6 feet: on a shelf, tilted down at you.',
 };
@@ -157,7 +159,7 @@ export const heightWords = (height: SpotHeight) => HEIGHT_WORDS[height];
 /** Short height label with what to stand it on, for the diagram. */
 export const HEIGHT_LABELS: Record<SpotHeight, string> = {
   floor: 'Floor · tilted back',
-  hip: 'Hip · a chair',
+  chair: 'Chair · hip height',
   chest: 'Chest · a counter',
   high: 'High · a shelf',
 };
@@ -182,8 +184,9 @@ export function spotLines(spot: AngleSpot, stance: LabStance): string[] {
 /** What changes from the spot before, so he knows when the laptop can stay put. */
 export function moveFromPrevious(spot: AngleSpot, previous: AngleSpot | undefined): string | null {
   if (!previous) return null;
-  if (previous.angle !== spot.angle) return 'Move the laptop.';
-  if (previous.height !== spot.height) return `Same spot. Change the height to ${HEIGHT_NAMES[spot.height].toUpperCase()}.`;
+  const height = HEIGHT_NAMES[spot.height].toUpperCase();
+  if (previous.angle !== spot.angle) return previous.height === spot.height ? 'Move the laptop.' : `Move the laptop, and put it on the ${height} from now on.`;
+  if (previous.height !== spot.height) return `Same spot. Change the height to ${height}.`;
   return 'The laptop stays where it is.';
 }
 

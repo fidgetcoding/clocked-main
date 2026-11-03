@@ -44,28 +44,34 @@ function fakeRecording(stance: Stance, { guardPunches = 0, swap = {} as Partial<
 }
 
 describe('angle spots', () => {
-  it('films 8 points at 4 heights, then the two checks', () => {
-    expect(ANGLE_SPOTS).toHaveLength(34);
-    expect(ANGLE_SPOTS.map((spot) => spot.id)).toEqual(Array.from({ length: 34 }, (_, i) => String(i + 1)));
-    expect(ANGLE_SPOTS.slice(0, 4).map((spot) => spot.height)).toEqual(['floor', 'hip', 'chest', 'high']);
-    expect(ANGLE_SPOTS[32]).toMatchObject({ angle: 45, height: 'hip', run: 'shove', check: 'swing' });
-    expect(ANGLE_SPOTS[33]).toMatchObject({ angle: 0, height: 'chest', bag: 'none', run: 'full', check: 'no-bag' });
-    expect(ANGLE_SPOTS.filter((spot) => spot.run === 'full').map((spot) => spot.id)).toEqual(['2', '34']);
-    const names = ANGLE_SPOTS.map((spot) => spotFileName(spot, 'orthodox'));
-    expect(new Set(names).size).toBe(34);
+  it('films a floor ring, a chair ring, then the two checks', () => {
+    expect(ANGLE_SPOTS).toHaveLength(18);
+    expect(ANGLE_SPOTS.map((spot) => spot.id)).toEqual(Array.from({ length: 18 }, (_, i) => String(i + 1)));
+    expect(ANGLE_SPOTS.slice(0, 8).every((spot) => spot.height === 'floor')).toBe(true);
+    expect(ANGLE_SPOTS.slice(8, 16).every((spot) => spot.height === 'chair')).toBe(true);
+    expect(ANGLE_SPOTS[16]).toMatchObject({ angle: 45, height: 'chair', run: 'shove', check: 'swing' });
+    expect(ANGLE_SPOTS[17]).toMatchObject({ angle: 0, height: 'chair', bag: 'none', run: 'full', check: 'no-bag' });
+    expect(ANGLE_SPOTS.filter((spot) => spot.run === 'full').map((spot) => spot.id)).toEqual(['9', '18']);
+    expect(new Set(ANGLE_SPOTS.map((spot) => spotFileName(spot, 'orthodox'))).size).toBe(18);
   });
 
-  it('goes round the circle from front-left, moving the laptop only between points', () => {
-    const points = ANGLE_SPOTS.filter((spot) => !spot.check).filter((_, i) => i % 4 === 0);
-    expect(points.map((spot) => positionName(spot.angle, 'orthodox'))).toEqual([
+  it('keeps the first take: front-left floor is still spot 1 with the same file name', () => {
+    expect(spotFileName(spotById('1')!, 'orthodox')).toBe('01-front-left-floor-orthodox.json');
+    expect(spotFileName(spotById('2')!, 'orthodox')).toBe('02-left-floor-orthodox.json');
+  });
+
+  it('goes round the circle from front-left in each ring', () => {
+    const ring = ANGLE_SPOTS.slice(0, 8);
+    expect(ring.map((spot) => positionName(spot.angle, 'orthodox'))).toEqual([
       'Front-left', 'Left', 'Back-left', 'Back', 'Back-right', 'Right', 'Front-right', 'Front',
     ]);
-    expect(points.map((spot) => clockWords(clockHour(spot.angle, 'orthodox')))).toEqual([
+    expect(ANGLE_SPOTS.slice(8, 16).map((spot) => spot.angle)).toEqual(ring.map((spot) => spot.angle));
+    expect(ring.map((spot) => clockWords(clockHour(spot.angle, 'orthodox')))).toEqual([
       '10:30', "9 o'clock", '7:30', "6 o'clock", '4:30', "3 o'clock", '1:30', "12 o'clock",
     ]);
-    const moves = ANGLE_SPOTS.slice(1, 32).map((spot, i) => moveFromPrevious(spot, ANGLE_SPOTS[i]));
-    expect(moves.filter((move) => move === 'Move the laptop.')).toHaveLength(7);
-    expect(moveFromPrevious(spotById('2')!, spotById('1')!)).toBe('Same spot. Change the height to HIP.');
+    expect(moveFromPrevious(spotById('2')!, spotById('1')!)).toBe('Move the laptop.');
+    expect(moveFromPrevious(spotById('9')!, spotById('8')!)).toBe('Move the laptop, and put it on the CHAIR from now on.');
+    expect(moveFromPrevious(spotById('17')!, spotById('16')!)).toBe('Move the laptop.');
   });
 
   it('mirrors left and right for southpaw', () => {
@@ -85,8 +91,8 @@ describe('angle spots', () => {
       'On the FLOOR, screen tilted back so it sees all of you.',
       'Face the bag. The bag is at 12.',
     ]);
-    expect(spotLines(spotById('29')!, 'orthodox')[0]).toBe("Laptop directly in FRONT of you, behind the bag. 12 o'clock, 6 feet away.");
-    expect(spotLines(spotById('8')!, 'orthodox')[1]).toBe('HIGH, about 6 feet: on a shelf, tilted down at you.');
+    expect(spotLines(spotById('8')!, 'orthodox')[0]).toBe("Laptop directly in FRONT of you, behind the bag. 12 o'clock, 6 feet away.");
+    expect(spotLines(spotById('9')!, 'orthodox')[1]).toBe('On a CHAIR, about hip height.');
   });
 });
 
@@ -136,14 +142,14 @@ describe('angle lab saving', () => {
     const root = tempDir();
     const { name } = startSession(root, '2026-11-03', 'orthodox');
     const first = saveSpot(root, request(name, '1'));
-    saveSpot(root, request(name, '34'));
+    saveSpot(root, request(name, '18'));
     expect(first.path).toBe(join(root, '2026-11-03', '01-front-left-floor-orthodox.json'));
     expect(parseRecording(readFileSync(first.path, 'utf8')).frames.length).toBeGreaterThan(0);
 
     const summary = readFileSync(join(root, '2026-11-03', 'summary.md'), 'utf8');
-    expect(summary).toContain('| Position | Floor | Hip | Chest | High | All heights |');
-    expect(summary).toContain('| Front-left (10:30) | 100% · 100% · 0 | – | – | – | 100% · 100% |');
-    expect(summary).toContain('| 34 | Front, no bag, chest | 6 of 6 | 6 | 0 | Camera in front of you. |');
+    expect(summary).toContain('| Position | Floor | Chair | All heights |');
+    expect(summary).toContain('| Front-left (10:30) | 100% · 100% · 0 | – | 100% · 100% |');
+    expect(summary).toContain('| 18 | Front, no bag, chair | 6 of 6 | 6 | 0 | Camera in front of you. |');
     expect(summary).toContain('- 1. Front-left, floor: 100% counted, 100% named right, 0 false.');
   });
 
@@ -192,7 +198,7 @@ describe('angle lab saving', () => {
 
   it('writes the grid even before any spot', () => {
     const summary = summaryMarkdown('2026-11-03', 'orthodox', [] as LabRow[]);
-    expect(summary).toContain('| Back (6 o\'clock) | – | – | – | – | – |');
+    expect(summary).toContain('| Back (6 o\'clock) | – | – | – |');
     expect(summary).toContain('- None yet.');
   });
 });

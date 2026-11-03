@@ -101,20 +101,19 @@ test("films spots, saves each take and its score, keeps a grid summary, and carr
   expect(saved.lab.score.right).toBeGreaterThan(0);
   expect(saved.lab.camera.says).toBeTruthy();
 
-  // Spot 2 is the same point at hip height, with a mouse click this time: the countdown starts at once
+  // Spot 2 is the next point round, with a mouse click this time: the countdown starts at once
   await page.getByRole("button", { name: /Next spot/ }).click();
   await expect(lab).toHaveAttribute("data-spot", "2");
-  await expect(page.getByTestId("spot-screen")).toContainText("Same spot. Change the height to HIP.");
+  await expect(page.getByTestId("spot-screen")).toContainText("Move the laptop.");
   await page.getByRole("button", { name: /Ready/ }).click();
   await expect(lab).toHaveAttribute("data-stage", "countdown");
   await expect(lab).toHaveAttribute("data-phase", "scored", { timeout: 90_000 });
-  expect(existsSync(join(folder, "02-front-left-hip-orthodox.json"))).toBe(true);
-  // Spot 2 is the full set: 10 of each
-  expect(JSON.parse(readFileSync(join(folder, "02-front-left-hip-orthodox.json"), "utf8")).segments[1].expected).toBe(10);
+  expect(existsSync(join(folder, "02-left-floor-orthodox.json"))).toBe(true);
 
   const summary = readFileSync(join(folder, "summary.md"), "utf8");
-  expect(summary).toContain("| Position | Floor | Hip | Chest | High | All heights |");
-  expect(summary).toMatch(/\| Front-left \(10:30\) \| \d+% · \d+% · \d+ \| \d+% · \d+% · \d+ \| – \| – \|/);
+  expect(summary).toContain("| Position | Floor | Chair | All heights |");
+  expect(summary).toMatch(/\| Front-left \(10:30\) \| \d+% · \d+% · \d+ \| – \|/);
+  expect(summary).toMatch(/\| Left \(9 o'clock\) \| \d+% · \d+% · \d+ \| – \|/);
   await expect(page.locator('[data-spot-state="done"]')).toHaveCount(2);
 
   // Skip spot 3, then stop for the day mid-take
@@ -132,7 +131,7 @@ test("films spots, saves each take and its score, keeps a grid summary, and carr
 
   // A later sitting carries on at spot 4, with 2 done and 3 skipped
   await page.reload();
-  await expect(page.getByTestId("welcome-screen")).toContainText("Carry on: 2 of 34 spots filmed, orthodox.");
+  await expect(page.getByTestId("welcome-screen")).toContainText("Carry on: 2 of 18 spots filmed, orthodox.");
   await page.getByRole("button", { name: "Carry on" }).click();
   await expect(lab).toHaveAttribute("data-spot", "4");
   await expect(page.locator('[data-spot-state="done"]')).toHaveCount(2);
