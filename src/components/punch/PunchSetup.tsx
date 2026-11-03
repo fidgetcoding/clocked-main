@@ -64,10 +64,10 @@ export function PunchSetup({ onStart, onBack }: PunchSetupProps) {
       <SectionRule title="Set up your camera" />
       <ol>
         {[
-          "Don't put it behind the bag, it can't see you there. Go about two-thirds of the way around from the bag to your side, either side",
-          'Prop it at hip or chest height if you can, 6 to 10 feet back',
-          "On the floor? Same spot, leaned back so all of you shows. It counts but won't name punches, and may add a few extra. Hip height names more",
-          'Directly side on or behind you only counts, and misses more',
+          'Prop it in front of you at hip height, 6 to 10 feet back. That names the most punches',
+          "Don't put it behind the bag, it can't see you there. Go just far enough around to see past it",
+          'On the floor it counts, but adds a few extra and names fewer',
+          "From behind you it misses some punches and can't name them",
           'Leave room above your head, and keep your hands and hips in the picture',
           'Put the light in front of you, not behind',
         ].map((tip, index) => (

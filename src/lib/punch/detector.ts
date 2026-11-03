@@ -124,6 +124,8 @@ export class PunchDetector {
   private lastPose: BodyPose | null = null;
   private glitchUntil = -Infinity;
   private lastPunchT = -Infinity;
+  /** How big the punches counted lately were, as distance times peak speed, newest last. */
+  private recentSizes: number[] = [];
   private lastLowFlagT = -Infinity;
   private lastT: number | null = null;
 
@@ -392,6 +394,8 @@ export class PunchDetector {
       if (otherIsFaster || otherJustLanded) return;
     }
 
+    if (this.isAftershock(state, distance)) return;
+
     const arm = armOf(peak.pose, state.side);
     if (!arm.wrist || !arm.elbow) return;
     const toPeakVisibility = state.samples.slice(0, state.peakIndex + 1).map((s) => armOf(s.pose, state.side).visibility);
@@ -467,6 +471,8 @@ export class PunchDetector {
     const id = this.nextId++;
     this.lastPunchT = peak.pose.t;
     state.lastPunchT = peak.pose.t;
+    this.recentSizes.push(distance * state.peakSpeed);
+    if (this.recentSizes.length > this.config.typical.punches) this.recentSizes.shift();
     state.openPunchId = id;
     state.openPeakT = peak.pose.t;
 
@@ -503,6 +509,19 @@ export class PunchDetector {
         scores: result.scores,
       },
     });
+  }
+
+  /**
+   * Small moves that ride along with real punches: the guard hand dragged by the turn, a hand
+   * snapping back to guard, a shrug. Each travels a fraction as far and as fast as this fighter's
+   * own punches, so a move is judged against the punches counted lately, which holds whatever the
+   * camera's angle, height and distance. Until there are enough of those, a modest default stands in.
+   */
+  private isAftershock(state: HandState, distance: number) {
+    const { typical } = this.config;
+    const sizes = [...this.recentSizes].sort((a, b) => a - b);
+    const usual = sizes.length >= typical.learnAfter ? sizes[Math.floor(sizes.length / 2)] : typical.defaultSize;
+    return distance * state.peakSpeed < typical.minShare * usual;
   }
 
   private peakIssues(

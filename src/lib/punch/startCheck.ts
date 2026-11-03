@@ -222,34 +222,36 @@ export function describeCamera(result: StartCheckResult): string {
 /** What to change, or null when the setup is fine. */
 export function placementAdvice(result: StartCheckResult): string | null {
   if (result.gaveUp) {
-    return "If the bag is between you and the phone, move the phone about 60° around to your side, 6 to 10 feet back, so you're both in the picture.";
+    return "If the bag is between you and the phone, move the phone just far enough around to see past it, 6 to 10 feet back, so you're both in the picture.";
   }
   if (!result.framed) return 'Get your shoulders and hips in the picture, about 6 to 10 feet back. If the bag is in the way, move the phone around to your side.';
   if (result.headCut) return 'Your head is cut off. Tilt the phone back or move it further away.';
   if (result.shaky) return 'Tracking looks shaky from here. Move the phone back so your head and hands have room, and add some light.';
-  if (result.cameraSide === 'behind') return 'For a better count and some punches by name, move the phone around to about 60° on your side, at hip or chest height.';
+  if (result.cameraSide === 'behind') return 'For a full count and punches by name, move the phone in front of you, at hip height.';
   if (result.handsHidden) return 'The bag or your body is hiding a hand. Move the phone a little further around to your side, or further back.';
   if (result.cameraSide === 'side_left' || result.cameraSide === 'side_right') {
-    return 'For some punches by name, move the phone around toward your front, to about 60°.';
+    return 'For punches by name, move the phone around toward your front.';
   }
-  if (result.cameraHeight === 'low') return 'The phone is looking up at you, which blurs punch types. Raise it to hip height if you can.';
-  if (result.cameraHeight === 'high') return 'The phone is looking down on you, which blurs punch types. Chest height works best.';
+  if (result.cameraHeight === 'low') return 'The phone is looking up at you, which adds extra punches and blurs their names. Raise it to hip height.';
+  if (result.cameraHeight === 'high') return 'The phone is looking down on you, which blurs punch types. Hip height works best.';
+  if (result.cameraSide === 'left' || result.cameraSide === 'right') return 'For more punches by name, move the phone closer to straight in front of you.';
   return null;
 }
 
-/** What this spot will give them, in a line. Measured on a rendered figure, so it's a guide. */
+/**
+ * What this spot will give them, in a line. From one person shadowboxing in front of a laptop
+ * webcam (2026-11-03, 16 spots, no bag), so it's a guide.
+ */
 export function expectedQuality(result: StartCheckResult): string {
   if (result.gaveUp) return 'From here: nothing counted until it can see you.';
-  if (result.cameraSide === 'behind') return "From here: it misses most punches, and won't name them or say which hand.";
+  if (result.cameraSide === 'behind') return "From here: it misses about one punch in four, and won't name them or say which hand.";
   if (result.cameraSide === 'side_left' || result.cameraSide === 'side_right') {
-    return "From here: it counts about half your punches, and won't name them or say which hand.";
+    return "From here: it counts most punches, with a few extra, and won't name them or say which hand.";
   }
   if (result.cameraHeight === 'low') return 'From here: it counts most punches and names only the clear ones. It may add a few extra.';
   if (result.handsHidden || result.cameraHeight !== 'level') {
     return 'From here: it counts most punches and names only the clear ones.';
   }
-  if (result.cameraSide === 'front') {
-    return "From here: punches by name, some of them wrong. If the phone is really behind you, it can mix up your hands, so move it to your side.";
-  }
-  return 'From here: it counts most punches. Treat the names as a rough guide: jabs, crosses and hooks get mixed up.';
+  if (result.cameraSide === 'front') return 'From here: it counts your punches and names most of them.';
+  return 'From here: it counts most punches and names some. Straight in front of you names the most.';
 }

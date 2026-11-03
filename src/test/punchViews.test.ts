@@ -253,6 +253,14 @@ describe('placements around a bag', () => {
     expect(describeCamera({ ...base, cameraSide: 'behind' })).toMatch(/behind you/);
   });
 
+  it('points toward the front, where the angle tests named the most punches', () => {
+    expect(placementAdvice({ ...base, cameraSide: 'behind', cameraAngle: 160 })).toMatch(/in front of you, at hip height/);
+    expect(placementAdvice({ ...base, cameraSide: 'right', cameraAngle: -50 })).toMatch(/straight in front of you/);
+    expect(placementAdvice({ ...base, cameraHeight: 'low' })).toMatch(/adds extra punches/);
+    expect(expectedQuality(base)).toMatch(/names most of them/);
+    expect(expectedQuality({ ...base, cameraSide: 'behind' })).toMatch(/misses about one punch in four/);
+  });
+
   it('warns when a hand is hidden, and when the camera is well off chest height', () => {
     expect(placementAdvice({ ...base, cameraSide: 'left', handsHidden: true })).toMatch(/hiding a hand/);
     expect(expectedQuality({ ...base, cameraHeight: 'low' })).toMatch(/only the clear ones/);

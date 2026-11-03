@@ -20,7 +20,7 @@ interface CalibrationFlowProps {
 
 const SETUP_DO = [
   'Show your shoulders and hips, with your head in the picture.',
-  'Prop the phone about 60° around to your side, at hip or chest height.',
+  'Prop the phone in front of you at hip height. If the bag is in the way, go just far enough around to see past it.',
   'Stand 6 to 10 feet back.',
   'Add light if the room is dim.',
 ];

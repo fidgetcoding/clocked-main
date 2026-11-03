@@ -101,7 +101,7 @@ describe('CalibrationFlow', () => {
       },
     };
     render(<CalibrationFlow calibration={view} actions={actions()} onStart={vi.fn()} />);
-    expect(screen.getByTestId('calibration-expect')).toHaveTextContent(/^From here: it counts about half/);
+    expect(screen.getByTestId('calibration-expect')).toHaveTextContent(/^From here: it counts most punches, with a few extra/);
     fireEvent.click(screen.getByRole('button', { name: 'You look southpaw. Switch?' }));
     expect(stance.setStance).toHaveBeenCalledWith('southpaw');
   });

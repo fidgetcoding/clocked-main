@@ -146,6 +146,27 @@ export const PUNCH_CONFIG = {
     peakMaxAgeMs: 300,
   },
 
+  typical: {
+    /**
+     * A move's size is how far the wrist went, in shoulder widths, times its peak speed. In the
+     * 2026-11-03 angle tests real punches had a median size of about 22 and the moves riding along
+     * with them, like the guard hand dragged by the turn, about 5. A move smaller than this share of
+     * the fighter's usual punch isn't counted. Tuned on the floor ring alone it came out at 0.5 and
+     * on the chair ring alone at 0.36, each checked on the other ring. It's set a little under both,
+     * because higher starts dropping punches filmed from behind, where the count is already low.
+     */
+    minShare: 0.33,
+    /** The usual punch is the median of this many recent punches, */
+    punches: 9,
+    /** once there are this many. */
+    learnAfter: 5,
+    /**
+     * Until then this stands in. Low, so a first jab thrown at the camera, which barely moves the
+     * wrist, still counts. A synthetic punch is about 8 and a rendered mannequin's about 11.
+     */
+    defaultSize: 4,
+  },
+
   rest: {
     /** Below this speed the hand is settled and its rest position may drift with it. */
     settleSpeed: 1,
