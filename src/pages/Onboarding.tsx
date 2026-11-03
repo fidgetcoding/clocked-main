@@ -78,7 +78,7 @@ const OnwardBar = ({ label, onClick, ticker }: { label: string; onClick: () => v
 );
 
 interface PreShowProps {
-  show: string;
+  show?: string;
   segment: number;
   segments: number;
   title: ReactNode;
@@ -457,7 +457,6 @@ const Onboarding = () => {
   if (step === 'experience') {
     return (
       <PreShow
-        show="Level"
         segment={segment}
         segments={segments}
         title="Experience Level"

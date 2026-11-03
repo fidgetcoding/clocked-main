@@ -204,7 +204,7 @@ const Index = () => {
             <div className="plate plate-lime plate-bleed-l plate-bleed-r flex min-h-[6rem] w-full justify-between gap-3 px-4 py-2">
               <span className="min-w-0 flex-1 text-left">
                 <span className="block text-[0.8125rem] font-bold uppercase tracking-[0.11em]">
-                  Next up, {Math.floor(mainEvent.duration / 60)} min
+                  {Math.floor(mainEvent.duration / 60)} min
                 </span>
                 <FitText className="fx mt-1 h-12" max={60}>{mainEvent.name}</FitText>
               </span>
@@ -223,18 +223,17 @@ const Index = () => {
         {/* The rest of the card */}
         <section className="mt-2">
           {[
-            { slot: 'Quick', title: 'QUICK SESSION', sub: 'JUST START THE CLOCK', path: '/quick-session' },
-            { slot: 'Form', title: 'PUNCH CHECK', sub: 'CAMERA FORM GUIDE', path: '/punch-check' },
-            { slot: 'Build', title: 'CREATE SET', sub: '', path: '/build' },
-            { slot: 'Log', title: 'WORKOUT LOG', sub: '', path: '/history' },
+            { title: 'QUICK SESSION', sub: 'JUST START THE CLOCK', path: '/quick-session' },
+            { title: 'PUNCH CHECK', sub: 'CAMERA FORM GUIDE', path: '/punch-check' },
+            { title: 'CREATE SET', sub: '', path: '/build' },
+            { title: 'WORKOUT LOG', sub: '', path: '/history' },
           ].map((item) => (
             <button
               key={item.path}
               type="button"
               onClick={() => navigate(item.path)}
-              className="grid min-h-[3.25rem] w-full grid-cols-[4rem_1fr_auto] items-baseline gap-2 border-b border-surface-2 px-4 py-2 text-left transition-colors hover:bg-surface-1"
+              className="grid min-h-[3.25rem] w-full grid-cols-[1fr_auto] items-baseline gap-2 border-b border-surface-2 px-4 py-2 text-left transition-colors hover:bg-surface-1"
             >
-              <span className="lab">{item.slot}</span>
               <span className="fx whitespace-nowrap text-3xl">{item.title}</span>
               {item.sub && <span className="lab self-center text-right">{item.sub}</span>}
             </button>
