@@ -7,6 +7,44 @@ import { useHistoryStore } from '@/stores/historyStore';
 import { MIN_REWARD_SECONDS, qualifiesForRewards } from '@/lib/sessionEffort';
 
 /**
+ * The workout count and total training time, counted from the history itself so they heal themselves.
+ * Throws when the history can't be counted.
+ */
+export async function countWorkoutTotals(
+  userId: string,
+  profile: { user_id?: string },
+): Promise<{ workouts_completed: number; total_training_seconds?: number }> {
+  if (profile.user_id === GUEST_USER_ID) {
+    // Guest history lives in the browser, so the same totals come from there
+    const { guestHistory } = useHistoryStore.getState();
+    return {
+      workouts_completed: guestHistory.filter((entry) => entry.duration >= MIN_REWARD_SECONDS).length,
+      total_training_seconds: guestHistory.reduce((sum, entry) => sum + (entry.duration || 0), 0),
+    };
+  }
+
+  const { count, error } = await supabase
+    .from('workout_history')
+    .select('id', { count: 'exact', head: true })
+    .eq('user_id', userId)
+    .gte('duration', MIN_REWARD_SECONDS);
+
+  // Thrown, not skipped, so a streak never goes unsaved without the person being told
+  if (error) throw new Error(`Couldn't count workout history: ${error.message}`);
+
+  const { data: durationData, error: durationError } = await supabase
+    .rpc('get_total_training_seconds', { target_user_id: userId });
+
+  if (durationError) {
+    console.error('Failed to sum training seconds:', durationError);
+  }
+
+  const totals: { workouts_completed: number; total_training_seconds?: number } = { workouts_completed: count || 0 };
+  if (!durationError) totals.total_training_seconds = (durationData as number) || 0;
+  return totals;
+}
+
+/**
  * Calculate streak and workout count after logging a session. Throws when the history can't be counted.
  */
 export async function computePostLogStats(
@@ -19,37 +57,7 @@ export async function computePostLogStats(
   },
   sessionSeconds: number
 ) {
-  let workoutsCompleted: number;
-  let totalTrainingSeconds: number | undefined;
-
-  if (profile.user_id === GUEST_USER_ID) {
-    // Guest history lives in the browser, so the same totals come from there
-    const { guestHistory } = useHistoryStore.getState();
-    workoutsCompleted = guestHistory.filter((entry) => entry.duration >= MIN_REWARD_SECONDS).length;
-    totalTrainingSeconds = guestHistory.reduce((sum, entry) => sum + (entry.duration || 0), 0);
-  } else {
-    // 1. Self-healing workout count: get actual count from workout_history
-    const { count, error } = await supabase
-      .from('workout_history')
-      .select('id', { count: 'exact', head: true })
-      .eq('user_id', userId)
-      .gte('duration', MIN_REWARD_SECONDS);
-
-    // Thrown, not skipped, so a streak never goes unsaved without the person being told
-    if (error) throw new Error(`Couldn't count workout history: ${error.message}`);
-
-    workoutsCompleted = count || 0;
-
-    // 2. Self-healing total training seconds: sum all durations from workout_history
-    const { data: durationData, error: durationError } = await supabase
-      .rpc('get_total_training_seconds', { target_user_id: userId });
-
-    if (durationError) {
-      console.error('Failed to sum training seconds:', durationError);
-    }
-
-    totalTrainingSeconds = durationError ? undefined : ((durationData as number) || 0);
-  }
+  const { workouts_completed: workoutsCompleted, total_training_seconds: totalTrainingSeconds } = await countWorkoutTotals(userId, profile);
 
   // A session under the minimum is on the record but doesn't move the streak
   if (!qualifiesForRewards(sessionSeconds)) {
