@@ -9,11 +9,13 @@
     "build:dev": "vite build --mode development",
     "lint": "eslint .",
     "punch:confusion": "vite-node scripts/punch-confusion.ts",
+    "lab:angles": "node scripts/lab-angles.mjs",
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",
     "typecheck": "tsc -p tsconfig.app.json --noEmit && tsc -p tsconfig.tests.json --noEmit",
-    "test:stack": "node scripts/test-stack.mjs"
+    "test:stack": "node scripts/test-stack.mjs",
+    "test:lab": "playwright test --config playwright.lab.config.ts"
   },
   "dependencies": {
     "@capacitor/android": "^8.6.0",

@@ -4,5 +4,5 @@
     "types": ["node"],
     "lib": ["ES2022", "DOM", "DOM.Iterable"]
   },
-  "include": ["tests/stack/*.ts", "tests/e2e/*.ts", "playwright.config.ts", "vitest.stack.config.ts"]
+  "include": ["tests/stack/*.ts", "tests/e2e/*.ts", "tests/lab/*.ts", "playwright.config.ts", "playwright.lab.config.ts", "vitest.stack.config.ts"]
 }

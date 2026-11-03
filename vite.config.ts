@@ -2,6 +2,7 @@ import fs from "fs";
 import { defineConfig, type Plugin } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import path from "path";
+import { angleLab } from "./scripts/angle-lab-plugin";
 
 // Serves MediaPipe's wasm from our own origin at its pinned npm version, without keeping 14 MB of
 // binaries in git. Only the SIMD build is shipped: createPoseModel turns away browsers without SIMD.
@@ -39,7 +40,7 @@ export default defineConfig({
   define: {
     __BUILD_TIME__: JSON.stringify(new Date().toISOString()),
   },
-  plugins: [react(), mediapipeWasm()],
+  plugins: [react(), mediapipeWasm(), angleLab()],
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),

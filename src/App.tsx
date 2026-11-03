@@ -26,6 +26,8 @@ import NotFound from "./pages/NotFound";
 
 // Lazy so the pose tracker and its page stay out of the main bundle
 const PunchCheck = lazy(() => import("./pages/PunchCheck"));
+// Dev only: the camera-angle lab. A production build drops this branch, page and all.
+const AngleLab = import.meta.env.DEV ? lazy(() => import("./pages/AngleLab")) : null;
 
 // Offline, React Query would otherwise park a save without a word: nothing for guests, whose saves
 // are local, and for accounts a pile of duplicates once the connection comes back.
@@ -61,6 +63,16 @@ const App = () => (
                 </Suspense>
               }
             />
+            {AngleLab && (
+              <Route
+                path="/lab/angles"
+                element={
+                  <Suspense fallback={<div className="min-h-screen bg-background" />}>
+                    <AngleLab />
+                  </Suspense>
+                }
+              />
+            )}
             <Route path="/workout/:id" element={<WorkoutSession />} />
             <Route path="/workout/:id/session" element={<WorkoutSession />} />
             <Route path="/admin" element={<RequireAccount><AdminPortal /></RequireAccount>} />

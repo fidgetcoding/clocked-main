@@ -1,135 +1,21 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Download, Lock } from 'lucide-react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
-import { usePunchTracking } from '@/hooks/usePunchTracking';
-import { useSpeechSynthesis } from '@/hooks/useSpeechSynthesis';
+import { useRecordSession } from '@/hooks/useRecordSession';
 import { useStance } from '@/hooks/useStance';
 import { CAMERA_MESSAGES } from '@/lib/punch/framing';
-import type { PoseResult } from '@/lib/punch/poseModel';
-import {
-  packLandmarks,
-  RECORD_STEPS,
-  RECORDING_FORMAT,
-  type PunchRecording,
-  type RecordedFrame,
-  type RecordedSegment,
-} from '@/lib/punch/recording';
-
-const GET_READY_MS = 4000;
-/** One punch per spoken count. */
-const COUNT_EVERY_MS = 2500;
-
-type Stage = 'intro' | 'ready' | 'recording' | 'done';
+import { RECORD_STEPS } from '@/lib/punch/recording';
 
 /** Hidden calibration mode: prompts for each punch and saves the landmarks, never the video, to a file. */
 export function PunchRecorder() {
   const navigate = useNavigate();
   const { stance } = useStance();
-  const { initialize: initializeSpeech, speak } = useSpeechSynthesis();
-
-  const framesRef = useRef<RecordedFrame[]>([]);
-  const segmentsRef = useRef<RecordedSegment[]>([]);
-  const lastTRef = useRef(0);
-  const videoSizeRef = useRef({ width: 0, height: 0 });
-
-  const onPoseFrame = useCallback((result: PoseResult, t: number) => {
-    lastTRef.current = t;
-    framesRef.current.push({ t, image: packLandmarks(result.image), world: packLandmarks(result.world) });
-  }, []);
-
-  const { videoRef, canvasRef, status, problem, paused, hud, start, stop } = usePunchTracking({ stance, calibrate: false, onPoseFrame });
-
-  const [stage, setStage] = useState<Stage>('intro');
-  const [stepIndex, setStepIndex] = useState(0);
-  const [remaining, setRemaining] = useState(0);
-  const stageRef = useRef(stage);
-  stageRef.current = stage;
-  const step = RECORD_STEPS[stepIndex];
-
-  const closeSegment = useCallback(() => {
-    const open = segmentsRef.current[segmentsRef.current.length - 1];
-    if (open && open.endT === Infinity) open.endT = lastTRef.current;
-  }, []);
-
-  const goToStep = useCallback(
-    (index: number) => {
-      closeSegment();
-      if (index >= RECORD_STEPS.length) {
-        const video = videoRef.current;
-        if (video) videoSizeRef.current = { width: video.videoWidth, height: video.videoHeight };
-        stop();
-        setStage('done');
-        return;
-      }
-      // The step starts with its prompt, because people start throwing as soon as they see it
-      segmentsRef.current.push({
-        label: RECORD_STEPS[index].label,
-        expected: RECORD_STEPS[index].expected,
-        startT: lastTRef.current,
-        endT: Infinity,
-      });
-      setStepIndex(index);
-      setStage('ready');
-      speak(`Next. ${RECORD_STEPS[index].prompt}`);
-    },
-    [closeSegment, speak, stop, videoRef],
-  );
-
-  // Hold the sequence until the camera is live, then run each step off the wall clock
-  useEffect(() => {
-    if (status === 'live' && stage === 'intro') goToStep(0);
-  }, [goToStep, stage, status]);
-
-  useEffect(() => {
-    if (stage !== 'ready') return;
-    const timer = setTimeout(() => {
-      setRemaining(step.seconds);
-      setStage('recording');
-      speak('Go');
-    }, GET_READY_MS);
-    return () => clearTimeout(timer);
-  }, [speak, stage, step]);
-
-  useEffect(() => {
-    if (stage !== 'recording') return;
-    const startedAt = performance.now();
-    let said = 0;
-    const interval = setInterval(() => {
-      const elapsed = performance.now() - startedAt;
-      setRemaining(Math.max(0, step.seconds - elapsed / 1000));
-      if (elapsed >= step.seconds * 1000) {
-        clearInterval(interval);
-        goToStep(stepIndex + 1);
-        return;
-      }
-      const due = Math.floor(elapsed / COUNT_EVERY_MS) + 1;
-      if (step.expected > 0 && due > said && due <= step.expected) {
-        said = due;
-        speak(String(due), { rate: 1.2 });
-      }
-    }, 100);
-    return () => clearInterval(interval);
-  }, [goToStep, speak, stage, step, stepIndex]);
-
-  const begin = () => {
-    framesRef.current = [];
-    segmentsRef.current = [];
-    initializeSpeech();
-    void start();
-  };
+  const { videoRef, canvasRef, status, problem, paused, hud, start, stage, step, stepIndex, remaining, frameCount, recording, begin, next } =
+    useRecordSession({ stance });
 
   const download = () => {
-    const recording: PunchRecording = {
-      format: RECORDING_FORMAT,
-      version: 1,
-      createdAt: new Date().toISOString(),
-      stance,
-      video: videoSizeRef.current,
-      segments: segmentsRef.current,
-      frames: framesRef.current,
-    };
+    if (!recording) return;
     const url = URL.createObjectURL(new Blob([JSON.stringify(recording)], { type: 'application/json' }));
     const link = document.createElement('a');
     link.href = url;
@@ -158,7 +44,7 @@ export function PunchRecorder() {
 
   return (
     <AppLayout hideNav>
-      <div className="min-h-screen flex flex-col bg-background px-4 py-4 gap-4" data-testid="punch-recorder" data-stage={stage} data-frames={framesRef.current.length}>
+      <div className="min-h-screen flex flex-col bg-background px-4 py-4 gap-4" data-testid="punch-recorder" data-stage={stage} data-frames={recording?.frames.length ?? frameCount}>
         <div className="w-full max-w-md mx-auto">
           <h1 className="text-2xl font-black text-foreground uppercase tracking-wider">Record Punches</h1>
           <p className="flex items-start gap-2 text-xs text-muted-foreground mt-1">
@@ -209,7 +95,7 @@ export function PunchRecorder() {
               <p className="text-sm text-muted-foreground mb-2">{Math.ceil(remaining)}s left</p>
             )}
             <Button
-              onClick={() => goToStep(stepIndex + 1)}
+              onClick={next}
               disabled={stage !== 'recording'}
               variant="secondary"
             >
@@ -221,7 +107,7 @@ export function PunchRecorder() {
         {stage === 'done' && (
           <div className="w-full max-w-md mx-auto space-y-3" data-testid="record-done">
             <div className="card-workout text-center">
-              <p className="text-2xl font-bold text-volt">{framesRef.current.length}</p>
+              <p className="text-2xl font-bold text-volt">{recording?.frames.length ?? 0}</p>
               <p className="text-sm text-muted-foreground">Frames of body points</p>
             </div>
             <Button onClick={download} size="lg" className="w-full">

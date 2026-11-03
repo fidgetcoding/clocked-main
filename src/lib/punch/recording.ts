@@ -56,7 +56,7 @@ const round4 = (value: number) => Math.round(value * 10000) / 10000;
 export const packLandmarks = (landmarks: Landmark[] | null): PackedLandmark[] | null =>
   landmarks && landmarks.map((p) => [round4(p.x), round4(p.y), round4(p.z), round4(p.visibility ?? 0)]);
 
-const unpack = (landmarks: PackedLandmark[] | null): Landmark[] | null =>
+export const unpackLandmarks = (landmarks: PackedLandmark[] | null): Landmark[] | null =>
   landmarks && landmarks.map(([x, y, z, visibility]) => ({ x, y, z, visibility }));
 
 /** Throws a readable error for anything that isn't a recording. */
@@ -139,7 +139,7 @@ export function replayRecording(recording: PunchRecording, config: PunchConfig =
       framesWithPerson += 1;
       if (frame.image[LM.LEFT_SHOULDER][0] > frame.image[LM.RIGHT_SHOULDER][0]) leftOnRight += 1;
     }
-    for (const event of detector.push({ t: frame.t, landmarks: unpack(frame.world) })) {
+    for (const event of detector.push({ t: frame.t, landmarks: unpackLandmarks(frame.world) })) {
       const index = recording.segments.findIndex((s) => event.t >= s.startT && event.t <= s.endT);
       const raised = event.type === 'punch' ? event.issues : [event.issue];
       if (index >= 0) for (const cue of raised) rows[index].cues[cue] = (rows[index].cues[cue] ?? 0) + 1;
@@ -235,7 +235,7 @@ export function findReps(recording: PunchRecording, options: RepOptions = {}): P
   const { leadInMs = 3000, minGapMs = 550, minShare = 0.6 } = options;
   const tracker = new BodyTracker();
   const poses = recording.frames.flatMap((frame) => {
-    const landmarks = unpack(frame.world);
+    const landmarks = unpackLandmarks(frame.world);
     const pose = landmarks && tracker.push(frame.t, landmarks);
     return pose ? [pose] : [];
   });
