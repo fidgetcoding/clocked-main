@@ -9,7 +9,7 @@ import { VOICE_LINES, VOICE_SECTIONS } from '../src/lib/voice/lines';
 
 const SAY: Record<string, string> = {
   'clock-3-2-1': 'Three, two, one',
-  'cal-next': 'Next',
+  'rec-next': 'Next',
 };
 
 const HEADER = `# Clocked coach voice: recording script
@@ -29,9 +29,10 @@ Every line the app says out loud, ${VOICE_LINES.length} in all. Record each one 
 Some lines are made from pieces, so you only record each piece once:
 
 - **Combos** are the punch numbers and moves said in order. "1, 2, slip left, 2" plays \`num-1\`, \`num-2\`, \`move-slip-left\`, \`num-2\`. Say the numbers on their own, the way you'd call them in a combo.
-- **Calibration steps** are \`cal-next\` then the step, so "Next. Throw 10 jabs" is \`cal-next\` + \`cal-jab\`. The count during a step is \`num-1\` to \`num-10\`.
+- **Record mode steps** are \`rec-next\` then the step, so "Next. Throw 10 jabs" is \`rec-next\` + \`rec-jab\`. The count during a step is \`num-1\` to \`num-10\`.
 - A line only plays in your voice when every piece of it is recorded. Otherwise the whole line uses the robot voice, so you never hear two voices in one sentence.
 - Exercise names people type in themselves aren't on this list and always use the robot voice.
+- The dev-only angle lab isn't on this list.
 `;
 
 const sections = VOICE_SECTIONS.map(({ section, title, about }) => {
