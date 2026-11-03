@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { usePunchTracking } from '@/hooks/usePunchTracking';
-import { useSpeechSynthesis } from '@/hooks/useSpeechSynthesis';
+import { useSpeechSynthesis, useVoicePreload } from '@/hooks/useSpeechSynthesis';
 import type { PoseResult } from '@/lib/punch/poseModel';
 import {
   packLandmarks,
@@ -12,10 +12,13 @@ import {
   type RecordStep,
 } from '@/lib/punch/recording';
 import type { Stance } from '@/lib/punch/types';
+import { numberLine, recordStepLine, VOICE_LINES, voiceLine } from '@/lib/voice/lines';
 
 export const GET_READY_MS = 4000;
 /** One punch per spoken count. */
 const COUNT_EVERY_MS = 2500;
+
+const RECORD_LINE_IDS = VOICE_LINES.filter((line) => line.section === 'record' || line.section === 'numbers').map((line) => line.id);
 
 export type RecordStage = 'intro' | 'countdown' | 'ready' | 'recording' | 'done';
 
@@ -35,6 +38,7 @@ interface Options {
  */
 export function useRecordSession({ stance, steps = RECORD_STEPS, getReadyMs = GET_READY_MS, countdownSeconds = 0, countdownLine = 'Get ready' }: Options) {
   const { initialize: initializeSpeech, speak } = useSpeechSynthesis();
+  useVoicePreload(RECORD_LINE_IDS);
 
   const framesRef = useRef<RecordedFrame[]>([]);
   const segmentsRef = useRef<RecordedSegment[]>([]);
@@ -85,7 +89,7 @@ export function useRecordSession({ stance, steps = RECORD_STEPS, getReadyMs = GE
       });
       setStepIndex(index);
       setStage('ready');
-      speak(`Next. ${steps[index].prompt}`);
+      speak(recordStepLine(steps[index].prompt));
     },
     [closeSegment, speak, stance, steps, stop, videoRef],
   );
@@ -117,7 +121,7 @@ export function useRecordSession({ stance, steps = RECORD_STEPS, getReadyMs = GE
       const whole = Math.ceil(left);
       if (whole <= 3 && whole < said) {
         said = whole;
-        speak(String(whole), { rate: 1.2 });
+        speak(numberLine(whole), { rate: 1.2 });
       }
     }, 100);
     return () => clearInterval(interval);
@@ -128,7 +132,7 @@ export function useRecordSession({ stance, steps = RECORD_STEPS, getReadyMs = GE
     const timer = setTimeout(() => {
       setRemaining(step.seconds);
       setStage('recording');
-      speak('Go');
+      speak(voiceLine('rec-go'));
     }, getReadyMs);
     return () => clearTimeout(timer);
   }, [getReadyMs, speak, stage, step]);
@@ -148,7 +152,7 @@ export function useRecordSession({ stance, steps = RECORD_STEPS, getReadyMs = GE
       const due = Math.floor(elapsed / COUNT_EVERY_MS) + 1;
       if (step.expected > 0 && due > said && due <= step.expected) {
         said = due;
-        speak(String(due), { rate: 1.2 });
+        speak(numberLine(due), { rate: 1.2 });
       }
     }, 100);
     return () => clearInterval(interval);

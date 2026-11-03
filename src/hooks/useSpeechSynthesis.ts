@@ -1,101 +1,34 @@
-import { useCallback, useRef, useEffect } from 'react';
+import { useCallback, useEffect } from 'react';
+import { coachVoice, type SayOptions } from '@/lib/voice/coachVoice';
+import { lineForText, type VoiceLine } from '@/lib/voice/lines';
 
-interface SpeechOptions {
-  rate?: number;
-  pitch?: number;
-  volume?: number;
-}
+type Speakable = string | VoiceLine;
 
+const asLine = (what: Speakable): VoiceLine => (typeof what === 'string' ? lineForText(what) : what);
+
+/**
+ * The app's spoken voice. Says a line in the recorded coach voice when there's a clip for it and in the
+ * browser's voice when there isn't. Says nothing while the voice is muted.
+ */
 export const useSpeechSynthesis = () => {
-  const isInitialized = useRef(false);
-  const voicesLoaded = useRef(false);
+  // Call on a tap: browsers only start audio from one
+  const initialize = useCallback(() => coachVoice.initialize(), []);
 
-  // Initialize speech synthesis - call this on user interaction
-  const initialize = useCallback(() => {
-    if (isInitialized.current) return;
-    
-    if ('speechSynthesis' in window) {
-      // Chrome requires getting voices first
-      const loadVoices = () => {
-        const voices = speechSynthesis.getVoices();
-        if (voices.length > 0) {
-          voicesLoaded.current = true;
-        }
-      };
-      
-      loadVoices();
-      speechSynthesis.onvoiceschanged = loadVoices;
-      
-      // Warm up the speech engine with a silent utterance
-      const warmUp = new SpeechSynthesisUtterance('');
-      warmUp.volume = 0;
-      speechSynthesis.speak(warmUp);
-      
-      isInitialized.current = true;
-    }
+  /** Cuts off whatever is being said and says this. */
+  const speak = useCallback((what: Speakable, options: Omit<SayOptions, 'queued'> = {}) => {
+    coachVoice.say(asLine(what), options);
   }, []);
 
-  // Speak text with proper queue management
-  const speak = useCallback((text: string, options: SpeechOptions = {}) => {
-    if (!('speechSynthesis' in window)) {
-      console.warn('Speech synthesis not available');
-      return;
-    }
-
-    try {
-      // Cancel any pending speech to avoid queue buildup
-      speechSynthesis.cancel();
-      
-      const utterance = new SpeechSynthesisUtterance(text);
-      utterance.rate = options.rate ?? 0.9;
-      utterance.pitch = options.pitch ?? 1;
-      utterance.volume = options.volume ?? 1;
-      
-      // Use default voice or first available
-      const voices = speechSynthesis.getVoices();
-      if (voices.length > 0) {
-        // Prefer English voices
-        const englishVoice = voices.find(v => v.lang.startsWith('en'));
-        if (englishVoice) {
-          utterance.voice = englishVoice;
-        }
-      }
-      
-      speechSynthesis.speak(utterance);
-    } catch (error) {
-      console.warn('Speech synthesis error:', error);
-    }
+  /** Says this after whatever is being said. */
+  const speakQueued = useCallback((what: Speakable, options: Omit<SayOptions, 'queued'> = {}) => {
+    coachVoice.say(asLine(what), { ...options, queued: true });
   }, []);
 
-  // Speak without canceling queue (for countdown sequences)
-  const speakQueued = useCallback((text: string, options: SpeechOptions = {}) => {
-    if (!('speechSynthesis' in window)) return;
+  const cancel = useCallback(() => coachVoice.stop(), []);
 
-    try {
-      const utterance = new SpeechSynthesisUtterance(text);
-      utterance.rate = options.rate ?? 0.9;
-      utterance.pitch = options.pitch ?? 1;
-      utterance.volume = options.volume ?? 1;
-      speechSynthesis.speak(utterance);
-    } catch (error) {
-      console.warn('Speech synthesis error:', error);
-    }
-  }, []);
-
-  // Cancel all pending speech
-  const cancel = useCallback(() => {
-    if ('speechSynthesis' in window) {
-      speechSynthesis.cancel();
-    }
-  }, []);
-
-  // Cleanup on unmount
   useEffect(() => {
-    return () => {
-      if ('speechSynthesis' in window) {
-        speechSynthesis.cancel();
-      }
-    };
+    void coachVoice.loadManifest();
+    return () => coachVoice.stop();
   }, []);
 
   return {
@@ -103,6 +36,14 @@ export const useSpeechSynthesis = () => {
     speak,
     speakQueued,
     cancel,
-    isAvailable: 'speechSynthesis' in window,
+    isAvailable: typeof window !== 'undefined' && 'speechSynthesis' in window,
   };
 };
+
+/** Gets the clips for this screen's lines ready ahead of time. */
+export function useVoicePreload(ids: string[]) {
+  const key = ids.join(' ');
+  useEffect(() => {
+    if (key) void coachVoice.preload(key.split(' '));
+  }, [key]);
+}

@@ -6,7 +6,7 @@ import { Calibration, type CalibrationActions, type CalibrationView } from '@/li
 const speech = vi.hoisted(() => ({ speak: vi.fn(), initialize: vi.fn() }));
 const stance = vi.hoisted(() => ({ setStance: vi.fn() }));
 
-vi.mock('@/hooks/useSpeechSynthesis', () => ({ useSpeechSynthesis: () => ({ ...speech, cancel: vi.fn() }) }));
+vi.mock('@/hooks/useSpeechSynthesis', () => ({ useSpeechSynthesis: () => ({ ...speech, cancel: vi.fn() }), useVoicePreload: () => undefined }));
 vi.mock('@/hooks/useStance', () => ({ useStance: () => ({ stance: 'orthodox', hasChosen: true, setStance: stance.setStance }) }));
 
 const actions = (): CalibrationActions => ({

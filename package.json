@@ -10,6 +10,8 @@
     "lint": "eslint .",
     "punch:confusion": "vite-node scripts/punch-confusion.ts",
     "lab:angles": "node scripts/lab-angles.mjs",
+    "voice:import": "node scripts/run-ts.mjs scripts/voice-import.ts",
+    "voice:script": "node scripts/run-ts.mjs scripts/voice-script.ts",
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",

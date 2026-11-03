@@ -1,6 +1,7 @@
 import { useNavigate } from 'react-router-dom';
 import { Download, Lock } from 'lucide-react';
 import { AppLayout } from '@/components/layout/AppLayout';
+import { VoiceToggle } from '@/components/broadcast/VoiceToggle';
 import { Button } from '@/components/ui/button';
 import { useRecordSession } from '@/hooks/useRecordSession';
 import { useStance } from '@/hooks/useStance';
@@ -46,7 +47,10 @@ export function PunchRecorder() {
     <AppLayout hideNav>
       <div className="min-h-screen flex flex-col bg-background px-4 py-4 gap-4" data-testid="punch-recorder" data-stage={stage} data-frames={recording?.frames.length ?? frameCount}>
         <div className="w-full max-w-md mx-auto">
-          <h1 className="text-2xl font-black text-foreground uppercase tracking-wider">Record Punches</h1>
+          <div className="flex items-center justify-between gap-3">
+            <h1 className="text-2xl font-black text-foreground uppercase tracking-wider">Record Punches</h1>
+            <VoiceToggle />
+          </div>
           <p className="flex items-start gap-2 text-xs text-muted-foreground mt-1">
             <Lock className="w-3.5 h-3.5 mt-0.5 shrink-0 text-volt" />
             Saves body points only, never video. The file stays on this device unless you send it. Stance: {stance}.

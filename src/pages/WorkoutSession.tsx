@@ -33,7 +33,8 @@ import { useWorkoutHistory } from '@/hooks/useWorkoutHistory';
 import { useUserStore } from '@/stores/userStore';
 import { useProfile } from '@/hooks/useProfile';
 import { useUserRole } from '@/hooks/useUserRole';
-import { useSpeechSynthesis } from '@/hooks/useSpeechSynthesis';
+import { useSpeechSynthesis, useVoicePreload } from '@/hooks/useSpeechSynthesis';
+import { comboLine, lineForText, lineIds, voiceLine } from '@/lib/voice/lines';
 import { useSoundEffects } from '@/hooks/useSoundEffects';
 import { useBadges } from '@/hooks/useBadges';
 import { useRepeatingCheck } from '@/hooks/useRepeatingCheck';
@@ -124,6 +125,23 @@ function dbWorkoutToLocal(dbWorkout: DbWorkout) {
   };
 }
 
+/** What's said when a segment starts. */
+function segmentAnnouncement(segment: FlatSegment): string {
+  if (segment.type === 'rest') return 'Rest';
+  if (segment.segmentType === 'shadowboxing' || segment.name.toLowerCase().includes('shadow')) return 'Shadowboxing';
+  if (segment.segmentType === 'speedbag') return segment.name.includes('Freestyle') ? 'Speed Bag Freestyle' : segment.name;
+  if (segment.segmentType === 'doubleend') return segment.name.includes('Freestyle') ? 'Double End Bag Freestyle' : 'Double End Bag';
+  if (segment.segmentType === 'combo') return segment.name.includes('Freestyle') ? 'Heavy Bag Freestyle' : 'Heavy Bag';
+  return segment.name;
+}
+
+/** The combo or drill called out after the announcement. Only boxing segments get one. */
+function segmentCallout(segment: FlatSegment): string[] | null {
+  const boxing = ['shadowboxing', 'combo', 'doubleend', 'speedbag'].includes(segment.segmentType ?? '');
+  const combo = segment.combo ?? segment.drill;
+  return boxing && combo && combo.length > 0 ? combo : null;
+}
+
 const WorkoutSession = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -139,7 +157,6 @@ const WorkoutSession = () => {
   const { playWarningBeep } = useSoundEffects();
 
   const preferences = user?.preferences as {
-    voiceAnnouncements?: boolean;
     voiceCountdown?: boolean;
     voiceComboCallouts?: boolean;
   } | undefined;
@@ -393,6 +410,18 @@ const WorkoutSession = () => {
     
     return segments;
   }, [workout]);
+
+  // Every line this workout can say, ready before it's needed
+  const voiceIds = useMemo(() => {
+    const ids = new Set(lineIds(voiceLine('clock-3-2-1', 'clock-10-seconds')));
+    for (const segment of flatSegments) {
+      for (const id of lineIds(lineForText(segmentAnnouncement(segment)))) ids.add(id);
+      const combo = segmentCallout(segment);
+      if (combo) for (const id of lineIds(comboLine(combo))) ids.add(id);
+    }
+    return [...ids];
+  }, [flatSegments]);
+  useVoicePreload(voiceIds);
 
   const [currentSegmentIndex, setCurrentSegmentIndex] = useState(0);
   const [timeRemaining, setTimeRemaining] = useState(PREPARATION_SECONDS);
@@ -746,8 +775,8 @@ const WorkoutSession = () => {
   // Voice countdown at 3 seconds
   useEffect(() => {
     if (timeRemaining === 3 && isRunning && !isPaused) {
-      if (preferences?.voiceCountdown !== false && preferences?.voiceAnnouncements !== false) {
-        speak('3, 2, 1', { rate: 0.8 });
+      if (preferences?.voiceCountdown !== false) {
+        speak(voiceLine('clock-3-2-1'), { rate: 0.8 });
       }
     }
   }, [timeRemaining, isRunning, isPaused, preferences, speak]);
@@ -755,8 +784,8 @@ const WorkoutSession = () => {
   // 10-second warning voice and beep
   useEffect(() => {
     if (timeRemaining === 10 && isRunning && !isPaused && !isPreparation) {
-      if (preferences?.voiceCountdown !== false && preferences?.voiceAnnouncements !== false) {
-        speak('10 seconds', { rate: 0.9 });
+      if (preferences?.voiceCountdown !== false) {
+        speak(voiceLine('clock-10-seconds'), { rate: 0.9 });
       }
       playWarningBeep();
     }
@@ -767,47 +796,12 @@ const WorkoutSession = () => {
     if (prevSegmentIndexRef.current === currentSegmentIndex) return;
     prevSegmentIndexRef.current = currentSegmentIndex;
 
+    // The voice switch decides whether any of this is heard
     if (!isPreparation && currentSegment && isRunning && !isPaused) {
-      if (preferences?.voiceAnnouncements !== false) {
-        let announcement = '';
-        if (currentSegment.type === 'rest') {
-          announcement = 'Rest';
-        } else if (currentSegment.segmentType === 'shadowboxing' || currentSegment.name.toLowerCase().includes('shadow')) {
-          announcement = 'Shadowboxing';
-        } else if (currentSegment.segmentType === 'speedbag') {
-          announcement = currentSegment.name.includes('Freestyle') ? 'Speed Bag Freestyle' : currentSegment.name;
-        } else if (currentSegment.segmentType === 'doubleend') {
-          announcement = currentSegment.name.includes('Freestyle') ? 'Double End Bag Freestyle' : 'Double End Bag';
-        } else if (currentSegment.segmentType === 'combo') {
-          announcement = currentSegment.name.includes('Freestyle') ? 'Heavy Bag Freestyle' : 'Heavy Bag';
-        } else {
-          announcement = currentSegment.name;
-        }
-        speak(announcement, { rate: 0.9 });
-
-        // BUG 2 FIX B: Only call out combos for boxing-type segments
-        const isBoxingTypeSegment = currentSegment.segmentType === 'shadowboxing' || 
-                                    currentSegment.segmentType === 'combo' || 
-                                    currentSegment.segmentType === 'doubleend' ||
-                                    currentSegment.segmentType === 'speedbag';
-        const combo = currentSegment.combo ?? currentSegment.drill;
-        if (combo && combo.length > 0 && isBoxingTypeSegment && preferences?.voiceComboCallouts !== false) {
-          setTimeout(() => {
-            const speakableCombo = combo.map(move => {
-              const m = move.toUpperCase();
-              if (m === 'SLIP L') return 'slip left';
-              if (m === 'SLIP R') return 'slip right';
-              if (m === 'ROLL L') return 'roll left';
-              if (m === 'ROLL R') return 'roll right';
-              if (m === 'CIRCLE L') return 'circle left';
-              if (m === 'CIRCLE R') return 'circle right';
-              if (m === 'STEP IN') return 'step in';
-              if (m === 'STEP OUT') return 'step out';
-              return move;
-            }).join(', ');
-            speak(speakableCombo, { rate: 0.85 });
-          }, 1200);
-        }
+      speak(segmentAnnouncement(currentSegment), { rate: 0.9 });
+      const combo = segmentCallout(currentSegment);
+      if (combo && preferences?.voiceComboCallouts !== false) {
+        setTimeout(() => speak(comboLine(combo), { rate: 0.85 }), 1200);
       }
     }
   }, [currentSegmentIndex, isPreparation, currentSegment, isRunning, isPaused, preferences, speak]);

@@ -12,6 +12,7 @@ import { Plate } from '../Plate';
 import { ScoreBug } from '../ScoreBug';
 import { Ticker } from '../Ticker';
 import { CameraIcon, NextIcon, PauseIcon, PlayIcon, PrevIcon, StopIcon } from '../icons';
+import { VoiceToggle } from '../VoiceToggle';
 import type { ComboMove } from './moves';
 import type { RunActions, RunFlash, RunStageProps, RunView } from './types';
 import { isRest, runTickerItems } from './view';
@@ -45,20 +46,20 @@ export function StageBug({ view, className }: { view: RunView; className?: strin
   return <ScoreBug tone={tone} mid={mid ? <LitText>{mid}</LitText> : mid} className={cn('max-w-full', className)} />;
 }
 
-/** The small jobs: leave, start over, call it done, camera. */
+/** The small jobs: leave, start over, call it done, camera, voice. */
 export function ToolStrip({ actions, cameraOn, className }: { actions: RunActions; cameraOn: boolean; className?: string }) {
   return (
     <div className={cn('tool-strip flex items-center gap-2.5 text-lg', className)}>
-      <button type="button" onClick={actions.onLeave} aria-label="Leave workout" title="Leave workout" className="plate plate-graphite fx h-11 flex-1 px-2.5">
+      <button type="button" onClick={actions.onLeave} aria-label="Leave workout" title="Leave workout" className="plate plate-graphite fx h-11 min-w-0 flex-1 px-2.5">
         Leave
       </button>
       {actions.onRestart && (
-        <button type="button" onClick={actions.onRestart} title="Restart from beginning" className="plate plate-graphite fx h-11 flex-1 px-2.5">
+        <button type="button" onClick={actions.onRestart} title="Restart from beginning" className="plate plate-graphite fx h-11 min-w-0 flex-1 px-2.5">
           Restart
         </button>
       )}
       {actions.onRestart && (
-        <button type="button" onClick={actions.onFinish} title="Complete workout early" className="plate plate-graphite fx h-11 flex-1 px-2.5">
+        <button type="button" onClick={actions.onFinish} title="Complete workout early" className="plate plate-graphite fx h-11 min-w-0 flex-1 px-2.5">
           Done
         </button>
       )}
@@ -70,11 +71,12 @@ export function ToolStrip({ actions, cameraOn, className }: { actions: RunAction
         aria-checked={cameraOn}
         data-state={cameraOn ? 'checked' : 'unchecked'}
         title="Punch camera"
-        className={cn('plate fx h-11 flex-1 gap-1.5 px-2.5', cameraOn ? 'plate-white' : 'plate-graphite')}
+        className={cn('plate fx h-11 min-w-0 flex-1 gap-1.5 px-2.5', cameraOn ? 'plate-white' : 'plate-graphite')}
       >
         <CameraIcon className="tool-strip-icon size-4" />
         Camera
       </button>
+      <VoiceToggle compact />
     </div>
   );
 }

@@ -23,6 +23,7 @@ import { GloveUnlockOverlay } from '@/components/ui/GloveUnlockOverlay';
 import { GLOVES } from '@/data/gloves';
 import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
+import { useVoiceStore } from '@/stores/voiceStore';
 
 const Settings = () => {
   const navigate = useNavigate();
@@ -58,6 +59,9 @@ const Settings = () => {
       setIsSigningOut(false);
     }
   };
+
+  const voiceOn = useVoiceStore((state) => state.voiceOn);
+  const setVoiceOn = useVoiceStore((state) => state.setVoiceOn);
 
   const handleTogglePreference = (key: string, value: boolean) => {
     if (user) {
@@ -124,7 +128,7 @@ const Settings = () => {
   };
 
   const soundAlerts = [
-    { key: 'voiceAnnouncements', label: 'Voice Announcements', description: 'Announce segment changes and instructions' },
+    { key: 'voice', label: 'Coach Voice', description: 'Everything said out loud. Same switch as the speaker button on the clock' },
     { key: 'voiceCountdown', label: 'Countdown Voice', description: '3-second countdown before segment ends' },
     { key: 'voiceComboCallouts', label: 'Combo Callouts', description: 'Call out punch combinations during combos' },
     { key: 'tenSecondWarning', label: '10-Second Warning', description: 'Warning beep at 10 seconds remaining' },
@@ -132,14 +136,16 @@ const Settings = () => {
 
   // One channel on the audio desk. The switch itself is the on-air light.
   const AudioChannel = ({ channel, prefKey, label, description }: { channel: number; prefKey: string; label: string; description: string }) => {
-    const isEnabled = (user?.preferences)?.[prefKey] !== false;
+    // The coach voice is its own setting, shared with the speaker button on every screen that talks
+    const isVoice = prefKey === 'voice';
+    const isEnabled = isVoice ? voiceOn : (user?.preferences)?.[prefKey] !== false;
 
     return (
       <div className="flex min-w-0 flex-col border-b border-surface-2 px-4 py-3 odd:border-r sm:border-b-0 sm:border-r sm:last:border-r-0">
         <span className="lab">Sound {channel}</span>
         <SwitchPrimitives.Root
           checked={isEnabled}
-          onCheckedChange={(checked) => handleTogglePreference(prefKey, checked)}
+          onCheckedChange={(checked) => (isVoice ? setVoiceOn(checked) : handleTogglePreference(prefKey, checked))}
           aria-label={label}
           className={cn(
             'plate fx my-2 h-14 w-full text-2xl',

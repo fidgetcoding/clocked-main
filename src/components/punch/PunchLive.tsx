@@ -4,6 +4,7 @@ import { PunchStats } from '@/components/broadcast/run/parts';
 import { useFreeSide } from '@/components/broadcast/run/useFreeSide';
 import { useStageLayout } from '@/components/broadcast/run/useStageLayout';
 import { isCalibrating, type CameraFeedState } from '@/components/punch/feedState';
+import { VoiceToggle } from '@/components/broadcast/VoiceToggle';
 import { Button } from '@/components/ui/button';
 import { CalibrationFlow } from '@/components/punch/CalibrationFlow';
 import type { TrackingHud } from '@/hooks/usePunchTracking';
@@ -88,6 +89,7 @@ export function PunchLive({
           <div className="flex shrink-0 items-center gap-3 pr-3">
             <span className="lab lab-w hidden bg-background/70 px-1.5 py-0.5 sm:inline">Stays on this device</span>
             <span className="lab lab-w bg-background/70 px-1.5 py-0.5" data-testid="punch-fps">{fps}</span>
+            <VoiceToggle compact />
             <button type="button" onClick={onExit} aria-label="Leave Punch Check" className="plate plate-graphite fx h-11 px-4 text-lg">
               Leave
             </button>

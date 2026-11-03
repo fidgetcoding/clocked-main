@@ -10,22 +10,25 @@ import { PunchSetup } from '@/components/punch/PunchSetup';
 import { PunchSummary } from '@/components/punch/PunchSummary';
 import { usePunchTracking } from '@/hooks/usePunchTracking';
 import { useProfile } from '@/hooks/useProfile';
-import { useSpeechSynthesis } from '@/hooks/useSpeechSynthesis';
+import { useSpeechSynthesis, useVoicePreload } from '@/hooks/useSpeechSynthesis';
 import { useStance } from '@/hooks/useStance';
 import { useWorkoutHistory } from '@/hooks/useWorkoutHistory';
 import { CAMERA_MESSAGES } from '@/lib/punch/framing';
 import { summaryNote, type RoundSummary } from '@/lib/punch/round';
 import { computePostLogStats } from '@/lib/workoutTracking';
+import { VOICE_LINES } from '@/lib/voice/lines';
 import { usePunchPrefsStore } from '@/stores/punchPrefsStore';
 
 type Screen = 'setup' | 'live' | 'summary';
+
+const CUE_LINE_IDS = VOICE_LINES.filter((line) => line.section === 'cues').map((line) => line.id);
 
 const PunchRound = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const showDebug = searchParams.get('debug') === '1';
   const { stance } = useStance();
-  const { roundSeconds, voiceCues } = usePunchPrefsStore();
+  const { roundSeconds } = usePunchPrefsStore();
   const { addHistoryEntry } = useWorkoutHistory();
   const { profile, updateProfile } = useProfile();
   const { initialize: initializeSpeech, speak, cancel: cancelSpeech } = useSpeechSynthesis();
@@ -36,12 +39,10 @@ const PunchRound = () => {
   const [clock, setClock] = useState(0);
   const [logged, setLogged] = useState(false);
 
-  const onCue = useCallback(
-    (cue: string) => {
-      if (usePunchPrefsStore.getState().voiceCues) speak(cue, { rate: 1.1 });
-    },
-    [speak],
-  );
+  useVoicePreload(CUE_LINE_IDS);
+
+  // Muted or not is up to the voice switch
+  const onCue = useCallback((cue: string) => speak(cue, { rate: 1.1 }), [speak]);
 
   const poseRef = useRef<CameraFeedState['pose']['current']>(null);
   // Nothing counts, and the clock doesn't run, until calibration is done or skipped
@@ -106,7 +107,7 @@ const PunchRound = () => {
     setClock(roundSeconds);
     setLogged(false);
     addHistoryEntry.reset();
-    if (voiceCues) initializeSpeech();
+    initializeSpeech();
     setScreen('live');
     setStartRequest((n) => n + 1);
   };

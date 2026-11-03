@@ -1,11 +1,13 @@
 import { useEffect, useRef } from 'react';
-import { useSpeechSynthesis } from '@/hooks/useSpeechSynthesis';
+import { VoiceToggle } from '@/components/broadcast/VoiceToggle';
+import { useSpeechSynthesis, useVoicePreload } from '@/hooks/useSpeechSynthesis';
 import { useStance } from '@/hooks/useStance';
 import { promptFor, stepLine, tallyLine, voiceLine, type CalibrationActions, type CalibrationStep, type CalibrationView } from '@/lib/punch/calibration';
 import { FRAMING_MESSAGES } from '@/lib/punch/framing';
 import { PUNCH_LABELS, PUNCH_NUMBERS } from '@/lib/punch/round';
 import { describeCamera, expectedQuality, placementAdvice } from '@/lib/punch/startCheck';
 import { cn } from '@/lib/utils';
+import { VOICE_LINES } from '@/lib/voice/lines';
 
 interface CalibrationFlowProps {
   calibration: CalibrationView;
@@ -25,6 +27,8 @@ const SETUP_DO = [
 const SETUP_DONT = "Don't put the phone behind the bag. It can't see you there.";
 
 const button = 'plate fx h-12 px-4 text-xl';
+
+const CALIBRATION_LINE_IDS = VOICE_LINES.filter((line) => line.section === 'calibration').map((line) => line.id);
 
 const STATUS_MARK: Record<CalibrationStep['status'], string> = {
   waiting: '…',
@@ -60,6 +64,7 @@ function Steps({ steps, current }: { steps: CalibrationStep[]; current?: number 
 export function CalibrationFlow({ calibration, actions, onStart, startLabel = 'Start workout', className }: CalibrationFlowProps) {
   const { stance, setStance } = useStance();
   const { initialize, speak } = useSpeechSynthesis();
+  useVoicePreload(CALIBRATION_LINE_IDS);
   const { phase, steps, stepIndex, result } = calibration;
 
   const said = useRef<string | null>(null);
@@ -223,6 +228,8 @@ export function CalibrationFlow({ calibration, actions, onStart, startLabel = 'S
       data-calibration-punch={phase === 'punches' ? steps[stepIndex].punch : undefined}
       className={cn('calibration bg-background/90', className)}
     >
+      {/* Calibration talks you through it. Mute it right here */}
+      <VoiceToggle compact className="float-right mb-1 ml-3" />
       {body}
     </section>
   );

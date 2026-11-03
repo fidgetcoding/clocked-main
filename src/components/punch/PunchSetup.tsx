@@ -1,6 +1,6 @@
 import { BroadcastPage, CameraIcon, SectionRule } from '@/components/broadcast';
+import { VoiceToggle } from '@/components/broadcast/VoiceToggle';
 import { Button } from '@/components/ui/button';
-import { Switch } from '@/components/ui/switch';
 import { cn } from '@/lib/utils';
 import { usePunchPrefsStore } from '@/stores/punchPrefsStore';
 import { useStance } from '@/hooks/useStance';
@@ -18,7 +18,7 @@ interface PunchSetupProps {
 }
 
 export function PunchSetup({ onStart, onBack }: PunchSetupProps) {
-  const { roundSeconds, voiceCues, setRoundSeconds, setVoiceCues } = usePunchPrefsStore();
+  const { roundSeconds, setRoundSeconds } = usePunchPrefsStore();
   const { hasChosen, setStance } = useStance();
 
   return (
@@ -56,10 +56,10 @@ export function PunchSetup({ onStart, onBack }: PunchSetupProps) {
         </div>
       </div>
 
-      <label className="mt-3 flex min-h-11 items-center justify-between gap-3 border-y border-surface-2 px-4 py-2">
+      <div className="mt-3 flex min-h-11 items-center justify-between gap-3 border-y border-surface-2 px-4 py-2">
         <span className="text-lg">Say the cues out loud</span>
-        <Switch checked={voiceCues} onCheckedChange={setVoiceCues} aria-label="Say the cues out loud" />
-      </label>
+        <VoiceToggle />
+      </div>
 
       <SectionRule title="Set up your camera" />
       <ol>

@@ -48,3 +48,15 @@ export const StopIcon = (props: SVGProps<SVGSVGElement>) => (
     <path d="M7 4h15l-3 16H4z" />
   </Icon>
 );
+
+export const SpeakerIcon = (props: SVGProps<SVGSVGElement>) => (
+  <Icon {...props}>
+    <path d="M4 9h4l6-5-2 16-5-5H3zM16.500 8.500l1.500-1c1.500 2.500 1.200 6.500-.800 9.500l-1.400-1c1.400-2.300 1.600-5.300.700-7.500z" />
+  </Icon>
+);
+
+export const SpeakerOffIcon = (props: SVGProps<SVGSVGElement>) => (
+  <Icon {...props}>
+    <path d="M4 9h4l6-5-2 16-5-5H3zM16 8.500l1.400-1.400 2.100 2.300 2.600-2.300 1.200 1.400-2.600 2.300 2.100 2.300-1.600 1.400-2.100-2.300-2.600 2.300-1.200-1.400 2.600-2.300z" />
+  </Icon>
+);
