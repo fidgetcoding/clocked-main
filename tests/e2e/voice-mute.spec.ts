@@ -202,7 +202,9 @@ test('the first workout announcement plays, and pausing cancels its delayed comb
     localStorage.setItem('get-clocked-workouts', JSON.stringify(stored));
     return workout.id;
   });
+  const recordingReady = page.waitForResponse(response => response.url().endsWith('/seg-heavy-bag.m4a') && response.ok());
   await page.goto(`${NO_BACKEND_URL}/workout/${id}`);
+  await recordingReady;
   await page.getByTestId('run-stage').waitFor();
   await page.clock.install();
   await page.clock.pauseAt(new Date());
