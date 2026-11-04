@@ -7,6 +7,10 @@ import { finishGuestOnboarding, NO_BACKEND_URL } from "./helpers";
 
 const voiceSwitch = (page: Page) => page.getByRole("switch", { name: "Coach voice", exact: true });
 
+const voiceCalls = async (page: Page) =>
+  (await spokenWords(page)).filter(Boolean).length +
+  (await soundsPlayed(page)).filter((sound) => sound === "web-audio:AudioBufferSourceNode").length;
+
 const VIEWPORTS = [
   { name: "phone", width: 390, height: 844 },
   { name: "laptop", width: 1280, height: 800 },
@@ -50,17 +54,17 @@ for (const viewport of VIEWPORTS) {
     await expectInView(page);
     await expect(voiceSwitch(page)).toHaveAttribute("aria-checked", "true");
     const skip = skipButton(page);
-    for (let i = 0; i < 10 && (await spokenWords(page)).length === 0; i++) await skip.click();
-    await expect.poll(async () => (await spokenWords(page)).length).toBeGreaterThan(0);
+    for (let i = 0; i < 10 && (await voiceCalls(page)) === 0; i++) await skip.click();
+    await expect.poll(() => voiceCalls(page)).toBeGreaterThan(0);
 
     await voiceSwitch(page).click();
     await expect(voiceSwitch(page)).toHaveAttribute("aria-checked", "false");
     // Anything already queued, like a combo after its announcement, has had its chance
     await page.waitForTimeout(1500);
-    const before = (await spokenWords(page)).length;
+    const before = await voiceCalls(page);
     for (let i = 0; i < 4; i++) await skip.click();
     await page.waitForTimeout(1500);
-    expect((await spokenWords(page)).length).toBe(before);
+    expect(await voiceCalls(page)).toBe(before);
 
     // The same switch in Settings, and remembered
     await page.goto(`${NO_BACKEND_URL}/settings`);
@@ -105,13 +109,14 @@ test("calibration speaks its prompts, and a mute stops the next one", async ({ p
   await finishGuestOnboarding(page, NO_BACKEND_URL, "Calibrate Voice");
   await page.goto(`${NO_BACKEND_URL}/punch-check?record=1`);
   await page.getByRole("button", { name: "Start" }).click();
-  await expect.poll(() => spokenWords(page), { timeout: 30_000 }).toContain("Next. Stand still in your guard");
+  await expect.poll(() => voiceCalls(page), { timeout: 30_000 }).toBeGreaterThan(0);
+  expect((await spokenWords(page)).filter(Boolean)).not.toContain("Next. Stand still in your guard");
 
   await voiceSwitch(page).click();
-  const before = (await spokenWords(page)).length;
+  const before = await voiceCalls(page);
   // The guard step is 4 seconds to get ready and then "Go"
   await page.waitForTimeout(5000);
-  expect((await spokenWords(page)).length).toBe(before);
+  expect(await voiceCalls(page)).toBe(before);
 });
 
 // Stands in for Nate's recordings: a short tone as every calibration clip
@@ -150,4 +155,36 @@ test("recorded clips play instead of the browser voice, and the rest falls back 
   await page.waitForTimeout(5000);
   expect((await soundsPlayed(page)).length).toBe(played);
   expect((await spokenWords(page)).length).toBe(spoken);
+});
+
+// Use the shipped recording, with no audio routes or synthetic voice fixture.
+test("all shipped coach clips decode and the workout uses recordings", async ({ page }) => {
+  await finishGuestOnboarding(page, NO_BACKEND_URL, "Nate Voice");
+  const decoded = await page.evaluate(async () => {
+    const manifest = await fetch("/voice/coach/manifest.json").then((r) => r.json());
+    const files = [...new Set(Object.values(manifest.clips).flat())] as string[];
+    const context = new OfflineAudioContext(1, 1, 44100);
+    let shortest = Infinity;
+    for (const file of files) {
+      const response = await fetch(`/voice/coach/${file}`);
+      if (!response.ok) throw new Error(`Missing clip: ${file}`);
+      const buffer = await context.decodeAudioData(await response.arrayBuffer());
+      if (buffer.duration < 0.15 || buffer.duration > 5) throw new Error(`Bad clip: ${file}`);
+      shortest = Math.min(shortest, buffer.duration);
+    }
+    return { cues: Object.keys(manifest.clips).length, takes: files.length, shortest };
+  });
+  expect(decoded.cues).toBe(174);
+  expect(decoded.takes).toBe(180);
+
+  await playButton(page).click();
+  await page.waitForURL("**/workout/**");
+  await playButton(page).click();
+  const skip = skipButton(page);
+  for (let i = 0; i < 4; i++) {
+    await skip.click();
+    await page.waitForTimeout(400);
+  }
+  await expect.poll(async () => (await soundsPlayed(page)).filter((s) => s === "web-audio:AudioBufferSourceNode").length).toBeGreaterThan(0);
+  expect((await spokenWords(page)).filter(Boolean)).toEqual([]);
 });
