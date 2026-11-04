@@ -9,19 +9,19 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { AppErrorBoundary } from "@/components/errors/AppErrorBoundary";
 import { RequireAccount } from "@/components/RequireAccount";
 import Index from "./pages/Index";
-import Build from "./pages/Build";
-import Settings from "./pages/Settings";
-import EditProfile from "./pages/EditProfile";
-import History from "./pages/History";
+const Build = lazy(() => import("./pages/Build"));
+const Settings = lazy(() => import("./pages/Settings"));
+const EditProfile = lazy(() => import("./pages/EditProfile"));
+const History = lazy(() => import("./pages/History"));
 import Onboarding from "./pages/Onboarding";
-import WorkoutSession from "./pages/WorkoutSession";
-import QuickSession from "./pages/QuickSession";
-import FightClub from "./pages/FightClub";
-import Stats from "./pages/Stats";
-import Profile from "./pages/Profile";
+const WorkoutSession = lazy(() => import("./pages/WorkoutSession"));
+const QuickSession = lazy(() => import("./pages/QuickSession"));
+const FightClub = lazy(() => import("./pages/FightClub"));
+const Stats = lazy(() => import("./pages/Stats"));
+const Profile = lazy(() => import("./pages/Profile"));
 import Auth from "./pages/Auth";
-import AdminPortal from "./pages/AdminPortal";
-import Gloves from "./pages/Gloves";
+const AdminPortal = lazy(() => import("./pages/AdminPortal"));
+const Gloves = lazy(() => import("./pages/Gloves"));
 import NotFound from "./pages/NotFound";
 
 // Lazy so the pose tracker and its page stay out of the main bundle
@@ -42,6 +42,7 @@ const App = () => (
         <Sonner position="top-center" />
         <BrowserRouter>
           <ScrollToTop />
+          <Suspense fallback={<div role="status" className="min-h-screen bg-background p-6 text-foreground">Loading…</div>}>
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/auth" element={<Auth />} />
@@ -79,6 +80,7 @@ const App = () => (
             <Route path="/gloves" element={<Gloves />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
+          </Suspense>
         </BrowserRouter>
       </TooltipProvider>
     </AuthProvider>

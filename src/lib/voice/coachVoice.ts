@@ -56,6 +56,7 @@ export class CoachVoice {
   private playing = new Set<AudioBufferSourceNode>();
   private endsAt = 0;
   private token = 0;
+  private playbackQueue: Promise<void> = Promise.resolve();
 
   constructor(private readonly deps: CoachVoiceDeps) {}
 
@@ -110,13 +111,19 @@ export class CoachVoice {
       const takes = this.clips![id];
       return this.url(takes[Math.floor(this.deps.random() * takes.length) % takes.length]);
     });
-    void this.play(urls, line, options, this.token);
+    const token = this.token;
+    this.playbackQueue = this.playbackQueue
+      .then(() => {
+        if (token === this.token && this.deps.isOn()) return this.play(urls, line, options, token);
+      })
+      .catch((error) => console.warn("Coach playback failed:", error));
     return true;
   }
 
   /** Cuts off whatever is being said, clip or browser voice. */
   stop() {
     this.token += 1;
+    this.playbackQueue = Promise.resolve();
     for (const source of this.playing) {
       try {
         source.stop();
@@ -177,8 +184,8 @@ export class CoachVoice {
     let pending = this.buffers.get(url);
     if (!pending) {
       const context = this.getContext();
-      pending = context
-        ? this.deps
+      if (!context) return Promise.resolve(null);
+      pending = this.deps
             .fetch(url)
             .then((response) => (response.ok ? response.arrayBuffer() : Promise.reject(new Error(`${url} ${String(response.ok)}`))))
             .then((data) => context.decodeAudioData(data))
@@ -186,8 +193,7 @@ export class CoachVoice {
               // Try again next time rather than remembering the failure
               this.buffers.delete(url);
               return null;
-            })
-        : Promise.resolve(null);
+            });
       this.buffers.set(url, pending);
     }
     return pending;

@@ -262,3 +262,9 @@ Design documents from the build. They're design history, so their numbers differ
 Imported Nate’s three-minute recording as 180 normalized AAC takes for all 174 registered cues, including standalone punch names and extra defensive moves. Six repeated defense calls become alternate takes. Word alignment plus silence boundaries split the fast read; raw audio and alignment stay outside the repo in WORK/CLOCKED-VOICE-20261104. Coach encouragement and round calls use recorded clips only. Existing numbered combo calls keep their numbers.
 
 Validation: lint, typecheck, 4,036 unit tests and production build passed. Offline decoding checked all 180 clips. Seven silent Chromium browser checks also passed on phone and laptop layouts: recorded workout calls, persistent mute, calibration controls, partial-clip fallback, and decoding every shipped clip. The old tests counted an empty speech warm-up as a call; they now count nonempty speech and recorded sources. No system audio settings changed; a workout with Nate listening is still the final listening check.
+
+## November 4: optimization batch 1
+
+Secondary route splitting reduces initial JavaScript from 962,407 to 535,760 bytes (44.3%), and gzip from 289,508 to 171,356 bytes (40.8%, same measurement method). Recorded calls preserve queue order during slow loads, unavailable audio contexts can recover after preload, and workout reorder errors now reach the existing error UI with cache reconciliation. Reorders are still multiple database writes, not atomic.
+
+Three regressions were reproduced before their fixes. Validation: 4,039 unit tests, 41 production-preview browser checks, lint, typecheck, production build. Detailed findings, remaining risks, and implementation order: docs/engineering/OPTIMIZATION-PLAN.md. Bundle measurement: npm run build -- --manifest, then node scripts/bundle-report.mjs. Device FPS and load-time benchmarks remain open.

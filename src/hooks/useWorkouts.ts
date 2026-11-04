@@ -184,9 +184,12 @@ export function useWorkouts() {
           .eq('user_id', user.id)
       );
       
-      await Promise.all(updates);
+      const results = await Promise.all(updates);
+      const failed = results.find((result) => result.error);
+      if (failed?.error) throw failed.error;
     },
-    onSuccess: () => {
+    // Reconcile partial writes on failure as well as a fully successful reorder.
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['workouts', user?.id] });
     },
   });

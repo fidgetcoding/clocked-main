@@ -205,6 +205,35 @@ describe('the coach voice', () => {
     expect(sources[1].startedAt!).toBeGreaterThanOrEqual(sources[0].startedAt! + 0.5);
   });
 
+  it('keeps queued announcements in order when the first clip loads slowly', async () => {
+    const { voice, context, played } = setup({ 'num-1': ['num-1.m4a'], 'num-2': ['num-2.m4a'] });
+    let finish!: (value: { duration: number; url: string }) => void;
+    context.decodeAudioData.mockImplementation(async (data: { url: string }) => {
+      if (data.url.endsWith('num-1.m4a')) return new Promise((resolve) => { finish = resolve; });
+      return { duration: 0.5, url: data.url };
+    });
+    await voice.loadManifest();
+    voice.say(voiceLine('num-1'));
+    voice.say(voiceLine('num-2'), { queued: true });
+    await settle();
+    expect(played()).toEqual([]);
+    finish({ duration: 0.5, url: '/voice/coach/num-1.m4a' });
+    await settle();
+    expect(played()).toEqual(['/voice/coach/num-1.m4a', '/voice/coach/num-2.m4a']);
+  });
+
+  it('retries a clip if the audio context was unavailable during preload', async () => {
+    const { voice, context, played } = setup({ 'num-1': ['num-1.m4a'] });
+    const deps = (voice as unknown as { deps: CoachVoiceDeps }).deps;
+    deps.createContext = () => null;
+    await voice.preload(['num-1']);
+    await settle();
+    deps.createContext = () => context as unknown as AudioContext;
+    voice.say(voiceLine('num-1'));
+    await settle();
+    expect(played()).toEqual(['/voice/coach/num-1.m4a']);
+  });
+
   it('preloads every take of a screen’s lines', async () => {
     const { voice, fetched } = setup({ 'seg-rest': ['seg-rest.m4a', 'seg-rest-2.m4a'], 'num-1': ['num-1.m4a'] });
     await voice.preload(['seg-rest', 'cue-hands-up']);
