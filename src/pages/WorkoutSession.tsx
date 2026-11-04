@@ -35,6 +35,8 @@ import { useProfile } from '@/hooks/useProfile';
 import { useUserRole } from '@/hooks/useUserRole';
 import { useSpeechSynthesis, useVoicePreload } from '@/hooks/useSpeechSynthesis';
 import { useCoachTalk } from '@/hooks/useCoachTalk';
+import { useSegmentAnnouncement } from '@/hooks/useSegmentAnnouncement';
+import { useVoiceStore } from '@/stores/voiceStore';
 import { endsRound, isWorkRound, roundStart } from '@/lib/voice/coachTalk';
 import { coachLine, comboLine, lineForText, lineIds, numberLine, roundLine, voiceLine, VOICE_LINES } from '@/lib/voice/lines';
 import { useSoundEffects } from '@/hooks/useSoundEffects';
@@ -809,13 +811,16 @@ const WorkoutSession = () => {
     }
   }, [timeRemaining, isRunning, isPaused, isPreparation, preferences, speak, playWarningBeep, currentSegment]);
 
-  // Phase/segment announcement voice
-  useEffect(() => {
-    if (prevSegmentIndexRef.current === currentSegmentIndex) return;
-    prevSegmentIndexRef.current = currentSegmentIndex;
-
-    // The voice switch decides whether any of this is heard
-    if (!isPreparation && currentSegment && isRunning && !isPaused) {
+  const voiceOn = useVoiceStore(state => state.voiceOn);
+  // Stable lifecycle inputs keep ordinary clock renders from cancelling the delayed combo.
+  useSegmentAnnouncement({
+    index: currentSegmentIndex,
+    active: !isPreparation && !!currentSegment && isRunning && !isPaused && !isComplete,
+    voiceOn,
+    comboOn: preferences?.voiceComboCallouts !== false,
+    previousIndex: prevSegmentIndexRef,
+    announce: () => {
+      if (!currentSegment) return;
       const announcement = lineForText(segmentAnnouncement(currentSegment));
       const combo = segmentCallout(currentSegment);
       const callCombo = combo && preferences?.voiceComboCallouts !== false;
@@ -828,10 +833,11 @@ const WorkoutSession = () => {
       if (led && start && !callCombo) speakQueued(coachLine('fight'), { recordedOnly: true });
       if (callCombo) {
         const line = comboLine(combo);
-        setTimeout(() => (led && isRecorded(line) ? speakQueued : speak)(line, { rate: 0.85 }), 1200);
+        const timer = setTimeout(() => (led && isRecorded(line) ? speakQueued : speak)(line, { rate: 0.85 }), 1200);
+        return () => clearTimeout(timer);
       }
-    }
-  }, [currentSegmentIndex, isPreparation, currentSegment, isRunning, isPaused, preferences, speak, speakQueued, isRecorded, flatSegments]);
+    },
+  });
 
   // Handle segment transitions when time hits 0
   useEffect(() => {
@@ -897,11 +903,14 @@ const WorkoutSession = () => {
   };
 
   const handlePauseResume = () => {
+    if (!isPaused) cancelSpeech();
     if (!isPaused && !isPreparation) setSessionLog(log => ({ ...log, paused: true }));
     setIsPaused((prev) => !prev);
   };
 
   const handleReset = () => {
+    cancelSpeech();
+    prevSegmentIndexRef.current = -1;
     setCurrentSegmentIndex(0);
     setTimeRemaining(PREPARATION_SECONDS);
     setTotalElapsed(0);
@@ -998,6 +1007,7 @@ const WorkoutSession = () => {
     resetTimesCompleted();
     historyId.current = crypto.randomUUID();
     cancelSpeech();
+    prevSegmentIndexRef.current = -1;
     setShowRestartConfirm(false);
     setCurrentSegmentIndex(0);
     setTimeRemaining(PREPARATION_SECONDS);
@@ -1016,17 +1026,20 @@ const WorkoutSession = () => {
 
   const handleBack = () => {
     if (isPreparation) return;
+    cancelSpeech();
     if (currentSegmentIndex > 0) {
       const prevSegment = flatSegments[currentSegmentIndex - 1];
       setCurrentSegmentIndex((prev) => prev - 1);
       setTimeRemaining(prevSegment.duration);
     } else {
+      prevSegmentIndexRef.current = -1;
       setIsPreparation(true);
       setTimeRemaining(PREPARATION_SECONDS);
     }
   };
 
   const handleSkip = () => {
+    cancelSpeech();
     if (isPreparation) {
       setIsPreparation(false);
       setTimeRemaining(flatSegments[0]?.duration || 60);

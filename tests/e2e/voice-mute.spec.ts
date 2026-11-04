@@ -1,8 +1,8 @@
 // One switch mutes everything the app says, from every screen that talks. Needs only a served build of the app.
 import { readFileSync } from "node:fs";
 import type { Page } from "@playwright/test";
-import { expect, soundsPlayed, spokenWords, test } from "./silent";
-import { playButton, skipButton } from "./controls";
+import { clipsPlayed, expect, soundsPlayed, spokenWords, test } from "./silent";
+import { pauseButton, playButton, skipButton } from "./controls";
 import { finishGuestOnboarding, NO_BACKEND_URL } from "./helpers";
 
 const voiceSwitch = (page: Page) => page.getByRole("switch", { name: "Coach voice", exact: true });
@@ -187,4 +187,36 @@ test("all shipped coach clips decode and the workout uses recordings", async ({ 
   }
   await expect.poll(async () => (await soundsPlayed(page)).filter((s) => s === "web-audio:AudioBufferSourceNode").length).toBeGreaterThan(0);
   expect((await spokenWords(page)).filter(Boolean)).toEqual([]);
+});
+
+test('the first workout announcement plays, and pausing cancels its delayed combo', async ({ page }) => {
+  await finishGuestOnboarding(page, NO_BACKEND_URL, 'Voice Timing');
+  const id = await page.evaluate(() => {
+    const stored = JSON.parse(localStorage.getItem('get-clocked-workouts')!);
+    const workout = stored.state.guestWorkouts[0];
+    workout.phases = [{
+      id: 'voice-round', name: 'Voice round', section: 'grind', repeats: 1,
+      combos: [['1', '2']], comboOrder: 'sequential',
+      segments: [{ id: 'voice-combo', name: 'Heavy Bag', type: 'active', segmentType: 'combo', duration: 120 }],
+    }];
+    localStorage.setItem('get-clocked-workouts', JSON.stringify(stored));
+    return workout.id;
+  });
+  await page.goto(`${NO_BACKEND_URL}/workout/${id}`);
+  await page.getByTestId('run-stage').waitFor();
+  await page.clock.install();
+  await page.clock.pauseAt(new Date());
+  await playButton(page).click();
+  await pauseButton(page).waitFor();
+  await skipButton(page).click();
+  await expect.poll(() => clipsPlayed(page)).toContain('seg-heavy-bag.m4a');
+  await pauseButton(page).click();
+  const before = await clipsPlayed(page);
+  expect(before).not.toContain('num-2.m4a');
+  await page.clock.runFor(1600);
+  expect(await clipsPlayed(page)).toEqual(before);
+  await playButton(page).click();
+  await pauseButton(page).waitFor();
+  await page.clock.runFor(1600);
+  expect(await clipsPlayed(page)).toEqual(before);
 });

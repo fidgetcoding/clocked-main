@@ -2,7 +2,7 @@
 // and the body throws whichever punch the screen asks for, so this proves the flow, not how well real people are read.
 import type { Page } from "@playwright/test";
 import { simulate, type SynthPunch } from "../../src/test/punchSynth";
-import { expect, spokenWords, test } from "./silent";
+import { clipsPlayed, expect, spokenWords, test } from "./silent";
 import { playButton } from "./controls";
 import { finishGuestOnboarding, NO_BACKEND_URL } from "./helpers";
 
@@ -83,10 +83,11 @@ const calibrate = async (page: Page) => {
   return calibration;
 };
 
-for (const viewport of [{ width: 390, height: 844 }, { width: 1366, height: 768 }]) {
-  test(`a Quick Session calibrates every punch, then starts at ${viewport.width}x${viewport.height}`, async ({ page }) => {
+for (const viewport of [{ width: 390, height: 844, fallback: false }, { width: 1366, height: 768, fallback: false }, { width: 390, height: 844, fallback: true }]) {
+  test(`a Quick Session calibrates every punch, then starts at ${viewport.width}x${viewport.height} (${viewport.fallback ? 'fallback' : 'recorded'} voice)`, async ({ page }) => {
     await page.setViewportSize(viewport);
     await fakeBody(page);
+    if (viewport.fallback) await page.route('**/voice/coach/manifest.json', (route) => route.fulfill({ json: { version: 1, clips: {} } }));
     await finishGuestOnboarding(page, NO_BACKEND_URL, "Calibrator");
     await page.goto(`${NO_BACKEND_URL}/quick-session`);
     const calibration = await calibrate(page);
@@ -96,8 +97,17 @@ for (const viewport of [{ width: 390, height: 844 }, { width: 1366, height: 768 
     await expect(page.getByTestId("calibration-expect")).toHaveText(/^From here: /);
     await expect(calibration.locator('[data-status="seen"]')).toHaveCount(6);
     await noSidewaysScroll(page);
-    const spoken = await spokenWords(page);
-    expect(spoken).toEqual(expect.arrayContaining(["Hands up. Hold still.", "Throw a jab", "Got it", "Throw a rear uppercut", "Calibration done."]));
+    if (viewport.fallback) {
+      await expect.poll(() => spokenWords(page)).toEqual(expect.arrayContaining(["Hands up. Hold still.", "Throw a jab", "Got it", "Throw a rear uppercut", "Calibration done."]));
+    } else {
+      await expect.poll(() => clipsPlayed(page)).toEqual(expect.arrayContaining([
+        'cal-hands-up-hold-still.m4a', 'cal-throw-a-jab.m4a', 'cal-throw-a-cross.m4a',
+        'cal-throw-a-lead-hook.m4a', 'cal-throw-a-rear-hook.m4a',
+        'cal-throw-a-lead-uppercut.m4a', 'cal-throw-a-rear-uppercut.m4a',
+        'cal-got-it.m4a', 'cal-calibration-done.m4a',
+      ]));
+      expect((await spokenWords(page)).filter(Boolean)).toEqual([]);
+    }
 
     await calibration.getByRole("button", { name: "Start session" }).click();
     await expect(page.getByTestId("calibration")).toHaveCount(0);

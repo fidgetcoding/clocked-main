@@ -121,3 +121,18 @@ Additional backend inspection confirmed request validation, a database RPC for g
 Next batch: cancelled delayed combo announcements; stale auth/profile async results; atomic reorder design. Then profile runtime before structural screen decomposition and camera optimizations. No detector, XP formula, database policy, or schema changes in Batch 1.
 
 Browser validation for Batch 1: 41 Chromium checks passed against the production preview, covering guest presets, builder behavior, history/stat views exercised by guest regressions, session reload/resume, discard/save, unchanged XP across reload, no-backend behavior, phone/laptop mute, and decoding all 180 recordings. Camera-specific cases were excluded because this was a production build without injected test poses; no camera code changed. Hosted backend and Firefox verification remain CI work.
+
+## Batch 2: auth races, voice lifecycle, and stronger browser checks
+
+- Initial session reads cannot overwrite a later auth event. Profile results cannot populate a signed-out account, a different account, or an unmounted provider. INITIAL_SESSION still synchronizes the profile.
+- Sign-out reports Supabase errors to the existing Settings error UI. An old sign-out response cannot erase a newer sign-in.
+- Segment announcements have a dedicated lifecycle hook. Preparation no longer consumes the first announcement. Delayed combos cancel on pause, skip, mute, preference change, completion, and unmount; ordinary renders keep the valid timer. Recovery/resume do not repeat the announcement.
+- Pause/back/skip/restart explicitly stop queued speech; restarting resets announcement history.
+- The silent browser harness traces a fetched recording through decoding into source playback, so downloads alone cannot satisfy a voice assertion. Calibration checks every punch recording on phone and laptop, plus the synthetic-voice fallback separately.
+- Browser Play locators wait for the workout transport after lazy navigation. A URL change alone can leave the home card visible long enough to click it twice.
+
+Validation: 4,054 tests in 50 files, lint with zero warnings, typecheck, and production build passed. The production preview passed 82 Chromium/Firefox checks for guest flows, recovery, persistence, XP and voice, plus two explicit first-announcement/pause checks. Synthetic-camera calibration passed six Chromium cases, and seven voice cases passed in the development pose-feed build. These tests stay silent and never use a real camera or microphone.
+
+CI follow-up: earlier full-stack run 41786926161 passed 182 browser cases and failed two outdated calibration assertions that expected synthetic speech instead of recordings. Batch 2 corrects those assertions with stricter playback evidence and retains a separate fallback case. The full backend run for this batch must finish before treating backend verification as complete.
+
+Remaining audit findings: getSession rejection UX still needs review; camera start/stop/start can overlap pending model acquisition and CPU replacement; reorder still needs a transactional design; JSON persistence boundaries still rely on casts. No claim of completed whole-codebase optimization or physical-device accuracy.

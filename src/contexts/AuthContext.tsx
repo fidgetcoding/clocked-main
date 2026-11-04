@@ -24,11 +24,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const previousUserIdRef = useRef<string | null>(null);
+  const profileGeneration = useRef(0);
   
   const queryClient = useQueryClient();
 
   // Sync profile from DB to local store when user signs in
   const syncProfileToStore = useCallback(async (userId: string) => {
+    const generation = ++profileGeneration.current;
     useUserStore.getState().enterAccount();
     const { hasCompletedOnboarding, completeOnboarding } = useUserStore.getState();
     if (hasCompletedOnboarding) return; // Already synced
@@ -40,7 +42,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         .eq('user_id', userId)
         .single();
 
-      if (profile) {
+      if (profile && generation === profileGeneration.current && previousUserIdRef.current === userId && !useUserStore.getState().hasCompletedOnboarding) {
         completeOnboarding({
           name: profile.name,
           role: profile.role as 'fighter' | 'coach',
@@ -55,14 +57,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
+    let active = true;
+    let authEvents = 0;
     // Set up auth state listener BEFORE checking session
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
+        if (!active) return;
+        authEvents += 1;
         const newUserId = session?.user?.id ?? null;
         
         // Clear data when user changes or logs out
         if (event === 'SIGNED_OUT' || (previousUserIdRef.current && previousUserIdRef.current !== newUserId)) {
-          console.log('Auth state change: clearing user data');
+          profileGeneration.current += 1;
           clearUserLocalStorage();
         }
 
@@ -71,7 +77,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
         
         // Sync profile on sign in (covers OAuth redirects)
-        if (event === 'SIGNED_IN' && newUserId) {
+        if ((event === 'SIGNED_IN' || event === 'INITIAL_SESSION') && newUserId) {
           syncProfileToStore(newUserId);
         }
 
@@ -96,6 +102,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     // Check for existing session
     supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!active || authEvents > 0) return;
       previousUserIdRef.current = session?.user?.id ?? null;
       setSession(session);
       setUser(session?.user ?? null);
@@ -109,16 +116,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      active = false;
+      profileGeneration.current += 1;
+      subscription.unsubscribe();
+    };
   }, [syncProfileToStore, queryClient]);
 
   const signOut = async () => {
-    await supabase.auth.signOut();
+    const generation = profileGeneration.current;
+    const { error } = await supabase.auth.signOut();
+    if (error) throw error;
+    // An auth event may already have signed out or switched accounts while this request ran.
+    if (generation !== profileGeneration.current) return;
+    profileGeneration.current += 1;
+    previousUserIdRef.current = null;
     flushSync(() => {
       setUser(null);
       setSession(null);
     });
     clearUserLocalStorage();
+    useUserStore.getState().enterGuest();
     queryClient.clear();
   };
 

@@ -268,3 +268,9 @@ Validation: lint, typecheck, 4,036 unit tests and production build passed. Offli
 Secondary route splitting reduces initial JavaScript from 962,407 to 535,760 bytes (44.3%), and gzip from 289,508 to 171,356 bytes (40.8%, same measurement method). Recorded calls preserve queue order during slow loads, unavailable audio contexts can recover after preload, and workout reorder errors now reach the existing error UI with cache reconciliation. Reorders are still multiple database writes, not atomic.
 
 Three regressions were reproduced before their fixes. Validation: 4,039 unit tests, 41 production-preview browser checks, lint, typecheck, production build. Detailed findings, remaining risks, and implementation order: docs/engineering/OPTIMIZATION-PLAN.md. Bundle measurement: npm run build -- --manifest, then node scripts/bundle-report.mjs. Device FPS and load-time benchmarks remain open.
+
+## November 4: optimization batch 2
+
+Stopped stale session/profile results from restoring the wrong account, propagated failed sign-outs, and prevented late sign-out responses from clearing a newer login. Extracted segment announcement ownership: the first segment speaks after preparation, pending combos cancel on pause/skip/mute/exit, and normal clock renders preserve valid calls.
+
+Validation: 4,054 unit tests, lint, typecheck, production build, 84 production-preview browser checks across Chromium and Firefox, plus synthetic-camera calibration and voice checks. Calibration now verifies the actual recording filenames scheduled for playback and separately exercises synthetic fallback. Fixed a browser-helper race exposed by lazy navigation. Full hosted backend CI remains a separate gate; the detailed ledger records its status and remaining audit work.

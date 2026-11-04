@@ -18,6 +18,7 @@ export const silentLaunch = {
 interface SoundLog {
   spoken: string[];
   played: string[];
+  clips: string[];
 }
 
 declare global {
@@ -29,7 +30,7 @@ declare global {
 /** Runs in the page before any app code. What the app asks to play is logged, and nothing is played. */
 function silenceBrowser() {
   if (window.__sounds) return;
-  const sounds: SoundLog = { spoken: [], played: [] };
+  const sounds: SoundLog = { spoken: [], played: [], clips: [] };
   window.__sounds = sounds;
 
   const fakeSpeech = {
@@ -51,6 +52,36 @@ function silenceBrowser() {
     dispatchEvent: () => true,
   };
   Object.defineProperty(window, "speechSynthesis", { configurable: true, get: () => fakeSpeech });
+
+  // Track the real fetched bytes through decode and playback. Preloading a file alone must not
+  // satisfy a voice assertion. Keep the original fetch, decoder, buffers and scheduling behavior.
+  const encoded = new WeakMap<ArrayBuffer, string>();
+  const decoded = new WeakMap<AudioBuffer, string>();
+  const fetch = window.fetch.bind(window);
+  window.fetch = async (...args) => {
+    const response = await fetch(...args);
+    if (response.url.includes('/voice/coach/') && !response.url.endsWith('.json')) {
+      const arrayBuffer = response.arrayBuffer.bind(response);
+      response.arrayBuffer = async () => {
+        const bytes = await arrayBuffer();
+        encoded.set(bytes, new URL(response.url).pathname.split('/').pop()!);
+        return bytes;
+      };
+    }
+    return response;
+  };
+  const decode = BaseAudioContext.prototype.decodeAudioData;
+  BaseAudioContext.prototype.decodeAudioData = function (bytes, success, failure) {
+    const file = encoded.get(bytes);
+    const remember = (buffer: AudioBuffer) => { if (file) decoded.set(buffer, file); return buffer; };
+    return decode.call(this, bytes, success ? (buffer) => success(remember(buffer)) : undefined, failure).then(remember);
+  };
+  const start = AudioBufferSourceNode.prototype.start;
+  AudioBufferSourceNode.prototype.start = function (...args) {
+    const file = this.buffer && decoded.get(this.buffer);
+    if (file) sounds.clips.push(file);
+    return start.apply(this, args);
+  };
 
   // Web Audio only makes sound once something reaches the destination, so nothing gets to
   const connect = AudioNode.prototype.connect as (this: AudioNode, ...args: unknown[]) => unknown;
@@ -105,3 +136,6 @@ export const spokenWords = (page: Page) => page.evaluate(() => window.__sounds?.
 
 /** Every other sound the page has asked to play so far. */
 export const soundsPlayed = (page: Page) => page.evaluate(() => window.__sounds?.played ?? []);
+
+/** Shipped clip filenames actually scheduled for playback, excluding downloads and decodes alone. */
+export const clipsPlayed = (page: Page) => page.evaluate(() => window.__sounds?.clips ?? []);
