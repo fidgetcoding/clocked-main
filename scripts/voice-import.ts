@@ -2,7 +2,10 @@
 //
 //   npm run voice:import -- <folder>                          One file per line, named by id
 //   npm run voice:import -- --take <file> --section numbers   One long take of one section, read in order
-//   npm run voice:import -- --take <file>                     One long take of all six read-sheet sections
+//   npm run voice:import -- --take <file>                     One long take of the first six read-sheet sections
+//
+// Sections: calibration, numbers, moves, clock, segments, cues (the long take), then coach, record,
+// speedbag and exercises, each a take of its own.
 //
 // A take is split on the pauses between lines. If the number of lines heard doesn't match the
 // section, nothing is written and it lists what it heard where. Options for a take:
@@ -19,9 +22,9 @@ import { execFileSync, spawnSync } from 'node:child_process';
 import { existsSync, mkdirSync, mkdtempSync, readdirSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { VOICE_LINES, type VoiceSection } from '../src/lib/voice/lines';
+import { VOICE_LINES } from '../src/lib/voice/lines';
 import { buildManifest, clipFileName, matchRecording } from '../src/lib/voice/importNames';
-import { dropRetakes, parseSilences, planTake, speechSpans, TAKE_SECTIONS, type Span } from '../src/lib/voice/takeSplit';
+import { dropRetakes, parseSilences, planTake, sectionArg, SOLO_SECTIONS, speechSpans, takeSections, TAKE_SECTIONS, type Span } from '../src/lib/voice/takeSplit';
 
 // VOICE_OUT_DIR is for trying the importer on test speech without touching the app's clips
 const OUT_DIR = path.resolve(process.env.VOICE_OUT_DIR ?? 'public/voice/coach');
@@ -121,8 +124,8 @@ function transcribeShort(take: string, spans: Span[]): (string | undefined)[] | 
 
 function importTake(take: string, section: string | undefined, args: string[]) {
   if (!existsSync(take) || !statSync(take).isFile()) fail(`No file at ${take}`);
-  const sections: VoiceSection[] = !section || section === 'all' ? TAKE_SECTIONS : [section as VoiceSection];
-  if (!sections.every((name) => TAKE_SECTIONS.includes(name))) fail(`--section is one of: ${TAKE_SECTIONS.join(', ')}, all`);
+  const sections = takeSections(section);
+  if (!sections) fail(`--section is one of: ${[...TAKE_SECTIONS, ...SOLO_SECTIONS].map(sectionArg).join(', ')}, all`);
   const gap = Number(option(args, '--gap') ?? 0.6);
   const sectionGap = Number(option(args, '--section-gap') ?? 2);
   const noise = Number(option(args, '--noise') ?? -40);
@@ -143,7 +146,7 @@ function importTake(take: string, section: string | undefined, args: string[]) {
   const plan = planTake(spans, lines, sectionGap);
 
   if (!plan.ok) {
-    console.error(`Nothing imported: the take doesn't line up with the ${sections.length === 1 ? `${sections[0]} lines` : 'read sheet'}.\n`);
+    console.error(`Nothing imported: the take doesn't line up with the ${sections.length === 1 ? `${sectionArg(sections[0])} lines` : 'read sheet'}.\n`);
     console.error(plan.report.join('\n'));
     console.error(
       '\nRe-record the section, or if a pause inside a line split it in two, try --gap 0.8. If two lines ran together, leave a longer pause between them.',
@@ -156,7 +159,7 @@ function importTake(take: string, section: string | undefined, args: string[]) {
     const error = convert(take, path.join(OUT_DIR, `${clip.id}.m4a`), clip.span);
     if (error) failed.push(`${clip.id}: ${error}`);
   }
-  console.log(`Imported ${plan.clips.length - failed.length} lines from ${path.basename(take)} (${sections.join(', ')}).`);
+  console.log(`Imported ${plan.clips.length - failed.length} lines from ${path.basename(take)} (${sections.map(sectionArg).join(', ')}).`);
   if (failed.length) console.log(`\nffmpeg couldn't cut (${failed.length}):\n  ${failed.join('\n  ')}`);
 }
 

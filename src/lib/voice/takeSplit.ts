@@ -10,6 +10,18 @@ export interface Span {
 
 /** The sections a single long take covers, in the order they're read. */
 export const TAKE_SECTIONS: VoiceSection[] = ['calibration', 'numbers', 'moves', 'clock', 'segments', 'cues'];
+/** The rest of the read sheet, after the long take: each one recorded as a take of its own. */
+export const SOLO_SECTIONS: VoiceSection[] = ['coach', 'record', 'drills', 'exercises'];
+
+/** What --section takes for each section. Speed bag drills go by "speedbag". */
+export const sectionArg = (section: VoiceSection) => (section === 'drills' ? 'speedbag' : section);
+
+/** The sections a --section value means: one section, or "all" (or nothing) for the long take. Null if it's unknown. */
+export function takeSections(arg: string | undefined): VoiceSection[] | null {
+  if (!arg || arg === 'all') return TAKE_SECTIONS;
+  const section = [...TAKE_SECTIONS, ...SOLO_SECTIONS].find((name) => name === arg || sectionArg(name) === arg);
+  return section ? [section] : null;
+}
 
 /** Stretches shorter than this are a click or a breath, not a line. */
 const MIN_SPEECH_S = 0.12;

@@ -256,3 +256,9 @@ Design documents from the build. They're design history, so their numbers differ
 - Code: `src/lib/xpSystem.ts`, `src/lib/punch/`, `src/test/`, `tests/`, `supabase/migrations/`. Setup: `SETUP.md`.
 - Private, kept by me: chat records dated January 18 to April 18, 2026. Call recording, April 13, 2026. `knowledge/clocked-todo.md`, `Advanced_Loadout_Bug_Report.md`, `timer_layout_final_fix.md`. Vision notes. XP PDFs above.
 - Audit and test report, November 1, 2026 (session notes), plus test runs made while writing this.
+
+## November 4: recorded coach voice
+
+Imported Nate’s three-minute recording as 180 normalized AAC takes for all 174 registered cues, including standalone punch names and extra defensive moves. Six repeated defense calls become alternate takes. Word alignment plus silence boundaries split the fast read; raw audio and alignment stay outside the repo in WORK/CLOCKED-VOICE-20261104. Coach encouragement and round calls use recorded clips only. Existing numbered combo calls keep their numbers.
+
+Validation: lint, typecheck, 4,036 unit tests and production build passed. Offline decoding checked all 180 clips. No system audio settings changed; a workout with Nate listening is still the final listening check.

@@ -14,15 +14,17 @@ export const useSpeechSynthesis = () => {
   // Call on a tap: browsers only start audio from one
   const initialize = useCallback(() => coachVoice.initialize(), []);
 
-  /** Cuts off whatever is being said and says this. */
-  const speak = useCallback((what: Speakable, options: Omit<SayOptions, 'queued'> = {}) => {
-    coachVoice.say(asLine(what), options);
-  }, []);
+  /** Cuts off whatever is being said and says this. Returns false when nothing was said. */
+  const speak = useCallback((what: Speakable, options: Omit<SayOptions, 'queued'> = {}) => coachVoice.say(asLine(what), options), []);
 
-  /** Says this after whatever is being said. */
-  const speakQueued = useCallback((what: Speakable, options: Omit<SayOptions, 'queued'> = {}) => {
-    coachVoice.say(asLine(what), { ...options, queued: true });
-  }, []);
+  /** Says this after whatever is being said. Returns false when nothing was said. */
+  const speakQueued = useCallback(
+    (what: Speakable, options: Omit<SayOptions, 'queued'> = {}) => coachVoice.say(asLine(what), { ...options, queued: true }),
+    [],
+  );
+
+  /** Whether every piece of this has a recorded clip. */
+  const isRecorded = useCallback((what: Speakable) => coachVoice.hasClips(asLine(what)), []);
 
   const cancel = useCallback(() => coachVoice.stop(), []);
 
@@ -35,6 +37,7 @@ export const useSpeechSynthesis = () => {
     initialize,
     speak,
     speakQueued,
+    isRecorded,
     cancel,
     isAvailable: typeof window !== 'undefined' && 'speechSynthesis' in window,
   };

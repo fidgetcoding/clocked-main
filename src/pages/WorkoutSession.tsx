@@ -34,7 +34,9 @@ import { useUserStore } from '@/stores/userStore';
 import { useProfile } from '@/hooks/useProfile';
 import { useUserRole } from '@/hooks/useUserRole';
 import { useSpeechSynthesis, useVoicePreload } from '@/hooks/useSpeechSynthesis';
-import { comboLine, lineForText, lineIds, voiceLine } from '@/lib/voice/lines';
+import { useCoachTalk } from '@/hooks/useCoachTalk';
+import { endsRound, isWorkRound, roundStart } from '@/lib/voice/coachTalk';
+import { coachLine, comboLine, lineForText, lineIds, numberLine, roundLine, voiceLine, VOICE_LINES } from '@/lib/voice/lines';
 import { useSoundEffects } from '@/hooks/useSoundEffects';
 import { useBadges } from '@/hooks/useBadges';
 import { useRepeatingCheck } from '@/hooks/useRepeatingCheck';
@@ -153,7 +155,7 @@ const WorkoutSession = () => {
   const { isAdmin } = useUserRole();
   const user = useUserStore((state) => state.user);
   const addLocalXP = useUserStore((state) => state.addXP);
-  const { initialize: initSpeech, speak, cancel: cancelSpeech } = useSpeechSynthesis();
+  const { initialize: initSpeech, speak, speakQueued, isRecorded, cancel: cancelSpeech } = useSpeechSynthesis();
   const { playWarningBeep } = useSoundEffects();
 
   const preferences = user?.preferences as {
@@ -414,6 +416,8 @@ const WorkoutSession = () => {
   // Every line this workout can say, ready before it's needed
   const voiceIds = useMemo(() => {
     const ids = new Set(lineIds(voiceLine('clock-3-2-1', 'clock-10-seconds')));
+    for (const line of VOICE_LINES) if (line.section === 'coach') ids.add(line.id);
+    for (const segment of flatSegments) if (segment.cumulativeRound) for (const id of lineIds(numberLine(segment.cumulativeRound))) ids.add(id);
     for (const segment of flatSegments) {
       for (const id of lineIds(lineForText(segmentAnnouncement(segment)))) ids.add(id);
       const combo = segmentCallout(segment);
@@ -495,6 +499,15 @@ const WorkoutSession = () => {
   }, []);
 
   const currentSegment = flatSegments[currentSegmentIndex];
+  useCoachTalk({
+    segments: flatSegments,
+    index: currentSegmentIndex,
+    timeRemaining,
+    live: isRunning && !isPaused && !isPreparation && !isComplete,
+    isComplete,
+    punches: cameraOn ? punchLog.log.totals.punches : null,
+    seenCombo: cameraOn ? feed?.combo ?? null : null,
+  });
   const nextSegment = flatSegments[currentSegmentIndex + 1];
   const totalSegments = flatSegments.length;
   const isChampionship = !isPreparation && !!currentSegment && 
@@ -701,6 +714,10 @@ const WorkoutSession = () => {
     const levelBefore = profile.current_level || 1;
     const levelAfter = getLevelFromXP(tier, totalXPAfter);
     
+    // A new best session, said after "Workout done". Recorded voice only
+    const bestBefore = profile.best_session_xp || 0;
+    if (earnedRewards && bestBefore > 0 && effectiveBase > bestBefore) speakQueued(coachLine('newBest'), { recordedOnly: true });
+
     setSessionResult({
       baseXP: rawBase,
       streakMultiplier: streakMult,
@@ -721,7 +738,7 @@ const WorkoutSession = () => {
       isMaxLevel: checkIsMaxLevel(tier, totalXPAfter),
       belowRewardMinimum: !earnedRewards,
     });
-  }, [isComplete, sessionResult, profile, accumulatedXP, totalElapsed, earnedBadgeIds, liveBadgesEarned, sessionLog, flatSegments]);
+  }, [isComplete, sessionResult, profile, accumulatedXP, totalElapsed, earnedBadgeIds, liveBadgesEarned, sessionLog, flatSegments, speakQueued]);
 
   // Background-safe timer using wall-clock deltas
   useEffect(() => {
@@ -784,12 +801,13 @@ const WorkoutSession = () => {
   // 10-second warning voice and beep
   useEffect(() => {
     if (timeRemaining === 10 && isRunning && !isPaused && !isPreparation) {
-      if (preferences?.voiceCountdown !== false) {
+      // In a round, "Last ten, let's go" once it's recorded
+      if (preferences?.voiceCountdown !== false && !(isWorkRound(currentSegment) && speak(coachLine('lastTen'), { recordedOnly: true }))) {
         speak(voiceLine('clock-10-seconds'), { rate: 0.9 });
       }
       playWarningBeep();
     }
-  }, [timeRemaining, isRunning, isPaused, isPreparation, preferences, speak, playWarningBeep]);
+  }, [timeRemaining, isRunning, isPaused, isPreparation, preferences, speak, playWarningBeep, currentSegment]);
 
   // Phase/segment announcement voice
   useEffect(() => {
@@ -798,13 +816,22 @@ const WorkoutSession = () => {
 
     // The voice switch decides whether any of this is heard
     if (!isPreparation && currentSegment && isRunning && !isPaused) {
-      speak(segmentAnnouncement(currentSegment), { rate: 0.9 });
+      const announcement = lineForText(segmentAnnouncement(currentSegment));
       const combo = segmentCallout(currentSegment);
-      if (combo && preferences?.voiceComboCallouts !== false) {
-        setTimeout(() => speak(comboLine(combo), { rate: 0.85 }), 1200);
+      const callCombo = combo && preferences?.voiceComboCallouts !== false;
+      // "Time" as a round ends, "Round, Three" as one starts, then "Fight" if there's no combo to call.
+      // Recorded voice only, and only ahead of a recorded announcement so two voices never talk at once
+      const start = roundStart(flatSegments, currentSegmentIndex);
+      const leadIn = endsRound(flatSegments, currentSegmentIndex) ? coachLine('time') : start ? roundLine(start.round, start.last) : null;
+      const led = !!leadIn && isRecorded(announcement) && speak(leadIn, { recordedOnly: true });
+      (led ? speakQueued : speak)(announcement, { rate: 0.9 });
+      if (led && start && !callCombo) speakQueued(coachLine('fight'), { recordedOnly: true });
+      if (callCombo) {
+        const line = comboLine(combo);
+        setTimeout(() => (led && isRecorded(line) ? speakQueued : speak)(line, { rate: 0.85 }), 1200);
       }
     }
-  }, [currentSegmentIndex, isPreparation, currentSegment, isRunning, isPaused, preferences, speak]);
+  }, [currentSegmentIndex, isPreparation, currentSegment, isRunning, isPaused, preferences, speak, speakQueued, isRecorded, flatSegments]);
 
   // Handle segment transitions when time hits 0
   useEffect(() => {

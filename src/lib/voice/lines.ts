@@ -16,7 +16,7 @@ import type { FormIssue, PunchClass } from '@/lib/punch/types';
  * Every line the app says out loud, each with an id that names its recorded clip.
  * The recording script and the import script are both built from this list.
  */
-export type VoiceSection = 'calibration' | 'record' | 'numbers' | 'moves' | 'clock' | 'segments' | 'drills' | 'exercises' | 'cues';
+export type VoiceSection = 'calibration' | 'record' | 'numbers' | 'moves' | 'clock' | 'segments' | 'drills' | 'exercises' | 'cues' | 'coach' | 'names';
 
 export interface VoiceLineDef {
   id: string;
@@ -34,6 +34,7 @@ export interface VoicePiece {
 export type VoiceLine = VoicePiece[];
 
 export const VOICE_SECTIONS: { section: VoiceSection; title: string; about: string }[] = [
+  { section: 'names', title: 'Punch names and extra defense', about: 'Standalone punch names and additional defensive moves.' },
   { section: 'calibration', title: 'Calibration', about: 'Before a camera session: hold your guard, then one of each punch, with a word on how each one read.' },
   { section: 'record', title: 'Record mode', about: 'The hidden landmark recorder (/punch-check?record=1). Each step is "Next." then the step, then a count of one to ten.' },
   { section: 'numbers', title: 'Numbers', about: 'Record mode counts and punch numbers in combos. A combo is stitched from these and the moves.' },
@@ -43,6 +44,11 @@ export const VOICE_SECTIONS: { section: VoiceSection; title: string; about: stri
   { section: 'drills', title: 'Speed bag drills', about: 'Said as a segment name or as a drill in a speed bag round.' },
   { section: 'exercises', title: 'Exercises', about: 'Said when an exercise segment starts. Exercise names someone types in themselves use the browser voice.' },
   { section: 'cues', title: 'Punch Check form cues', about: 'One at a time while the camera watches.' },
+  {
+    section: 'coach',
+    title: 'Coach talk',
+    about: 'Round calls, encouragement and the finish. Only ever said in the recorded voice: with no clip, the app stays quiet rather than reading them out.',
+  },
 ];
 
 export const slug = (text: string) =>
@@ -66,6 +72,51 @@ const MOVE_LINES: Record<string, string> = {
   '→': 'Step in',
   '←': 'Step out',
 };
+
+/** Coach talk, in read-sheet order. "Round" is said with a number after it, like a combo. */
+export const COACH_LINES = {
+  round: 'Round',
+  lastRound: 'Last round',
+  fight: 'Fight',
+  halfway: 'Halfway',
+  lastTen: "Last ten, let's go",
+  time: 'Time',
+  restUp: 'Rest up',
+  shakeItOut: 'Shake it out',
+  breathe: 'Breathe',
+  backToWork: 'Back to work',
+  good: 'Good',
+  nice: 'Nice',
+  thatsIt: "That's it",
+  sharp: 'Sharp',
+  keepItComing: 'Keep it coming',
+  stayBusy: 'Stay busy',
+  letsGo: "Let's go",
+  push: 'Push',
+  dontStop: "Don't stop",
+  pickItUp: 'Pick it up',
+  keepThrowing: 'Keep throwing',
+  moveYourFeet: 'Move your feet',
+  clean: 'Clean',
+  thatsTheOne: "That's the one",
+  perfect: 'Perfect',
+  chinDown: 'Chin down',
+  stayOnYourToes: 'Stay on your toes',
+  breatheOut: 'Breathe out on the punch',
+  workoutDone: 'Workout done. Good work.',
+  newBest: 'New best',
+} as const;
+
+export type CoachLine = keyof typeof COACH_LINES;
+export const coachId = (key: CoachLine) => `coach-${slug(COACH_LINES[key])}`;
+
+/** Picked from at random, so the same words don't come round every time. */
+export const COACH_GROUPS = {
+  rest: ['restUp', 'shakeItOut', 'breathe'],
+  encourage: ['good', 'nice', 'thatsIt', 'sharp', 'keepItComing', 'stayBusy', 'letsGo', 'push', 'dontStop'],
+  pace: ['pickItUp', 'keepThrowing', 'moveYourFeet'],
+  nailed: ['clean', 'thatsTheOne', 'perfect'],
+} satisfies Record<string, CoachLine[]>;
 
 const FORM_ISSUES: FormIssue[] = ['other_hand_left_guard', 'slow_return', 'chin_exposed', 'arm_not_extended', 'elbow_flare', 'no_rotation'];
 
@@ -105,6 +156,8 @@ export const VOICE_LINES: VoiceLineDef[] = [
   { id: 'rec-next', text: 'Next.', section: 'record' },
   ...RECORD_STEPS.map((step) => ({ id: `rec-${slug(step.label)}`, text: step.prompt, section: 'record' as const })),
   { id: 'rec-go', text: 'Go', section: 'record' },
+  ...['Jab', 'Cross', 'Lead hook', 'Rear hook', 'Lead uppercut', 'Rear uppercut'].map((text) => ({ id: `punch-${slug(text)}`, text, section: 'names' as const })),
+  ...['Duck', 'Step back', 'Pivot left', 'Pivot right'].map((text) => ({ id: `move-${slug(text)}`, text, section: 'names' as const })),
   ...NUMBER_WORDS.map((word, index) => ({ id: `num-${index + 1}`, text: word, section: 'numbers' as const })),
   ...Object.values(MOVE_LINES).map((text) => ({ id: `move-${slug(text)}`, text, section: 'moves' as const })),
   { id: 'clock-3-2-1', text: '3, 2, 1', section: 'clock' },
@@ -127,6 +180,7 @@ export const VOICE_LINES: VoiceLineDef[] = [
       section: 'cues' as const,
     })),
   ),
+  ...(Object.keys(COACH_LINES) as CoachLine[]).map((key) => ({ id: coachId(key), text: COACH_LINES[key], section: 'coach' as const })),
 ];
 
 const BY_ID = new Map(VOICE_LINES.map((line) => [line.id, line]));
@@ -149,6 +203,12 @@ export function lineForText(text: string): VoiceLine {
 
 /** "Next. Throw 10 jabs": a record-mode step. A prompt with no line of its own uses the browser voice. */
 export const recordStepLine = (prompt: string): VoiceLine => [...voiceLine('rec-next'), ...lineForText(prompt)];
+
+/** A coach line, like voiceLine but by name. */
+export const coachLine = (...keys: CoachLine[]): VoiceLine => voiceLine(...keys.map(coachId));
+
+/** "Round, Three", or "Last round". Rounds past ten have no clip. */
+export const roundLine = (n: number, last: boolean): VoiceLine => (last ? coachLine('lastRound') : [...coachLine('round'), ...numberLine(n)]);
 
 /** "Seven" for 7. Numbers past ten have no clip. */
 export function numberLine(n: number): VoiceLine {

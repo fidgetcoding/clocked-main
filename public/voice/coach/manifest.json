@@ -1,4 +1,533 @@
 {
   "version": 1,
-  "clips": {}
+  "clips": {
+    "cal-calibration-done": [
+      "cal-calibration-done.m4a"
+    ],
+    "cal-counted": [
+      "cal-counted.m4a"
+    ],
+    "cal-didnt-see-it": [
+      "cal-didnt-see-it.m4a"
+    ],
+    "cal-got-it": [
+      "cal-got-it.m4a"
+    ],
+    "cal-hands-up-hold-still": [
+      "cal-hands-up-hold-still.m4a"
+    ],
+    "cal-looked-like-a-cross": [
+      "cal-looked-like-a-cross.m4a"
+    ],
+    "cal-looked-like-a-jab": [
+      "cal-looked-like-a-jab.m4a"
+    ],
+    "cal-looked-like-a-lead-hook": [
+      "cal-looked-like-a-lead-hook.m4a"
+    ],
+    "cal-looked-like-a-lead-uppercut": [
+      "cal-looked-like-a-lead-uppercut.m4a"
+    ],
+    "cal-looked-like-a-punch": [
+      "cal-looked-like-a-punch.m4a"
+    ],
+    "cal-looked-like-a-rear-hook": [
+      "cal-looked-like-a-rear-hook.m4a"
+    ],
+    "cal-looked-like-a-rear-uppercut": [
+      "cal-looked-like-a-rear-uppercut.m4a"
+    ],
+    "cal-throw-a-cross": [
+      "cal-throw-a-cross.m4a"
+    ],
+    "cal-throw-a-jab": [
+      "cal-throw-a-jab.m4a"
+    ],
+    "cal-throw-a-lead-hook": [
+      "cal-throw-a-lead-hook.m4a"
+    ],
+    "cal-throw-a-lead-uppercut": [
+      "cal-throw-a-lead-uppercut.m4a"
+    ],
+    "cal-throw-a-rear-hook": [
+      "cal-throw-a-rear-hook.m4a"
+    ],
+    "cal-throw-a-rear-uppercut": [
+      "cal-throw-a-rear-uppercut.m4a"
+    ],
+    "clock-10-seconds": [
+      "clock-10-seconds.m4a"
+    ],
+    "clock-3-2-1": [
+      "clock-3-2-1.m4a"
+    ],
+    "coach-back-to-work": [
+      "coach-back-to-work.m4a"
+    ],
+    "coach-breathe": [
+      "coach-breathe.m4a"
+    ],
+    "coach-breathe-out-on-the-punch": [
+      "coach-breathe-out-on-the-punch.m4a"
+    ],
+    "coach-chin-down": [
+      "coach-chin-down.m4a"
+    ],
+    "coach-clean": [
+      "coach-clean.m4a"
+    ],
+    "coach-dont-stop": [
+      "coach-dont-stop.m4a"
+    ],
+    "coach-fight": [
+      "coach-fight.m4a"
+    ],
+    "coach-good": [
+      "coach-good.m4a"
+    ],
+    "coach-halfway": [
+      "coach-halfway.m4a"
+    ],
+    "coach-keep-it-coming": [
+      "coach-keep-it-coming.m4a"
+    ],
+    "coach-keep-throwing": [
+      "coach-keep-throwing.m4a"
+    ],
+    "coach-last-round": [
+      "coach-last-round.m4a"
+    ],
+    "coach-last-ten-lets-go": [
+      "coach-last-ten-lets-go.m4a"
+    ],
+    "coach-lets-go": [
+      "coach-lets-go.m4a"
+    ],
+    "coach-move-your-feet": [
+      "coach-move-your-feet.m4a"
+    ],
+    "coach-new-best": [
+      "coach-new-best.m4a"
+    ],
+    "coach-nice": [
+      "coach-nice.m4a"
+    ],
+    "coach-perfect": [
+      "coach-perfect.m4a"
+    ],
+    "coach-pick-it-up": [
+      "coach-pick-it-up.m4a"
+    ],
+    "coach-push": [
+      "coach-push.m4a"
+    ],
+    "coach-rest-up": [
+      "coach-rest-up.m4a"
+    ],
+    "coach-round": [
+      "coach-round.m4a"
+    ],
+    "coach-shake-it-out": [
+      "coach-shake-it-out.m4a"
+    ],
+    "coach-sharp": [
+      "coach-sharp.m4a"
+    ],
+    "coach-stay-busy": [
+      "coach-stay-busy.m4a"
+    ],
+    "coach-stay-on-your-toes": [
+      "coach-stay-on-your-toes.m4a"
+    ],
+    "coach-thats-it": [
+      "coach-thats-it.m4a"
+    ],
+    "coach-thats-the-one": [
+      "coach-thats-the-one.m4a"
+    ],
+    "coach-time": [
+      "coach-time.m4a"
+    ],
+    "coach-workout-done-good-work": [
+      "coach-workout-done-good-work.m4a"
+    ],
+    "cue-bring-it-back": [
+      "cue-bring-it-back.m4a"
+    ],
+    "cue-elbow-in": [
+      "cue-elbow-in.m4a"
+    ],
+    "cue-hands-up": [
+      "cue-hands-up.m4a"
+    ],
+    "cue-lead-hand-up": [
+      "cue-lead-hand-up.m4a"
+    ],
+    "cue-reach-all-the-way": [
+      "cue-reach-all-the-way.m4a"
+    ],
+    "cue-rear-hand-up": [
+      "cue-rear-hand-up.m4a"
+    ],
+    "cue-turn-your-hips": [
+      "cue-turn-your-hips.m4a"
+    ],
+    "drill-backfists": [
+      "drill-backfists.m4a"
+    ],
+    "drill-double-left-lead": [
+      "drill-double-left-lead.m4a"
+    ],
+    "drill-double-right-lead": [
+      "drill-double-right-lead.m4a"
+    ],
+    "drill-doubles": [
+      "drill-doubles.m4a"
+    ],
+    "drill-elbow-strikes": [
+      "drill-elbow-strikes.m4a"
+    ],
+    "drill-fist-rolls-forward": [
+      "drill-fist-rolls-forward.m4a"
+    ],
+    "drill-fist-rolls-reverse": [
+      "drill-fist-rolls-reverse.m4a"
+    ],
+    "drill-freestyle": [
+      "drill-freestyle.m4a"
+    ],
+    "drill-one-two-rhythm": [
+      "drill-one-two-rhythm.m4a"
+    ],
+    "drill-side-to-side": [
+      "drill-side-to-side.m4a"
+    ],
+    "drill-single-alternating": [
+      "drill-single-alternating.m4a"
+    ],
+    "drill-triple-left-lead": [
+      "drill-triple-left-lead.m4a"
+    ],
+    "drill-triple-right-lead": [
+      "drill-triple-right-lead.m4a"
+    ],
+    "drill-triples": [
+      "drill-triples.m4a"
+    ],
+    "ex-arm-circles": [
+      "ex-arm-circles.m4a"
+    ],
+    "ex-battle-ropes": [
+      "ex-battle-ropes.m4a"
+    ],
+    "ex-bear-crawls": [
+      "ex-bear-crawls.m4a"
+    ],
+    "ex-bicycle-crunches": [
+      "ex-bicycle-crunches.m4a"
+    ],
+    "ex-bird-dogs": [
+      "ex-bird-dogs.m4a"
+    ],
+    "ex-box-jumps": [
+      "ex-box-jumps.m4a"
+    ],
+    "ex-burpees": [
+      "ex-burpees.m4a"
+    ],
+    "ex-butt-kicks": [
+      "ex-butt-kicks.m4a"
+    ],
+    "ex-calf-raises": [
+      "ex-calf-raises.m4a"
+    ],
+    "ex-cool-down-walk": [
+      "ex-cool-down-walk.m4a"
+    ],
+    "ex-crunches": [
+      "ex-crunches.m4a"
+    ],
+    "ex-curlups": [
+      "ex-curlups.m4a"
+    ],
+    "ex-dead-bugs": [
+      "ex-dead-bugs.m4a"
+    ],
+    "ex-deep-breathing": [
+      "ex-deep-breathing.m4a"
+    ],
+    "ex-dips": [
+      "ex-dips.m4a"
+    ],
+    "ex-dynamic-stretches": [
+      "ex-dynamic-stretches.m4a"
+    ],
+    "ex-flutter-kicks": [
+      "ex-flutter-kicks.m4a"
+    ],
+    "ex-foam-rolling": [
+      "ex-foam-rolling.m4a"
+    ],
+    "ex-glute-bridges": [
+      "ex-glute-bridges.m4a"
+    ],
+    "ex-high-knees": [
+      "ex-high-knees.m4a"
+    ],
+    "ex-hip-circles": [
+      "ex-hip-circles.m4a"
+    ],
+    "ex-inchworms": [
+      "ex-inchworms.m4a"
+    ],
+    "ex-jog": [
+      "ex-jog.m4a"
+    ],
+    "ex-jog-in-place": [
+      "ex-jog-in-place.m4a"
+    ],
+    "ex-jump-rope": [
+      "ex-jump-rope.m4a"
+    ],
+    "ex-jumping-jacks": [
+      "ex-jumping-jacks.m4a"
+    ],
+    "ex-jumping-lunges": [
+      "ex-jumping-lunges.m4a"
+    ],
+    "ex-kettlebell-swings": [
+      "ex-kettlebell-swings.m4a"
+    ],
+    "ex-lateral-shuffles": [
+      "ex-lateral-shuffles.m4a"
+    ],
+    "ex-leg-raises": [
+      "ex-leg-raises.m4a"
+    ],
+    "ex-leg-swings": [
+      "ex-leg-swings.m4a"
+    ],
+    "ex-light-jogging": [
+      "ex-light-jogging.m4a"
+    ],
+    "ex-light-stretching": [
+      "ex-light-stretching.m4a"
+    ],
+    "ex-lunges": [
+      "ex-lunges.m4a"
+    ],
+    "ex-med-ball-slams": [
+      "ex-med-ball-slams.m4a"
+    ],
+    "ex-mountain-climbers": [
+      "ex-mountain-climbers.m4a"
+    ],
+    "ex-plank-hold": [
+      "ex-plank-hold.m4a"
+    ],
+    "ex-pull-ups": [
+      "ex-pull-ups.m4a"
+    ],
+    "ex-push-ups": [
+      "ex-push-ups.m4a"
+    ],
+    "ex-rowing-sprints": [
+      "ex-rowing-sprints.m4a"
+    ],
+    "ex-russian-twists": [
+      "ex-russian-twists.m4a"
+    ],
+    "ex-shoulder-taps": [
+      "ex-shoulder-taps.m4a"
+    ],
+    "ex-side-plank": [
+      "ex-side-plank.m4a"
+    ],
+    "ex-sit-ups": [
+      "ex-sit-ups.m4a"
+    ],
+    "ex-skaters": [
+      "ex-skaters.m4a"
+    ],
+    "ex-sled-push": [
+      "ex-sled-push.m4a"
+    ],
+    "ex-squat-jumps": [
+      "ex-squat-jumps.m4a"
+    ],
+    "ex-squats": [
+      "ex-squats.m4a"
+    ],
+    "ex-star-jumps": [
+      "ex-star-jumps.m4a"
+    ],
+    "ex-static-stretching": [
+      "ex-static-stretching.m4a"
+    ],
+    "ex-step-ups": [
+      "ex-step-ups.m4a"
+    ],
+    "ex-torso-twists": [
+      "ex-torso-twists.m4a"
+    ],
+    "ex-treadmill": [
+      "ex-treadmill.m4a"
+    ],
+    "ex-tuck-jumps": [
+      "ex-tuck-jumps.m4a"
+    ],
+    "ex-v-ups": [
+      "ex-v-ups.m4a"
+    ],
+    "ex-wall-sit": [
+      "ex-wall-sit.m4a"
+    ],
+    "move-block": [
+      "move-block.m4a",
+      "move-block-2.m4a"
+    ],
+    "move-circle-left": [
+      "move-circle-left.m4a"
+    ],
+    "move-circle-right": [
+      "move-circle-right.m4a"
+    ],
+    "move-duck": [
+      "move-duck.m4a"
+    ],
+    "move-pivot-left": [
+      "move-pivot-left.m4a"
+    ],
+    "move-pivot-right": [
+      "move-pivot-right.m4a"
+    ],
+    "move-pull": [
+      "move-pull.m4a",
+      "move-pull-2.m4a"
+    ],
+    "move-roll-left": [
+      "move-roll-left.m4a",
+      "move-roll-left-2.m4a"
+    ],
+    "move-roll-right": [
+      "move-roll-right.m4a",
+      "move-roll-right-2.m4a"
+    ],
+    "move-slip-left": [
+      "move-slip-left.m4a",
+      "move-slip-left-2.m4a"
+    ],
+    "move-slip-right": [
+      "move-slip-right.m4a",
+      "move-slip-right-2.m4a"
+    ],
+    "move-step-back": [
+      "move-step-back.m4a"
+    ],
+    "move-step-in": [
+      "move-step-in.m4a"
+    ],
+    "move-step-out": [
+      "move-step-out.m4a"
+    ],
+    "num-1": [
+      "num-1.m4a"
+    ],
+    "num-10": [
+      "num-10.m4a"
+    ],
+    "num-2": [
+      "num-2.m4a"
+    ],
+    "num-3": [
+      "num-3.m4a"
+    ],
+    "num-4": [
+      "num-4.m4a"
+    ],
+    "num-5": [
+      "num-5.m4a"
+    ],
+    "num-6": [
+      "num-6.m4a"
+    ],
+    "num-7": [
+      "num-7.m4a"
+    ],
+    "num-8": [
+      "num-8.m4a"
+    ],
+    "num-9": [
+      "num-9.m4a"
+    ],
+    "punch-cross": [
+      "punch-cross.m4a"
+    ],
+    "punch-jab": [
+      "punch-jab.m4a"
+    ],
+    "punch-lead-hook": [
+      "punch-lead-hook.m4a"
+    ],
+    "punch-lead-uppercut": [
+      "punch-lead-uppercut.m4a"
+    ],
+    "punch-rear-hook": [
+      "punch-rear-hook.m4a"
+    ],
+    "punch-rear-uppercut": [
+      "punch-rear-uppercut.m4a"
+    ],
+    "rec-cross": [
+      "rec-cross.m4a"
+    ],
+    "rec-go": [
+      "rec-go.m4a"
+    ],
+    "rec-guard": [
+      "rec-guard.m4a"
+    ],
+    "rec-jab": [
+      "rec-jab.m4a"
+    ],
+    "rec-lead-hook": [
+      "rec-lead-hook.m4a"
+    ],
+    "rec-lead-uppercut": [
+      "rec-lead-uppercut.m4a"
+    ],
+    "rec-next": [
+      "rec-next.m4a"
+    ],
+    "rec-rear-hook": [
+      "rec-rear-hook.m4a"
+    ],
+    "rec-rear-uppercut": [
+      "rec-rear-uppercut.m4a"
+    ],
+    "seg-double-end-bag": [
+      "seg-double-end-bag.m4a"
+    ],
+    "seg-double-end-bag-freestyle": [
+      "seg-double-end-bag-freestyle.m4a"
+    ],
+    "seg-heavy-bag": [
+      "seg-heavy-bag.m4a"
+    ],
+    "seg-heavy-bag-freestyle": [
+      "seg-heavy-bag-freestyle.m4a"
+    ],
+    "seg-rest": [
+      "seg-rest.m4a"
+    ],
+    "seg-shadowboxing": [
+      "seg-shadowboxing.m4a"
+    ],
+    "seg-speed-bag": [
+      "seg-speed-bag.m4a"
+    ],
+    "seg-speed-bag-freestyle": [
+      "seg-speed-bag-freestyle.m4a"
+    ]
+  }
 }

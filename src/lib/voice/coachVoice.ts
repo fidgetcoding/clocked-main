@@ -12,6 +12,8 @@ export interface SayOptions {
   rate?: number;
   /** Wait for whatever is being said instead of cutting it off. */
   queued?: boolean;
+  /** Only say it in the recorded voice: with no clip, say nothing rather than reading it out. */
+  recordedOnly?: boolean;
 }
 
 export interface CoachVoiceDeps {
@@ -95,18 +97,21 @@ export class CoachVoice {
     return line.length > 0 && line.every((piece) => piece.id !== null && (this.clips?.[piece.id]?.length ?? 0) > 0);
   }
 
-  say(line: VoiceLine, options: SayOptions = {}) {
-    if (!this.deps.isOn() || line.length === 0) return;
+  /** Says a line. Returns false when nothing was said: the voice is off, or a recorded-only line has no clip. */
+  say(line: VoiceLine, options: SayOptions = {}): boolean {
+    if (!this.deps.isOn() || line.length === 0) return false;
+    if (options.recordedOnly && !this.hasClips(line)) return false;
     if (!options.queued) this.stop();
     if (!this.hasClips(line)) {
       this.speak(lineText(line), options);
-      return;
+      return true;
     }
     const urls = lineIds(line).map((id) => {
       const takes = this.clips![id];
       return this.url(takes[Math.floor(this.deps.random() * takes.length) % takes.length]);
     });
     void this.play(urls, line, options, this.token);
+    return true;
   }
 
   /** Cuts off whatever is being said, clip or browser voice. */
@@ -129,7 +134,8 @@ export class CoachVoice {
     const buffers = await Promise.all(urls.map((url) => this.buffer(url)));
     if (token !== this.token || !this.deps.isOn()) return;
     if (!context || buffers.some((buffer) => !buffer) || !(await this.awake(context))) {
-      if (token === this.token) this.speak(lineText(line), options);
+      // A clip that won't load falls back to the browser voice, unless the line is only ever recorded
+      if (token === this.token && !options.recordedOnly) this.speak(lineText(line), options);
       return;
     }
     if (token !== this.token || !this.deps.isOn()) return;
