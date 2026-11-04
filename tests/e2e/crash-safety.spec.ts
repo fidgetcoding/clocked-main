@@ -48,7 +48,6 @@ test("a page that can't load says so and offers a way out, never a blank screen"
 
 const withCamera = (page: import("@playwright/test").Page, getUserMedia: string) =>
   page.context().addInitScript((source) => {
-    (window as unknown as { __stopped: number }).__stopped = 0;
     const make = new Function(`return ${source}`)() as () => Promise<MediaStream>;
     Object.defineProperty(navigator, "mediaDevices", { configurable: true, value: { getUserMedia: make } });
   }, getUserMedia);
@@ -58,10 +57,7 @@ const fakeStream = `async () => {
   canvas.width = 64; canvas.height = 48;
   setInterval(() => canvas.getContext("2d").fillRect(0, 0, 64, 48), 33);
   const stream = canvas.captureStream(30);
-  stream.getTracks().forEach((track) => {
-    const stop = track.stop.bind(track);
-    track.stop = () => { window.__stopped++; stop(); };
-  });
+  window.__cameraStream = stream;
   return stream;
 }`;
 
@@ -110,9 +106,13 @@ test("the feed shows before start, and leaving turns the camera off", async ({ p
   // Calibration opens once the feed is live
   await expect(page.getByTestId("calibration")).toBeVisible({ timeout: 30_000 });
   await expect(page.getByTestId("camera-panel").locator("video")).toBeVisible();
+  const trackStates = () => page.evaluate(() => (window as unknown as { __cameraStream: MediaStream }).__cameraStream.getTracks().map(track => track.readyState));
+  // WebKit can return fresh JS wrappers from getTracks(), losing an instance-level stop spy.
+  // Assert the real resource transition instead: a live track becomes ended after leaving.
+  expect(await trackStates()).toEqual(['live']);
   await page.getByRole("button", { name: /^Leave/ }).first().click();
   await page.waitForURL((url) => url.pathname === "/");
-  await expect.poll(() => page.evaluate(() => (window as unknown as { __stopped: number }).__stopped)).toBeGreaterThan(0);
+  await expect.poll(trackStates).toEqual(['ended']);
 });
 
 test("a camera blocked in the browser's settings says blocked, whatever error it comes back with", async ({ page }) => {
