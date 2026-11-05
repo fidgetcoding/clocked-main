@@ -8,7 +8,9 @@ Clocked started on January 18, 2026 as a question about beginner boxing drills a
 
 In February I added XP and it hooked me. The first XP math was vibes. It broke the day I measured a real workout (666 XP against curves built for 1,154), so I threw the estimates out and, with Claude, calculated every combo in every tier. February alone took 909 commits, 654 of them in three days.
 
-A move to Replit and a mobile path followed and never shipped. The last Lovable commit landed May 21. On November 1 the app got a guest mode, a security pass and a camera form guide called Punch Check, and it left Lovable for good. It's now a clone developed only in Claude Code, and readers bring their own Supabase and AI key. Then the backend ran on real hosted Supabase, and rewards stopped paying out for a 5-second workout.
+A move to Replit and a mobile path followed and never shipped. The last Lovable commit landed May 21. On November 1 the app got a guest mode, a security pass and a camera form guide called Punch Check, and it left Lovable for good. Readers bring their own Supabase and AI key. Then the backend ran on real hosted Supabase, and rewards stopped paying out for a 5-second workout.
+
+The next four days went to the camera and the feel. Clocked got a new look, Punch Check learned to count from any spot around a bag, calibration now runs before every camera session, and the coach voice is me, recorded in one take. Then six batches of optimization: a smaller first load, session XP credited once on the server, a security review that found nothing above low, and text that fits on every screen. I built all of that by directing Claude Code, with one day of Codex on November 4.
 
 The original design documents are in [docs/history/](docs/history/).
 
@@ -57,7 +59,7 @@ On the math (private note, February 16):
 | Apr 13 | Preset names fixed. I say "about 3,500 plus different tests" on a call | `f549d28`, call recording |
 | May 21 | "Fixed 6 security findings", logo scaled up. Last Lovable commit | `bd3f86d`, `3cf00f5` |
 | Nov 1 | Email-link-only sign-in, guest mode, audit fixes, nav bug, totals bug, new icons, Capacitor bump, MIT | `f501bd1`, `49700e3`, `3daadfe` to `cd25c1f`, `e95ebd5` |
-| Nov 1 | Leaves Lovable: a clone developed only in Claude Code, with readers bringing their own Supabase and AI key | `56a97f3`, `445547b`, `071202e`, `05bea90` |
+| Nov 1 | Leaves Lovable: a clone developed in Claude Code, with readers bringing their own Supabase and AI key | `56a97f3`, `445547b`, `071202e`, `05bea90` |
 | Nov 1 | Punch Check, a fix after my first live try, a recording mode, the camera inside workouts, then tuning against that recording and quieter cues | `52f83d7`, `e1a9d2b`, `20879ec`, `af5e13f`, `bbf6da9`, `471b0fa` |
 | Nov 1 | Migrations run on a new project, Data API grants made explicit | `f5d72d9`, `341f160` |
 | Nov 1 | Production audit cleared, on react-router 7 | `aa2f45b`, `a81be2c` |
@@ -68,8 +70,23 @@ On the math (private note, February 16):
 | Nov 1 | Guest walk through the whole app, and its fixes | `221e222`, `ccbbae8`, `a1b5777` |
 | Nov 1 | Rewards gated by what was actually trained | `cc5113c`, `54d53ef`, `9dda0c8` |
 | Nov 1 | `SETUP.md` corrected from a run on real hosted Supabase | `8793b55`, `e37dfa2` |
+| Nov 1 | A workout survives a reload. A signed-in walk through the app, and its fixes | `2dcaba2`, `b4233b2` |
+| Nov 1 | The Ringside redesign, and Quick Session logging every punch, combo, round and cue | `2d19f1e`, `7bdf727`, `b51fa31`, `beb6a2b`, `e014471` |
+| Nov 2 | Punch Check reads you from any camera angle and counts from any spot around a bag | `bbd3717`, `9b796f3`, `261af44` |
+| Nov 2 | Free Side, the panel that gets out of your way. Grind and Rest replace "on air", and the TV wording leaves the app | `87df1f1`, `7a0bcb9`, `441848d`, `6a18c13` |
+| Nov 2 | The production build walked like a person. Failed saves said out loud, no double logs after a reload, the camera asks before Start | `a84491f`, `923fb5a`, `ec70415`, `5ede8d3`, `eacc879` |
+| Nov 2 | Dev-tool advisories cleared on Vitest 4 and Vite 6. Firefox camera spec running in CI | `c203918`, `82e76a4` |
+| Nov 3 | Calibration before every camera session, with Skip. Saved early exits and hand-logged workouts count | `d6e5511`, `1056104`, `7059198`, `9ff67a5` |
+| Nov 3 | The angle lab, 18 takes of me, and small moves that ride along with punches stop counting | `c10a8ad`, `7f9d1cb`, `2ddc011`, `de8bd5c` |
+| Nov 3 | One tap mutes the voice everywhere, and a coach voice I can record in one take | `6b2d0aa`, `46125ef` |
+| Nov 4 | My recorded coach voice: 180 takes for 174 lines | `5a75f38`, `a00af26` |
+| Nov 4 | Optimization batches 1 and 2: 44% less JavaScript on first load, voice order, auth races, stale combo calls | `66f7cf4`, `4b1381e`, `1402009`, `d11fd1d` |
+| Nov 5 | Batch 3: an exact session clock, training screens that work offline | `2bef108` |
+| Nov 5 | Batch 4: all-or-nothing reorder, session XP credited once on the server | `f485f07` |
+| Nov 5 | Batches 5 and 6, and a security review | `03a4d30` |
+| Nov 5 | Text that fits on every screen | `f7dc10a` |
 
-History shape: 1,086 commits by Lovable's bot from January 20 to May 21, then my commits on November 1, made by directing Claude Code. Lovable's by month: January 151, February 909, April 20, May 5.
+History shape: 1,086 commits by Lovable's bot from January 20 to May 21, then 144 of mine from November 1 to 5, made by directing Claude Code and, on November 4, Codex. Lovable's by month: January 151, February 909, March 1, April 20, May 5. Mine by day: 74, 41, 19, 6 and 4.
 
 ## 4. Round by round
 
@@ -115,7 +132,7 @@ History shape: 1,086 commits by Lovable's bot from January 20 to May 21, then my
 - **Wanted next:** launch work from the April to-do: coach-made presets, testing with non-boxers, glove art.
 
 ### Round 7: opening it up (November 1)
-- **Built:** guest mode that stores everything in the browser, email-link sign-in, Punch Check. Lovable is the true start of this codebase, but development moved here: it's a clone worked on only in Claude Code, and anyone who wants the backend brings their own Supabase and AI key.
+- **Built:** guest mode that stores everything in the browser, email-link sign-in, Punch Check. Lovable is the true start of this codebase, but development moved to this clone, worked on in Claude Code, and anyone who wants the backend brings their own Supabase and AI key.
 - **Tested:** see section 6.
 - **Broke, found in testing:**
   - The bottom nav covered modal submit buttons on phone and desktop. Fixed in `c1f3d14`.
@@ -138,6 +155,64 @@ History shape: 1,086 commits by Lovable's bot from January 20 to May 21, then my
   - A 5-second test workout earned 13 badges and 1,267 XP (`cc5113c`). Pressing -30 to the end of a run earned +10 XP with nothing trained, and a first 6-minute run earned 7 badges for +430 XP (`9dda0c8`).
   - The feed showed a fake LIVE stream with invented viewers (`0d60eca`).
 - **Fixed:** all of those. Preparation time no longer counts as training, sessions earn credit only for the kinds of training they had, four in-workout badges have real conditions, and live training and coach tools now say they're coming soon. The level curve and the combo math stayed as they were.
+- **Wanted next:** a look that feels like fight night, and a camera that copes with a bag in the way.
+
+### Round 9: Ringside, and a bag in the way (November 1 and 2)
+- **Built:** the Ringside redesign: one token file, a set of shared plates, and a run screen where the camera fills the background behind the clock. Quick Session started logging every punch, combo, round and cue. A running workout now survives a reload: it comes back paused and offers to resume (`2dcaba2`). Then Punch Check learned to read me from any camera angle, count from any spot around a bag, and tell you what your spot gives you (`bbd3717`, `9b796f3`). Free Side put the clock, the combo and the count in one panel that jumps to the emptier side of the screen when your body crowds it (`87df1f1`).
+- **Tested:** a signed-in walk through the app on the real local backend. Then, because "the whole app needs to be tested end to end to make sure it works," the production build walked like a person in Chromium, Firefox and WebKit. Bag spots were checked on a rendered figure through the real pose model, which says nothing about accuracy on real people.
+- **Broke:**
+  - I'd pictured the camera wrong. All the camera work assumed a laptop at desk height in open space. My note: "Imagine there is a bag in front of the person. They can't have the camera head on unless it's strapped to the bag, but they might not have the equipment to strap it to the bag, so they need something else" (private note, November 2).
+  - The signed-in walk found wrong follower counts on other profiles, a profile link that opened your own profile, archived sets nobody could find, made-up ratings and downloads on presets, empty club ranks, club chat that only pretended to send, and only one club ever showing (`b4233b2`).
+  - The person-style walk found new screens that wouldn't scroll, round numbers off by one, and clipped summaries and landscape columns (`a84491f`). Failed saves were parked quietly as offline (`923fb5a`). "Logged" showed before the streak and totals were saved, and logging again after a reload could add a run twice (`ec70415`, `5ede8d3`). The camera screen went black when its code couldn't load (`48b5920`). Firefox threw a sign-in lock error on every page and held you at Start for as long as you ignored its camera prompt (`a5d2438`, `784788d`).
+  - The look said "on air" and "Go live". I said: "Instead of 'on air' it should be like rest vs grind or some kind of words like that."
+- **Fixed:** all of it. Grind, Rest and Paused show the state, Start replaced Go live, and the TV wording left the app for gym words (`7a0bcb9`, `441848d`, `6a18c13`). The camera asks for permission before Start (`eacc879`). The critical and high dev-tool advisories went with Vitest 4 and Vite 6 (`c203918`).
+- **Wanted next:** proof the camera sees real punches from real spots, and a setup step before any punch counts.
+
+### Round 10: calibration and the angle lab (November 3)
+- **Built:** calibration before every camera session: setup tips, a guard hold, one of each punch, then what to expect, with Skip at every step. Punches thrown for it are read but never counted, and once it's done the dots and lines on your body go away (`d6e5511`, `1056104`, `efb1fbc`). That came straight from my note: "Camera should always calibrate first thing, before you start the workout... it needs to tell you like, don't do this, show your hips, etc... make sure you throw all the punches correctly." A saved early exit now counts as a completion, and hand-logged workouts count toward your total (`7059198`, `9ff67a5`). Then a dev-only angle lab: a top-down diagram and spoken setup for each camera spot, with each take scored in the page (`c10a8ad`).
+- **Tested:** I filmed 18 takes on my laptop webcam: 8 spots around me on the floor, the same 8 from a chair, a swing check, and the front with no bag. Nothing higher than a chair was to hand. And no bag at all: "I had no bag in front of me, it was pure shadow boxing."
+- **Broke:** it over-counted. Mid-run I wrote: "So far both times it's counted 22 punches or more instead of the 18 that I threw." From the front floor it counted 35 of 18. The extras were small moves riding along with real punches, mostly the other hand dragged by the turn or snapping back to guard. From behind it under-counted and named nothing.
+- **Fixed:** a move under a third of my usual punch, measured as travel times peak speed, isn't counted. Tuned on one ring and checked on the other, mean count accuracy went from 52% to 80% on the floor and 67% to 80% on the chair. The setup advice now points to the front at hip height (`de8bd5c`).
+- **Wanted next:** a real voice. "It should be super easy to mute or unmute the voice in general," and "maybe I just get you a bunch of recordings of things the coach might say."
+
+### Round 11: my voice, then "optimize everything" (November 3 and 4)
+- **Built:** one tap mutes everything the app says, on every screen that talks (`6b2d0aa`). Every spoken line got an id, and an importer splits one long take on its pauses, with "again" for retakes (`46125ef`). Then I read the whole sheet in one three-minute take: 180 takes for 174 lines, including punch names, defensive moves, round calls and encouragement (`5a75f38`). Six defense calls I read twice became alternate takes, and the app picks one at random. Raw audio stays out of the repo. Next I asked for the big one: "I would like to optimize everything in Clocked code wise, make it smoother, better, faster, less buggy, etc... go through everything in max detail, present a gameplan of what you'll do, and start implementing." Batch 1 split the secondary screens out of the first load, which cut its JavaScript from 962,407 to 535,760 bytes, 44.3% (`66f7cf4`). Batch 2 stopped stale session and profile results from restoring the wrong account, kept a late sign-out from clearing a newer login, and cancelled combo calls that outlived a pause or skip (`4b1381e`). I ran this day in Codex.
+- **Tested:** silently, every time. See section 6. Me listening through a whole workout is still the last check on the voice.
+- **Broke:**
+  - Recorded calls could play out of order when a later clip loaded first. A delayed combo call outlived its segment. Reorder errors looked like success, and a reorder was several writes that could half land.
+  - Hosted CI went red. On the first voice commits, calibration checks still expected the browser's voice instead of my recordings. On batch 2's commit, 185 browser tests passed and one failed: an offline guest couldn't start Quick Session.
+- **Fixed:** recorded calls keep the order they were asked for, delayed calls cancel on pause, skip, mute and exit, and reorder errors reach the error screen. The calibration checks now look for real playback. The offline failure carried into round 12.
+- **Wanted next:** close the batch without losing a single workout or point of XP. I moved the rest back to Claude Code to save credits.
+
+### Round 12: closing the batches, and a security review (November 5)
+- **Built:**
+  - Batch 3: a camera restart stops the old stream, the pose model is released even mid-recovery, saved sessions are checked before they're restored, a failed first sign-in lookup opens guest mode with an explanation, and long rounds keep a bounded pace window. Workout and Quick Session load right after the first screen, so a guest who goes offline can still train (`2bef108`).
+  - Batch 4: reordering saves the whole new order in one database statement, so a dropped connection can't leave half the list moved. Logging a session credits its XP and counters on the server once per history entry, so a retried save or a second tab can't count it twice, and two sessions logged at once both count. Quick Session and hand-logged XP add on the server too. Saved workouts and round ratings are checked when loaded: damaged phases are repaired or left out instead of crashing a screen, and repeats are capped at 100 (`f485f07`).
+  - Batch 5 closed the remaining lost updates. A badge already earned in another tab no longer drops the rest of a session's badges. The starter workout is seeded once per account, even after a guest session or an account switch, and two tabs signing in together get one. A run's completion count is added on the server and retried by End & Save. Dictation ignores results that arrive after it stops. The admin list reads every page instead of the first 1,000, and fails loudly rather than showing an admin as a regular user.
+  - A read-only security review found nothing above low severity. Fixed: `has_role` no longer answers about other users, private clubs are hidden from non-members, avatars from outside the app's own storage aren't shown, a `/build?coachPrompt=` link no longer spends a generation on opening, and new tables and functions start with no grants.
+  - Batch 6 was cleanup. Punch-tracking objects are built once instead of every render, and the session screen and builder shed their pure helpers into their own modules, 1,481 to 1,176 lines and 1,870 to 1,557 (`03a4d30`).
+- **Tested:** see section 6. The local Supabase CLI was 2.109 and stalled serving functions. It now matches CI's 2.122.0, so the whole stack runs on my Mac, logged-in browser flows included.
+- **Broke:**
+  - The session clock dropped its partial second on every segment change: a 25-second run recorded 24 in WebKit. The timer restarted on every transition.
+  - CI's offline failure was real. Batch 1's lazy loading meant an offline guest never got the Workout or Quick Session screen.
+  - The calibration test's fake uppercut aliased at 24 and 25 frames a second, and two reward tests expected the wrong thing.
+  - Before batch 4, the browser wrote totals it had added up from its own copy of the profile, so the last tab to save won. Then the new credit path forgot guests: 9 recovery checks caught guest logs failing, and hosted CI failed five specs that still intercepted the old profile write.
+  - The first clubs policy fix hid every club from anonymous visitors, because Postgres checks function permissions at plan time. The local stack caught it.
+  - Unit testing the moved segment flattening found megaset rounds restarting at "Round 1" in a one-phase grind.
+  - After a reload, retrying a failed save credited the resumed run's XP, which no longer counts the badges the first attempt already saved. The account lost that badge XP for good: 75 credited against 115 recorded in the test.
+- **Fixed:** all of those. The timer restarts only on play and pause, and a long delayed tick credits each segment it crosses, skips preparation and stops at the workout's end. The clubs policy was split in two. The profile is credited with the XP its history entry recorded.
+- **Wanted next:** a real phone, my real webcam and a real bag. Synthetic cameras can't prove accuracy, battery or heat.
+
+### Round 13: text that fits (November 5)
+- **Built:** an audit of every guest screen at 320, 390 and sideways phone widths and at laptop and desktop sizes, in Chromium and WebKit (`f7dc10a`).
+- **Tested:** see section 6.
+- **Broke:**
+  - The up-next exercise lost the slanted start of its first letter at every size, because truncation clipped the italic overhang.
+  - Set names were cut to "…" on phones.
+  - One-word badge and glove names ("IMMORTALIZED", "BLOODSTONE") were clipped on small phones.
+  - The first label fix did nothing. `cn()` merges Tailwind classes, read the new `text-fit-label` class as a text color and dropped it.
+- **Fixed:** the up-next name wraps with room for the slant. Set names take two lines, hyphenate a word too long for the line, and step down one size below 360px. Badge and glove names size to their cell, 16px wherever they already fit. The class became `fit-label`. The set card's edit and remove buttons grew from 36 to 44px wide.
+- **Wanted next:** the real-device session from round 12.
 
 ## 5. Feature family tree
 
@@ -149,16 +224,22 @@ beginner drills question
    ├─ workout logging → stats → streaks
    └─ testing it by punching
       └─ "add a gamification system"
-         └─ XP → prestige → badges → glove unlocks → real art
+         └─ XP → prestige → badges → earned gloves → real art
             └─ 666 XP problem → granular calculator → solver → power curves
                └─ generated test fixtures (2,700+ tests)
    clock + notation + XP tiers
    └─ loadouts → AI builder → parser suite → coach engine
       └─ edge function quota + on-device fallback → guest AI builder
-   no account for reviewers → guest mode → Punch Check works with no backend
+   no account for strangers → guest mode → Punch Check works with no backend
    5-second workout, 13 badges → rewards that follow the clock
-   leaving Lovable → Claude Code only → bring your own Supabase and AI key → SETUP.md
+   leaving Lovable → Claude Code → bring your own Supabase and AI key → SETUP.md
    "no bag, no hardware" premise + phone camera → Punch Check → form cues in the log
+   "a bag in front of the person" → counting from any spot → Free Side panel
+      └─ angle lab, 18 takes → small moves stop counting → advice points to the front
+   "calibrate first thing" → calibration with Skip → dots only while calibrating
+   "super easy to mute" → one-tap mute → my recorded voice, 180 takes
+   "optimize everything" → batches 1 to 6 → saves credited once on the server → security review
+      └─ text-fit audit → every label fits at seven widths
 ```
 
 ## 6. Test log
@@ -191,7 +272,23 @@ beginner drills question
 | Nov 1 | Real hosted Supabase, from a local build | The 40 migrations at that point applied in order through SQL. Database tests 23 of 23, no-key function tests 12 of 12. `generate-workout` and `admin-users` deployed, with `generate-workout` proving its fallback when there's no key. A real emailed link signed in | `8793b55`, session notes |
 | Nov 1, `9dda0c8` | CI: lint, typecheck, unit tests, build, then the real local backend | Green. 3,832 unit tests, 43 browser tests, 23 database tests, 46 function tests (34 with an AI key set up, 12 without), all against a fake AI provider | GitHub Actions |
 | Nov 1, fresh clone of `9dda0c8` | `npm ci`, lint, typecheck, build, unit tests, `npm audit --omit=dev` | All pass. 3,832 tests in 28 files. Lint 0 problems. 0 vulnerabilities | Run while writing this |
+| Nov 2, `702c573` | CI after Ringside, bag spots and the person-style walk merged | Green. 3,924 unit tests, 26 database tests, 46 function tests, 167 browser tests. Before the merge, the person-style walk passed in Chromium, Firefox and WebKit | GitHub Actions, session notes |
 | Nov 3 | Punch Check on 18 angle-lab takes: me shadowboxing in front of a laptop webcam, no bag, 8 spots around me from the floor and from a chair, 3 of each punch (10 at one spot). The extras were small moves riding along with real punches, mostly the other hand dragged by the turn or snapping back to guard. New rule: a move under a third of my usual punch, as travel times speed, isn't counted. Tuned on the floor ring and checked on the chair ring, then the other way round | Front floor 35 to 17 of 18, front-right floor 30 to 22, right floor 31 to 21, front-left chair 79 to 61 of 60. Mean count accuracy, floor 52% to 80%, chair 67% to 80%, and the same on whichever ring it wasn't tuned on. Names unchanged: best straight in front at hip height, none from behind. From behind it still counts 11 to 14 of 18. Still one person, and no bag | `src/test/punchRealRecordings.test.ts` |
+| Nov 3, `efa94ee` | CI with calibration in | Green. 3,964 unit tests, 177 browser tests | GitHub Actions |
+| Nov 3, `de8bd5c` | CI with the angle-lab fix and real takes replayed as tests | Green. 4,025 unit tests, 183 browser tests | GitHub Actions |
+| Nov 4, `5a75f38` | My recorded voice | Lint, typecheck, 4,036 unit tests and the build passed. All 180 clips decoded offline. 7 silent Chromium browser checks on phone and laptop layouts: recorded workout calls, mute that sticks, calibration controls, falling back when a clip is missing, and decoding every clip. The old tests counted an empty speech warm-up as a call, and now count real speech and recorded clips | Session notes |
+| Nov 4, `66f7cf4` | Batch 1 | 4,039 unit tests, 41 production-preview browser checks, lint, typecheck, build. Three regressions reproduced before their fixes. First-load JavaScript 962,407 to 535,760 bytes, gzip 289,508 to 171,356. A synthetic startup test, three cold-cache runs each way with a 4x CPU slowdown, 100 ms latency and 200 kB/s, moved the median from 2,025 to 1,413 ms. Not a real device | `npm run build -- --manifest`, then `node scripts/bundle-report.mjs`; session notes |
+| Nov 4, `4b1381e` | Batch 2 | 4,054 unit tests, lint, typecheck, build, 84 production-preview browser checks in Chromium and Firefox, plus synthetic-camera calibration and voice checks | Session notes |
+| Nov 4 | CI on the day's commits | Red. The first two voice commits failed 3 and then 2 calibration and mute checks; the 2 were outdated checks that still expected the browser's voice. On `1402009`, 185 browser tests passed and 1 failed: an offline guest couldn't start Quick Session, a real regression from batch 1 | GitHub Actions |
+| Nov 5, `2bef108` | Batch 3 | 4,073 unit tests in 52 files, lint with 0 warnings, typecheck, build. In Chromium, Firefox and WebKit: 138 production guest checks, 78 clock, reward and completion checks (two repeats), the offline walkthrough 6 of 6, and 60 synthetic-camera checks before the closing fixes. First load 537,007 bytes, 172,020 gzip. The two clock failures and the offline failure were each reproduced before their fixes | Session notes |
+| Nov 5, `2bef108` | CI | Green. 4,073 unit tests, 26 database tests, 46 function tests, 189 browser tests | GitHub Actions |
+| Nov 5, `f485f07` | Batch 4 | 4,087 unit tests in 54 files, lint, typecheck, build. A real local Supabase applied every migration with `db push` and passed 33 database tests, 7 of them new: all-or-nothing reorder, credit once, two sessions both counted, refused inputs, anonymous callers denied. Guest checks in three browsers: 177 on the first pass, where 9 recovery checks caught guest logs failing on the new credit path. After the fix, the 114 recovery, guest-pass and completion checks and the offline walkthrough passed | Session notes |
+| Nov 5, `f485f07` | CI | Red. 4,087 unit tests and 33 database tests passed. 184 browser tests passed and 5 failed, all specs that intercepted the old profile write | GitHub Actions |
+| Nov 5, `03a4d30` | Batches 5 and 6, with the local Supabase CLI moved to CI's 2.122.0 | 4,108 unit tests in 59 files, lint with 0 warnings, typecheck, build, and a Deno check of `admin-users`. Full local stack: 38 database tests (12 new), 12 + 34 function tests, and 185 of 189 browser tests, the 4 failures being the specs above, whose focused reruns passed after the fix. Guest suites in three browsers: 177, plus the offline walkthrough. The 15-minute button sweep timed out once while other test runs shared the Mac, and passed alone in 9.7 minutes | Session notes |
+| Nov 5, `03a4d30` | CI | Green. 4,108 unit tests, 38 database tests, 46 function tests, 189 browser tests | GitHub Actions |
+| Nov 5, `f7dc10a` | Text-fit audit in Chromium and WebKit at seven widths | Every set name, all 234 badge and 52 glove labels, and the up-next name fit. 198 guest browser checks in Chromium, Firefox and WebKit. 4,108 unit tests, lint and typecheck | Session notes |
+| Nov 5, `f7dc10a` | CI | Green. Lint with 0 warnings, typecheck, 4,108 unit tests in 59 files, build. A real local Supabase took all 45 migrations with `db push` and passed 38 database tests, 46 function tests against a fake AI provider and 189 browser tests | GitHub Actions run 42011319943 |
+| Nov 5, `f7dc10a` | `npm audit --omit=dev` | 0 vulnerabilities | Run while writing this |
 
 Most of the big count is generated from the XP and loadout data. It proves the math and the loadouts. It says nothing about whether a workout feels good.
 
@@ -212,14 +309,17 @@ The PDFs are design history, not current numbers. The code wins.
 - **Level 500, then 200.** Hard resets, soft resets, flat phases, piecewise curves and exponent swaps all failed. Level 100 stayed.
 - **The compressed first session** (L5 to L3). The curve went flat. The version with seven level-ups in 40 minutes won.
 - **Sensors as the entry fee.** The whole point is that you don't need them.
-- **Personal calibration for Punch Check, for now.** I had the idea: throw about 3 of each punch so it learns your body and camera. On my own recording it scored 36 of 41 against 37 of 41 without it, so it didn't earn a place. Most of what's left is punches it never sees, and relabeling can't fix those. A recording from a second person or a new camera angle would be the fair test.
+- **Personal calibration for Punch Check, for now.** I had the idea: throw about 3 of each punch so it learns your body and camera. On my own recording it scored 36 of 41 against 37 of 41 without it, so it didn't earn a place. Most of what's left is punches it never sees, and relabeling can't fix those. A recording from a second person or a new camera angle would be the fair test. The calibration that shipped on November 3 checks your setup and that it can see each punch. It doesn't retune anything.
 - **Google, Apple and password sign-in.** All removed November 1. Email link only.
-- **Loosening database rules for reviewers.** Guest data stays in the browser instead.
+- **Loosening database rules so strangers could try it.** Guest data stays in the browser instead.
 - **Staying on Lovable.** The clone moved to bring-your-own instead.
+- **The TV framing.** "On air", "Go live" and the filler tickers went. Grind, Rest and Start are what a gym says.
+- **Fight-card names on Home** (Main event, Co-main, Prelim, Weigh-in). "I don't need this at all." Dropped November 3.
+- **Filming from chest height and up.** Nothing higher than a chair was to hand, so those spots are still unfilmed.
 
 ## 8. What it looks like
 
-Home, Punch Check setup and the gloves, November 1, in guest mode on the live site:
+Home, Punch Check setup and the gloves, November 1, in guest mode on the live site. These are from a few hours before the Ringside redesign, so the live site looks different now:
 
 <p>
   <img src="docs/images/home.png" alt="Home screen" width="260">
@@ -239,73 +339,23 @@ Design documents from the build. They're design history, so their numbers differ
 3. **Kill the requirement when the math keeps fighting you.** Six failed fits meant Level 500 was the bug.
 4. **Turn your specs into tests.** The XP tables became thousands of generated checks.
 5. **Write down what failed.** `timer_layout_final_fix.md` lists six wrong fixes so the seventh prompt can't repeat them.
+6. **Reproduce it before you fix it.** The clock, offline and reward failures in batch 3 were each made to fail on the old code first, so each fix is proven against the real bug.
 
 ## 10. What's next
 
-- Punch Check's camera-position work and full Quick Session logging are next.
+- Real-device sessions: my phone and my webcam, with a real bag, checking sound, counting at different bag spots, battery and heat. Synthetic cameras can't prove any of that.
 - Record more people with `?record=1`, build a confusion table, then do more with the form data.
 - Run the AI builder with a real model and a real key.
+- Split the session screen and the builder further. Both are still over 1,100 lines, and the next split moves their stateful effects.
+- Check the grants on a live hosted project. The security review read the migrations only.
 - Coach-made presets, and testing with non-boxers.
 - The coach marketplace, live streaming and a native app are placeholders I'm still finishing: live training and coach tools show as coming soon, and there's no native build yet.
-- A potential partnership with a sensor company, and a potential growth strategy with pro fighters. Both are only potential. We aren't naming names for privacy reasons.
+- A potential partnership with a sensor company, and a potential growth strategy with pro fighters. Both are only potential, and I'm not naming names, for privacy reasons.
 - Other training styles someday. The clock doesn't care if it's boxing.
 
 ## 11. Sources
 
-- Commits: `git log` of `fidgetcoding/clocked-main`.
-- Code: `src/lib/xpSystem.ts`, `src/lib/punch/`, `src/test/`, `tests/`, `supabase/migrations/`. Setup: `SETUP.md`.
-- Private, kept by me: chat records dated January 18 to April 18, 2026. Call recording, April 13, 2026. `knowledge/clocked-todo.md`, `Advanced_Loadout_Bug_Report.md`, `timer_layout_final_fix.md`. Vision notes. XP PDFs above.
-- Audit and test report, November 1, 2026 (session notes), plus test runs made while writing this.
-
-## November 4: recorded coach voice
-
-Imported Nate’s three-minute recording as 180 normalized AAC takes for all 174 registered cues, including standalone punch names and extra defensive moves. Six repeated defense calls become alternate takes. Word alignment plus silence boundaries split the fast read; raw audio and alignment stay outside the repo in WORK/CLOCKED-VOICE-20261104. Coach encouragement and round calls use recorded clips only. Existing numbered combo calls keep their numbers.
-
-Validation: lint, typecheck, 4,036 unit tests and production build passed. Offline decoding checked all 180 clips. Seven silent Chromium browser checks also passed on phone and laptop layouts: recorded workout calls, persistent mute, calibration controls, partial-clip fallback, and decoding every shipped clip. The old tests counted an empty speech warm-up as a call; they now count nonempty speech and recorded sources. No system audio settings changed; a workout with Nate listening is still the final listening check.
-
-## November 4: optimization batch 1
-
-Secondary route splitting reduces initial JavaScript from 962,407 to 535,760 bytes (44.3%), and gzip from 289,508 to 171,356 bytes (40.8%, same measurement method). Recorded calls preserve queue order during slow loads, unavailable audio contexts can recover after preload, and workout reorder errors now reach the existing error UI with cache reconciliation. Reorders are still multiple database writes, not atomic.
-
-Three regressions were reproduced before their fixes. Validation: 4,039 unit tests, 41 production-preview browser checks, lint, typecheck, production build. Detailed findings, remaining risks, and implementation order: docs/engineering/OPTIMIZATION-PLAN.md. Bundle measurement: npm run build -- --manifest, then node scripts/bundle-report.mjs. Device FPS and load-time benchmarks remain open.
-
-## November 4: optimization batch 2
-
-Stopped stale session/profile results from restoring the wrong account, propagated failed sign-outs, and prevented late sign-out responses from clearing a newer login. Extracted segment announcement ownership: the first segment speaks after preparation, pending combos cancel on pause/skip/mute/exit, and normal clock renders preserve valid calls.
-
-Validation: 4,054 unit tests, lint, typecheck, production build, 84 production-preview browser checks across Chromium and Firefox, plus synthetic-camera calibration and voice checks. Calibration now verifies the actual recording filenames scheduled for playback and separately exercises synthetic fallback. Fixed a browser-helper race exposed by lazy navigation. Full hosted backend CI remains a separate gate; the detailed ledger records its status and remaining audit work.
-
-## November 4: optimization batch 3
-
-Camera restart now stops the old stream and shares pending model loading. Leaving releases the model even during CPU recovery, and every shared holder follows the replacement. Stale callbacks cannot revive a stopped run. Saved-session validation prevents malformed progress and reward logs from reaching recovery; failed initial sign-in lookup opens guest mode with an explanation. Long rounds retain a bounded pace window with the same decisions as a full history.
-
-The session clock now keeps its partial second across segment changes; restarting the interval on every transition had been dropping it (a 25-second run recorded 24 in WebKit). A long delayed tick credits each segment it crosses, excludes preparation and stops at the workout's end. The Workout and Quick Session screens now load right after the first screen, so a guest who goes offline after opening the app can still train; Batch 1's lazy loading had broken this, and hosted CI caught it. The calibration fixture no longer aliases at 24/25 fps, and reward expectations match what the prep and six-minute runs actually earn.
-
-Validation: 4,073 unit tests in 52 files, lint with zero warnings, typecheck and production build. Browser checks across Chromium, Firefox and WebKit: 138 production guest checks; 78 clock, reward and completion checks (two repeats); offline guest walkthrough 6 of 6; 60 synthetic-camera checks before the closeout fixes. Entry bundle 537,007 raw / 172,020 gzip bytes. The two clock failures and the offline failure were each reproduced before their fixes. Hosted backend CI on the release commit is the remaining gate; no physical-device camera claim.
-
-## November 5: optimization batch 4
-
-Reordering workouts now saves the whole new order in one database statement, so a dropped connection can't leave half the list moved. Logging a session credits its XP and counters on the server, once per history entry: a retried save or a second tab can't count it twice, and two sessions logged at the same time both count. Before, the browser wrote totals it had added up from its own copy of the profile, so the last tab to save won. Quick Session and hand-logged XP also add on the server. Saved workouts and round ratings are checked when loaded; damaged phases are repaired or left out instead of crashing a screen, and repeats are capped at 100.
-
-Validation: 4,087 unit tests in 54 files, lint with zero warnings, typecheck and production build. A real local Supabase applied every migration with `db push` and passed 33 database tests, 7 of them new (all-or-nothing reorder, credit once, concurrent sessions both counted, refused inputs, anonymous callers denied). Guest browser checks across Chromium, Firefox and WebKit: 177 on the first pass, where 9 session-recovery checks caught guest logs failing on the new credit path; after the fix, the 114 recovery, guest-pass and completion checks and the offline walkthrough (3) passed. The local stack stopped at serving edge functions (local CLI 2.109; setup asks for 2.122), so the account browser flows are verified by hosted CI.
-
-## November 5: batches 5 and 6, and a security review
-
-Batch 5 closed the remaining lost updates. A badge already earned in another tab no longer drops the rest of a session's badges; the starter workout is seeded once per account, including after a guest session or an account switch, and two tabs signing in together get one; a run's completion count is added on the server and retried by End & Save if it failed at the end; dictation ignores results that arrive after it stops; and the admin list reads every user, profile and role page instead of the first 1,000, failing loudly rather than showing an admin as a regular user.
-
-A read-only security review found nothing above low severity. Fixed: `has_role` no longer answers about other users, private clubs are hidden from non-members, avatars from outside the app's own storage aren't shown, a `/build?coachPrompt=` link no longer spends a generation on opening, and new tables and functions start with no grants. The first clubs policy fix hid every club from anonymous visitors, because Postgres checks function permissions at plan time; the local stack caught it and the policy was split in two.
-
-Batch 6 was cleanup: punch-tracking objects are built once instead of every render, and the session screen and builder shed their pure helpers and small components into their own modules (1,481 → 1,176 and 1,870 → 1,557 lines). The moved segment flattening is now unit tested, which found megaset rounds restarting at "Round 1" in a one-phase grind.
-
-The stronger retry checks also exposed an older loss: after a reload, retrying a failed save credited the resumed run's XP, which no longer counts the badges the first attempt already saved, so the account lost that badge XP for good (75 credited against 115 recorded in the test). The profile is now credited with the XP the history entry recorded.
-
-The local Supabase CLI was 2.109 (setup asks for 2.122) and stalled serving functions; it now matches CI's 2.122.0, so the whole stack, logged-in browser flows included, runs on this Mac. Batch 4's hosted CI failed only the five specs that intercepted the old profile write; they now intercept the new function.
-
-Validation: 4,108 unit tests in 59 files, lint with zero warnings, typecheck, production build and a Deno check of admin-users. Full local stack after `db push`: 38 database tests (12 new), 12 + 34 edge-function tests, and 185 of 189 browser checks, the 4 failures being the specs fixed above; after the fixes their focused reruns passed (65 browser checks, then the reload retry and the full button sweep). Guest browser suites on Chromium, Firefox and WebKit: 177 passed, plus the offline walkthrough on all three. One focused run timed out the 15-minute button sweep; the same code passed it in 9.7 minutes alone, and it had overlapped with other test runs on this Mac.
-
-## November 5: text that fits on every screen
-
-An audit of every guest screen at 320, 390 and sideways phone widths and at laptop and desktop sizes, in Chromium and WebKit, found four places where text was cut. The up-next exercise lost the slanted start of its first letter at every size, because truncation clipped the italic overhang; it now wraps with room for the slant. Set names were shortened to "…" on phones; they now take two lines, hyphenate a word too long for the line, and step down one size below 360px. Badge and glove names that are one long word ("IMMORTALIZED", "BLOODSTONE") were clipped on small phones; their size now follows the width of their cell, 16px wherever they already fit. The set card's edit and remove buttons grew from 36 to 44px wide.
-
-The first label fix did nothing: `cn()` merges Tailwind classes, read the new `text-fit-label` class as a text colour and dropped it, so it was renamed `fit-label`. Validation: the same audit finds every set name, all 234 badge and 52 glove labels, and the up-next name fitting at seven widths in both engines; 198 guest browser checks on Chromium, Firefox and WebKit; 4,108 unit tests, lint and typecheck.
-
+- Commits: `git log` of `fidgetcoding/clocked-main`. CI: the GitHub Actions runs on `main`.
+- Code: `src/lib/xpSystem.ts`, `src/lib/punch/`, `src/lib/voice/`, `public/voice/coach/`, `src/test/`, `tests/`, `supabase/migrations/`. Setup: `SETUP.md`. Engineering plan and open items: [docs/engineering/OPTIMIZATION-PLAN.md](docs/engineering/OPTIMIZATION-PLAN.md).
+- Private, kept by me: chat records dated January 18 to April 18, 2026, and November 1 to 5, 2026. Call recording, April 13, 2026. `knowledge/clocked-todo.md`, `Advanced_Loadout_Bug_Report.md`, `timer_layout_final_fix.md`. Vision notes. XP PDFs above.
+- Audit and test report, November 1, 2026 (session notes), the evidence logs from the November 4 and 5 batches, plus test runs made while writing this.
