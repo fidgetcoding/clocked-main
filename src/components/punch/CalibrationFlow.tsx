@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { VoiceToggle } from '@/components/broadcast/VoiceToggle';
+import { PunchDemo } from '@/components/punch/PunchDemo';
 import { useSpeechSynthesis, useVoicePreload } from '@/hooks/useSpeechSynthesis';
 import { useStance } from '@/hooks/useStance';
 import { promptFor, stepLine, tallyLine, voiceLine, type CalibrationActions, type CalibrationStep, type CalibrationView } from '@/lib/punch/calibration';
@@ -24,7 +25,12 @@ const SETUP_DO = [
   'Stand 6 to 10 feet back.',
   'Add light if the room is dim.',
 ];
-const SETUP_DONT = "Don't put the phone behind the bag. It can't see you there.";
+const SETUP_DONT = [
+  "Don't put the phone behind the bag. It can't see you there.",
+  "Don't set it off to your side. From there it misses jabs, crosses and lead hooks.",
+];
+// Off to the side, these are the punches that stop getting named (src/lib/punch/classify.ts)
+const FRONT_PUNCHES: CalibrationStep['punch'][] = ['jab', 'cross', 'lead_hook'];
 
 const button = 'plate fx h-12 px-4 text-xl';
 
@@ -123,7 +129,9 @@ export function CalibrationFlow({ calibration, actions, onStart, startLabel = 'S
           {SETUP_DO.map((tip) => (
             <li key={tip}>Do: {tip}</li>
           ))}
-          <li>{SETUP_DONT}</li>
+          {SETUP_DONT.map((tip) => (
+            <li key={tip}>{tip}</li>
+          ))}
         </ul>
         <div className="mt-3 flex flex-wrap gap-3">
           <button type="button" onClick={actions.skipStep} className={cn(button, 'plate-white')}>
@@ -155,16 +163,22 @@ export function CalibrationFlow({ calibration, actions, onStart, startLabel = 'S
     const stuck = step.status === 'wrong' || step.status === 'missed';
     body = (
       <>
-        <p className="lab">
-          Punch {stepIndex + 1} of {steps.length}
-        </p>
-        <h2 className="fx text-5xl leading-none" data-testid="calibration-prompt">
-          <span className="text-volt">{PUNCH_NUMBERS[step.punch]}</span> {PUNCH_LABELS[step.punch]}
-        </h2>
-        <p role="status" className="mt-2 text-lg leading-snug" data-testid="calibration-step-line">
-          {step.status === 'waiting' ? `${promptFor(step.punch)}.` : stepLine(step)}
-        </p>
-        {step.tip && <p className="text-base leading-snug text-muted-foreground" data-testid="calibration-tip">{step.tip}</p>}
+        {/* A stick fighter throwing it beside the name, for anyone who doesn't know the punch */}
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <p className="lab">
+              Punch {stepIndex + 1} of {steps.length}
+            </p>
+            <h2 className="fx text-5xl leading-none" data-testid="calibration-prompt">
+              <span className="text-volt">{PUNCH_NUMBERS[step.punch]}</span> {PUNCH_LABELS[step.punch]}
+            </h2>
+            <p role="status" className="mt-2 text-lg leading-snug" data-testid="calibration-step-line">
+              {step.status === 'waiting' ? `${promptFor(step.punch)}.` : stepLine(step)}
+            </p>
+            {step.tip && <p className="text-base leading-snug text-muted-foreground" data-testid="calibration-tip">{step.tip}</p>}
+          </div>
+          <PunchDemo key={`${step.punch}-${stance}`} punch={step.punch} stance={stance} className="h-24 sm:h-28" />
+        </div>
         <Steps steps={steps} current={stepIndex} />
         <div className="mt-3 flex flex-wrap gap-3">
           {stuck && (
@@ -180,7 +194,10 @@ export function CalibrationFlow({ calibration, actions, onStart, startLabel = 'S
       </>
     );
   } else {
-    const advice = result && placementAdvice(result);
+    const frontPunchesShort = steps.some((s) => FRONT_PUNCHES.includes(s.punch) && (s.status === 'missed' || s.status === 'wrong' || s.status === 'unnamed'));
+    const advice =
+      (result && placementAdvice(result)) ||
+      (frontPunchesShort ? 'Jabs, crosses and lead hooks read best with the phone in front of you, at hip height.' : null);
     const switchTo = result?.stance && result.stance !== stance ? result.stance : null;
     body = (
       <>
@@ -193,7 +210,10 @@ export function CalibrationFlow({ calibration, actions, onStart, startLabel = 'S
             {advice && <p className="text-base leading-snug text-muted-foreground">{advice}</p>}
           </>
         ) : (
-          <p className="mt-2 text-base leading-snug text-muted-foreground">Camera check skipped, so there's no read on this spot.</p>
+          <>
+            <p className="mt-2 text-base leading-snug text-muted-foreground">Camera check skipped, so there's no read on this spot.</p>
+            {advice && <p className="text-base leading-snug text-muted-foreground">{advice}</p>}
+          </>
         )}
         <Steps steps={steps} />
         <div className="mt-3 flex flex-wrap gap-3">
