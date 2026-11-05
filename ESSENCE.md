@@ -1,6 +1,6 @@
 # Clocked: the essence
 
-**Try it live, no login: <https://clocked-main.vercel.app>** (camera form guide at [/punch-check](https://clocked-main.vercel.app/punch-check))
+**Try it live, no login: <https://getclocked.io>** (camera form guide at [/punch-check](https://getclocked.io/punch-check), also at [clocked-main.vercel.app](https://clocked-main.vercel.app))
 
 **What it is.** A boxing and shadowboxing training app: a multi-phase workout clock that calls your combos in my recorded voice, an XP and prestige game on top, an AI workout builder, and a camera form guide that runs on your device. It's a React web app. No account needed to try it. For accounts and the AI model, you bring your own Supabase project and AI key.
 
