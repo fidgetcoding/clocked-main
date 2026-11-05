@@ -330,6 +330,11 @@ const Onboarding = () => {
   if (step === 'welcome') {
     return (
       <div className="flex min-h-dvh flex-col overflow-x-clip" style={welcomeSlash}>
+        <div className="pt-[max(0.625rem,env(safe-area-inset-top))]">
+          <div className="score-bug">
+            <Plate tone="white" bleed="left">Demo</Plate>
+          </div>
+        </div>
         <div className="flex flex-1 flex-col items-center justify-center gap-5 py-4 [@media(max-height:500px)]:gap-2 [@media(max-height:500px)]:py-1">
           <Logo kind="mark" className="aspect-[900/670] w-[min(64vw,21rem)] text-tech-black [@media(max-height:500px)]:w-28 [@media(max-height:600px)]:w-44" />
           <Plate tone="black" bleed="both" className="fx w-full px-4 pb-1 pt-2 text-[clamp(2rem,10.5vw,3.5rem)] [@media(max-height:500px)]:text-3xl">

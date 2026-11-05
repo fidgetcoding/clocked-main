@@ -2,10 +2,13 @@ import type { ReactNode } from 'react';
 import { cn } from '@/lib/utils';
 import { Plate } from './Plate';
 import { ScoreBug } from './ScoreBug';
+import type { PlateTone } from './plate-class';
 
 interface BroadcastPageProps {
   /** What's on: the second plate in the bug. */
   show?: ReactNode;
+  /** Colour of the show plate. Defaults to graphite. */
+  showTone?: PlateTone;
   /** The right of the top row. Defaults to nothing. */
   air?: ReactNode;
   /** Back button, for screens off the main channels. */
@@ -16,11 +19,11 @@ interface BroadcastPageProps {
 }
 
 /** The frame every non-training screen sits in: the bug on top, one column of graphics under it. */
-export function BroadcastPage({ show, air, onBack, backLabel = 'Back', className, children }: BroadcastPageProps) {
+export function BroadcastPage({ show, showTone, air, onBack, backLabel = 'Back', className, children }: BroadcastPageProps) {
   return (
     <div className={cn('page-frame', className)}>
       <div className="flex items-center justify-between gap-3 pt-[max(0.625rem,env(safe-area-inset-top))]">
-        <ScoreBug mid={show} className="min-w-0" />
+        <ScoreBug mid={show} midTone={showTone} className="min-w-0" />
         <div className="flex shrink-0 items-center gap-3 pr-4">
           {air}
           {onBack && (

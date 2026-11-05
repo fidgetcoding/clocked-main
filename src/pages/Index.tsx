@@ -148,7 +148,7 @@ const Index = () => {
 
   return (
     <AppLayout>
-      <BroadcastPage air={<span className="lab lab-w">{format(new Date(), 'EEE MMM d')}</span>}>
+      <BroadcastPage show="Demo" showTone="white" air={<span className="lab lab-w">{format(new Date(), 'EEE MMM d')}</span>}>
         {savedSession && savedSessionName && (
           <section className="mt-3 bg-surface-1 px-4 py-3">
             <p className="text-base text-foreground">{describeSavedSession(savedSessionName, savedSession)}</p>
