@@ -1,4 +1,4 @@
-import { lazy, Suspense } from "react";
+import { lazy, Suspense, useEffect } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -14,8 +14,10 @@ const Settings = lazy(() => import("./pages/Settings"));
 const EditProfile = lazy(() => import("./pages/EditProfile"));
 const History = lazy(() => import("./pages/History"));
 import Onboarding from "./pages/Onboarding";
-const WorkoutSession = lazy(() => import("./pages/WorkoutSession"));
-const QuickSession = lazy(() => import("./pages/QuickSession"));
+const loadWorkoutSession = () => import("./pages/WorkoutSession");
+const loadQuickSession = () => import("./pages/QuickSession");
+const WorkoutSession = lazy(loadWorkoutSession);
+const QuickSession = lazy(loadQuickSession);
 const FightClub = lazy(() => import("./pages/FightClub"));
 const Stats = lazy(() => import("./pages/Stats"));
 const Profile = lazy(() => import("./pages/Profile"));
@@ -33,7 +35,26 @@ const AngleLab = import.meta.env.DEV ? lazy(() => import("./pages/AngleLab")) : 
 // are local, and for accounts a pile of duplicates once the connection comes back.
 const queryClient = new QueryClient({ defaultOptions: { mutations: { networkMode: "always" } } });
 
-const App = () => (
+// The training screens stay out of the entry bundle but are fetched right after the first screen,
+// so a guest who loses the connection after opening the app can still start a session.
+function usePreloadTrainingScreens() {
+  useEffect(() => {
+    const preload = () => {
+      loadWorkoutSession().catch(() => {});
+      loadQuickSession().catch(() => {});
+    };
+    if (typeof window.requestIdleCallback === "function") {
+      const id = window.requestIdleCallback(preload, { timeout: 1500 });
+      return () => window.cancelIdleCallback(id);
+    }
+    const id = window.setTimeout(preload, 500);
+    return () => window.clearTimeout(id);
+  }, []);
+}
+
+const App = () => {
+  usePreloadTrainingScreens();
+  return (
   <AppErrorBoundary>
   <QueryClientProvider client={queryClient}>
     <AuthProvider>
@@ -86,6 +107,7 @@ const App = () => (
     </AuthProvider>
   </QueryClientProvider>
   </AppErrorBoundary>
-);
+  );
+};
 
 export default App;

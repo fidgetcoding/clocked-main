@@ -65,6 +65,14 @@ export interface PunchSample {
   punches: number;
 }
 
+/** Keep the round's baseline, the window boundary, and newer samples. Called once per clock tick. */
+export function appendPunchSample(samples: PunchSample[], sample: PunchSample): void {
+  samples.push(sample);
+  let boundary = 1;
+  while (boundary + 1 < samples.length && samples[boundary + 1].at <= sample.at - PACE_WINDOW_S) boundary++;
+  if (boundary > 1) samples.splice(1, boundary - 1);
+}
+
 /** Whether the last stretch of punching has fallen well below this round's own pace so far. */
 export function paceDropped(samples: PunchSample[], now: number): boolean {
   if (samples.length < 2) return false;
@@ -74,7 +82,13 @@ export function paceDropped(samples: PunchSample[], now: number): boolean {
   if (elapsed < PACE_SETTLE_S) return false;
   const pace = (latest.punches - first.punches) / elapsed;
   if (pace < PACE_MIN_PER_S) return false;
-  const windowStart = [...samples].reverse().find((sample) => now - sample.at >= PACE_WINDOW_S);
+  let windowStart: PunchSample | undefined;
+  for (let i = samples.length - 1; i >= 0; i--) {
+    if (now - samples[i].at >= PACE_WINDOW_S) {
+      windowStart = samples[i];
+      break;
+    }
+  }
   if (!windowStart) return false;
   const recent = (latest.punches - windowStart.punches) / (now - windowStart.at);
   return recent < pace * PACE_DROP;

@@ -29,17 +29,34 @@ export interface SessionSnapshot {
   savedAt: number;
 }
 
-const isSnapshot = (value: unknown): value is SessionSnapshot => {
-  if (typeof value !== 'object' || value === null) return false;
-  const row = value as Record<string, unknown>;
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === 'object' && value !== null && !Array.isArray(value);
+
+const isNonNegative = (value: unknown): value is number =>
+  typeof value === 'number' && Number.isFinite(value) && value >= 0;
+
+const isSessionLog = (value: unknown): value is SessionLog => {
+  if (!isRecord(value) || !isRecord(value.content)) return false;
+  const content = value.content;
+  return ['paused', 'cutShort', 'ranToEnd'].every((field) => typeof value[field] === 'boolean') &&
+    ['combos', 'pushups', 'burpees', 'curlups', 'jogRun'].every((field) => typeof content[field] === 'boolean');
+};
+
+const isSnapshot = (row: unknown): row is SessionSnapshot => {
+  if (!isRecord(row)) return false;
   return (
     typeof row.userId === 'string' &&
     typeof row.workoutId === 'string' &&
-    ['segmentCount', 'segmentIndex', 'timeRemaining', 'totalElapsed', 'timerXP', 'savedAt'].every((field) =>
-      Number.isFinite(row[field]),
+    (row.historyId === undefined || (typeof row.historyId === 'string' && row.historyId.length > 0)) &&
+    ['timeRemaining', 'totalElapsed', 'timerXP', 'savedAt'].every((field) =>
+      isNonNegative(row[field]),
     ) &&
-    typeof row.log === 'object' &&
-    row.log !== null &&
+    isNonNegative(row.segmentCount) &&
+    isNonNegative(row.segmentIndex) &&
+    Number.isSafeInteger(row.segmentCount) &&
+    Number.isSafeInteger(row.segmentIndex) &&
+    row.segmentIndex < Math.max(row.segmentCount, 1) &&
+    isSessionLog(row.log) &&
     typeof row.isPreparation === 'boolean' &&
     typeof row.isComplete === 'boolean'
   );

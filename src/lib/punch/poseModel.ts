@@ -26,7 +26,38 @@ declare global {
   }
 }
 
-let shared: Promise<PoseModel> | null = null;
+/** Stable handle: every holder follows the replacement instead of retaining a closed GPU. */
+class SharedPoseModel implements PoseModel {
+  private replacing: Promise<SharedPoseModel> | null = null;
+  private closed = false;
+  constructor(private current: PoseModel) {}
+
+  get delegate() { return this.current.delegate; }
+  detect = (video: HTMLVideoElement, timestampMs: number) => this.current.detect(video, timestampMs);
+  close = () => {
+    if (this.closed) return;
+    this.closed = true;
+    this.current.close();
+  };
+  ready() { return this.replacing ?? Promise.resolve(this); }
+  replaceWithCpu(): Promise<SharedPoseModel> {
+    if (this.replacing) return this.replacing;
+    if (this.delegate === 'CPU') return Promise.resolve(this);
+    this.replacing = createPoseModel('CPU').then((cpu) => {
+      if (this.closed) {
+        cpu.close();
+        throw new Error('Pose model released during CPU replacement');
+      }
+      const previous = this.current;
+      this.current = cpu;
+      previous.close();
+      return this;
+    }).finally(() => { this.replacing = null; });
+    return this.replacing;
+  }
+}
+
+let shared: Promise<SharedPoseModel> | null = null;
 let holders = 0;
 let closeTimer: ReturnType<typeof setTimeout> | null = null;
 
@@ -41,13 +72,13 @@ export function acquirePoseModel(): Promise<PoseModel> {
   if (closeTimer) clearTimeout(closeTimer);
   closeTimer = null;
   holders += 1;
-  shared ??= createPoseModel('GPU');
+  shared ??= createPoseModel('GPU').then((model) => new SharedPoseModel(model));
   // A failed load mustn't stick around for the next try
   const loading = shared;
   loading.catch(() => {
     if (shared === loading) shared = null;
   });
-  return loading;
+  return loading.then((model) => model.ready());
 }
 
 export function releasePoseModel() {
@@ -61,9 +92,8 @@ export function releasePoseModel() {
 
 /** Replaces the loaded model with one on the CPU, after the GPU one has failed in use. */
 export function replacePoseModelWithCpu(): Promise<PoseModel> {
-  closeShared();
-  shared = createPoseModel('CPU');
-  return shared;
+  if (!shared) return Promise.reject(new Error('No acquired pose model to replace'));
+  return shared.then((model) => model.replaceWithCpu());
 }
 
 /** The browser can't run the only wasm build we ship. */

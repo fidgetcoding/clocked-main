@@ -44,7 +44,9 @@ export function usePunchCamera({ videoRef, onPose, processing = true }: Options)
   const statsRef = useRef<PoseStats>({ fps: 0, inferenceMs: 0, delegate: null, frames: 0 });
 
   const streamRef = useRef<MediaStream | null>(null);
+  const cancelFrameRef = useRef<(() => void) | null>(null);
   const modelRef = useRef<PoseModel | null>(null);
+  const modelLeaseRef = useRef<{ loading: Promise<PoseModel>; release: () => void } | null>(null);
   const mountedRef = useRef(true);
   // Bumped by every start and stop, so that anything still pending from an older run gives up
   const runRef = useRef(0);
@@ -55,6 +57,8 @@ export function usePunchCamera({ videoRef, onPose, processing = true }: Options)
 
   const stop = useCallback(() => {
     runRef.current += 1;
+    cancelFrameRef.current?.();
+    cancelFrameRef.current = null;
     streamRef.current?.getTracks().forEach((track) => track.stop());
     streamRef.current = null;
     const video = videoRef.current;
@@ -89,12 +93,18 @@ export function usePunchCamera({ videoRef, onPose, processing = true }: Options)
 
       const schedule = () => {
         if (run !== runRef.current) return;
-        if ('requestVideoFrameCallback' in video) video.requestVideoFrameCallback(() => void tick());
-        else requestAnimationFrame(() => void tick());
+        if ('requestVideoFrameCallback' in video) {
+          const id = video.requestVideoFrameCallback(() => void tick());
+          cancelFrameRef.current = () => video.cancelVideoFrameCallback(id);
+        } else {
+          const id = requestAnimationFrame(() => void tick());
+          cancelFrameRef.current = () => cancelAnimationFrame(id);
+        }
       };
 
       const tick = async () => {
         if (run !== runRef.current) return;
+        cancelFrameRef.current = null;
         const model = modelRef.current;
         if (processingRef.current && model && video.readyState >= 2 && video.currentTime !== lastVideoTime) {
           lastVideoTime = video.currentTime;
@@ -120,8 +130,19 @@ export function usePunchCamera({ videoRef, onPose, processing = true }: Options)
             if (model.delegate === 'GPU' && !retriedOnCpu) {
               retriedOnCpu = true;
               modelRef.current = null;
+              const lease = modelLeaseRef.current;
+              if (!lease) return;
               try {
-                modelRef.current = await replacePoseModelWithCpu();
+                lease.loading = replacePoseModelWithCpu().then((loaded) => {
+                  if (modelLeaseRef.current === lease) modelRef.current = loaded;
+                  return loaded;
+                }, (error: unknown) => {
+                  lease.release();
+                  if (modelLeaseRef.current === lease) modelLeaseRef.current = null;
+                  throw error;
+                });
+                await lease.loading;
+                if (run !== runRef.current) return;
                 statsRef.current.delegate = 'CPU';
               } catch (cpuError) {
                 console.error('Pose model failed on the CPU too:', cpuError);
@@ -152,7 +173,9 @@ export function usePunchCamera({ videoRef, onPose, processing = true }: Options)
   );
 
   const start = useCallback(async () => {
-    const run = ++runRef.current;
+    if (!mountedRef.current) return;
+    stop();
+    const run = runRef.current;
     setProblem(null);
 
     const unsupported = checkSupport({
@@ -217,39 +240,57 @@ export function usePunchCamera({ videoRef, onPose, processing = true }: Options)
       return;
     }
 
+    if (run !== runRef.current) return;
+
     // Only now, so that someone who says no to the camera never downloads the model
     let model = modelRef.current;
     if (!model) {
+      if (!modelLeaseRef.current) {
+        let released = false;
+        const lease = {
+          loading: acquirePoseModel(),
+          release: () => {
+            if (released) return;
+            released = true;
+            releasePoseModel();
+          },
+        };
+        modelLeaseRef.current = lease;
+        lease.loading = lease.loading.then((loaded) => {
+          if (modelLeaseRef.current === lease) modelRef.current = loaded;
+          return loaded;
+        }, (error: unknown) => {
+          lease.release();
+          if (modelLeaseRef.current === lease) modelLeaseRef.current = null;
+          throw error;
+        });
+      }
       try {
-        model = await acquirePoseModel();
+        model = await modelLeaseRef.current.loading;
       } catch (error) {
-        releasePoseModel();
         console.error('Pose model failed to load:', error);
         if (run === runRef.current) fail(error instanceof PoseUnsupportedError ? 'unsupported' : 'model_failed');
         return;
       }
-      // They may have left while it loaded, with nothing now to give it back
-      if (!mountedRef.current) {
-        releasePoseModel();
-        return;
-      }
-      modelRef.current = model;
     }
     if (run !== runRef.current) return;
 
     statsRef.current = { fps: 0, inferenceMs: 0, delegate: model.delegate, frames: 0 };
     setStatus('live');
     loop(run, video);
-  }, [fail, loop, videoRef]);
+  }, [fail, loop, stop, videoRef]);
 
   useEffect(() => {
     mountedRef.current = true;
     return () => {
       mountedRef.current = false;
       runRef.current += 1;
+      cancelFrameRef.current?.();
+      cancelFrameRef.current = null;
       streamRef.current?.getTracks().forEach((track) => track.stop());
       streamRef.current = null;
-      if (modelRef.current) releasePoseModel();
+      modelLeaseRef.current?.release();
+      modelLeaseRef.current = null;
       modelRef.current = null;
     };
   }, []);

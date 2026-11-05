@@ -79,4 +79,33 @@ describe('session recovery', () => {
     saveSession({ ...snapshot, workoutId: 'quick-session', segmentCount: 0, segmentIndex: 0 }, now);
     expect(findResumableSession('me', 'quick-session', 0, now)).not.toBeNull();
   });
+
+  it('rejects invalid segment positions and negative clock values before offering recovery', () => {
+    for (const patch of [
+      { segmentIndex: -1 }, { segmentIndex: 1.5 }, { segmentCount: -1 },
+      { segmentCount: 2.5 }, { segmentIndex: 8 }, { timeRemaining: -1 },
+      { totalElapsed: -1 }, { timerXP: -1 },
+    ]) {
+      localStorage.setItem('get-clocked-session', JSON.stringify({ ...snapshot, savedAt: now, ...patch }));
+      expect(findSavedSession('me', now), JSON.stringify(patch)).toBeNull();
+    }
+  });
+
+  it('rejects malformed reward logs instead of resuming into a crash or false badge', () => {
+    for (const log of [
+      {}, [], { ...FRESH_SESSION, content: null },
+      { ...FRESH_SESSION, content: {} }, { ...FRESH_SESSION, paused: 'false' },
+      { ...FRESH_SESSION, content: { ...FRESH_SESSION.content, combos: 'yes' } },
+    ]) {
+      localStorage.setItem('get-clocked-session', JSON.stringify({ ...snapshot, savedAt: now, log }));
+      expect(findSavedSession('me', now), JSON.stringify(log)).toBeNull();
+    }
+  });
+
+  it('rejects an invalid history identity without breaking older saves that omit it', () => {
+    localStorage.setItem('get-clocked-session', JSON.stringify({ ...snapshot, savedAt: now, historyId: { id: 'broken' } }));
+    expect(findSavedSession('me', now)).toBeNull();
+    saveSession(snapshot, now);
+    expect(findSavedSession('me', now)).not.toBeNull();
+  });
 });

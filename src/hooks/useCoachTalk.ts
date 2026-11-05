@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { coachVoice } from '@/lib/voice/coachVoice';
-import { comboTarget, isWorkRound, NAILED_GAP_S, paceDropped, pickLine, talkAt, type PunchSample, type TalkSegment } from '@/lib/voice/coachTalk';
+import { appendPunchSample, comboTarget, isWorkRound, NAILED_GAP_S, paceDropped, pickLine, talkAt, type PunchSample, type TalkSegment } from '@/lib/voice/coachTalk';
 import { COACH_GROUPS, coachLine, type CoachLine } from '@/lib/voice/lines';
 
 /** How long a combo has to sit unchanged on the camera's readout before it counts as finished. */
@@ -43,7 +43,7 @@ export function useCoachTalk({ segments, index, timeRemaining, live, isComplete,
   useEffect(() => {
     if (!live || !segment) return;
     now.current += 1;
-    if (punches !== null && isWorkRound(segment)) samples.current.push({ at: now.current, punches });
+    if (punches !== null && isWorkRound(segment)) appendPunchSample(samples.current, { at: now.current, punches });
     const talk = talkAt({
       segment,
       next: segments[index + 1],

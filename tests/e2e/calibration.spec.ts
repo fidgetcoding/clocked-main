@@ -2,6 +2,7 @@
 // and the body throws whichever punch the screen asks for, so this proves the flow, not how well real people are read.
 import type { Page } from "@playwright/test";
 import { simulate, type SynthPunch } from "../../src/test/punchSynth";
+import { calibrationMotion } from "../../src/test/calibrationMotion";
 import { clipsPlayed, expect, spokenWords, test } from "./silent";
 import { playButton } from "./controls";
 import { finishGuestOnboarding, NO_BACKEND_URL } from "./helpers";
@@ -24,7 +25,7 @@ const SHAPES: Record<string, Pick<SynthPunch, "hand" | "shape">> = {
 /** `swap` throws a different punch for the one asked, to see a miss handled. */
 const fakeBody = async (page: Page, swap: Record<string, string> = {}) => {
   const throws = Object.fromEntries(
-    Object.entries(SHAPES).map(([punch, shape]) => [punch, simulate({ startMs: 0, durationMs: 1500, punches: [{ ...shape, at: 200 }] }).map((frame) => frame.landmarks)]),
+    Object.entries(SHAPES).map(([punch, shape]) => [punch, calibrationMotion(shape).map((frame) => frame.landmarks)]),
   );
   const guard = simulate({ startMs: 0, durationMs: 0 })[0].landmarks;
   await page.context().addInitScript(

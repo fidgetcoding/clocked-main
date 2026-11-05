@@ -52,7 +52,7 @@ import { checkPostL100Badges } from '@/data/postL100Badges';
 import { LevelUpOverlay } from '@/components/ui/LevelUpOverlay';
 import { PostWorkoutSummary, SessionXPBreakdown } from '@/components/workout/PostWorkoutSummary';
 import { usePostWorkoutComplete } from '@/hooks/useCommunityPosts';
-import { wholeSecondsSince } from '@/lib/sessionClock';
+import { splitSessionTick, wholeSecondsSince } from '@/lib/sessionClock';
 import { usePunchPrefsStore } from '@/stores/punchPrefsStore';
 import type { PunchSessionReport } from '@/lib/punch/round';
 
@@ -742,7 +742,14 @@ const WorkoutSession = () => {
     });
   }, [isComplete, sessionResult, profile, accumulatedXP, totalElapsed, earnedBadgeIds, liveBadgesEarned, sessionLog, flatSegments, speakQueued]);
 
-  // Background-safe timer using wall-clock deltas
+  const clockPosition = useRef({ currentSegmentIndex, timeRemaining, isPreparation });
+  clockPosition.current = { currentSegmentIndex, timeRemaining, isPreparation };
+
+  const tickInputs = useRef({ flatSegments, streakMultiplier, getXPPerSecond });
+  tickInputs.current = { flatSegments, streakMultiplier, getXPPerSecond };
+
+  // Background-safe timer using wall-clock deltas, credited to the segments actually crossed.
+  // Restarts only on play/pause: a natural segment change keeps the partial second already counted.
   useEffect(() => {
     let interval: NodeJS.Timeout | null = null;
     
@@ -755,13 +762,17 @@ const WorkoutSession = () => {
         if (delta < 1) return;
         lastTickTimeRef.current = lastTick;
 
-        setTimeRemaining(prev => prev - delta);
-        
-        if (!isPreparation && currentSegment) {
-          setTotalElapsed(prev => prev + delta);
-          setSessionLog(log => noteTraining(log, currentSegment));
-          const xpPerSecond = getXPPerSecond(currentSegment);
-          const xpGained = xpPerSecond * streakMultiplier * delta;
+        const { flatSegments, streakMultiplier, getXPPerSecond } = tickInputs.current;
+        const position = clockPosition.current;
+        const { consumedSeconds, trained } = splitSessionTick(
+          flatSegments, position.currentSegmentIndex, position.timeRemaining, position.isPreparation, delta,
+        );
+        setTimeRemaining(prev => prev - consumedSeconds);
+
+        if (trained.length > 0) {
+          setTotalElapsed(prev => prev + trained.reduce((sum, entry) => sum + entry.seconds, 0));
+          setSessionLog(log => trained.reduce((current, entry) => noteTraining(current, entry.segment), log));
+          const xpGained = trained.reduce((sum, entry) => sum + getXPPerSecond(entry.segment) * entry.seconds, 0) * streakMultiplier;
           setAccumulatedXP(prev => prev + xpGained);
         }
       }, 250);
@@ -770,7 +781,7 @@ const WorkoutSession = () => {
     return () => {
       if (interval) clearInterval(interval);
     };
-  }, [isRunning, isPaused, isPreparation, currentSegment, streakMultiplier, getXPPerSecond]);
+  }, [isRunning, isPaused]);
 
   // Instant catch-up when tab becomes visible again
   useEffect(() => {
@@ -1027,6 +1038,7 @@ const WorkoutSession = () => {
   const handleBack = () => {
     if (isPreparation) return;
     cancelSpeech();
+    lastTickTimeRef.current = Date.now();
     if (currentSegmentIndex > 0) {
       const prevSegment = flatSegments[currentSegmentIndex - 1];
       setCurrentSegmentIndex((prev) => prev - 1);
@@ -1040,6 +1052,8 @@ const WorkoutSession = () => {
 
   const handleSkip = () => {
     cancelSpeech();
+    // A jump starts the new segment on a fresh second
+    lastTickTimeRef.current = Date.now();
     if (isPreparation) {
       setIsPreparation(false);
       setTimeRemaining(flatSegments[0]?.duration || 60);

@@ -144,6 +144,56 @@ describe('createPoseModel', () => {
       releasePoseModel();
       releasePoseModel();
     });
+
+    it('keeps other holders usable when one holder replaces the failed GPU', async () => {
+      const gpuClose = freshClose();
+      const first = await acquirePoseModel();
+      const other = await acquirePoseModel();
+      const cpuDetect = vi.fn(() => ({ landmarks: [], worldLandmarks: [] }));
+      vision.createFromOptions.mockResolvedValue({ close: vi.fn(), detectForVideo: cpuDetect });
+      await replacePoseModelWithCpu();
+      other.detect({} as HTMLVideoElement, 42);
+      releasePoseModel();
+      releasePoseModel();
+      expect(gpuClose).toHaveBeenCalledTimes(1);
+      expect(first.delegate).toBe('CPU');
+      expect(other.delegate).toBe('CPU');
+      expect(cpuDetect).toHaveBeenCalledTimes(1);
+    });
+
+    it('shares a pending CPU replacement with another recovery and a new holder', async () => {
+      freshClose();
+      await acquirePoseModel();
+      let finish!: (value: typeof landmarker) => void;
+      vision.createFromOptions.mockImplementationOnce(() => new Promise((resolve) => { finish = resolve; }));
+      const first = replacePoseModelWithCpu();
+      const second = replacePoseModelWithCpu();
+      await settle(0);
+      const third = acquirePoseModel();
+      finish(landmarker);
+      const models = await Promise.all([first, second, third]);
+      releasePoseModel();
+      releasePoseModel();
+      expect(vision.createFromOptions).toHaveBeenCalledTimes(2);
+      expect(models.every((model) => model === models[0] && model.delegate === 'CPU')).toBe(true);
+    });
+
+    it('disposes a late CPU replacement after the last holder has left', async () => {
+      const gpuClose = freshClose();
+      await acquirePoseModel();
+      let finish!: (value: typeof landmarker) => void;
+      const cpuClose = vi.fn();
+      vision.createFromOptions.mockImplementationOnce(() => new Promise((resolve) => { finish = resolve; }));
+      const replacing = replacePoseModelWithCpu();
+      const rejected = expect(replacing).rejects.toThrow('released during CPU replacement');
+      await settle(0);
+      releasePoseModel();
+      await settle(30001);
+      finish({ ...landmarker, close: cpuClose });
+      await rejected;
+      expect(gpuClose).toHaveBeenCalledTimes(1);
+      expect(cpuClose).toHaveBeenCalledTimes(1);
+    });
   });
 
   it('returns nulls when there is no person', async () => {

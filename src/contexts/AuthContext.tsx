@@ -8,6 +8,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useUserStore } from '@/stores/userStore';
 import { useWorkoutStore } from '@/stores/workoutStore';
 import { useHistoryStore } from '@/stores/historyStore';
+import { toast } from '@/hooks/use-toast';
 
 // Helper to clear all user-specific localStorage data
 // Guest rows live in these same stores and stay put: SIGNED_OUT can fire on an anonymous
@@ -101,8 +102,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     );
 
     // Check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(({ data: { session }, error }) => {
       if (!active || authEvents > 0) return;
+      if (error) throw error;
       previousUserIdRef.current = session?.user?.id ?? null;
       setSession(session);
       setUser(session?.user ?? null);
@@ -114,6 +116,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       } else {
         useUserStore.getState().enterGuest();
       }
+    }).catch(() => {
+      if (!active || authEvents > 0) return;
+      useUserStore.getState().enterGuest();
+      setLoading(false);
+      toast({
+        title: "Couldn't restore your sign-in",
+        description: 'You can train as a guest. Sign in again to access your account.',
+        variant: 'destructive',
+      });
     });
 
     return () => {

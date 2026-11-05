@@ -48,7 +48,9 @@ test("pressing -30 until a run ends trains nothing and earns nothing", async ({ 
 
 test("waiting out the preparation isn't training", async ({ page }) => {
   await startHomeWorkout(page);
-  await page.clock.fastForward(6 * 60 * 1000);
+  await page.clock.pauseAt(new Date());
+  // Preparation is 30 seconds. Six minutes also crosses actual training segments.
+  await page.clock.fastForward(30_000);
   await finishEarly(page);
 
   await expect(page.getByText("Train for at least 5 minutes")).toBeVisible();
@@ -65,15 +67,16 @@ test("the bonus for starting lands with the first second trained", async ({ page
   await expect(summaryTotal(page)).toHaveText(/^\+1\d$/);
 });
 
-test("a first 6-minute run left unfinished earns showing up, not the big first-workout badges", async ({ page }) => {
+test("a first 6-minute run earns its training credit without completion badges", async ({ page }) => {
   await startTraining(page);
   await page.clock.fastForward(6 * 60 * 1000);
   await page.getByText("6:00").first().waitFor();
   await finishEarly(page);
 
-  await expect(page.getByRole("heading", { name: "Badges Earned (2)" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Badges Earned (3)" })).toBeVisible();
   await expect(page.getByText("First Blood").first()).toBeVisible();
   await expect(page.getByText("Day One").first()).toBeVisible();
+  await expect(page.getByText("First Combo").first()).toBeVisible();
   for (const badge of ["Full Send", "Push Through", "Beast Mode Achiever", "Rapid Fire"]) {
     await expect(page.getByText(badge)).toHaveCount(0);
   }

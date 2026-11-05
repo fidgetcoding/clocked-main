@@ -8,8 +8,9 @@ import { useAuth } from '@/contexts/useAuth';
 
 const api = vi.hoisted(() => ({
   listener: null as null | ((event: string, session: Session | null) => void),
-  getSession: vi.fn(), profile: vi.fn(), complete: vi.fn(), signOut: vi.fn(),
+  getSession: vi.fn(), profile: vi.fn(), complete: vi.fn(), signOut: vi.fn(), toast: vi.fn(),
 }));
+vi.mock('@/hooks/use-toast', () => ({ toast: api.toast }));
 vi.mock('@/integrations/supabase/client', () => ({ supabase: {
   auth: {
     getSession: api.getSession, signOut: api.signOut,
@@ -110,4 +111,23 @@ it('does not erase a new sign-in when an earlier sign-out finishes late', async 
   await act(async () => { api.listener!('SIGNED_IN', session('new')); });
   await act(async () => { signedOut.resolve({ error: null }); await pending; });
   expect(result.current.user?.id).toBe('new');
+});
+
+it('finishes loading and explains guest mode if the initial session request rejects', async () => {
+  api.getSession.mockRejectedValue(new Error('Session storage unavailable'));
+  const { result } = mount();
+  await act(async () => {});
+  expect(result.current.loading).toBe(false);
+  expect(result.current.isGuest).toBe(true);
+  expect(api.toast).toHaveBeenCalledWith(expect.objectContaining({ title: "Couldn't restore your sign-in" }));
+});
+
+it('does not replace a newer sign-in when the initial request fails late', async () => {
+  let reject!: (error: Error) => void;
+  api.getSession.mockReturnValue(new Promise((_resolve, fail) => { reject = fail; }));
+  const { result } = mount();
+  await act(async () => { api.listener!('SIGNED_IN', session('new')); });
+  await act(async () => { reject(new Error('Old failure')); });
+  expect(result.current.user?.id).toBe('new');
+  expect(api.toast).not.toHaveBeenCalled();
 });
