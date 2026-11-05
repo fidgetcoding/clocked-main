@@ -4,9 +4,9 @@
 
 **A boxing app where all you need is you, your phone and the air in front of you.**
 
-## ▶ [Try it live, no login: clocked-main.vercel.app](https://clocked-main.vercel.app)
+## ▶ [Try it live, no login: getclocked.io](https://getclocked.io)
 
-Jump straight to the camera with [Punch Check](https://clocked-main.vercel.app/punch-check). The live copy runs in guest mode, so accounts and the AI builder need your own backend.
+Jump straight to the camera with [Punch Check](https://getclocked.io/punch-check). The live copy runs in guest mode, so accounts and the AI builder need your own backend. It's also at [clocked-main.vercel.app](https://clocked-main.vercel.app).
 
 **Want the real story?** [ESSENCE.md](ESSENCE.md) is the one-pager. [EVOLUTION.md](EVOLUTION.md) is every round of how this got built, including the parts that broke. The original design docs, the [XP system](docs/history/xp-system.pdf) and its [origin story](docs/history/xp-curves-origin-story.pdf), are design history, so where their numbers differ from the code, the code wins.
 
