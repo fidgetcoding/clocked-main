@@ -66,7 +66,10 @@ export function SortableWorkoutCard({ workout, onDelete, isReorderMode }: Sortab
         )}
 
         <div className="min-w-0 flex-1">
-          <h3 className="fx truncate text-3xl">{workout.name}</h3>
+          {/* Up to two lines, so a set's name fits on a phone instead of being cut short. A word too long for
+              the line breaks at a syllable with a hyphen, not at an arbitrary letter. Below 360px the buttons leave
+              too little room for the full size. */}
+          <h3 className="fx line-clamp-2 hyphens-auto break-words pb-[0.06em] pr-[0.1em] text-2xl min-[360px]:text-3xl">{workout.name}</h3>
           <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5">
             <span className="lab">{formatDuration(workout.duration)}</span>
             <span className="lab">{totalPhases} {totalPhases === 1 ? 'PHASE' : 'PHASES'}</span>
@@ -81,7 +84,7 @@ export function SortableWorkoutCard({ workout, onDelete, isReorderMode }: Sortab
               onClick={(e) => { e.stopPropagation(); navigate(`/build?edit=${workout.id}`); }}
               onPointerDown={(e) => e.stopPropagation()}
               aria-label={`Edit ${workout.name}`}
-              className="flex h-11 w-9 items-center justify-center text-muted-foreground hover:text-foreground"
+              className="flex h-11 w-11 items-center justify-center text-muted-foreground hover:text-foreground"
             >
               <Pencil className="w-4 h-4" />
             </button>
@@ -89,7 +92,7 @@ export function SortableWorkoutCard({ workout, onDelete, isReorderMode }: Sortab
               onClick={(e) => { e.stopPropagation(); onDelete(workout.id); }}
               onPointerDown={(e) => e.stopPropagation()}
               aria-label={`Remove ${workout.name}`}
-              className="flex h-11 w-9 items-center justify-center text-muted-foreground hover:text-destructive"
+              className="flex h-11 w-11 items-center justify-center text-muted-foreground hover:text-destructive"
             >
               <Trash2 className="w-4 h-4" />
             </button>

@@ -113,10 +113,10 @@ export function BadgeCollection() {
                 key={badge.id}
                 type="button"
                 onClick={() => setSelectedBadge(badge)}
-                className="min-w-0 text-center transition-colors hover:bg-surface-1"
+                className="min-w-0 text-center transition-colors [container-type:inline-size] hover:bg-surface-1"
               >
                 <BadgeArt id={badge.id} className={cn('aspect-square w-full mix-blend-screen', !badge.earned && 'art-off')} />
-                <span className={cn('fx mt-0.5 line-clamp-2 block text-base leading-none', !badge.earned && 'text-muted-foreground')}>
+                <span className={cn('fx mt-0.5 line-clamp-2 block fit-label leading-none', !badge.earned && 'text-muted-foreground')}>
                   {badge.name}
                 </span>
                 <span className={cn('lab mt-0.5 block tracking-[0.04em]', badge.earned && 'lab-lime')}>

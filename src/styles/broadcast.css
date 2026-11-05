@@ -10,6 +10,13 @@
   letter-spacing: -0.003em;
 }
 
+/* Grid labels under badge and glove art. A single long word ("IMMORTALIZED") can't wrap, so on a narrow
+   cell the size follows the cell's width (its container) instead; 1rem everywhere it already fit. */
+.fit-label {
+  font-size: 1rem;
+  font-size: min(1rem, 17cqi);
+}
+
 .lab {
   font-family: var(--font-text);
   font-size: 0.8125rem;

@@ -25,7 +25,7 @@ function GloveCard({
       disabled={!isUnlocked}
       onClick={onEquip}
       aria-pressed={isEquipped}
-      className={cn('min-w-0 text-center', isUnlocked ? 'cursor-pointer' : 'cursor-not-allowed')}
+      className={cn('min-w-0 text-center [container-type:inline-size]', isUnlocked ? 'cursor-pointer' : 'cursor-not-allowed')}
     >
       <span
         className={cn(
@@ -40,7 +40,7 @@ function GloveCard({
       </span>
       <span
         className={cn(
-          'fx mt-1 line-clamp-2 block text-base leading-none',
+          'fx mt-1 line-clamp-2 block fit-label leading-none',
           !isUnlocked && 'text-muted-foreground',
           isBMF && isUnlocked && 'text-championship-gold',
         )}

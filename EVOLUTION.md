@@ -303,3 +303,9 @@ The local Supabase CLI was 2.109 (setup asks for 2.122) and stalled serving func
 
 Validation: 4,108 unit tests in 59 files, lint with zero warnings, typecheck, production build and a Deno check of admin-users. Full local stack after `db push`: 38 database tests (12 new), 12 + 34 edge-function tests, and 185 of 189 browser checks, the 4 failures being the specs fixed above; after the fixes their focused reruns passed (65 browser checks, then the reload retry and the full button sweep). Guest browser suites on Chromium, Firefox and WebKit: 177 passed, plus the offline walkthrough on all three. One focused run timed out the 15-minute button sweep; the same code passed it in 9.7 minutes alone, and it had overlapped with other test runs on this Mac.
 
+## November 5: text that fits on every screen
+
+An audit of every guest screen at 320, 390 and sideways phone widths and at laptop and desktop sizes, in Chromium and WebKit, found four places where text was cut. The up-next exercise lost the slanted start of its first letter at every size, because truncation clipped the italic overhang; it now wraps with room for the slant. Set names were shortened to "…" on phones; they now take two lines, hyphenate a word too long for the line, and step down one size below 360px. Badge and glove names that are one long word ("IMMORTALIZED", "BLOODSTONE") were clipped on small phones; their size now follows the width of their cell, 16px wherever they already fit. The set card's edit and remove buttons grew from 36 to 44px wide.
+
+The first label fix did nothing: `cn()` merges Tailwind classes, read the new `text-fit-label` class as a text colour and dropped it, so it was renamed `fit-label`. Validation: the same audit finds every set name, all 234 badge and 52 glove labels, and the up-next name fitting at seven widths in both engines; 198 guest browser checks on Chromium, Firefox and WebKit; 4,108 unit tests, lint and typecheck.
+

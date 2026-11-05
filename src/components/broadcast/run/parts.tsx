@@ -231,10 +231,11 @@ export function SessionTape({ view, className }: { view: RunView; className?: st
     <div className={cn('divide-y divide-surface-2', className)}>
       {view.upNext && (
         <div className="flex items-baseline justify-between gap-3 py-1.5">
-          <span className="lab">Up next</span>
-          <span className="fx truncate text-3xl text-volt">
+          <span className="lab shrink-0">Up next</span>
+          {/* Wraps instead of truncating: truncation clipped the slanted first letter and cut long names short */}
+          <span className="fx min-w-0 break-words pl-[0.1em] text-right text-3xl text-volt">
             {view.upNext}
-            {view.upNextSeconds != null && <span className="ml-3 text-foreground">{twoDigit(view.upNextSeconds)}</span>}
+            {view.upNextSeconds != null && <span className="ml-3 whitespace-nowrap text-foreground">{twoDigit(view.upNextSeconds)}</span>}
           </span>
         </div>
       )}
