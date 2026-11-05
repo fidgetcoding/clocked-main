@@ -5,6 +5,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/useAuth';
 import { useUserStore } from '@/stores/userStore';
 import { GUEST_USER_ID } from '@/lib/guest';
+import { toJson } from '@/lib/json';
+import { toSessionCredit } from '@/lib/profileCredit';
 import type { Stance } from '@/lib/punch/types';
 import { Prestige, Ranking, getRankingFromLevel, experienceLevelToPrestige, getLevelFromXP } from '@/lib/xpSystem';
 
@@ -288,17 +290,10 @@ export function useProfile() {
       if (isGuest) {
         return updateGuest({ total_xp: (useUserStore.getState().guestProfile?.total_xp || 0) + amount });
       }
-      if (!user?.id || !profile) throw new Error('Not authenticated');
-      
-      const { data, error } = await supabase
-        .from('profiles')
-        .update({ total_xp: profile.total_xp + amount })
-        .eq('user_id', user.id)
-        .select()
-        .single();
-      
+      if (!user?.id) throw new Error('Not authenticated');
+      // Added on the server, so XP saved meanwhile from another tab isn't overwritten
+      const { error } = await supabase.rpc('add_profile_xp', { amount: Math.round(amount) });
       if (error) throw error;
-      return data as unknown as Profile;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['profile', user?.id] });
@@ -368,11 +363,36 @@ export function useProfile() {
     },
   });
 
+  // One logged session's stats, counted once per history entry even if the save is retried
+  const creditSession = useMutation({
+    // base is the profile the update was computed from; only the difference from it is added
+    mutationFn: async ({ historyId, base, update }: { historyId: string; base: Profile; update: Partial<Profile> }) => {
+      // A guest's profile lives in this browser only, so the computed values are saved as they are
+      if (isGuest) {
+        updateGuest(update);
+        return true;
+      }
+      if (!user?.id) throw new Error('Not authenticated');
+      const { totals, fields } = toSessionCredit(base, update);
+      const { data, error } = await supabase.rpc('credit_session_to_profile', {
+        history_id: historyId,
+        totals: toJson(totals),
+        fields: toJson(fields),
+      });
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['profile', user?.id] });
+    },
+  });
+
   return {
     profile,
     isLoading,
     error,
     updateProfile,
+    creditSession,
     addXP,
     incrementStreak,
     setInitialPrestige,

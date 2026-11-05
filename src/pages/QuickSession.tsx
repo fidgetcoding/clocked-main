@@ -62,7 +62,7 @@ function formatTimeCompact(seconds: number): string {
 const QuickSession = () => {
   const navigate = useNavigate();
   const { addHistoryEntry } = useWorkoutHistory();
-  const { profile, addXP: addProfileXP, updateProfile } = useProfile();
+  const { profile, addXP: addProfileXP, creditSession } = useProfile();
   const location = useLocation();
   const user = useUserStore((state) => state.user);
   const addLocalXP = useUserStore((state) => state.addXP);
@@ -247,7 +247,7 @@ const QuickSession = () => {
       // Real punches count however short the session was. The minimum is only for streaks and session counts.
       const counts = finishedLog ? punchCountIncrements(profile, finishedLog.totals.byType) : {};
       if (stats || Object.keys(counts).length > 0) {
-        await updateProfile.mutateAsync({ ...stats, ...counts });
+        await creditSession.mutateAsync({ historyId: historyId.current, base: profile, update: { ...stats, ...counts } });
       }
     }
     // Only now: the streak and totals are saved too

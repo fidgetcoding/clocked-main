@@ -153,7 +153,7 @@ const WorkoutSession = () => {
   const { workouts, updateWorkout } = useWorkouts();
   const { addHistoryEntry } = useWorkoutHistory();
   const postWorkoutComplete = usePostWorkoutComplete();
-  const { profile, addXP: addProfileXP, updateProfile } = useProfile();
+  const { profile, addXP: addProfileXP, updateProfile, creditSession } = useProfile();
   const { isAdmin } = useUserRole();
   const user = useUserStore((state) => state.user);
   const addLocalXP = useUserStore((state) => state.addXP);
@@ -1201,7 +1201,8 @@ const WorkoutSession = () => {
           const credit = getSessionCredit(totalElapsed, tier, sessionLog.content);
           
           
-          await updateProfile.mutateAsync({
+          // Counted once per history entry on the server, so a retry or a second tab can't double it
+          await creditSession.mutateAsync({ historyId: historyId.current, base: profile, update: {
             ...postLogStats,
             ...postL100Increments,
             total_xp: (profile.total_xp || 0) + sessionResult.sessionTotal,
@@ -1213,7 +1214,7 @@ const WorkoutSession = () => {
             complex_combos: (profile.complex_combos || 0) + credit.complexCombos,
             defense_combos: (profile.defense_combos || 0) + credit.defenseCombos,
             counter_combos: (profile.counter_combos || 0) + credit.counterCombos,
-          });
+          } });
         }
       }
       // Only now: the streak and totals are saved too

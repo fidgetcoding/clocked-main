@@ -1,5 +1,5 @@
 import type { Database } from '@/integrations/supabase/types';
-import { fromJson, toJson } from '@/lib/json';
+import { toJson } from '@/lib/json';
 import { parsePunchLog, type PunchLog } from '@/lib/punch/sessionLog';
 import type { RoundFeedback } from '@/types';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -29,9 +29,21 @@ type HistoryRow = Database['public']['Tables']['workout_history']['Row'];
 // Everything but punch_log, which can run to megabytes across a history. It's fetched when a session is opened.
 const LIST_COLUMNS = 'id, user_id, workout_id, workout_name, completed_at, duration, xp_earned, difficulty, notes, is_manual_entry, round_feedback, created_at';
 
-const toHistoryEntry = (row: Omit<HistoryRow, 'punch_log'>): WorkoutHistoryEntry => ({
+/** Saved round ratings, leaving out any entry that isn't one. */
+export function normalizeRoundFeedback(value: unknown): RoundFeedback[] {
+  if (!Array.isArray(value)) return [];
+  return value.flatMap((entry): RoundFeedback[] => {
+    if (typeof entry !== 'object' || entry === null) return [];
+    const { roundNumber, rating, notes } = entry as Record<string, unknown>;
+    if (typeof roundNumber !== 'number' || !Number.isFinite(roundNumber)) return [];
+    if (typeof rating !== 'number' || !Number.isFinite(rating)) return [];
+    return [{ roundNumber, rating: Math.min(5, Math.max(1, Math.round(rating))), ...(typeof notes === 'string' ? { notes } : {}) }];
+  });
+}
+
+const toHistoryEntry = (row: Omit<HistoryRow, 'punch_log' | 'profile_credited_at'>): WorkoutHistoryEntry => ({
   ...row,
-  round_feedback: fromJson<RoundFeedback[]>(row.round_feedback),
+  round_feedback: normalizeRoundFeedback(row.round_feedback),
 });
 
 /** One opened session's log. A guest's is already on the entry, kept in this browser. */

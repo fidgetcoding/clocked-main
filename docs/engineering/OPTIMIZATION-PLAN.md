@@ -169,3 +169,14 @@ Current entry: 536,686 raw bytes / 172,340 gzip bytes (bundle-report.mjs). Logs 
 
 Validation for the closeout is recorded in EVOLUTION.md. Not covered: physical-device camera, battery and sustained performance; a local Docker backend run (Docker unavailable). The hosted backend CI on the release commit is the backend gate.
 
+## Batch 4: atomic writes and saved-data checks
+
+- **Reorder is all or nothing.** `reorder_workouts(ordered_ids)` sets every position in one statement under the caller's own row rules. A list containing someone else's workout, or the same workout twice, raises and leaves the saved order untouched. The browser no longer sends one update per workout.
+- **Session stats are credited once, on the server.** `credit_session_to_profile(history_id, totals, fields)` claims the session's history row (`profile_credited_at`) and adds the session's amounts in the same transaction. A retried save or a second tab finds it claimed and changes nothing; two different sessions logged at once both count. Counters are added, never overwritten; longest streak, last workout date, session counts and best session keep the larger or newer value. Unknown fields, negative or fractional amounts and other people's sessions are refused. The browser sends the difference from the profile its stats were computed from, so a profile refetched in between can't shrink it.
+- **Standalone XP adds on the server.** `add_profile_xp(amount)` replaces the read-then-write in Quick Session and hand logging.
+- **Saved workouts are checked when loaded.** Phases, segments, workout combos and round ratings are repaired or left out instead of trusted: non-lists read as empty, missing ids and names get stable fallbacks, durations and repeats become numbers, repeats are capped at 100, unknown fields are kept so a re-save loses nothing. All screens read phases through `splitStoredPhases`, so database rows, guest storage and one-off loadouts get the same checks.
+
+All three functions run as the caller (`SECURITY INVOKER`), are revoked from anonymous callers, and add no new capability: an account could already update its own counters directly. Upgrading a self-hosted copy needs `supabase db push`; the app calls the new functions.
+
+Still open: profile writes outside session logging (prestige, onboarding, badge progress) remain plain updates; preset seeding across accounts/tabs, `timesCompleted`, dictation late events, admin pagination, the wider security review, file extraction and real-device camera work.
+

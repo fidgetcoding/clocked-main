@@ -1,6 +1,6 @@
 import type { Database } from '@/integrations/supabase/types';
-import { fromJson, toJson } from '@/lib/json';
-import type { StoredPhase } from '@/lib/storedPhases';
+import { toJson } from '@/lib/json';
+import { normalizeStoredCombos, normalizeStoredPhases, type StoredPhase } from '@/lib/storedPhases';
 import { useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -28,8 +28,9 @@ export interface DbWorkout {
 
 const toDbWorkout = (row: Database['public']['Tables']['workouts']['Row']): DbWorkout => ({
   ...row,
-  phases: fromJson<StoredPhase[]>(row.phases),
-  combos: fromJson<string[][]>(row.combos),
+  // Checked here rather than trusted: a damaged row shouldn't take the home screen down with it
+  phases: normalizeStoredPhases(row.phases),
+  combos: normalizeStoredCombos(row.combos),
 });
 
 export function useWorkouts() {
@@ -175,20 +176,11 @@ export function useWorkouts() {
       if (isGuest) return useWorkoutStore.getState().reorderGuestWorkouts(orderedIds);
       if (!user?.id) throw new Error('Not authenticated');
       
-      // Update each workout's sort_order
-      const updates = orderedIds.map((id, index) => 
-        supabase
-          .from('workouts')
-          .update({ sort_order: index })
-          .eq('id', id)
-          .eq('user_id', user.id)
-      );
-      
-      const results = await Promise.all(updates);
-      const failed = results.find((result) => result.error);
-      if (failed?.error) throw failed.error;
+      // One statement on the server: the whole new order is saved, or none of it
+      const { error } = await supabase.rpc('reorder_workouts', { ordered_ids: orderedIds });
+      if (error) throw error;
     },
-    // Reconcile partial writes on failure as well as a fully successful reorder.
+    // Back to the saved order after a failure, and the confirmed one after a success
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['workouts', user?.id] });
     },

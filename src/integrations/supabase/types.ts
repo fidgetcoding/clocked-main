@@ -531,6 +531,7 @@ export type Database = {
           id: string
           is_manual_entry: boolean | null
           notes: string | null
+          profile_credited_at: string | null
           punch_log: Json | null
           round_feedback: Json | null
           user_id: string
@@ -546,6 +547,7 @@ export type Database = {
           id?: string
           is_manual_entry?: boolean | null
           notes?: string | null
+          profile_credited_at?: string | null
           punch_log?: Json | null
           round_feedback?: Json | null
           user_id: string
@@ -561,6 +563,7 @@ export type Database = {
           id?: string
           is_manual_entry?: boolean | null
           notes?: string | null
+          profile_credited_at?: string | null
           punch_log?: Json | null
           round_feedback?: Json | null
           user_id?: string
@@ -760,6 +763,18 @@ export type Database = {
       get_total_training_seconds: {
         Args: { target_user_id: string }
         Returns: number
+      }
+      reorder_workouts: {
+        Args: { ordered_ids: string[] }
+        Returns: undefined
+      }
+      add_profile_xp: {
+        Args: { amount: number }
+        Returns: number
+      }
+      credit_session_to_profile: {
+        Args: { history_id: string; totals: Json; fields?: Json }
+        Returns: boolean
       }
       get_club_member_counts: {
         Args: never

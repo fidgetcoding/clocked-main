@@ -261,3 +261,86 @@ describe("social read functions", () => {
     expect((await outsider.client.rpc("get_club_ranks", { target_club_id: club.id })).data).toEqual([]);
   });
 });
+
+describe("atomic writes", () => {
+  const workoutsFor = async (user: TestUser, names: string[]) => {
+    const { data, error } = await service.from("workouts")
+      .insert(names.map((name, sort_order) => ({ user_id: user.id, name: `${stamp}-${name}`, sort_order })))
+      .select("id");
+    expect(error).toBeNull();
+    return data!.map((row: { id: string }) => row.id);
+  };
+  const orderOf = async (ids: string[]) => {
+    const { data } = await service.from("workouts").select("id,sort_order").in("id", ids);
+    return Object.fromEntries((data ?? []).map((row: { id: string; sort_order: number }) => [row.id, row.sort_order]));
+  };
+  const historyFor = async (user: TestUser) => {
+    const { data, error } = await user.client.from("workout_history").insert({ user_id: user.id, workout_name: `${stamp}-credit` }).select("id").single();
+    expect(error).toBeNull();
+    return data!.id as string;
+  };
+  const totalsOf = async (user: TestUser) => {
+    const { data } = await service.from("profiles").select("total_xp,total_pushups,current_streak,longest_streak").eq("user_id", user.id).single();
+    return data!;
+  };
+
+  it("saves a whole new order at once", async () => {
+    const [a, b, c] = await workoutsFor(alpha, ["a", "b", "c"]);
+    expect((await alpha.client.rpc("reorder_workouts", { ordered_ids: [c, a, b] })).error).toBeNull();
+    expect(await orderOf([a, b, c])).toEqual({ [c]: 0, [a]: 1, [b]: 2 });
+  });
+
+  it("changes nothing when the new order includes someone else's workout", async () => {
+    const [a, b] = await workoutsFor(alpha, ["x", "y"]);
+    const [theirs] = await workoutsFor(beta, ["z"]);
+    const { error } = await alpha.client.rpc("reorder_workouts", { ordered_ids: [b, theirs, a] });
+    expect(error).not.toBeNull();
+    expect(await orderOf([a, b])).toEqual({ [a]: 0, [b]: 1 });
+    expect(await orderOf([theirs])).toEqual({ [theirs]: 0 });
+  });
+
+  it("counts a logged session once, however many times the save is retried", async () => {
+    const before = await totalsOf(gamma);
+    const history = await historyFor(gamma);
+    const credit = { history_id: history, totals: { total_xp: 120, total_pushups: 15 }, fields: { current_streak: 2, longest_streak: 2 } };
+    expect((await gamma.client.rpc("credit_session_to_profile", credit)).data).toBe(true);
+    expect((await gamma.client.rpc("credit_session_to_profile", credit)).data).toBe(false);
+    expect(await totalsOf(gamma)).toEqual({
+      total_xp: before.total_xp + 120, total_pushups: before.total_pushups + 15, current_streak: 2, longest_streak: Math.max(2, before.longest_streak),
+    });
+  });
+
+  it("keeps both of two sessions logged at the same time", async () => {
+    const before = await totalsOf(gamma);
+    const [first, second] = await Promise.all([historyFor(gamma), historyFor(gamma)]);
+    const results = await Promise.all([first, second].map((history_id) =>
+      gamma.client.rpc("credit_session_to_profile", { history_id, totals: { total_xp: 50 }, fields: {} })));
+    expect(results.map((result) => result.error)).toEqual([null, null]);
+    expect((await totalsOf(gamma)).total_xp).toBe(before.total_xp + 100);
+  });
+
+  it("refuses unknown counters, negative amounts, and someone else's session", async () => {
+    const history = await historyFor(gamma);
+    for (const totals of [{ prestige: 1 }, { total_xp: -10 }, { total_xp: 1.5 }]) {
+      expect((await gamma.client.rpc("credit_session_to_profile", { history_id: history, totals, fields: {} })).error).not.toBeNull();
+    }
+    expect((await gamma.client.rpc("credit_session_to_profile", { history_id: history, totals: {}, fields: { is_admin: true } })).error).not.toBeNull();
+    expect((await beta.client.rpc("credit_session_to_profile", { history_id: history, totals: { total_xp: 999 }, fields: {} })).error).not.toBeNull();
+    // Nothing above claimed it, so the owner can still log it
+    expect((await gamma.client.rpc("credit_session_to_profile", { history_id: history, totals: {}, fields: {} })).data).toBe(true);
+  });
+
+  it("adds XP on the server, and only for the caller", async () => {
+    const before = await totalsOf(beta);
+    const added = await Promise.all([beta.client.rpc("add_profile_xp", { amount: 30 }), beta.client.rpc("add_profile_xp", { amount: 12 })]);
+    expect(added.map((result) => result.error)).toEqual([null, null]);
+    expect((await totalsOf(beta)).total_xp).toBe(before.total_xp + 42);
+    expect((await beta.client.rpc("add_profile_xp", { amount: -5 })).error).not.toBeNull();
+  });
+
+  it("keeps anonymous callers out of every new write", async () => {
+    expect(isDenied((await anon.rpc("reorder_workouts", { ordered_ids: [] })).error)).toBe(true);
+    expect(isDenied((await anon.rpc("add_profile_xp", { amount: 1 })).error)).toBe(true);
+    expect(isDenied((await anon.rpc("credit_session_to_profile", { history_id: crypto.randomUUID(), totals: {}, fields: {} })).error)).toBe(true);
+  });
+});
