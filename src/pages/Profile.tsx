@@ -25,6 +25,7 @@ import { BadgeCollection } from '@/components/BadgeCollection';
 import { SharedWorkoutsModal } from '@/components/SharedWorkoutsModal';
 import { useGloves } from '@/hooks/useGloves';
 import { GLOVES } from '@/data/gloves';
+import { trustedAvatarUrl } from '@/lib/avatarUrl';
 
 // A big three-across stat, like the numbers under a lower third
 function StatTile({ value, label, lime }: { value: string | number; label: string; lime?: boolean }) {
@@ -89,7 +90,7 @@ const Profile = () => {
   const profileHandle = isOwnProfile 
     ? '@' + (profile?.handle || profile?.name?.toLowerCase().replace(/\s+/g, '') || 'fighter') 
     : '@' + (viewingUser?.handle || viewingUser?.name?.toLowerCase().replace(/\s+/g, '') || 'fighter');
-  const profileAvatar = isOwnProfile ? profile?.avatar_url : viewingUser?.avatar_url;
+  const profileAvatar = trustedAvatarUrl(isOwnProfile ? profile?.avatar_url : viewingUser?.avatar_url);
   // Your own log counts too, since a guest's profile row doesn't track these
   const workoutsCompleted = isOwnProfile ? Math.max(profile?.workouts_completed || 0, history.length) : (viewingUser?.workouts_completed || 0);
   const currentStreak = isOwnProfile ? (profile?.current_streak || 0) : (viewingUser?.current_streak || 0);
@@ -120,7 +121,7 @@ const Profile = () => {
         id: r.user_id,
         name: r.name,
         handle: r.handle ? `@${r.handle}` : `@${r.name.toLowerCase().replace(/\s+/g, '')}`,
-        avatar: r.avatar_url,
+        avatar: trustedAvatarUrl(r.avatar_url),
       }));
     }
     return [];

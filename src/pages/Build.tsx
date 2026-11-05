@@ -1,28 +1,19 @@
 import { useLatest } from '@/hooks/useLatest';
-import { splitStoredPhases } from '@/lib/storedPhases';
-import { useState, useEffect, useMemo } from 'react';
-import { Plus, Trash2, GripVertical, Pencil, X, ChevronDown, ChevronUp, Share2, Search, Check } from 'lucide-react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { Plus, Trash2, GripVertical, X, ChevronDown, Share2, Search, Check } from 'lucide-react';
+import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
-import { BroadcastPage, Plate, plateClass, PlayIcon, Ticker, type PlateTone } from '@/components/broadcast';
-import { toComboMove, type MoveType } from '@/components/broadcast/run/moves';
+import { BroadcastPage, plateClass, PlayIcon, Ticker } from '@/components/broadcast';
+import { toComboMove } from '@/components/broadcast/run/moves';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
-import { useWorkouts, DbWorkout } from '@/hooks/useWorkouts';
+import { useWorkouts } from '@/hooks/useWorkouts';
 import { useUserStore } from '@/stores/userStore';
 import { Workout, WorkoutPhase, WorkoutSegment, SegmentType } from '@/types';
 import { cn } from '@/lib/utils';
-import { 
-  getAllPresets, 
-  getPresetCategories,
-  PUNCH_KEYS_BY_DIFFICULTY, 
-  DEFENSE_KEYS_BY_DIFFICULTY, 
-  MOVEMENT_KEYS_BY_DIFFICULTY,
-  ComboPreset,
-  ComboDifficulty
-} from '@/data/comboPresets';
+import { getAllPresets, getPresetCategories, PUNCH_KEYS_BY_DIFFICULTY, DEFENSE_KEYS_BY_DIFFICULTY, MOVEMENT_KEYS_BY_DIFFICULTY, ComboPreset, ComboDifficulty } from '@/data/comboPresets';
 import { SPEED_BAG_DRILLS } from '@/data/speedBagDrills';
 import { ExercisePickerModal } from '@/components/ExercisePickerModal';
 import { isBuiltinExercise } from '@/data/exerciseCategories';
@@ -33,318 +24,15 @@ import { AIBuilderModal } from '@/components/AIBuilderModal';
 import { useShareWorkout } from '@/hooks/useCommunityPosts';
 import { useClubs } from '@/hooks/useClubs';
 import { toast } from 'sonner';
-import { DndContext, closestCenter, PointerSensor, TouchSensor, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core';
-import { SortableContext, verticalListSortingStrategy, useSortable, arrayMove } from '@dnd-kit/sortable';
-import { CSS } from '@dnd-kit/utilities';
-
-function shouldHandleDragActivation(target: EventTarget | null) {
-  return !(target instanceof Element && target.closest('[data-no-dnd="true"]'));
-}
-
-class BuilderPointerSensor extends PointerSensor {
-  static activators = [
-    {
-      eventName: 'onPointerDown' as const,
-      handler: ({ nativeEvent }: React.PointerEvent) => shouldHandleDragActivation(nativeEvent.target),
-    },
-  ];
-}
-
-class BuilderTouchSensor extends TouchSensor {
-  static activators = [
-    {
-      eventName: 'onTouchStart' as const,
-      handler: ({ nativeEvent }: React.TouchEvent) => shouldHandleDragActivation(nativeEvent.target),
-    },
-  ];
-}
-
-function stopDndEvent(event: React.SyntheticEvent) {
-  event.stopPropagation();
-}
-
-const EXERCISE_ENTRY_PLACEHOLDERS = new Set(['exercise', 'exercise a', 'exercise b']);
-const DEFENSIVE_MOVE_PATTERN = /^(SLIP|ROLL|DUCK|PULL|BLOCK|PARRY|STEP|CIRCLE|PIVOT)/;
-
-function isComboNotationToken(token: string) {
-  return /^\d/.test(token) || DEFENSIVE_MOVE_PATTERN.test(token);
-}
-
-function isComboLibraryEntry(entry: string[]) {
-  return (entry.length === 1 && entry[0] === 'FREESTYLE') || entry.some(isComboNotationToken);
-}
-
-function isTextLibraryEntry(entry: string[]) {
-  return entry.some((token) => !isComboNotationToken(token));
-}
-
-function findNthMatchingIndex(entries: string[][], matcher: (entry: string[]) => boolean, matchPosition: number) {
-  let seenMatches = -1;
-
-  for (let index = 0; index < entries.length; index += 1) {
-    if (!matcher(entries[index])) continue;
-    seenMatches += 1;
-    if (seenMatches === matchPosition) return index;
-  }
-
-  return -1;
-}
-
-type LibraryEntryTarget =
-  | { kind: 'phaseCombo'; comboIndex: number }
-  | { kind: 'segmentName'; segmentId: string }
-  | { kind: 'none' };
-
-function resolveLibraryEntryTarget({
-  phase,
-  segment,
-  ctx,
-  visibleIndex,
-  isSuperset,
-}: {
-  phase: WorkoutPhase;
-  segment: WorkoutSegment;
-  ctx: 'speedbag' | 'combo' | 'exercises';
-  visibleIndex: number;
-  isSuperset: boolean;
-}): LibraryEntryTarget {
-  const phaseCombos = phase.combos || [];
-
-  if (ctx === 'exercises') {
-    const hasStoredExerciseEntries = phaseCombos.length > 0 && phaseCombos.some(isTextLibraryEntry);
-    const hasSegmentBackedEntry = !!segment.name && !EXERCISE_ENTRY_PLACEHOLDERS.has(segment.name.toLowerCase());
-
-    if (isSuperset || !hasStoredExerciseEntries) {
-      return hasSegmentBackedEntry ? { kind: 'segmentName', segmentId: segment.id } : { kind: 'none' };
-    }
-
-    return visibleIndex < phaseCombos.length
-      ? { kind: 'phaseCombo', comboIndex: visibleIndex }
-      : { kind: 'none' };
-  }
-
-  if (!isSuperset) {
-    return visibleIndex < phaseCombos.length
-      ? { kind: 'phaseCombo', comboIndex: visibleIndex }
-      : { kind: 'none' };
-  }
-
-  const matcher = ctx === 'speedbag' ? isTextLibraryEntry : isComboLibraryEntry;
-  const comboIndex = findNthMatchingIndex(phaseCombos, matcher, visibleIndex);
-
-  return comboIndex === -1 ? { kind: 'none' } : { kind: 'phaseCombo', comboIndex };
-}
-
-// Sortable wrapper for phase cards in the builder
-function SortablePhaseWrapper({ id, children }: { id: string; children: (props: { dragHandleProps: React.HTMLAttributes<HTMLElement>; style: React.CSSProperties; setNodeRef: (node: HTMLElement | null) => void; isDragging: boolean }) => React.ReactNode }) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
-  const style = { transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.5 : 1 };
-  return <>{children({ dragHandleProps: { ...attributes, ...listeners }, style, setNodeRef, isDragging })}</>;
-}
-
-// Tones, not colours: the type letter and the timeline read the same way.
-const SEGMENT_TYPES: { key: SegmentType; label: string; name: string; tone: PlateTone }[] = [
-  { key: 'shadowboxing', label: 'S', name: 'Shadowboxing', tone: 'lime' },
-  { key: 'speedbag', label: 'SB', name: 'Speed bag', tone: 'white' },
-  { key: 'combo', label: 'H', name: 'Heavy bag', tone: 'white' },
-  { key: 'doubleend', label: 'DB', name: 'Double end bag', tone: 'white' },
-  { key: 'sparring', label: 'SP', name: 'Sparring', tone: 'lime' },
-  { key: 'exercise', label: 'E', name: 'Exercise', tone: 'steel' },
-  { key: 'rest', label: 'R', name: 'Rest', tone: 'graphite' },
-];
-
-// Punches lean forward on lime, defense leans back, movement stays graphite.
-const MOVE_PLATE: Record<MoveType, { tone: PlateTone; back?: boolean }> = {
-  punch: { tone: 'lime' },
-  defense: { tone: 'white', back: true },
-  movement: { tone: 'graphite' },
-  drill: { tone: 'steel' },
-};
-
-// The Input is a rule by default. This puts on-air type on it.
-const FX_FIELD = '!font-display !font-black italic uppercase leading-none';
-const OPTION = (on: boolean) => cn('plate fx h-11 text-xl', on ? 'plate-white' : 'plate-graphite');
-const tally = (count: number, noun: string) => `${count} ${noun}${count === 1 ? '' : 's'}`;
-const NO_SPINNER = '[appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none';
-
-/** A stored combo or drill, as a row of small plates. */
-function MovePlates({ combo }: { combo: string[] }) {
-  return (
-    <span className="flex flex-wrap gap-x-3 gap-y-1 px-1">
-      {combo.map((move, index) => (
-        <Plate key={index} {...MOVE_PLATE[toComboMove(move).type]} className="min-h-8 min-w-8 !whitespace-normal px-2 py-1 text-xl leading-none">
-          {move}
-        </Plate>
-      ))}
-    </span>
-  );
-}
-
-/** Down, the value, up. */
-function Stepper({ noun, value, onChange, lime }: { noun: string; value: number; onChange: (next: number) => void; lime?: boolean }) {
-  return (
-    <span className="flex items-center gap-1.5">
-      <button
-        type="button"
-        aria-label={`Fewer ${noun}`}
-        disabled={value <= 1}
-        onClick={() => onChange(Math.max(1, value - 1))}
-        className="plate plate-graphite h-11 w-11 disabled:opacity-40"
-      >
-        <ChevronDown className="size-5" />
-      </button>
-      <span className={cn('fx w-9 text-center text-3xl', lime && 'text-volt')}>×{value}</span>
-      <button
-        type="button"
-        aria-label={`More ${noun}`}
-        onClick={() => onChange(value + 1)}
-        className="plate plate-graphite h-11 w-11"
-      >
-        <ChevronUp className="size-5" />
-      </button>
-    </span>
-  );
-}
-
-/** A phase's segments, each as wide as its share of the time. */
-function PhaseTimeline({ segments, tone }: { segments: WorkoutSegment[]; tone: (segment: WorkoutSegment) => PlateTone }) {
-  const total = segments.reduce((sum, segment) => sum + segment.duration, 0);
-  if (total <= 0) return null;
-  return (
-    <div aria-hidden="true" className="flex gap-2.5 px-5 pb-2">
-      {segments.map((segment) => (
-        <span
-          key={segment.id}
-          className={cn(plateClass({ tone: tone(segment) }), 'fx h-8 min-w-0 text-xl')}
-          style={{ flex: `${Math.max(segment.duration, 1)} 1 0` }}
-        >
-          {segment.duration / total >= 0.14 && `${segment.duration}s`}
-        </span>
-      ))}
-    </div>
-  );
-}
-
-const DEFAULT_SEGMENT: Omit<WorkoutSegment, 'id'> = {
-  name: 'Shadowboxing',
-  type: 'active',
-  segmentType: 'shadowboxing',
-  duration: 60,
-};
-
-const DEFAULT_PHASE: Omit<WorkoutPhase, 'id'> = {
-  name: 'Round',
-  repeats: 1,
-  segments: [],
-};
-
-function generateId() {
-  return crypto.randomUUID();
-}
-
-// Sortable combo item component
-function SortableComboItem({ id, combo, index, onEdit, onDelete }: { 
-  id: string; combo: string[]; index: number; onEdit: (i: number) => void; onDelete: (i: number) => void 
-}) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
-  const style = { transform: CSS.Transform.toString(transform), transition };
-
-  const isFreestyle = combo.length === 1 && combo[0] === 'FREESTYLE';
-
-  return (
-    <div
-      ref={setNodeRef}
-      style={style}
-      className={cn(
-        'flex items-center gap-1 border-t border-surface-2 py-1',
-        isDragging && 'relative z-50 bg-surface-2 opacity-50'
-      )}
-    >
-      <div {...attributes} {...listeners} aria-label={`Move entry ${index + 1}`} className="flex h-11 w-8 shrink-0 cursor-grab touch-none items-center justify-center active:cursor-grabbing">
-        <GripVertical className="size-4 text-muted-foreground" />
-      </div>
-      <span className="fx w-6 shrink-0 text-2xl text-volt">{index + 1}</span>
-      <div className="min-w-0 flex-1 px-1">
-        {isFreestyle ? (
-          <Plate tone="steel" className="h-8 px-3 text-xl">Freestyle</Plate>
-        ) : (
-          <MovePlates combo={combo} />
-        )}
-      </div>
-      <button
-        type="button"
-        data-no-dnd="true"
-        aria-label={`Edit entry ${index + 1}`}
-        onClick={(e) => {
-          e.stopPropagation();
-          onEdit(index);
-        }}
-        onPointerDown={stopDndEvent}
-        onPointerDownCapture={stopDndEvent}
-        onMouseDown={stopDndEvent}
-        onMouseDownCapture={stopDndEvent}
-        onTouchStart={stopDndEvent}
-        onTouchStartCapture={stopDndEvent}
-        className="flex h-11 w-9 shrink-0 touch-manipulation items-center justify-center text-muted-foreground hover:text-foreground"
-      >
-        <Pencil className="size-4 pointer-events-none" />
-      </button>
-      <button
-        type="button"
-        data-no-dnd="true"
-        aria-label={`Remove entry ${index + 1}`}
-        onClick={(e) => {
-          e.stopPropagation();
-          onDelete(index);
-        }}
-        onPointerDown={stopDndEvent}
-        onPointerDownCapture={stopDndEvent}
-        onMouseDown={stopDndEvent}
-        onMouseDownCapture={stopDndEvent}
-        onTouchStart={stopDndEvent}
-        onTouchStartCapture={stopDndEvent}
-        className="flex h-11 w-9 shrink-0 touch-manipulation items-center justify-center text-muted-foreground hover:text-destructive"
-      >
-        <Trash2 className="size-4 pointer-events-none" />
-      </button>
-    </div>
-  );
-}
-
-function formatDuration(seconds: number): string {
-  const mins = Math.floor(seconds / 60);
-  const secs = seconds % 60;
-  if (secs === 0) return `${mins}m`;
-  return `${mins}:${secs.toString().padStart(2, '0')}`;
-}
-
-// Helper to convert DB workout phases to local format
-function dbPhasesToLocal(dbWorkout: DbWorkout): { warmup: WorkoutPhase[], grind: WorkoutPhase[], cooldown: WorkoutPhase[], megasetRepeats: number } {
-  const { sections: { warmup, grind, cooldown }, megasetRepeats } = splitStoredPhases(dbWorkout.phases);
-  
-  // Migrate: if top-level combos exist but no phase has combos, attach to first grind phase with combo segments
-  const topLevelCombos: string[][] = dbWorkout.combos || [];
-  const anyPhaseHasCombos = [...warmup, ...grind, ...cooldown].some((p) => p.combos && p.combos.length > 0);
-  
-  if (topLevelCombos.length > 0 && !anyPhaseHasCombos) {
-    // Find first grind phase with combo/shadowboxing segments
-    const targetPhase = grind.find((p) => 
-      p.segments?.some((s) => s.segmentType === 'combo' || s.segmentType === 'shadowboxing')
-    );
-    if (targetPhase) {
-      targetPhase.combos = topLevelCombos;
-    } else if (grind.length > 0) {
-      // Fallback: attach to first grind phase
-      grind[0].combos = topLevelCombos;
-    }
-  }
-  
-  return { warmup, grind, cooldown, megasetRepeats };
-}
+import { DndContext, closestCenter, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core';
+import { SortableContext, verticalListSortingStrategy, arrayMove } from '@dnd-kit/sortable';
+import { SortablePhaseWrapper, MovePlates, Stepper, PhaseTimeline, SortableComboItem } from '@/pages/build/parts';
+import { BuilderPointerSensor, BuilderTouchSensor, resolveLibraryEntryTarget, SEGMENT_TYPES, MOVE_PLATE, FX_FIELD, OPTION, tally, NO_SPINNER, DEFAULT_SEGMENT, DEFAULT_PHASE, generateId, formatDuration, dbPhasesToLocal } from '@/pages/build/model';
 
 const Build = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const location = useLocation();
   const editId = searchParams.get('edit');
   const aiWorkoutData = searchParams.get('ai');
   
@@ -384,8 +72,11 @@ const Build = () => {
   const [comboMode, setComboMode] = useState<'custom' | 'presets'>('presets');
   const [currentCombo, setCurrentCombo] = useState<string[]>([]);
   const [editingComboIndex, setEditingComboIndex] = useState<number | null>(null);
-  // The AI Coach sends you here with its plan, ready to build
-  const coachPrompt = searchParams.get('coachPrompt') ?? undefined;
+  // The AI Coach sends you here with its plan in the navigation state and it builds right away. A
+  // ?coachPrompt= link from anywhere else only fills in the prompt: opening a link mustn't spend a generation.
+  const coachStatePrompt = (location.state as { coachPrompt?: unknown } | null)?.coachPrompt;
+  const coachPrompt = (typeof coachStatePrompt === 'string' ? coachStatePrompt : undefined) ?? searchParams.get('coachPrompt') ?? undefined;
+  const coachAutoStart = typeof coachStatePrompt === 'string';
   const [showAIBuilder, setShowAIBuilder] = useState(!!coachPrompt);
   const [showExercisePicker, setShowExercisePicker] = useState(false);
   const [editingSegmentContext, setEditingSegmentContext] = useState<'speedbag' | 'combo' | 'exercises'>('combo');
@@ -1674,7 +1365,7 @@ const Build = () => {
 
         {/* AI Builder Modal */}
         {showAIBuilder && (
-          <AIBuilderModal onClose={() => setShowAIBuilder(false)} startingPrompt={coachPrompt} />
+          <AIBuilderModal onClose={() => setShowAIBuilder(false)} startingPrompt={coachPrompt} autoStart={coachAutoStart} />
         )}
 
         {/* Share to Fight Club Dialog */}

@@ -61,7 +61,7 @@ describe('the voice lines', () => {
   });
 
   it('cover every phrase the workout screen says as a fixed string', () => {
-    const source = readFileSync('src/pages/WorkoutSession.tsx', 'utf8');
+    const source = readFileSync('src/lib/session/flattenWorkout.ts', 'utf8');
     const body = source.slice(source.indexOf('function segmentAnnouncement'), source.indexOf('function segmentCallout'));
     const said = [...body.matchAll(/(?:return|\?|:) '([^']+)'/g)].map((match) => match[1]);
     expect(said).toContain('Speed Bag Freestyle');

@@ -1,5 +1,6 @@
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.90.1";
+import { createClient, type User } from "https://esm.sh/@supabase/supabase-js@2.90.1";
 import { resolvePublicKey, resolveServiceKey } from "../_shared/keys.ts";
+import { PAGE_SIZE, readAllPages } from "../_shared/pages.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -63,27 +64,44 @@ Deno.serve(async (req) => {
     const url = new URL(req.url);
 
     if (req.method === "GET") {
-      // List all users
-      const { data: authUsers, error: listError } = await supabaseAdmin.auth.admin.listUsers({
-        perPage: 1000,
-      });
-
-      if (listError) {
-        return new Response(JSON.stringify({ error: listError.message }), {
+      // Every user, profile and admin role, a page at a time. Any failed read is an error, not a shorter list:
+      // a missing role row would show an admin as a regular user.
+      type ProfileRow = {
+        user_id: string; name: string | null; handle: string | null; role: string | null; experience_level: string | null;
+        prestige: string | null; current_level: number | null; equipment: unknown; goals: unknown; total_xp: number | null;
+        workouts_completed: number | null; current_streak: number | null; created_at: string;
+      };
+      let authUsers: { users: User[] };
+      let profiles: ProfileRow[];
+      let adminRoles: { user_id: string; role: string }[];
+      try {
+        const [users, profileRows, roleRows] = await Promise.all([
+          readAllPages<User>(async (index) => {
+            const { data, error } = await supabaseAdmin.auth.admin.listUsers({ page: index + 1, perPage: PAGE_SIZE });
+            return { rows: data?.users ?? null, error };
+          }),
+          readAllPages<ProfileRow>(async (_index, from, to) => {
+            const { data, error } = await supabaseAdmin
+              .from("profiles")
+              .select("user_id, name, handle, role, experience_level, prestige, current_level, equipment, goals, total_xp, workouts_completed, current_streak, created_at")
+              .order("user_id")
+              .range(from, to);
+            return { rows: data, error };
+          }),
+          readAllPages<{ user_id: string; role: string }>(async (_index, from, to) => {
+            const { data, error } = await supabaseAdmin.from("user_roles").select("user_id, role").order("user_id").order("role").range(from, to);
+            return { rows: data, error };
+          }),
+        ]);
+        authUsers = { users };
+        profiles = profileRows;
+        adminRoles = roleRows;
+      } catch (error) {
+        return new Response(JSON.stringify({ error: error instanceof Error ? error.message : "Couldn't load users" }), {
           status: 500,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-
-      // Get profiles for additional info
-      const { data: profiles } = await supabaseAdmin
-        .from("profiles")
-        .select("user_id, name, handle, role, experience_level, prestige, current_level, equipment, goals, total_xp, workouts_completed, current_streak, created_at");
-
-      // Get admin roles
-      const { data: adminRoles } = await supabaseAdmin
-        .from("user_roles")
-        .select("user_id, role");
 
       const profileMap = new Map(profiles?.map((p) => [p.user_id, p]) || []);
       const adminSet = new Set(adminRoles?.filter((r) => r.role === "admin").map((r) => r.user_id) || []);

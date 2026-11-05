@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/useAuth';
 import { Prestige, getLevelFromXP } from '@/lib/xpSystem';
 import { isUuid } from '@/lib/uuid';
+import { trustedAvatarUrl } from '@/lib/avatarUrl';
 
 export interface PublicProfile {
   id: string;
@@ -58,7 +59,7 @@ export function usePublicProfile(userId: string | undefined) {
         name: profile.name || 'Fighter',
         handle: profile.handle,
         bio: profile.bio,
-        avatar_url: profile.avatar_url,
+        avatar_url: trustedAvatarUrl(profile.avatar_url),
         role: profile.role || 'fighter',
         total_xp: totalXP,
         current_streak: profile.current_streak || 0,

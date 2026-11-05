@@ -132,6 +132,25 @@ export function useWorkouts() {
     },
   });
 
+  // One more completed run, added on the server so another tab's count isn't overwritten
+  const countCompletion = useMutation({
+    mutationFn: async (id: string) => {
+      if (isGuest) {
+        const { guestWorkouts, updateGuestWorkout } = useWorkoutStore.getState();
+        const current = guestWorkouts.find((workout) => workout.id === id);
+        if (!current) return;
+        updateGuestWorkout(id, { times_completed: (current.times_completed || 0) + 1, last_used_at: new Date().toISOString() });
+        return;
+      }
+      if (!user?.id) throw new Error('Not authenticated');
+      const { error } = await supabase.rpc('count_workout_completion', { target_workout_id: id });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['workouts', user?.id] });
+    },
+  });
+
   const deleteWorkout = useMutation({
     mutationFn: async (id: string) => {
       if (isGuest) return useWorkoutStore.getState().deleteGuestWorkout(id);
@@ -196,5 +215,6 @@ export function useWorkouts() {
     archiveWorkout,
     archivedWorkouts,
     reorderWorkouts,
+    countCompletion,
   };
 }

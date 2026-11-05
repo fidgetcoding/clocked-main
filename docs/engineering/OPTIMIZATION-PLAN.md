@@ -180,3 +180,34 @@ All three functions run as the caller (`SECURITY INVOKER`), are revoked from ano
 
 Still open: profile writes outside session logging (prestige, onboarding, badge progress) remain plain updates; preset seeding across accounts/tabs, `timesCompleted`, dictation late events, admin pagination, the wider security review, file extraction and real-device camera work.
 
+## Batch 5: remaining lost updates and late events
+
+- **Badges.** Awarding used one insert for the whole batch against a unique (user, badge) key, so a badge already saved by another tab or a retried save failed the batch and silently dropped the rest. Duplicates are now skipped (`ON CONFLICT DO NOTHING`).
+- **Starter workout.** The seeded flag was one ref shared by guest and account paths and never reset, so signing in after a guest session, or switching accounts without a reload, never seeded the new account; a profile refetch mid-seed could start a second. Seeding is tracked per person and runs through `seed_first_workout`, which adds it only if the account still has no workouts, under a per-account advisory lock, so two tabs signing in together get one.
+- **Completion count.** A run was marked counted before its fire-and-forget write, so a failed write was never retried, and the write was the browser's copy plus one. `count_workout_completion` adds on the server; the count is marked done only after it succeeds, so End & Save retries a count that failed at the end of the run.
+- **Dictation.** Stopping used `stop()`, which still delivers a pending final result into a form that was just cleared or closed; an older session's error or end could stop a newer one; a refused `start()` left it half on. Stopping now aborts, every event checks it belongs to the current session, and a failed start resets.
+- **Admin users.** The list read one page of 1,000 auth users and one capped read of profiles and roles, and ignored profile/role errors, which could show an admin as a regular user. All three are paged in a stable order until a short page, and any failed page returns an error instead of a shorter list.
+- **Profile writes left as plain updates, deliberately.** Prestige and onboarding set values rather than add to them; glove unlocks are recomputed from level and streak on every check, so a lost write heals itself; badge XP is still paid inside the session total by each tab that sees the badge as new.
+
+## Security review (November 5)
+
+A read-only review of every migration's final state, storage policies, both edge functions and the client found nothing above low severity. Fixed:
+
+- `has_role` answered for any user id, so a signed-in user could list the admins. It now answers only about the caller; every policy and the admin-users function only ever ask about the caller.
+- Private clubs were listed to anyone, including anonymous visitors. They now show only to members and admins; public clubs are unchanged.
+- An avatar URL is a column its owner sets freely, so pointing it at an outside server logged the IP of everyone viewing them. The app now shows only avatars stored in its own avatars bucket.
+- `/build?coachPrompt=…` generated a workout as soon as it opened, so a link could spend someone's daily generations. The in-app coach now hands its plan over in navigation state and still builds right away; a link only fills in the prompt.
+- New tables, sequences and functions created by later migrations no longer inherit grants to `anon`/`authenticated`; each must be granted on purpose.
+
+Not covered: the live project's actual grants (the review read migrations), and how SETUP bootstraps the first admin.
+
+## Batch 6: cleanup without behavior change
+
+- **Punch-tracking refs.** `useRef(new PunchDetector(...))`, `CueQueue`, `FramingMonitor`, `newRound()` and the session `PunchLogRecorder` were built on every render and thrown away; the session screen renders several times a second. Each is now filled once with `ref.current ??= …`.
+- **WorkoutSession.tsx 1,481 → 1,176 lines.** The segment flattening (warmup, Get Ready, megasets of rounds, Recovery, cooldown, combo and drill assignment) and the helpers it shares with the screen moved unchanged to `src/lib/session/flattenWorkout.ts`, now unit tested. Its test found one inconsistency: a one-phase grind repeated as megasets restarted at "Round 1" each megaset, while a multi-phase grind counted on. The round key now includes the megaset.
+- **Build.tsx 1,870 → 1,557 lines.** Drag handling, combo-library lookups, defaults and formatting moved to `src/pages/build/model.ts`; plates, steppers, the phase timeline and sortable rows to `src/pages/build/parts.tsx`.
+- **Badge XP after a reload.** A retried save after a reload credited the resumed run's XP, which no longer counts the badges the first attempt saved. The profile is now credited with the XP its history entry recorded, and the reload test checks the two match exactly.
+- **Tests.** Specs that simulated a failed stats save by intercepting `PATCH /profiles` now intercept `credit_session_to_profile`, and the retry checks also assert XP was credited once. `pauseClock` replaces `clock.pauseAt(new Date())`, which raced the page's running fake clock ("Cannot fast-forward to the past"). `settle` now names the requests that kept a screen busy past 15 seconds.
+
+Both pages are still above the 500-line guideline. Further splits mean moving stateful effects and handlers, which should wait for real-device testing to settle.
+

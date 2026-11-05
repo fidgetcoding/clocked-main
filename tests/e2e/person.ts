@@ -2,7 +2,7 @@
 // stuck spinner, button out of reach or two buttons on top of each other. Nothing here touches the app.
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import type { Page } from "@playwright/test";
+import type { Page, Request } from "@playwright/test";
 
 export const SIZES = {
   smallPhone: { width: 320, height: 568 },
@@ -161,6 +161,9 @@ export async function settle(page: Page): Promise<void> {
     else if (Date.now() - quietSince >= 500) return;
     await page.waitForTimeout(100);
   }
+  // Never quiet: say which requests kept it busy, so a slow run points at its cause
+  const stuck = [...pending].map((request) => (request as Request).url().replace(/^https?:\/\/[^/]+/, "")).slice(0, 5);
+  console.warn(`[settle] still busy after 15s on ${page.url().replace(/^https?:\/\/[^/]+/, "")}: ${stuck.join(" | ")}`);
 }
 
 /**

@@ -768,6 +768,14 @@ export type Database = {
         Args: { ordered_ids: string[] }
         Returns: undefined
       }
+      seed_first_workout: {
+        Args: { seed: Json }
+        Returns: boolean
+      }
+      count_workout_completion: {
+        Args: { target_workout_id: string }
+        Returns: number
+      }
       add_profile_xp: {
         Args: { amount: number }
         Returns: number

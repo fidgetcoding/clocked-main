@@ -1,3 +1,5 @@
+import { trustedAvatarUrl } from '@/lib/avatarUrl';
+
 export interface ClubRow {
   id: string;
   name: string;
@@ -69,7 +71,7 @@ export function rankClubMembers(rows: ClubRankRow[], myUserId: string | undefine
       rank: index + 1,
       userId: row.user_id,
       name: row.name,
-      avatarUrl: row.avatar_url,
+      avatarUrl: trustedAvatarUrl(row.avatar_url),
       xp: row.total_xp,
       isYou: row.user_id === myUserId,
     }));

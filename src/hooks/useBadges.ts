@@ -115,9 +115,10 @@ export function useBadges() {
         xp_rewarded: b.xpReward,
       }));
       
+      // A badge already saved (another tab, or a retried save) is skipped instead of failing the whole batch
       const { data, error } = await supabase
         .from('badges')
-        .insert(rows)
+        .upsert(rows, { onConflict: 'user_id,badge_id', ignoreDuplicates: true })
         .select();
       
       if (error) throw error;

@@ -3,7 +3,7 @@
 import { Page } from "@playwright/test";
 import { expect, test } from "./silent";
 import { finishGuestOnboarding, NO_BACKEND_URL, startTraining } from "./helpers";
-import { playButton, pauseButton, skipButton } from "./controls";
+import { playButton, pauseButton, skipButton, pauseClock } from "./controls";
 
 const summaryTotal = (page: Page) => page.getByText(/^\+[\d,]+$/).first();
 
@@ -47,8 +47,9 @@ test("pressing -30 until a run ends trains nothing and earns nothing", async ({ 
 });
 
 test("waiting out the preparation isn't training", async ({ page }) => {
+  // Paused before the run starts, so not one real millisecond counts on top of the preparation
+  await pauseClock(page);
   await startHomeWorkout(page);
-  await page.clock.pauseAt(new Date());
   // Preparation is 30 seconds. Six minutes also crosses actual training segments.
   await page.clock.fastForward(30_000);
   await finishEarly(page);

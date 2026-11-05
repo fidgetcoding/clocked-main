@@ -4,6 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/useAuth';
 import { Workout } from '@/types';
 import { toast } from 'sonner';
+import { trustedAvatarUrl } from '@/lib/avatarUrl';
 
 export interface CommunityPost {
   id: string;
@@ -83,7 +84,7 @@ export function useCommunityPosts(filter: 'all' | 'following' = 'all', destinati
         ...post,
         workout_data: post.workout_data as unknown as Workout | null,
         user_name: profileMap.get(post.user_id)?.name || 'Fighter',
-        user_avatar: profileMap.get(post.user_id)?.avatar_url || null,
+        user_avatar: trustedAvatarUrl(profileMap.get(post.user_id)?.avatar_url),
       })) as CommunityPost[];
     },
     // Asking for a club's posts with no club yet would otherwise fetch every club's

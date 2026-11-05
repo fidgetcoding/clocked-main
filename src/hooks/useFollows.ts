@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/useAuth';
 import { isUuid } from '@/lib/uuid';
 import { toast } from 'sonner';
+import { trustedAvatarUrl } from '@/lib/avatarUrl';
 
 export interface FollowUser {
   id: string;
@@ -56,7 +57,7 @@ export function useFollows(userId?: string) {
       return (profiles || []).map(p => ({
         id: p.user_id!,
         name: p.name || 'Fighter',
-        avatar: p.avatar_url,
+        avatar: trustedAvatarUrl(p.avatar_url),
         handle: '@' + (p.handle || p.name?.toLowerCase().replace(/\s+/g, '') || 'fighter'),
       })) as FollowUser[];
     },
@@ -87,7 +88,7 @@ export function useFollows(userId?: string) {
       return (profiles || []).map(p => ({
         id: p.user_id!,
         name: p.name || 'Fighter',
-        avatar: p.avatar_url,
+        avatar: trustedAvatarUrl(p.avatar_url),
         handle: '@' + (p.handle || p.name?.toLowerCase().replace(/\s+/g, '') || 'fighter'),
       })) as FollowUser[];
     },

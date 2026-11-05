@@ -4,7 +4,9 @@ import type { PunchEvent } from '@/lib/punch/types';
 
 /** Holds a session's punch log above the camera panel, so that it outlives the camera going off and on. */
 export function useSessionPunchLog(elapsedSeconds: number) {
-  const recorderRef = useRef(new PunchLogRecorder());
+  // Built on the first render only, not on every render and thrown away
+  const recorderRef = useRef<PunchLogRecorder>(null!);
+  recorderRef.current ??= new PunchLogRecorder();
   const elapsedRef = useRef(elapsedSeconds);
   elapsedRef.current = elapsedSeconds;
   const [version, setVersion] = useState(0);

@@ -99,8 +99,8 @@ const History = () => {
     if (!recommendation) return;
     const prompt = recommendationToPrompt(recommendation);
     toast.success('Generating your Coach workout...');
-    // Navigate to build with AI prompt
-    navigate(`/build?coachPrompt=${encodeURIComponent(prompt)}`);
+    // In the navigation state, not the URL: only a tap inside the app may start a generation
+    navigate('/build', { state: { coachPrompt: prompt } });
   };
 
   return (

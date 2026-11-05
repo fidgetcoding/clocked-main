@@ -505,15 +505,15 @@ test.describe("the streak and totals are saved before it says logged", () => {
         await page.waitForTimeout(2200);
         await finishSessionButton(page).click();
       }
-      // The profile update is what fails, after the history entry went in
-      person.allow(/profiles|request failed|Failed to log|Failed to fetch|Failed to load resource: net::ERR_FAILED/);
-      await page.route(/\/rest\/v1\/profiles/, (route) => (route.request().method() === "PATCH" ? route.abort() : route.fallback()));
+      // The stats save is what fails, after the history entry went in
+      person.allow(/credit_session_to_profile|request failed|Failed to log|Failed to fetch|Failed to load resource: net::ERR_FAILED/);
+      await page.route(/\/rest\/v1\/rpc\/credit_session_to_profile/, (route) => route.abort());
       const log = page.getByRole("button", { name: kind === "full set" ? "Log Workout" : "Log Session" });
       await log.click();
       await expect(page.getByText(/Couldn't save your (workout|session)/)).toBeVisible();
       await expect(page.getByText(/(Workout|Session) Logged!/)).toHaveCount(0);
       await person.look("stats save failed");
-      await page.unroute(/\/rest\/v1\/profiles/);
+      await page.unroute(/\/rest\/v1\/rpc\/credit_session_to_profile/);
       await log.click();
       await expect(page.getByText(/(Workout|Session) Logged!/)).toBeVisible();
       await visit(page, `${ACCOUNT_URL}/history`);

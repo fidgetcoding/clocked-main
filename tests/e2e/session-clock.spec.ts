@@ -1,6 +1,6 @@
 import { test, expect } from './silent';
 import { finishGuestOnboarding, NO_BACKEND_URL } from './helpers';
-import { pauseButton, playButton, skipButton } from './controls';
+import { pauseButton, playButton, skipButton, pauseClock } from './controls';
 import type { SessionSnapshot } from '../../src/lib/sessionRecovery';
 
 for (const scenario of [
@@ -29,7 +29,7 @@ test(`a delayed tick matches regular training and XP ${scenario.name}`, async ({
       await page.goto(`${NO_BACKEND_URL}/workout/${id}`);
       await page.getByTestId('run-stage').waitFor();
       await page.clock.install();
-      await page.clock.pauseAt(new Date());
+      await pauseClock(page);
       await playButton(page).click();
       await pauseButton(page).waitFor();
       if (scenario.skipPrep) await skipButton(page).click();

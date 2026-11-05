@@ -2,7 +2,7 @@
 import { readFileSync } from "node:fs";
 import type { Page } from "@playwright/test";
 import { clipsPlayed, expect, soundsPlayed, spokenWords, test } from "./silent";
-import { pauseButton, playButton, skipButton } from "./controls";
+import { pauseButton, playButton, skipButton, pauseClock } from "./controls";
 import { finishGuestOnboarding, NO_BACKEND_URL } from "./helpers";
 
 const voiceSwitch = (page: Page) => page.getByRole("switch", { name: "Coach voice", exact: true });
@@ -207,7 +207,7 @@ test('the first workout announcement plays, and pausing cancels its delayed comb
   await recordingReady;
   await page.getByTestId('run-stage').waitFor();
   await page.clock.install();
-  await page.clock.pauseAt(new Date());
+  await pauseClock(page);
   await playButton(page).click();
   await pauseButton(page).waitFor();
   await skipButton(page).click();

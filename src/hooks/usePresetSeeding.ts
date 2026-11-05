@@ -10,20 +10,22 @@ import { useWorkoutStore } from '@/stores/workoutStore';
 
 /**
  * This hook seeds a single loadout workout for new users based on their
- * experience level and equipment. It runs once — if the user already has
- * workouts, it does nothing.
+ * experience level and equipment. It runs once per account (and once for the
+ * guest) — if the user already has workouts, it does nothing.
  */
 export function usePresetSeeding() {
   const { user, isGuest } = useAuth();
   const { profile } = useProfile();
   const queryClient = useQueryClient();
-  const hasSeededRef = useRef(false);
+  // Whose seed has run or is running. Per person, so signing into another account after a guest
+  // session (or switching accounts) still seeds the new one, and a profile refresh mid-seed can't start a second.
+  const seededFor = useRef<string | null>(null);
 
   useEffect(() => {
-    if (!isGuest || !profile || hasSeededRef.current) return;
+    if (!isGuest || !profile || seededFor.current === 'guest') return;
     if (!useUserStore.getState().hasCompletedOnboarding) return;
 
-    hasSeededRef.current = true;
+    seededFor.current = 'guest';
     const { guestWorkouts, addGuestWorkout } = useWorkoutStore.getState();
     if (guestWorkouts.length > 0) return;
 
@@ -54,28 +56,12 @@ export function usePresetSeeding() {
   }, [isGuest, profile]);
 
   useEffect(() => {
-    if (!user?.id || !profile || hasSeededRef.current) return;
+    if (isGuest || !user?.id || !profile || seededFor.current === user.id) return;
+    const accountId = user.id;
+    seededFor.current = accountId;
 
     const seedLoadout = async () => {
       try {
-        // Check if user already has workouts
-        const { data: existingWorkouts, error: fetchError } = await supabase
-          .from('workouts')
-          .select('id')
-          .eq('user_id', user.id)
-          .limit(1);
-
-        if (fetchError) {
-          console.error('Error checking existing workouts:', fetchError);
-          return;
-        }
-
-        // If user already has workouts, don't seed
-        if (existingWorkouts && existingWorkouts.length > 0) {
-          hasSeededRef.current = true;
-          return;
-        }
-
         // Build equipment config from profile
         const eq = (profile.equipment || {}) as unknown as UserEquipmentConfig;
         const loadoutEquipment: UserEquipmentConfig = {
@@ -92,37 +78,34 @@ export function usePresetSeeding() {
         const experienceLevel = profile.experience_level || 'beginner';
         const loadout = generateLoadoutWorkout(experienceLevel, loadoutEquipment);
 
-        // Insert the single loadout workout
-        const { error: insertError } = await supabase
-          .from('workouts')
-          .insert([{
-            user_id: user.id,
+        // Added only if the account still has no workouts, checked on the server under a per-account lock,
+        // so two tabs signing in at once get one starter workout between them
+        const { data: seeded, error: seedError } = await supabase.rpc('seed_first_workout', {
+          seed: toJson({
             name: loadout.name,
             description: loadout.description,
             duration: loadout.duration,
             difficulty: loadout.difficulty,
-            phases: toJson(loadout.phases),
+            phases: loadout.phases,
             combos: loadout.combos,
             tags: loadout.tags,
-            is_preset: loadout.is_preset,
-            is_archived: false,
-            times_completed: 0,
-          }]);
+          }),
+        });
 
-        if (insertError) {
-          console.error('Error seeding loadout:', insertError);
+        if (seedError) {
+          console.error('Error seeding loadout:', seedError);
+          // Let a later render try again
+          if (seededFor.current === accountId) seededFor.current = null;
           return;
         }
 
-        hasSeededRef.current = true;
-        console.log(`Seeded ${loadout.name} for user`);
-        
-        queryClient.invalidateQueries({ queryKey: ['workouts', user.id] });
+        if (seeded) queryClient.invalidateQueries({ queryKey: ['workouts', accountId] });
       } catch (error) {
         console.error('Error in loadout seeding:', error);
+        if (seededFor.current === accountId) seededFor.current = null;
       }
     };
 
     seedLoadout();
-  }, [user?.id, profile, queryClient]);
+  }, [isGuest, user?.id, profile, queryClient]);
 }

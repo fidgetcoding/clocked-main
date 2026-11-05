@@ -22,6 +22,8 @@ interface AIBuilderModalProps {
   onWorkoutGenerated?: (workout: Workout) => void;
   /** Starts generating from this text as soon as the modal opens. */
   startingPrompt?: string;
+  /** Generate from startingPrompt as soon as the modal opens. Only for prompts handed over inside the app. */
+  autoStart?: boolean;
 }
 
 const SUGGESTION_CHIPS = [
@@ -319,7 +321,7 @@ async function generateWorkoutFromPrompt(
   };
 }
 
-export const AIBuilderModal = ({ onClose, onWorkoutGenerated, startingPrompt }: AIBuilderModalProps) => {
+export const AIBuilderModal = ({ onClose, onWorkoutGenerated, startingPrompt, autoStart = false }: AIBuilderModalProps) => {
   const navigate = useNavigate();
   const user = useUserStore((state) => state.user);
   const { isGuest } = useAuth();
@@ -520,7 +522,7 @@ export const AIBuilderModal = ({ onClose, onWorkoutGenerated, startingPrompt }: 
 
   const startedFromPrompt = useRef(false);
   useEffect(() => {
-    if (!startingPrompt || startedFromPrompt.current) return;
+    if (!startingPrompt || !autoStart || startedFromPrompt.current) return;
     startedFromPrompt.current = true;
     handleGenerate();
     // eslint-disable-next-line react-hooks/exhaustive-deps -- runs once, for the prompt the modal opened with

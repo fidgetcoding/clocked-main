@@ -344,3 +344,63 @@ describe("atomic writes", () => {
     expect(isDenied((await anon.rpc("credit_session_to_profile", { history_id: crypto.randomUUID(), totals: {}, fields: {} })).error)).toBe(true);
   });
 });
+
+describe("seeding and completion counts", () => {
+  const seed = { name: `${stamp}-starter`, duration: 1200, difficulty: "beginner", phases: [{ id: "p", name: "Round", repeats: 1, segments: [] }], combos: [["1", "2"]], tags: ["starter"] };
+
+  it("seeds a starter workout once, even when two tabs ask together", async () => {
+    const fresh = await signIn(`seed-${Date.now()}`);
+    const results = await Promise.all([fresh.client.rpc("seed_first_workout", { seed }), fresh.client.rpc("seed_first_workout", { seed })]);
+    expect(results.map((result) => result.error)).toEqual([null, null]);
+    expect(results.map((result) => result.data).sort()).toEqual([false, true]);
+    const { data } = await service.from("workouts").select("name,is_preset,tags,combos").eq("user_id", fresh.id);
+    expect(data).toEqual([{ name: seed.name, is_preset: true, tags: ["starter"], combos: [["1", "2"]] }]);
+    expect((await fresh.client.rpc("seed_first_workout", { seed })).data).toBe(false);
+  });
+
+  it("refuses a starter with no name, and anonymous callers", async () => {
+    const fresh = await signIn(`seed-bad-${Date.now()}`);
+    expect((await fresh.client.rpc("seed_first_workout", { seed: { duration: 5 } })).error).not.toBeNull();
+    expect(isDenied((await anon.rpc("seed_first_workout", { seed })).error)).toBe(true);
+  });
+
+  it("counts every finished run, including two at once, and only on your own workouts", async () => {
+    const { data: created } = await service.from("workouts").insert({ user_id: alpha.id, name: `${stamp}-counted`, times_completed: 3 }).select("id").single();
+    const results = await Promise.all([1, 2].map(() => alpha.client.rpc("count_workout_completion", { target_workout_id: created!.id })));
+    expect(results.map((result) => result.error)).toEqual([null, null]);
+    const { data } = await service.from("workouts").select("times_completed,last_used_at").eq("id", created!.id).single();
+    expect(data!.times_completed).toBe(5);
+    expect(data!.last_used_at).not.toBeNull();
+    expect((await beta.client.rpc("count_workout_completion", { target_workout_id: created!.id })).error).not.toBeNull();
+    expect(isDenied((await anon.rpc("count_workout_completion", { target_workout_id: created!.id })).error)).toBe(true);
+  });
+});
+
+describe("security review fixes", () => {
+  it("answers has_role only about yourself, so admins can't be enumerated", async () => {
+    await service.from("user_roles").insert({ user_id: gamma.id, role: "admin" });
+    try {
+      expect((await gamma.client.rpc("has_role", { _user_id: gamma.id, _role: "admin" })).data).toBe(true);
+      expect((await alpha.client.rpc("has_role", { _user_id: gamma.id, _role: "admin" })).data).toBe(false);
+    } finally {
+      await service.from("user_roles").delete().eq("user_id", gamma.id);
+    }
+  });
+
+  it("shows a private club only to its members and admins", async () => {
+    const { data: club } = await service.from("clubs").insert({ name: `${stamp}-private`, type: "private" }).select("id").single();
+    await service.from("club_members").insert({ club_id: club!.id, user_id: beta.id });
+    const sees = async (client: typeof anon) => ((await client.from("clubs").select("id").eq("id", club!.id)).data ?? []).length;
+    expect(await sees(anon)).toBe(0);
+    expect(await sees(alpha.client)).toBe(0);
+    expect(await sees(beta.client)).toBe(1);
+    await service.from("user_roles").insert({ user_id: alpha.id, role: "admin" });
+    try {
+      expect(await sees(alpha.client)).toBe(1);
+    } finally {
+      await service.from("user_roles").delete().eq("user_id", alpha.id);
+    }
+    // Public clubs stay visible to everyone
+    expect(((await anon.from("clubs").select("id").eq("type", "public")).data ?? []).length).toBeGreaterThanOrEqual(1);
+  });
+});

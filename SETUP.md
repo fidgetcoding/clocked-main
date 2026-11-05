@@ -106,6 +106,10 @@ Two finishing touches:
 - Set your live URL as the Site URL from step 3, and add it to the Redirect URLs.
 - In `index.html`, change `og:image` and `twitter:image` to the full address of `og-image.png`. Most link previews won't load a relative path.
 
+## Updating your copy
+
+After pulling new code, run `supabase db push` before you deploy. New versions can call database functions that only exist once their migration is applied. `db push` only applies the migrations your project hasn't seen yet.
+
 ## When something's off
 
 | What you see | What it means |
@@ -117,6 +121,7 @@ Two finishing touches:
 | No email arrives | You've hit the built-in email's limits. Back to step 3. |
 | "Too many email requests" | Rate limited. On the built-in email that can take up to an hour to clear. |
 | `permission denied for table` (code 42501) | Migrations are missing. Run `supabase db push` again. |
+| "Couldn't save your workout", or reordering sets fails, right after an update | The new database functions are missing. Run `supabase db push`. |
 | AI workouts feel basic and nothing errors | The function is off or out of quota, and the on-device parser took over. Check your function logs. |
 
 ## Paste this to your agent

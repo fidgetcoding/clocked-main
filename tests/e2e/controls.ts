@@ -17,3 +17,10 @@ export const skipCalibration = async (page: Page) => {
   await page.getByRole("button", { name: "Skip calibration" }).click({ timeout: 20_000 });
   await page.getByTestId("calibration").waitFor({ state: "detached" });
 };
+
+/**
+ * Pause the installed fake clock a second ahead of the page's own time. Pausing at the test's new Date()
+ * races the page clock, which keeps running while the call travels, and Playwright refuses to go backwards.
+ */
+export const pauseClock = async (page: Page) => page.clock.pauseAt(await page.evaluate(() => Date.now() + 1000));
+

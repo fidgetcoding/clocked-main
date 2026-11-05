@@ -58,8 +58,11 @@ const sideOf = (hand: Hand, stance: Stance): HandMark['side'] => ((hand === 'lea
 export function usePunchTracking({ stance, processing = true, onCue, onPoseFrame, onEvent, counting = true, calibrate = true }: Options) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const detectorRef = useRef(new PunchDetector(stance));
-  const roundRef = useRef<RoundState>(newRound());
+  // Each filled on the first render only: useRef(new X()) would build an X on every render and throw it away
+  const detectorRef = useRef<PunchDetector>(null!);
+  detectorRef.current ??= new PunchDetector(stance);
+  const roundRef = useRef<RoundState>(null!);
+  roundRef.current ??= newRound();
   const handMarkRef = useRef<HandMark | null>(null);
   const stanceRef = useRef(stance);
   stanceRef.current = stance;
@@ -71,8 +74,10 @@ export function usePunchTracking({ stance, processing = true, onCue, onPoseFrame
   const calibrationKeyRef = useRef('');
   const [calibration, setCalibration] = useState<CalibrationView | null>(null);
   const setLastStartCheck = usePunchPrefsStore((state) => state.setLastStartCheck);
-  const cuesRef = useRef(new CueQueue());
-  const framingRef = useRef(new FramingMonitor());
+  const cuesRef = useRef<CueQueue>(null!);
+  cuesRef.current ??= new CueQueue();
+  const framingRef = useRef<FramingMonitor>(null!);
+  framingRef.current ??= new FramingMonitor();
   const lumaRef = useRef<number | null>(null);
   const framingStatusRef = useRef<FramingStatus>('ok');
   const lastCueRef = useRef<string | null>(null);
