@@ -27,6 +27,7 @@ import { useAuth } from '@/contexts/useAuth';
 import { promptEmailLink } from '@/lib/guest';
 import { isBackendConfigured } from '@/integrations/supabase/client';
 import { useTierPresets, TierPresetWithLoadout } from '@/hooks/useTierPresets';
+import { DEMO } from '@/lib/demo';
 
 type Tab = 'feed' | 'clubs' | 'presets';
 type ClubTab = 'feed' | 'chat' | 'leaderboard';
@@ -323,7 +324,9 @@ const FightClub = () => {
             {postsLoading && <p className="lab px-4 py-8">Loading posts...</p>}
 
             {/* The community feed is only readable with an account */}
-            {isGuest && <EmptyPlate title="Sign in to see this" body="Sign in with an email link to see the community feed." />}
+            {isGuest && (DEMO
+              ? <EmptyPlate title="Not in the demo" body="The community feed needs accounts, which aren't in the demo yet." />
+              : <EmptyPlate title="Sign in to see this" body="Sign in with an email link to see the community feed." />)}
 
             {!isGuest && !postsLoading && !hasFeedPosts && feedFilter === 'following' && (
               <EmptyPlate title="No posts from people you follow yet." body="Follow more fighters to see their posts here!" />

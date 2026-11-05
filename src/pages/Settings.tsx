@@ -24,6 +24,7 @@ import { GLOVES } from '@/data/gloves';
 import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
 import { useVoiceStore } from '@/stores/voiceStore';
+import { DEMO } from '@/lib/demo';
 
 const Settings = () => {
   const navigate = useNavigate();
@@ -210,7 +211,7 @@ const Settings = () => {
         </section>
 
         {/* Save Your Progress */}
-        {isGuest && (
+        {isGuest && !DEMO && (
           <button
             type="button"
             onClick={() => navigate('/auth')}
