@@ -1,6 +1,6 @@
 # Clocked performance and reliability plan
 
-Baseline: a00af26, November 4, 2026. This is an incremental engineering program, not a claim that every path is audited or optimized. Nate authorized the audit and implementation. Preserve the current product design and reward rules.
+Baseline: a00af26, November 4, 2026. This is an incremental engineering program, not a claim that every path is audited or optimized. I authorized the audit and implementation. Preserve the current product design and reward rules.
 
 ## Acceptance criteria
 
@@ -141,7 +141,7 @@ Remaining audit findings: getSession rejection UX still needs review; camera sta
 
 - WebKit: 61 cases passed initially. The remaining camera-cleanup assertion used an instance-level stop spy that WebKit discarded across native wrappers. Inspection confirmed the track was actually ended. The corrected test asserts a live track before leaving and an ended track afterward; it passed on Chromium, Firefox, and WebKit. This changes test observation, not camera implementation.
 - Live site: phone/laptop mute and all 180 recording decodes passed. The pause-cancellation test also passed after explicitly waiting for the recording preload, so it tests recorded playback rather than racing the manifest's synthetic fallback.
-- Local runtime sample: production preview, headless Chromium, 390×844, camera off, silent audio, no CPU/network throttling. Three 10-second samples (running, paused, resumed after skip) yielded approximately 60 animation callbacks/second, p95 callback gaps of 16.7–16.8 ms, and zero observed tasks over 50 ms. This measures animation callback cadence on this Mac, not physical-device rendering, inference performance, battery life, or a before/after speedup. Raw results: WORK/CLOCKED-OPTIMIZATION-20261104/runtime-sample.json.
+- Local runtime sample: production preview, headless Chromium, 390×844, camera off, silent audio, no CPU/network throttling. Three 10-second samples (running, paused, resumed after skip) yielded approximately 60 animation callbacks/second, p95 callback gaps of 16.7 to 16.8 ms, and zero observed tasks over 50 ms. This measures animation callback cadence on this Mac, not physical-device rendering, inference performance, battery life, or a before/after speedup. Raw results: WORK/CLOCKED-OPTIMIZATION-20261104/runtime-sample.json.
 - Entry module inspection identifies drag-and-drop, routing, styling utilities, toast UI, and onboarding among the large retained dependencies. Keep keyboard/touch behavior intact before considering changes. The current entry is 536,023 raw bytes; the correctness fixes retained the earlier approximately 44% reduction.
 - Additional persistence review: history lists omit heavy punch detail and load it on demand; guest detail is capped to the newest 20 sessions, and individual punch logs cap detailed entries at 5,000. Preserve these limits. Profile/XP writes and preset seeding still need cross-tab concurrency tests; client-side guards alone are not database transactions.
 
