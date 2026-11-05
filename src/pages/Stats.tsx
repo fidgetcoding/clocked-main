@@ -223,10 +223,6 @@ const Stats = () => {
 
         {/* Lower third: who you are on the card */}
         <section className="relative overflow-hidden pt-3">
-          <GloveArt
-            id={equippedGloveData.id}
-            className="pointer-events-none absolute -right-8 top-0 size-52 mix-blend-screen sm:size-64"
-          />
           <div className="relative px-4">
             <p className="lab lab-lime">{PRESTIGE_NAMES[prestige]} tier</p>
             <p className="fx mt-1 text-[clamp(4rem,22vw,6.5rem)] leading-[0.86]">{RANKING_NAMES[ranking]}</p>
@@ -247,10 +243,14 @@ const Stats = () => {
           <button
             type="button"
             onClick={() => navigate('/gloves')}
-            className="relative mt-1 flex min-h-11 w-full flex-wrap items-baseline justify-between gap-x-3 px-4 py-2 text-left transition-colors hover:bg-surface-1"
+            className="relative mt-1 flex min-h-11 w-full items-center gap-3 px-4 py-2 text-left transition-colors hover:bg-surface-1"
           >
-            <span className="fx text-2xl">{equippedGloveData.name}</span>
-            <span className="lab lab-w shrink-0">{unlockedGloves.length}/52 Gloves Unlocked</span>
+            {/* Small, in its own row: the art is 256px and blurs when blown up behind the level */}
+            <GloveArt id={equippedGloveData.id} className="size-14 shrink-0" />
+            <span className="flex min-w-0 flex-1 flex-wrap items-baseline justify-between gap-x-3">
+              <span className="fx text-2xl">{equippedGloveData.name}</span>
+              <span className="lab lab-w shrink-0">{unlockedGloves.length}/52 Gloves Unlocked</span>
+            </span>
           </button>
         </section>
 

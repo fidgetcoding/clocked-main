@@ -39,24 +39,14 @@ test("live training and coach tools say coming soon instead of pretending", asyn
   const pageErrors: string[] = [];
   page.on("pageerror", (error) => pageErrors.push(error.message));
 
-  await test.step("the feed labels live training and offers nothing to watch", async () => {
+  // The public build is a demo (src/lib/demo.ts), so live training stays off the feed entirely
+  await test.step("the demo feed leaves live training out and offers nothing to watch", async () => {
     await finishGuestOnboarding(page, NO_BACKEND_URL, "Placeholder Check");
     await page.goto(`${NO_BACKEND_URL}/fight-club`);
-    const card = page.getByTestId("live-training-placeholder");
-    await expect(card).toContainText("Coming soon");
+    await page.getByText("Not in the demo").waitFor();
+    await expect(page.getByTestId("live-training-placeholder")).toHaveCount(0);
     await expect(page.getByRole("button", { name: "Watch" })).toHaveCount(0);
     await expect(page.getByText("LIVE", { exact: true })).toHaveCount(0);
-  });
-
-  await test.step("the preview says it's a preview, with no viewers or chat to mistake for real", async () => {
-    await page.getByRole("button", { name: "See the preview" }).click();
-    const preview = page.getByTestId("live-stream-preview");
-    await expect(preview).toContainText("Nothing is streaming and nobody is watching.");
-    await expect(preview.getByRole("textbox")).toHaveCount(0);
-    await expect(preview.getByText("Live Chat")).toHaveCount(0);
-    await expect(preview.getByRole("button")).toHaveText(["Close"]);
-    await preview.getByRole("button", { name: "Close" }).click();
-    await expect(preview).toHaveCount(0);
   });
 
   await test.step("coach sign-up promises nothing and asks for nothing it can't save", async () => {

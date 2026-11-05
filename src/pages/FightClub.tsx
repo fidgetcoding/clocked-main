@@ -296,7 +296,7 @@ const FightClub = () => {
 
             {/* Not built yet, and labelled as such rather than faked with a demo stream */}
             {showLivePreview && <LiveStreamPreview onClose={() => setShowLivePreview(false)} />}
-            {feedFilter === 'all' && (
+            {feedFilter === 'all' && !DEMO && (
               <section className="mt-3 border-l-4 border-surface-3 bg-surface-1 px-4 py-3" data-testid="live-training-placeholder">
                 <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
                   <h3 className="fx text-3xl">Live training</h3>

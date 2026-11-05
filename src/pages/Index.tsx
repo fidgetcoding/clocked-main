@@ -17,7 +17,7 @@ import {
   sortableKeyboardCoordinates,
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
-import { BroadcastPage, EmptyPlate, FitText, LevelBar, PlayIcon, SectionChyron, TaleOfTape } from '@/components/broadcast';
+import { BroadcastPage, EmptyPlate, LevelBar, SectionChyron, TaleOfTape } from '@/components/broadcast';
 import { buttonVariants } from '@/components/ui/button-variants';
 import { useProfile } from '@/hooks/useProfile';
 import { useWorkoutHistory } from '@/hooks/useWorkoutHistory';
@@ -79,6 +79,7 @@ const Index = () => {
     ? 'Quick Session'
     : workouts.find((w) => w.id === savedSession?.workoutId)?.name;
   const displayWorkouts = localWorkouts ?? activeWorkouts;
+  // The first set on the card, highlighted in Your Sets
   const mainEvent = isReorderMode ? null : activeWorkouts[0];
   const tape = weeklyTape(history);
   const fighterName = profile?.name?.split(' ')[0] || user?.name?.split(' ')[0] || 'You';
@@ -198,25 +199,9 @@ const Index = () => {
           )}
         </section>
 
-        {/* Main event: the first set on the card */}
-        {mainEvent && (
-          <section className="mt-3 overflow-hidden">
-            <div className="plate plate-lime plate-bleed-l plate-bleed-r flex min-h-[6rem] w-full justify-between gap-3 px-4 py-2">
-              <span className="min-w-0 flex-1 text-left">
-                <span className="block text-[0.8125rem] font-bold uppercase tracking-[0.11em]">
-                  {Math.floor(mainEvent.duration / 60)} min
-                </span>
-                <FitText className="fx mt-1 h-12" max={60}>{mainEvent.name}</FitText>
-              </span>
-              <button
-                type="button"
-                onClick={() => navigate(`/workout/${mainEvent.id}`)}
-                aria-label={`Start ${mainEvent.name}`}
-                className="plate plate-black h-14 w-16 shrink-0 text-volt"
-              >
-                <PlayIcon className="size-6" />
-              </button>
-            </div>
+        {profile && (
+          <section className="mt-3 px-4">
+            <LevelBar level={profile.current_level || 1} percent={getLevelProgress(profile.prestige, profile.current_level || 1, profile.total_xp || 0)} />
           </section>
         )}
 
@@ -238,11 +223,6 @@ const Index = () => {
               {item.sub && <span className="lab self-center text-right">{item.sub}</span>}
             </button>
           ))}
-          {profile && (
-            <div className="px-4 pt-3">
-              <LevelBar level={profile.current_level || 1} percent={getLevelProgress(profile.prestige, profile.current_level || 1, profile.total_xp || 0)} />
-            </div>
-          )}
         </section>
 
         {/* Your Sets */}
@@ -305,6 +285,7 @@ const Index = () => {
                       workout={workout}
                       onDelete={setWorkoutToDelete}
                       isReorderMode={isReorderMode}
+                      featured={workout.id === mainEvent?.id}
                     />
                   ))}
                 </SortableContext>

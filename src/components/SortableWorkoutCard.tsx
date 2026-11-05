@@ -11,6 +11,8 @@ interface SortableWorkoutCardProps {
   workout: DbWorkout;
   onDelete: (id: string) => void;
   isReorderMode: boolean;
+  /** The first set on the card, lit up as the one to start */
+  featured?: boolean;
 }
 
 function formatDuration(seconds: number): string {
@@ -24,7 +26,7 @@ function getWorkoutStats(workout: DbWorkout) {
   return { totalPhases };
 }
 
-export function SortableWorkoutCard({ workout, onDelete, isReorderMode }: SortableWorkoutCardProps) {
+export function SortableWorkoutCard({ workout, onDelete, isReorderMode, featured }: SortableWorkoutCardProps) {
   const navigate = useNavigate();
   const { totalPhases } = getWorkoutStats(workout);
 
@@ -48,6 +50,7 @@ export function SortableWorkoutCard({ workout, onDelete, isReorderMode }: Sortab
       style={style}
       className={cn(
         'border-b border-surface-2 px-4 py-2.5',
+        featured && 'border-transparent bg-volt text-tech-black [&_.lab]:text-tech-black/70',
         isDragging && 'relative z-50 bg-surface-2',
         isReorderMode && 'cursor-grab active:cursor-grabbing'
       )}
@@ -84,7 +87,7 @@ export function SortableWorkoutCard({ workout, onDelete, isReorderMode }: Sortab
               onClick={(e) => { e.stopPropagation(); navigate(`/build?edit=${workout.id}`); }}
               onPointerDown={(e) => e.stopPropagation()}
               aria-label={`Edit ${workout.name}`}
-              className="flex h-11 w-11 items-center justify-center text-muted-foreground hover:text-foreground"
+              className={cn('flex h-11 w-11 items-center justify-center', featured ? 'text-tech-black/70 hover:text-tech-black' : 'text-muted-foreground hover:text-foreground')}
             >
               <Pencil className="w-4 h-4" />
             </button>
@@ -92,14 +95,14 @@ export function SortableWorkoutCard({ workout, onDelete, isReorderMode }: Sortab
               onClick={(e) => { e.stopPropagation(); onDelete(workout.id); }}
               onPointerDown={(e) => e.stopPropagation()}
               aria-label={`Remove ${workout.name}`}
-              className="flex h-11 w-11 items-center justify-center text-muted-foreground hover:text-destructive"
+              className={cn('flex h-11 w-11 items-center justify-center hover:text-destructive', featured ? 'text-tech-black/70' : 'text-muted-foreground')}
             >
               <Trash2 className="w-4 h-4" />
             </button>
             <button
               onClick={() => navigate(`/workout/${workout.id}`)}
               aria-label={`Start ${workout.name}`}
-              className="plate plate-lime h-11 w-14"
+              className={cn('plate h-11 w-14', featured ? 'plate-black text-volt' : 'plate-lime')}
             >
               <PlayIcon className="size-4" />
             </button>

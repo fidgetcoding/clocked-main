@@ -213,7 +213,13 @@ const Profile = () => {
             {photo ? (
               <img src={photo} alt={profileName} className="h-full w-full object-cover" />
             ) : (
-              <GloveArt id={equippedGloveData.id} className="h-full w-full object-cover" />
+              // The art is 256px, so it stays small enough to keep sharp, with its square backdrop faded out
+              <div className="flex h-full items-center justify-center pl-[1.625rem]">
+                <GloveArt
+                  id={equippedGloveData.id}
+                  className="max-h-[85%] w-[min(70%,9rem)] object-contain [mask-image:radial-gradient(closest-side,#000_80%,transparent)]"
+                />
+              </div>
             )}
           </div>
           <div className="relative pb-3 pt-2">
