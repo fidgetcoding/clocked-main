@@ -53,7 +53,6 @@ import { LevelUpOverlay } from '@/components/ui/LevelUpOverlay';
 import { PostWorkoutSummary, SessionXPBreakdown } from '@/components/workout/PostWorkoutSummary';
 import { usePostWorkoutComplete } from '@/hooks/useCommunityPosts';
 import { splitSessionTick, wholeSecondsSince } from '@/lib/sessionClock';
-import { usePunchPrefsStore } from '@/stores/punchPrefsStore';
 import type { PunchSessionReport } from '@/lib/punch/round';
 import { dbWorkoutToLocal, flattenWorkout, formatTime, formatTimeCompact, segmentAnnouncement, segmentCallout, type FlatSegment } from '@/lib/session/flattenWorkout';
 
@@ -156,8 +155,8 @@ const WorkoutSession = () => {
   const [levelUpLevel, setLevelUpLevel] = useState<number | null>(null);
   const [punchSummary, setPunchSummary] = useState<PunchSessionReport | null>(null);
   const [cameraSession, setCameraSession] = useState(0);
-  const cameraOn = usePunchPrefsStore((state) => state.workoutCamera);
-  const setCameraOn = usePunchPrefsStore((state) => state.setWorkoutCamera);
+  // Every session starts with the camera on, so calibration comes first. Turning it off lasts this session only
+  const [cameraOn, setCameraOn] = useState(true);
   const [feed, setFeed] = useState<CameraFeedState | null>(null);
   const [feedProblemDismissed, setFeedProblemDismissed] = useState(false);
   const [sessionResult, setSessionResult] = useState<SessionXPBreakdown | null>(null);

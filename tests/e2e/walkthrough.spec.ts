@@ -294,6 +294,10 @@ test.describe("things a person noticed", () => {
       await page.setViewportSize(SIZES[sizeName]);
       await guestStart(watch(page, `slant-${sizeName}`));
       await page.getByRole("button", { name: /^Start /, exact: false }).first().click();
+      // Every session starts with the camera on. The column beside the clock is the camera-off layout
+      const camera = page.getByTestId("run-stage").getByRole("switch", { name: "Punch camera" });
+      await camera.click();
+      await expect(camera).toHaveAttribute("aria-checked", "false");
       const clockRight = await page.getByTestId("run-clock").evaluate((clock) =>
         Math.max(...[clock, ...clock.querySelectorAll("*")].map((el) => el.getBoundingClientRect().right)),
       );

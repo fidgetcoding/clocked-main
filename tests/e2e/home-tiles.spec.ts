@@ -8,6 +8,7 @@ test("Home shows the tile titles without slot tags, and the main set's length on
   for (const title of ["QUICK SESSION", "PUNCH CHECK", "CREATE SET", "WORKOUT LOG"]) {
     await expect(page.getByRole("button", { name: new RegExp(`^${title}`) })).toBeVisible();
   }
-  await expect(page.getByText(/^\d+ min$/).first()).toBeVisible();
+  // The set rows give each set's length, e.g. "12 MIN"
+  await expect(page.getByText(/^\d+ min$/i).first()).toBeVisible();
   await expect(page.getByText(/Next up/)).toHaveCount(0);
 });

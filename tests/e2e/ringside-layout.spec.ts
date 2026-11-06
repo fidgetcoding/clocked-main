@@ -94,12 +94,6 @@ for (const viewport of SIZES) {
       await page.setViewportSize(viewport);
       await page.addInitScript(fakeCamera);
       await onboard(page);
-      await page.evaluate((on) => {
-        localStorage.setItem(
-          "get-clocked-punch-prefs",
-          JSON.stringify({ state: { roundSeconds: 0, voiceCues: false, quickSessionCamera: on, workoutCamera: on }, version: 0 }),
-        );
-      }, camera);
       await page.goto(base);
       await playButton(page).click();
       await page.waitForURL("**/workout/**");
@@ -114,6 +108,11 @@ for (const viewport of SIZES) {
         for (const button of await calibration.getByRole("button").all()) expect((await button.boundingBox())!.height).toBeGreaterThanOrEqual(44);
         await noSidewaysScroll(page);
         await skipCalibration(page);
+      } else {
+        // Every session starts with the camera on. This run turns it off, the way someone training without it would
+        const toggle = page.getByTestId("run-stage").getByRole("switch", { name: "Punch camera" });
+        await toggle.click();
+        await expect(toggle).toHaveAttribute("aria-checked", "false");
       }
       await controlsAreClear(page);
       await playButton(page).click();

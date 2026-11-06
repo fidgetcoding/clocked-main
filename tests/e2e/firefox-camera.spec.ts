@@ -23,9 +23,6 @@ test("in Firefox, an unanswered camera prompt doesn't keep you from starting", a
   await page.setViewportSize({ width: 1280, height: 800 });
   expect(await page.evaluate(() => navigator.userAgent)).toContain("Firefox");
   await finishGuestOnboarding(page, NO_BACKEND_URL, "Firefox");
-  await page.evaluate(() =>
-    localStorage.setItem("get-clocked-punch-prefs", JSON.stringify({ state: { roundSeconds: 0, voiceCues: false, quickSessionCamera: true, workoutCamera: true }, version: 0 })),
-  );
   await page.goto(`${NO_BACKEND_URL}/quick-session`);
   // CI's Linux Firefox can answer the camera prompt by itself, so "Train without camera" may never show there.
   // What must hold everywhere: Start becomes usable whether or not the prompt is answered.

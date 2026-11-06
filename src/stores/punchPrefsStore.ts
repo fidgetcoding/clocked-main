@@ -8,13 +8,7 @@ interface PunchPrefs {
   setLastStartCheck: (result: StartCheckResult) => void;
   /** 0 means no timer. */
   roundSeconds: number;
-  /** Camera on during Quick Session. On unless they turn it off. */
-  quickSessionCamera: boolean;
-  /** Camera on during workouts. Off unless they turn it on. */
-  workoutCamera: boolean;
   setRoundSeconds: (roundSeconds: number) => void;
-  setQuickSessionCamera: (on: boolean) => void;
-  setWorkoutCamera: (on: boolean) => void;
 }
 
 export const usePunchPrefsStore = create<PunchPrefs>()(
@@ -23,11 +17,7 @@ export const usePunchPrefsStore = create<PunchPrefs>()(
       lastStartCheck: null,
       setLastStartCheck: (lastStartCheck) => set({ lastStartCheck }),
       roundSeconds: 0,
-      quickSessionCamera: true,
-      workoutCamera: false,
       setRoundSeconds: (roundSeconds) => set({ roundSeconds }),
-      setQuickSessionCamera: (quickSessionCamera) => set({ quickSessionCamera }),
-      setWorkoutCamera: (workoutCamera) => set({ workoutCamera }),
     }),
     { name: 'get-clocked-punch-prefs' },
   ),

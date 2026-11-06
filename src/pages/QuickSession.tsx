@@ -32,7 +32,6 @@ import { useSoundEffects } from '@/hooks/useSoundEffects';
 import { computePostLogStats, punchCountIncrements } from '@/lib/workoutTracking';
 import { wholeSecondsSince } from '@/lib/sessionClock';
 import { MIN_REWARD_SECONDS, qualifiesForRewards } from '@/lib/sessionEffort';
-import { usePunchPrefsStore } from '@/stores/punchPrefsStore';
 import { PunchLogDetails, PunchLogLive } from '@/components/punch/PunchLogView';
 import { CameraBoundary } from '@/components/errors/CameraBoundary';
 import { useSessionPunchLog } from '@/hooks/useSessionPunchLog';
@@ -84,8 +83,8 @@ const QuickSession = () => {
   }, []);
   const punchLog = useSessionPunchLog(totalElapsed);
   const { snapshot: punchSnapshot, restore: restorePunchLog, endRound: endPunchRound } = punchLog;
-  const cameraOn = usePunchPrefsStore((state) => state.quickSessionCamera);
-  const setCameraOn = usePunchPrefsStore((state) => state.setQuickSessionCamera);
+  // Every session starts with the camera on, so calibration comes first. Turning it off lasts this session only
+  const [cameraOn, setCameraOn] = useState(true);
   const [feed, setFeed] = useState<CameraFeedState | null>(null);
   const [feedProblemDismissed, setFeedProblemDismissed] = useState(false);
 

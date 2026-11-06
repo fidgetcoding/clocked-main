@@ -157,13 +157,11 @@ test("Punch Check calibrates before the round, and its clock waits", async ({ pa
   await expect(page.getByTestId("punch-count")).toHaveText("0");
 });
 
-test("a workout opens on calibration too, and it can be skipped", async ({ page }) => {
+test("a workout opens with the camera on and calibration first, and it can be skipped", async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 800 });
   await fakeBody(page);
   await finishGuestOnboarding(page, NO_BACKEND_URL, "Workout Calibrator");
-  await page.evaluate(() =>
-    localStorage.setItem("get-clocked-punch-prefs", JSON.stringify({ state: { roundSeconds: 0, voiceCues: false, quickSessionCamera: true, workoutCamera: true }, version: 0 })),
-  );
+  // No saved camera choice: every session starts with the camera on
   await page.goto(NO_BACKEND_URL);
   await playButton(page).click();
   await page.waitForURL("**/workout/**");

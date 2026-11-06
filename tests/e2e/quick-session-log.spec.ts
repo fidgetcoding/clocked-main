@@ -276,9 +276,6 @@ test("End & Save on a full workout puts an account's session, punch log and XP i
   await requestSignInEmail(page, APP_URL, email);
   await clickNewestEmailLink(page, email);
   await finishAccountOnboarding(page, "Log Workout Leaver");
-  await page.evaluate(() =>
-    localStorage.setItem("get-clocked-punch-prefs", JSON.stringify({ state: { roundSeconds: 0, voiceCues: false, quickSessionCamera: true, workoutCamera: true }, version: 0 })),
-  );
   await page.goto(APP_URL);
   await playButton(page).click();
   await page.waitForURL("**/workout/**");
